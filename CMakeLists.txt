@@ -56,6 +56,7 @@ else()
 endif()
 
 install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
         src/rct/Event.h
         src/rct/EventLoop.h
         src/rct/EventReceiver.h
@@ -87,7 +88,6 @@ install(FILES
         src/rct/ThreadPool.h
         src/rct/WaitCondition.h
         src/rct/WriteLocker.h
-        ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
         DESTINATION include/rct)
 
 install(EXPORT "rct" DESTINATION lib/cmake)

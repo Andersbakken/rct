@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <errno.h>
-#include "String.h"
-#include "Path.h"
-#include "List.h"
+#include <rct/String.h>
+#include <rct/Path.h>
+#include <rct/List.h>
 
 namespace Rct {
 String shortOptions(const option *longOptions);

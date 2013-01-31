@@ -1,7 +1,7 @@
 #ifndef SHA256_H
 #define SHA256_H
 
-#include "String.h"
+#include <rct/String.h>
 
 class SHA256Private;
 

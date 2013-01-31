@@ -1,8 +1,8 @@
 #ifndef WAITCONDITION_H
 #define WAITCONDITION_H
 
-#include "Mutex.h"
-#include "Log.h"
+#include <rct/Mutex.h>
+#include <rct/Log.h>
 #include <errno.h>
 #include <time.h>
 

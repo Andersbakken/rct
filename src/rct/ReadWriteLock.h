@@ -1,8 +1,8 @@
 #ifndef READWRITELOCK_H
 #define READWRITELOCK_H
 
-#include "Mutex.h"
-#include "WaitCondition.h"
+#include <rct/Mutex.h>
+#include <rct/WaitCondition.h>
 
 class ReadWriteLock
 {

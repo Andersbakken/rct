@@ -1,14 +1,14 @@
 #ifndef FileSystemWatcher_h
 #define FileSystemWatcher_h
 
-#include "config.h"
-#include "Path.h"
-#include "Map.h"
-#include "Mutex.h"
-#include "SignalSlot.h"
+#include <rct/rct-config.h>
+#include <rct/Path.h>
+#include <rct/Map.h>
+#include <rct/Mutex.h>
+#include <rct/SignalSlot.h>
 #include <stdint.h>
 #ifdef HAVE_FSEVENTS
-#include "CoreServices/CoreServices.h"
+#include <rct/CoreServices/CoreServices.h>
 
 class WatcherThread;
 class WatcherReceiver;

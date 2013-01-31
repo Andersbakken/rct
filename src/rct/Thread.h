@@ -2,8 +2,8 @@
 #define THREAD_H
 
 #include <pthread.h>
-#include "Mutex.h"
-#include "MutexLocker.h"
+#include <rct/Mutex.h>
+#include <rct/MutexLocker.h>
 
 class Thread
 {

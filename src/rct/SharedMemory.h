@@ -1,7 +1,7 @@
 #ifndef SHAREDMEMORY_H
 #define SHAREDMEMORY_H
 
-#include "Path.h"
+#include <rct/Path.h>
 
 class SharedMemory
 {

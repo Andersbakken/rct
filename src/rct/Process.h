@@ -1,11 +1,11 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include "String.h"
-#include "EventReceiver.h"
-#include "Path.h"
-#include "List.h"
-#include "SignalSlot.h"
+#include <rct/String.h>
+#include <rct/EventReceiver.h>
+#include <rct/Path.h>
+#include <rct/List.h>
+#include <rct/SignalSlot.h>
 #include <deque>
 
 class Process : public EventReceiver

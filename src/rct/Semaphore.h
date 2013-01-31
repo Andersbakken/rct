@@ -1,7 +1,7 @@
 #ifndef SEMAPHORE_H
 #define SEMAPHORE_H
 
-#include "Path.h"
+#include <rct/Path.h>
 
 class Semaphore
 {

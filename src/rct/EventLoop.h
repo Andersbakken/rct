@@ -1,9 +1,9 @@
 #ifndef EVENTLOOP_H
 #define EVENTLOOP_H
 
-#include "Mutex.h"
-#include "WaitCondition.h"
-#include "Thread.h"
+#include <rct/Mutex.h>
+#include <rct/WaitCondition.h>
+#include <rct/Thread.h>
 #include <deque>
 #include <sys/time.h>
 

@@ -1,7 +1,7 @@
 #ifndef READLOCKER_H
 #define READLOCKER_H
 
-#include "ReadWriteLock.h"
+#include <rct/ReadWriteLock.h>
 
 class ReadLocker
 {

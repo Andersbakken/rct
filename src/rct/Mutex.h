@@ -1,8 +1,8 @@
 #ifndef MUTEX_H
 #define MUTEX_H
 
-#include "Log.h"
-#include "StopWatch.h"
+#include <rct/Log.h>
+#include <rct/StopWatch.h>
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>

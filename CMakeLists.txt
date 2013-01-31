@@ -38,47 +38,57 @@ check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/rct-config.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
 
 add_library(rct STATIC ${SOURCES})
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 
+include(CheckCXXCompilerFlag)
+if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX_0X)
+  if(COMPILER_SUPPORTS_CXX_0X)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+  endif()
+else()
+  add_definitions(-D_DARWIN_UNLIMITED_SELECT)
+endif()
+
 install(FILES
-        src/Event.h
-        src/EventLoop.h
-        src/EventReceiver.h
-        src/FastDelegate.h
-        src/FileSystemWatcher.h
-        src/List.h
-        src/Log.h
-        src/Map.h
-        src/Memory.h
-        src/MemoryMonitor.h
-        src/Mutex.h
-        src/MutexLocker.h
-        src/Path.h
-        src/Process.h
-        src/Rct.h
-        src/ReadLocker.h
-        src/ReadWriteLock.h
-        src/RegExp.h
-        src/SHA256.h
-        src/Semaphore.h
-        src/Serializer.h
-        src/Set.h
-        src/SharedMemory.h
-        src/SignalSlot.h
-        src/StopWatch.h
-        src/String.h
-        src/Thread.h
-        src/ThreadLocal.h
-        src/ThreadPool.h
-        src/WaitCondition.h
-        src/WriteLocker.h
-        ${CMAKE_CURRENT_BINARY_DIR}/include/config.h
-        DESTINATION include)
+        src/rct/Event.h
+        src/rct/EventLoop.h
+        src/rct/EventReceiver.h
+        src/rct/FastDelegate.h
+        src/rct/FileSystemWatcher.h
+        src/rct/List.h
+        src/rct/Log.h
+        src/rct/Map.h
+        src/rct/Memory.h
+        src/rct/MemoryMonitor.h
+        src/rct/Mutex.h
+        src/rct/MutexLocker.h
+        src/rct/Path.h
+        src/rct/Process.h
+        src/rct/Rct.h
+        src/rct/ReadLocker.h
+        src/rct/ReadWriteLock.h
+        src/rct/RegExp.h
+        src/rct/SHA256.h
+        src/rct/Semaphore.h
+        src/rct/Serializer.h
+        src/rct/Set.h
+        src/rct/SharedMemory.h
+        src/rct/SignalSlot.h
+        src/rct/StopWatch.h
+        src/rct/String.h
+        src/rct/Thread.h
+        src/rct/ThreadLocal.h
+        src/rct/ThreadPool.h
+        src/rct/WaitCondition.h
+        src/rct/WriteLocker.h
+        ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
+        DESTINATION include/rct)
 
 install(EXPORT "rct" DESTINATION lib/cmake)
 

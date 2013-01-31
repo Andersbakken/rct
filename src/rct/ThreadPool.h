@@ -1,8 +1,8 @@
 #ifndef ThreadPool_h
 #define ThreadPool_h
 
-#include "Mutex.h"
-#include "WaitCondition.h"
+#include <rct/Mutex.h>
+#include <rct/WaitCondition.h>
 #include <deque>
 
 class ThreadPoolThread;

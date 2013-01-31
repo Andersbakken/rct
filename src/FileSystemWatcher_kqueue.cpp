@@ -1,8 +1,8 @@
-#include "FileSystemWatcher.h"
-#include "EventLoop.h"
-#include "MutexLocker.h"
-#include "Log.h"
-#include "config.h"
+#include "rct/FileSystemWatcher.h"
+#include "rct/EventLoop.h"
+#include "rct/MutexLocker.h"
+#include "rct/Log.h"
+#include "rct/rct-rct-rct-config.h"
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>

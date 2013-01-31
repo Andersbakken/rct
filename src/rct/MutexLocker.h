@@ -1,7 +1,7 @@
 #ifndef MUTEXLOCKER_H
 #define MUTEXLOCKER_H
 
-#include "Mutex.h"
+#include <rct/Mutex.h>
 
 class MutexLocker
 {

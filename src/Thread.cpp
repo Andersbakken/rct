@@ -1,4 +1,4 @@
-#include "Thread.h"
+#include "rct/Thread.h"
 
 Thread::Thread()
     : mAutoDelete(false), mThread(0)

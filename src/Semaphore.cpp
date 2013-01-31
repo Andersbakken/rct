@@ -1,5 +1,5 @@
-#include "Semaphore.h"
-#include "Rct.h"
+#include "rct/Semaphore.h"
+#include "rct/Rct.h"
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>

@@ -1,9 +1,9 @@
 #ifndef EVENTRECEIVER_H
 #define EVENTRECEIVER_H
 
-#include "EventLoop.h"
-#include "Event.h"
-#include "SignalSlot.h"
+#include <rct/EventLoop.h>
+#include <rct/Event.h>
+#include <rct/SignalSlot.h>
 
 class TimerEvent;
 class EventReceiver : public enable_shared_from_this<EventReceiver>

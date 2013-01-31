@@ -2,8 +2,8 @@
 #define RegExp_h
 
 #include <regex.h>
-#include "String.h"
-#include "Log.h"
+#include <rct/String.h>
+#include <rct/Log.h>
 
 class RegExp
 {

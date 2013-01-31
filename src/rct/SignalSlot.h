@@ -1,10 +1,10 @@
 #ifndef SIGNALSLOT_H
 #define SIGNALSLOT_H
 
-#include "FastDelegate.h"
+#include <rct/FastDelegate.h>
 #include <vector>
-#include "Event.h"
-#include "EventLoop.h"
+#include <rct/Event.h>
+#include <rct/EventLoop.h>
 class EventReceiver;
 namespace signalslot {
 

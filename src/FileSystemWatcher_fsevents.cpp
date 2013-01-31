@@ -1,15 +1,15 @@
-#include "FileSystemWatcher.h"
-#include "Event.h"
-#include "EventReceiver.h"
-#include "EventLoop.h"
-#include "MutexLocker.h"
-#include "WaitCondition.h"
-#include "Log.h"
-#include "Thread.h"
-#include "config.h"
+#include "rct/FileSystemWatcher.h"
+#include "rct/Event.h"
+#include "rct/EventReceiver.h"
+#include "rct/EventLoop.h"
+#include "rct/MutexLocker.h"
+#include "rct/WaitCondition.h"
+#include "rct/Log.h"
+#include "rct/Thread.h"
+#include "rct/rct-rct-rct-config.h"
 #include <string.h>
 #include <errno.h>
-#include "CoreFoundation/CoreFoundation.h"
+#include "rct/CoreFoundation/CoreFoundation.h"
 
 class WatcherEvent : public Event
 {

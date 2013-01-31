@@ -6,6 +6,7 @@
 #include <rct/Map.h>
 #include <rct/Mutex.h>
 #include <rct/SignalSlot.h>
+#include <rct/Memory.h>
 #include <stdint.h>
 #ifdef HAVE_FSEVENTS
 #include <rct/CoreServices/CoreServices.h>

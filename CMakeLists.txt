@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 2.8)
+project(rct)
 add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 
 include(CheckSymbolExists)
 include(CheckCXXSymbolExists)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SOURCES
     src/EventLoop.cpp
     src/MemoryMonitor.cpp
@@ -38,6 +39,46 @@ check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/src/config.h)
+               ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 
 add_library(rct STATIC ${SOURCES})
+install(CODE "message(\"Installing rct...\")")
+install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
+
+install(FILES
+        src/Event.h
+        src/EventLoop.h
+        src/EventReceiver.h
+        src/FastDelegate.h
+        src/FileSystemWatcher.h
+        src/List.h
+        src/Log.h
+        src/Map.h
+        src/Memory.h
+        src/MemoryMonitor.h
+        src/Mutex.h
+        src/MutexLocker.h
+        src/Path.h
+        src/Process.h
+        src/Rct.h
+        src/ReadLocker.h
+        src/ReadWriteLock.h
+        src/RegExp.h
+        src/SHA256.h
+        src/Semaphore.h
+        src/Serializer.h
+        src/Set.h
+        src/SharedMemory.h
+        src/SignalSlot.h
+        src/StopWatch.h
+        src/String.h
+        src/Thread.h
+        src/ThreadLocal.h
+        src/ThreadPool.h
+        src/WaitCondition.h
+        src/WriteLocker.h
+        ${CMAKE_CURRENT_BINARY_DIR}/include/config.h
+        DESTINATION include)
+
+install(EXPORT "rct" DESTINATION lib/cmake)
+

@@ -9,10 +9,14 @@
 #include <stdint.h>
 #ifdef HAVE_FSEVENTS
 #include <rct/CoreServices/CoreServices.h>
-
 class WatcherThread;
 class WatcherReceiver;
+#elif defined(HAVE_KQUEUE)
+#elif defined(HAVE_INOTIFY)
+#else
+#error no filesystemwatcher backend
 #endif
+
 
 class FileSystemWatcher
 {

@@ -8,16 +8,18 @@ include(CheckCXXSymbolExists)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(SOURCES
     src/EventLoop.cpp
-    src/MemoryMonitor.cpp
-    src/Thread.cpp
-    src/Log.cpp
-    src/Process.cpp
-    src/ThreadPool.cpp
-    src/ReadWriteLock.cpp
     src/EventReceiver.cpp
+    src/Log.cpp
+    src/MemoryMonitor.cpp
+    src/Path.cpp
+    src/Process.cpp
+    src/Rct.cpp
+    src/ReadWriteLock.cpp
     src/SHA256.cpp
+    src/Semaphore.cpp
     src/SharedMemory.cpp
-    src/Semaphore.cpp)
+    src/Thread.cpp
+    src/ThreadPool.cpp)
 
 if(HAVE_INOTIFY EQUAL 1)
   list(APPEND SOURCES src/FileSystemWatcher_inotify.cpp)
@@ -91,4 +93,3 @@ install(FILES
         DESTINATION include/rct)
 
 install(EXPORT "rct" DESTINATION lib/cmake)
-

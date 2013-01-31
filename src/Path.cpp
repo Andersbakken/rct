@@ -1,4 +1,5 @@
 #include "rct/Path.h"
+#include "rct/Log.h"
 #include <stdio.h>
 #include "rct/Rct.h"
 #include <sys/stat.h>

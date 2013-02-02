@@ -87,11 +87,12 @@ public:
         return captures[0].rm_so;
     }
 
-    int indexIn(const List<String> &strings, int start = 0, uint32_t flags = 0) const
+    int indexIn(const List<String> &strings, int listOffset = 0, List<Capture> *caps = 0, uint32_t flags = 0) const
     {
         for (int i=start; i<strings.size(); ++i)
         {
-            if (regexec(&mRegex, strings.at(i).constData(), 0, 0, flags))
+            int idx = indexIn(strings.at(i), 0, caps, flags);
+            if (idx != -1)
                 return i;
         }
         return -1;

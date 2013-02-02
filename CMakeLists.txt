@@ -21,10 +21,12 @@ install(FILES
         src/rct/Mutex.h
         src/rct/MutexLocker.h
         src/rct/Path.h
+        src/rct/Point.h
         src/rct/Process.h
         src/rct/Rct.h
         src/rct/ReadLocker.h
         src/rct/ReadWriteLock.h
+        src/rct/Rect.h
         src/rct/RegExp.h
         src/rct/SHA256.h
         src/rct/Semaphore.h
@@ -32,6 +34,7 @@ install(FILES
         src/rct/Set.h
         src/rct/SharedMemory.h
         src/rct/SignalSlot.h
+        src/rct/Size.h
         src/rct/StopWatch.h
         src/rct/String.h
         src/rct/Thread.h

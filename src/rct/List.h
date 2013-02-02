@@ -89,6 +89,11 @@ public:
         Base::pop_back();
     }
 
+    void removeFirst()
+    {
+        Base::pop_front();
+    }
+
     int size() const
     {
         return Base::size();
@@ -115,9 +120,23 @@ public:
         return Base::at(0);
     }
 
+    T takeFirst()
+    {
+        const T ret = first();
+        removeFirst();
+        return ret;
+    }
+    
     T &last()
     {
         return Base::operator[](size() - 1);
+    }
+
+    T takeLast()
+    {
+        const T ret = last();
+        removeLast();
+        return ret;
     }
 
     const T &last() const

@@ -31,7 +31,7 @@ public:
     {}
 
     String(const String &ba)
-    : mString(ba.mString)
+        : mString(ba.mString)
     {}
 
     String(const std::string &str)
@@ -192,6 +192,34 @@ public:
         return mid(start, end - start + 1);
     }
 
+    enum Pad {
+        Beginning,
+        End
+    };
+    String padded(Pad pad, int size, char fillChar = ' ', bool truncate = false) const
+    {
+        const int l = length();
+        if (l == size) {
+            return *this;
+        } else if (l > size) {
+            if (!truncate)
+                return *this;
+            if (pad == Beginning) {
+                return right(size);
+            } else {
+                return left(size);
+            }
+        } else {
+            String ret = *this;
+            if (pad == Beginning) {
+                ret.prepend(String(size - l, fillChar));
+            } else {
+                ret.append(String(size - l, fillChar));
+            }
+            return ret;
+        }
+    }
+
     char *data()
     {
         return &mString[0];
@@ -238,6 +266,11 @@ public:
     int size() const
     {
         return mString.size();
+    }
+
+    int length() const
+    {
+        return size();
     }
 
     void truncate(int size)

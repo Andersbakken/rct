@@ -31,7 +31,7 @@ public:
     {}
 
     String(const String &ba)
-        : mString(ba.mString)
+    : mString(ba.mString)
     {}
 
     String(const std::string &str)
@@ -184,11 +184,11 @@ public:
     String trimmed(const String &trim = " \f\n\r\t\v")
     {
         const int start = mString.find_first_not_of(trim);
-        if (start == std::string::npos)
+        if (start == static_cast<int>(std::string::npos))
             return String();
 
         const int end = mString.find_last_not_of(trim);
-        assert(end != std::string::npos);
+        assert(end != static_cast<int>(std::string::npos));
         return mid(start, end - start + 1);
     }
 

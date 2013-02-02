@@ -1,9 +1,16 @@
 #ifndef Rect_h
 #define Rect_h
 
+#include <rct/Size.h>
+#include <rct/Point.h>
+
 struct Rect
 {
     Rect(int xx = 0, int yy = 0, int ww = 00, int hh = 0) : x(xx), y(yy), w(ww), h(hh) {}
+    Rect(const Point &pos, const Size &size) : x(pos.x), y(pos.y), w(size.w), h(size.h) {}
+
+    bool operator==(const Rect &other) const { return (x == other.x && y == other.y && w == other.w && h == other.h); }
+    bool operator!=(const Rect &other) const { return !operator==(other); }
 
     int x, y, w, h;
 };

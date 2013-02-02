@@ -4,6 +4,7 @@
 #include <regex.h>
 #include <rct/String.h>
 #include <rct/Log.h>
+#include <rct/List.h>
 
 class RegExp
 {
@@ -84,6 +85,16 @@ public:
             }
         }
         return captures[0].rm_so;
+    }
+
+    int indexIn(const List<String> &strings, int start = 0, uint32_t flags = 0) const
+    {
+        for (int i=start; i<strings.size(); ++i)
+        {
+            if (regexec(&mRegex, strings.at(i).constData(), 0, 0, flags))
+                return i;
+        }
+        return -1;
     }
 private:
     String mPattern;

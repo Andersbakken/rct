@@ -65,6 +65,20 @@ public:
         return *this;
     }
 
+    Set<T> &unite(const List<T> &other, int *count = 0)
+    {
+        int c = 0;
+        typename std::vector<T>::iterator it = other.begin();
+        while (it != other.end()) {
+            if (insert(*it))
+                ++c;
+            ++it;
+        }
+        if (count)
+            *count = c;
+        return *this;
+    }
+
     Set<T> &subtract(const Set<T> &other, int *count = 0)
     {
         int c = 0;
@@ -83,6 +97,21 @@ public:
     Set<T> &operator+=(const Set<T> &other)
     {
         return unite(other);
+    }
+
+    Set<T> &operator<<(const T &t)
+    {
+        insert(t);
+        return *this;
+    }
+    Set<T> &operator<<(const List<T> &t)
+    {
+        return unite(t);
+    }
+
+    Set<T> &operator<<(const Set<T> &t)
+    {
+        return unite(t);
     }
 
     Set<T> &operator-=(const Set<T> &other)

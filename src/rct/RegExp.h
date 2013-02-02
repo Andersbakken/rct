@@ -89,7 +89,7 @@ public:
 
     int indexIn(const List<String> &strings, int listOffset = 0, List<Capture> *caps = 0, uint32_t flags = 0) const
     {
-        for (int i=start; i<strings.size(); ++i)
+        for (int i=listOffset; i<strings.size(); ++i)
         {
             int idx = indexIn(strings.at(i), 0, caps, flags);
             if (idx != -1)

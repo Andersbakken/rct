@@ -3,6 +3,9 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/fcntl.h>
+#ifdef OS_Darwin
+# include <mach-o/dyld.h>
+#endif
 
 namespace Rct {
 

@@ -50,6 +50,6 @@ elseif(HAVE_KQUEUE EQUAL 1)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/rct-config.h.in
+configure_file(${CMAKE_CURRENT_LIST_DIR}/src/rct-config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
 

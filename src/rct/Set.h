@@ -32,7 +32,7 @@ public:
     List<T> toList() const
     {
         List<T> ret(size());
-        typename btree::safe_btree_set<T>::iterator it = btree::safe_btree_set<T>::begin();
+        typename btree::safe_btree_set<T>::const_iterator it = btree::safe_btree_set<T>::begin();
         int i = 0;
         while (it != btree::safe_btree_set<T>::end()) {
             ret[i++] = *it;
@@ -53,7 +53,7 @@ public:
             *this = other;
             c = other.size();
         } else {
-            typename btree::safe_btree_set<T>::iterator it = other.begin();
+            typename btree::safe_btree_set<T>::const_iterator it = other.begin();
             while (it != other.end()) {
                 if (insert(*it))
                     ++c;
@@ -68,7 +68,7 @@ public:
     Set<T> &unite(const List<T> &other, int *count = 0)
     {
         int c = 0;
-        typename std::vector<T>::iterator it = other.begin();
+        typename std::vector<T>::const_iterator it = other.begin();
         while (it != other.end()) {
             if (insert(*it))
                 ++c;
@@ -83,7 +83,7 @@ public:
     {
         int c = 0;
         if (!isEmpty()) {
-            typename btree::safe_btree_set<T>::iterator it = other.begin();
+            typename btree::safe_btree_set<T>::const_iterator it = other.begin();
             while (it != other.end()) {
                 c += btree::safe_btree_set<T>::erase(*it);
                 ++it;

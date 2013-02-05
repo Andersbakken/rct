@@ -32,7 +32,7 @@ public:
     List<T> toList() const
     {
         List<T> ret(size());
-        typename std::set<T>::iterator it = std::set<T>::begin();
+        typename std::set<T>::const_iterator it = std::set<T>::begin();
         int i = 0;
         while (it != std::set<T>::end()) {
             ret[i++] = *it;
@@ -53,7 +53,7 @@ public:
             *this = other;
             c = other.size();
         } else {
-            typename std::set<T>::iterator it = other.begin();
+            typename std::set<T>::const_iterator it = other.begin();
             while (it != other.end()) {
                 if (insert(*it))
                     ++c;
@@ -68,7 +68,7 @@ public:
     Set<T> &unite(const List<T> &other, int *count = 0)
     {
         int c = 0;
-        typename std::vector<T>::iterator it = other.begin();
+        typename std::vector<T>::const_iterator it = other.begin();
         while (it != other.end()) {
             if (insert(*it))
                 ++c;
@@ -83,7 +83,7 @@ public:
     {
         int c = 0;
         if (!isEmpty()) {
-            typename std::set<T>::iterator it = other.begin();
+            typename std::set<T>::const_iterator it = other.begin();
             while (it != other.end()) {
                 c += std::set<T>::erase(*it);
                 ++it;

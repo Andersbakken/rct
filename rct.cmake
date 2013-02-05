@@ -25,7 +25,7 @@ check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(RCT_SOURCES
     src/EventLoop.cpp
     src/EventReceiver.cpp
@@ -50,6 +50,6 @@ elseif(HAVE_KQUEUE EQUAL 1)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/rct-config.h.in
+configure_file(${CMAKE_CURRENT_LIST_DIR}/src/rct-config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
 

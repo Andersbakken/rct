@@ -18,7 +18,7 @@ void EventReceiver::deleteLater()
     postEvent(new DeleteLaterEvent);
 }
 
-int EventReceiver::startTimer(int interval, TimerMode timerMode, void *userData)
+int EventReceiver::startTimer(int interval, Rct::TimerMode timerMode, void *userData)
 {
     EventLoop *loop = EventLoop::instance();
     if (!loop)
@@ -71,7 +71,7 @@ void EventReceiver::timerEventCallBack(int id, void *userData)
         Map<int, TimerEvent>::iterator it = receiver->mTimers.find(id);
         if (it != receiver->mTimers.end()) {
             receiver->timerEvent(&it->second);
-            if (it->second.mTimerMode == SingleShot) {
+            if (it->second.mTimerMode == Rct::SingleShot) {
                 receiver->mTimers.erase(it);
             } else {
                 remove = false;

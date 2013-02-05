@@ -217,9 +217,9 @@ void cleanupLogging()
     Set<LogOutput*>::const_iterator it = sOutputs.begin();
     while (it != sOutputs.end()) {
         LogOutput *out = *it;
-        sOutputs.erase(it++);
         delete out;
     }
+    sOutputs.clear();
 }
 
 Log::Log(int level)

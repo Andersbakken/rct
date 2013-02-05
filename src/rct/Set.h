@@ -1,30 +1,30 @@
 #ifndef Set_h
 #define Set_h
 
-#include <set>
+#include <cpp-btree/safe_btree_set.h>
 #include <rct/List.h>
 
 template <typename T>
-class Set : public std::set<T>
+class Set : public btree::safe_btree_set<T>
 {
 public:
     Set() {}
 
     bool contains(const T &t) const
     {
-        return std::set<T>::find(t) != std::set<T>::end();
+        return btree::safe_btree_set<T>::find(t) != btree::safe_btree_set<T>::end();
     }
 
     bool isEmpty() const
     {
-        return !std::set<T>::size();
+        return !btree::safe_btree_set<T>::size();
     }
 
     bool remove(const T &t)
     {
-        typename std::set<T>::iterator it = std::set<T>::find(t);
-        if (it != std::set<T>::end()) {
-            std::set<T>::erase(it);
+        typename btree::safe_btree_set<T>::iterator it = btree::safe_btree_set<T>::find(t);
+        if (it != btree::safe_btree_set<T>::end()) {
+            btree::safe_btree_set<T>::erase(it);
             return true;
         }
         return false;
@@ -32,9 +32,9 @@ public:
     List<T> toList() const
     {
         List<T> ret(size());
-        typename std::set<T>::iterator it = std::set<T>::begin();
+        typename btree::safe_btree_set<T>::iterator it = btree::safe_btree_set<T>::begin();
         int i = 0;
-        while (it != std::set<T>::end()) {
+        while (it != btree::safe_btree_set<T>::end()) {
             ret[i++] = *it;
             ++it;
         }
@@ -43,7 +43,7 @@ public:
 
     bool insert(const T &t)
     {
-        return std::set<T>::insert(t).second;
+        return btree::safe_btree_set<T>::insert(t).second;
     }
 
     Set<T> &unite(const Set<T> &other, int *count = 0)
@@ -53,7 +53,7 @@ public:
             *this = other;
             c = other.size();
         } else {
-            typename std::set<T>::iterator it = other.begin();
+            typename btree::safe_btree_set<T>::iterator it = other.begin();
             while (it != other.end()) {
                 if (insert(*it))
                     ++c;
@@ -83,9 +83,9 @@ public:
     {
         int c = 0;
         if (!isEmpty()) {
-            typename std::set<T>::iterator it = other.begin();
+            typename btree::safe_btree_set<T>::iterator it = other.begin();
             while (it != other.end()) {
-                c += std::set<T>::erase(*it);
+                c += btree::safe_btree_set<T>::erase(*it);
                 ++it;
             }
         }
@@ -121,7 +121,7 @@ public:
 
     int size() const
     {
-        return std::set<T>::size();
+        return btree::safe_btree_set<T>::size();
     }
 };
 

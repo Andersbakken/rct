@@ -5,7 +5,28 @@
 #include <rct/Event.h>
 #include <rct/SignalSlot.h>
 
-class TimerEvent;
+namespace Rct {
+enum TimerMode {
+    Repeat,
+    SingleShot
+};
+}
+
+class TimerEvent
+{
+public:
+    TimerEvent() : mId(0), mInterval(0), mTimerMode(Rct::SingleShot), mUserData(0) {}
+    void stop() { mTimerMode = Rct::SingleShot; }
+    inline int id() const { return mId; }
+    inline int interval() const { return mInterval; }
+    inline Rct::TimerMode timerMode() const { return mTimerMode; }
+    inline void *userData() const { return mUserData; }
+private:
+    int mId, mInterval;
+    Rct::TimerMode mTimerMode;
+    void *mUserData;
+    friend class EventReceiver;
+};
 class EventReceiver : public enable_shared_from_this<EventReceiver>
 {
 public:
@@ -14,12 +35,7 @@ public:
     void postEvent(Event *event); // threadsafe
     void deleteLater();
 
-    enum TimerMode {
-        Repeat,
-        SingleShot
-    };
-    
-    int startTimer(int interval, TimerMode timerMode, void *userData = 0);
+    int startTimer(int interval, Rct::TimerMode timerMode, void *userData = 0);
     bool stopTimer(int id);
 protected:
     virtual void timerEvent(TimerEvent *event);
@@ -42,30 +58,14 @@ private:
     friend class EventLoop;
 };
 
-class TimerEvent
-{
-public:
-    TimerEvent() : mId(0), mInterval(0), mTimerMode(EventReceiver::SingleShot), mUserData(0) {}
-    void stop() { mTimerMode = EventReceiver::SingleShot; }
-    inline int id() const { return mId; }
-    inline int interval() const { return mInterval; }
-    inline EventReceiver::TimerMode timerMode() const { return mTimerMode; }
-    inline void *userData() const { return mUserData; }
-private:
-    int mId, mInterval;
-    EventReceiver::TimerMode mTimerMode;
-    void *mUserData;
-    friend class EventReceiver;
-};
-
 class Timer
 {
 public:
     inline Timer()
-        : mId(0), mInterval(0), mTimerMode(EventReceiver::Repeat), mUserData(0)
+        : mId(0), mInterval(0), mTimerMode(Rct::Repeat), mUserData(0)
     {}
 
-    inline int start(const shared_ptr<EventReceiver> &receiver, int interval, EventReceiver::TimerMode mode, void *userData = 0)
+    inline int start(const shared_ptr<EventReceiver> &receiver, int interval, Rct::TimerMode mode, void *userData = 0)
     {
         assert(receiver);
         assert(interval >= 0);
@@ -82,7 +82,7 @@ public:
             receiver->stopTimer(mId);
             mId = mInterval = -1;
             mUserData = 0;
-            mTimerMode = EventReceiver::SingleShot;
+            mTimerMode = Rct::SingleShot;
             mReceiver.reset();
         }
     }
@@ -105,7 +105,7 @@ public:
     {
         return mInterval;
     }
-    inline EventReceiver::TimerMode timerMode() const
+    inline Rct::TimerMode timerMode() const
     {
         return mTimerMode;
     }
@@ -121,7 +121,7 @@ public:
 
 private:
     int mId, mInterval;
-    EventReceiver::TimerMode mTimerMode;
+    Rct::TimerMode mTimerMode;
     void *mUserData;
     weak_ptr<EventReceiver> mReceiver;
 };

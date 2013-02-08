@@ -87,11 +87,15 @@ public:
     Path parentDir() const;
     Type type() const;
     mode_t mode() const;
-    bool resolve(const Path &cwd = Path());
+    enum ResolveMode {
+        RealPath,
+        MakeAbsolute
+    };
+    bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path());
     int canonicalize();
     time_t lastModified() const; // returns time_t ... no shit
     int64_t fileSize() const;
-    static Path resolved(const String &path, const Path &cwd = Path(), bool *ok = 0);
+    static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);
     static Path canonicalized(const String &path);
     static Path pwd();
     int readAll(char *&, int max = -1) const;

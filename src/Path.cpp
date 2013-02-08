@@ -75,10 +75,10 @@ int64_t Path::fileSize() const
     return -1;
 }
 
-Path Path::resolved(const String &path, const Path &cwd, bool *ok)
+Path Path::resolved(const String &path, ResolveMode mode, const Path &cwd, bool *ok)
 {
     Path ret(path);
-    if (ret.resolve(cwd) && ok) {
+    if (ret.resolve(mode, cwd) && ok) {
         *ok = true;
     } else if (ok) {
         *ok = false;
@@ -95,21 +95,32 @@ int Path::canonicalize()
     return ret;
 }
 
-bool Path::resolve(const Path &cwd)
+bool Path::resolve(ResolveMode mode, const Path &cwd)
 {
-    if (!cwd.isEmpty() && !isAbsolute()) {
-        Path copy = cwd + '/' + *this;
-        if (copy.resolve()) {
+    if (mode == MakeAbsolute) {
+        if (isAbsolute())
+            return true;
+        const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd + *this);
+        if (copy.exists()) {
             operator=(copy);
             return true;
         }
-    }
+        return false;
+    } else {
+        if (!cwd.isEmpty() && !isAbsolute()) {
+            Path copy = cwd + '/' + *this;
+            if (copy.resolve(RealPath)) {
+                operator=(copy);
+                return true;
+            }
+        }
 
-    {
-        char buffer[PATH_MAX + 2];
-        if (realpath(constData(), buffer)) {
-            String::operator=(buffer);
-            return true;
+        {
+            char buffer[PATH_MAX + 2];
+            if (realpath(constData(), buffer)) {
+                String::operator=(buffer);
+                return true;
+            }
         }
     }
     return false;

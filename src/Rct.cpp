@@ -5,6 +5,9 @@
 #include <sys/fcntl.h>
 #ifdef OS_Darwin
 # include <mach-o/dyld.h>
+#elif OS_FreeBSD
+# include <sys/types.h>
+# include <sys/sysctl.h>
 #endif
 
 namespace Rct {

@@ -27,6 +27,7 @@ String unescape(String command);
 bool startProcess(const Path &dotexe, const List<String> &dollarArgs);
 void findApplicationDirPath(const char *argv0);
 Path applicationDirPath();
+String backtrace(int maxFrames = -1);
 }
 
 #define eintrwrap(VAR, BLOCK)                   \

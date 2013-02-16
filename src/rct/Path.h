@@ -42,14 +42,10 @@ public:
         return *this;
     }
 
-    bool operator==(const Path &other) const
+    bool isSameFile(const Path &other) const
     {
+        // ### could stat and use inode number on linux, maybe something similar on mac
         return Path::resolved(*this).String::operator==(Path::resolved(other));
-    }
-
-    bool operator!=(const Path &other) const
-    {
-        return !Path::operator==(other);
     }
 
     enum Type {

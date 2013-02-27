@@ -437,11 +437,8 @@ void Process::processCallback(int fd, unsigned int flags, void* userData)
 
 void Process::finish(int returnCode)
 {
-    printf("[%s] %s:%d: void Process::finish(int returnCode) [after]\n", __func__, __FILE__, __LINE__);
     {
-        printf("[%s] %s:%d: MutexLocker lock(&mMutex); [before]\n", __func__, __FILE__, __LINE__);
         MutexLocker lock(&mMutex);
-        printf("[%s] %s:%d: MutexLocker lock(&mMutex); [after]\n", __func__, __FILE__, __LINE__);
         mPid = -1;
         mReturn = returnCode;
 
@@ -454,9 +451,7 @@ void Process::finish(int returnCode)
 
         closeStdOut();
         closeStdErr();
-        printf("[%s] %s:%d: mCondition.wakeAll(); [before]\n", __func__, __FILE__, __LINE__);
         mCondition.wakeAll();
-        printf("[%s] %s:%d: mCondition.wakeAll(); [after]\n", __func__, __FILE__, __LINE__);
     }
 
     mFinished();
@@ -466,13 +461,10 @@ void Process::finish(int returnCode)
 
 bool Process::waitForFinished(int ms)
 {
-    printf("[%s] %s:%d: bool Process::waitForFinished(int ms) [after]\n", __func__, __FILE__, __LINE__);
     MutexLocker lock(&mMutex);
     if (mPid == -1)
         return true;
-    printf("[%s] %s:%d: mCondition.wait(&mMutex, ms); [before]\n", __func__, __FILE__, __LINE__);
     mCondition.wait(&mMutex, ms);
-    printf("[%s] %s:%d: mCondition.wait(&mMutex, ms); [after]\n", __func__, __FILE__, __LINE__);
     return mPid == -1;
 }
 

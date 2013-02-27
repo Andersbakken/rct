@@ -47,20 +47,6 @@ private:
     static std::map<pid_t, Process*> sProcesses;
 };
 
-class ProcessFinishedEvent : public Event
-{
-public:
-    enum { Type = 1 };
-
-    ProcessFinishedEvent(pid_t p, int r)
-        : Event(Type), pid(p), returnCode(r)
-    {
-    }
-
-    const pid_t pid;
-    const int returnCode;
-};
-
 ProcessThread* ProcessThread::sProcessThread = 0;
 int ProcessThread::sProcessPipe[2];
 Mutex ProcessThread::sProcessMutex;
@@ -122,7 +108,7 @@ void ProcessThread::run()
         if (hasread == sizeof(pid_t)) {
             //printf("got a full pid %d\n", pid);
             if (pid == 0) { // if our pid is 0 due to siginfo_t having an invalid si_pid then we have a misbehaving kernel.
-                            // regardless, we need to go through all children and call a non-blocking waitpid on each of them
+                // regardless, we need to go through all children and call a non-blocking waitpid on each of them
                 int ret;
                 pid_t p;
                 MutexLocker locker(&sProcessMutex);
@@ -143,8 +129,11 @@ void ProcessThread::run()
                             ret = WEXITSTATUS(ret);
                         else
                             ret = -1;
-                        proc->second->postEvent(new ProcessFinishedEvent(proc->first, ret));
+                        Process *process = proc->second;
                         sProcesses.erase(proc++);
+                        locker.unlock();
+                        process->finish(ret);
+                        locker.relock();
                     }
                 }
             } else if (pid == 1) { // stopped
@@ -154,16 +143,20 @@ void ProcessThread::run()
                 //printf("blocking wait pid %d\n", pid);
                 ::waitpid(pid, &ret, 0);
                 //printf("wait complete\n");
-                MutexLocker locker(&sProcessMutex);
-                std::map<pid_t, Process*>::iterator proc = sProcesses.find(pid);
-                if (proc != sProcesses.end()) {
-                    if (WIFEXITED(ret))
-                        ret = WEXITSTATUS(ret);
-                    else
-                        ret = -1;
-                    proc->second->postEvent(new ProcessFinishedEvent(pid, ret));
-                    sProcesses.erase(proc);
+                Process *process;
+                {
+                    MutexLocker locker(&sProcessMutex);
+                    std::map<pid_t, Process*>::iterator proc = sProcesses.find(pid);
+                    if (proc != sProcesses.end()) {
+                        if (WIFEXITED(ret))
+                            ret = WEXITSTATUS(ret);
+                        else
+                            ret = -1;
+                        process = proc->second;
+                        sProcesses.erase(proc);
+                    }
                 }
+                process->finish(ret);
             }
             hasread = 0;
         }
@@ -232,34 +225,6 @@ Process::~Process()
     closeStdIn();
     closeStdOut();
     closeStdErr();
-}
-
-void Process::event(const Event* event)
-{
-    if (event->type() == ProcessFinishedEvent::Type) {
-        const ProcessFinishedEvent* pevent = static_cast<const ProcessFinishedEvent*>(event);
-        if (mPid == -1) {
-            error() << "process already finished, pid " << pevent->pid;
-            return;
-        }
-        assert(mPid == pevent->pid);
-        mPid = -1;
-        mReturn = pevent->returnCode;
-
-        mStdInBuffer.clear();
-        closeStdIn();
-
-        // try to read all remaining data on stdout and stderr
-        handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
-        handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
-
-        closeStdOut();
-        closeStdErr();
-
-        mFinished();
-    } else {
-        EventReceiver::event(event);
-    }
 }
 
 void Process::setCwd(const Path& cwd)
@@ -394,8 +359,10 @@ bool Process::start(const String& command, const List<String>& a, const List<Str
         eintrwrap(flags, fcntl(mStdErr[0], F_SETFL, flags | O_NONBLOCK));
 
         //printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
-        EventLoop::instance()->addFileDescriptor(mStdOut[0], EventLoop::Read, processCallback, this);
-        EventLoop::instance()->addFileDescriptor(mStdErr[0], EventLoop::Read, processCallback, this);
+        if (EventLoop *loop = EventLoop::instance()) {
+            loop->addFileDescriptor(mStdOut[0], EventLoop::Read, processCallback, this);
+            loop->addFileDescriptor(mStdErr[0], EventLoop::Read, processCallback, this);
+        }
     }
     return true;
 }
@@ -468,8 +435,50 @@ void Process::processCallback(int fd, unsigned int flags, void* userData)
         proc->handleOutput(fd, proc->mStdErrBuffer, proc->mStdErrIndex, proc->mReadyReadStdErr);
 }
 
+void Process::finish(int returnCode)
+{
+    printf("[%s] %s:%d: void Process::finish(int returnCode) [after]\n", __func__, __FILE__, __LINE__);
+    {
+        printf("[%s] %s:%d: MutexLocker lock(&mMutex); [before]\n", __func__, __FILE__, __LINE__);
+        MutexLocker lock(&mMutex);
+        printf("[%s] %s:%d: MutexLocker lock(&mMutex); [after]\n", __func__, __FILE__, __LINE__);
+        mPid = -1;
+        mReturn = returnCode;
+
+        mStdInBuffer.clear();
+        closeStdIn();
+
+        // try to read all remaining data on stdout and stderr
+        handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
+        handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
+
+        closeStdOut();
+        closeStdErr();
+        printf("[%s] %s:%d: mCondition.wakeAll(); [before]\n", __func__, __FILE__, __LINE__);
+        mCondition.wakeAll();
+        printf("[%s] %s:%d: mCondition.wakeAll(); [after]\n", __func__, __FILE__, __LINE__);
+    }
+
+    mFinished();
+    
+
+}
+
+bool Process::waitForFinished(int ms)
+{
+    printf("[%s] %s:%d: bool Process::waitForFinished(int ms) [after]\n", __func__, __FILE__, __LINE__);
+    MutexLocker lock(&mMutex);
+    if (mPid == -1)
+        return true;
+    printf("[%s] %s:%d: mCondition.wait(&mMutex, ms); [before]\n", __func__, __FILE__, __LINE__);
+    mCondition.wait(&mMutex, ms);
+    printf("[%s] %s:%d: mCondition.wait(&mMutex, ms); [after]\n", __func__, __FILE__, __LINE__);
+    return mPid == -1;
+}
+
 void Process::handleInput(int fd)
 {
+    assert(EventLoop::instance());
     EventLoop::instance()->removeFileDescriptor(fd);
 
     //static int ting = 0;

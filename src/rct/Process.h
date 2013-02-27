@@ -6,6 +6,9 @@
 #include <rct/Path.h>
 #include <rct/List.h>
 #include <rct/SignalSlot.h>
+#include <rct/WaitCondition.h>
+#include <rct/MutexLocker.h>
+#include <rct/Mutex.h>
 #include <deque>
 
 class Process : public EventReceiver
@@ -16,11 +19,11 @@ public:
 
     void setCwd(const Path& cwd);
 
-    bool start(const String& command, const List<String>& arguments);
+    bool start(const String& command, const List<String>& arguments = List<String>());
     bool start(const String& command, const List<String>& arguments,
                const List<String>& environ);
 
-    String errorString() const { return mErrorString; }
+    String errorString() const { MutexLocker lock(&mMutex); return mErrorString; }
 
     void write(const String& data);
     void closeStdIn();
@@ -28,8 +31,8 @@ public:
     String readAllStdOut();
     String readAllStdErr();
 
-    bool isFinished() const { return mPid == -1; }
-    int returnCode() const { return mReturn; }
+    bool isFinished() const { MutexLocker lock(&mMutex); return mPid == -1; }
+    int returnCode() const { MutexLocker lock(&mMutex); return mReturn; }
 
     void stop();
 
@@ -41,10 +44,9 @@ public:
 
     static Path findCommand(const String& command);
 
-protected:
-    virtual void event(const Event* event);
-
+    bool waitForFinished(int ms = 0);
 private:
+    void finish(int returnCode);
     static void processCallback(int fd, unsigned int flags, void* userData);
 
     void closeStdOut();
@@ -58,6 +60,8 @@ private:
     int mStdOut[2];
     int mStdErr[2];
 
+    mutable Mutex mMutex;
+    WaitCondition mCondition;
     pid_t mPid;
     int mReturn;
 
@@ -70,6 +74,8 @@ private:
     String mErrorString;
 
     signalslot::Signal0 mReadyReadStdOut, mReadyReadStdErr, mFinished;
+
+    friend class ProcessThread;
 };
 
 #endif

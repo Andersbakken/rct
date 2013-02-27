@@ -75,16 +75,22 @@ static void log(int level, const char *format, va_list v)
 {
     if (!testLog(level))
         return;
+
+    va_list v2;
+    va_copy(v2, v);
     enum { Size = 16384 };
     char buf[Size];
     char *msg = buf;
     int n = vsnprintf(msg, Size, format, v);
-    if (n == -1)
+    if (n == -1) {
+        va_end(v2);
         return;
+    }
 
     if (n >= Size) {
         msg = new char[n + 2];
-        n = vsnprintf(msg, n + 1, format, v);
+        printf("Got big stuff here %d\n", n);
+        n = vsnprintf(msg, n + 1, format, v2);
     }
 
     MutexLocker lock(&sOutputsMutex);
@@ -101,6 +107,7 @@ static void log(int level, const char *format, va_list v)
 
     if (msg != buf)
         delete []msg;
+    va_end(v2);
 }
 
 void logDirect(int level, const String &out)

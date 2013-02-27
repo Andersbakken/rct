@@ -2,7 +2,6 @@
 #define EVENTLOOP_H
 
 #include <rct/Mutex.h>
-#include <rct/WaitCondition.h>
 #include <rct/Thread.h>
 #include <deque>
 #include <sys/time.h>
@@ -49,7 +48,6 @@ private:
     bool mQuit;
 
     Mutex mMutex;
-    WaitCondition mCond;
 
     struct FdData {
         unsigned int flags;

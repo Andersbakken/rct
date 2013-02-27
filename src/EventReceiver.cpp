@@ -10,6 +10,7 @@ EventReceiver::~EventReceiver()
 
 void EventReceiver::postEvent(Event *event) // threadsafe
 {
+    assert(EventLoop::instance());
     EventLoop::instance()->postEvent(this, event);
 }
 

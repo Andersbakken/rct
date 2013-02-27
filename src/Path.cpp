@@ -348,6 +348,7 @@ struct FilesUserData
 {
     unsigned filter;
     int max;
+    bool recurse;
     List<Path> paths;
 };
 static Path::VisitResult filesVisitor(const Path &path, void *userData)
@@ -358,13 +359,15 @@ static Path::VisitResult filesVisitor(const Path &path, void *userData)
     if (path.type() & u.filter) {
         u.paths.append(path);
     }
-    return u.max ? Path::Continue : Path::Abort;
+    if (!u.max)
+        return Path::Abort;
+    return u.recurse ? Path::Recurse : Path::Continue;
 }
 
-List<Path> Path::files(unsigned filter, int max) const
+List<Path> Path::files(unsigned filter, int max, bool recurse) const
 {
     assert(max != 0);
-    FilesUserData userData = { filter, max, List<Path>() };
+    FilesUserData userData = { filter, max, recurse, List<Path>() };
     visit(::filesVisitor, &userData);
     return userData.paths;
 }

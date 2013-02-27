@@ -13,13 +13,13 @@ class Path : public String
 {
 public:
     Path(const Path &other)
-        : String(other)
+    : String(other)
     {}
     Path(const String &other)
-        : String(other)
+    : String(other)
     {}
     Path(const char *path)
-        : String(path)
+    : String(path)
     {}
     Path(const char *path, int size)
         : String(path, size)
@@ -55,9 +55,8 @@ public:
         CharacterDevice = 0x04,
         BlockDevice = 0x08,
         NamedPipe = 0x10,
-        SymLink = 0x20,
         Socket = 0x40,
-        All = File|Directory|CharacterDevice|BlockDevice|NamedPipe|SymLink|Socket
+        All = File|Directory|CharacterDevice|BlockDevice|NamedPipe|Socket
     };
 
     inline bool exists() const { return type() != Invalid; }
@@ -65,7 +64,7 @@ public:
     inline bool isFile() const { return type() == File; }
     inline bool isSocket() const { return type() == Socket; }
     inline bool isAbsolute() const { return (!isEmpty() && at(0) == '/'); }
-    inline bool isSymLink() const { return type() == SymLink; }
+    bool isSymLink() const;
     Path followLink(bool *ok = 0) const;
     const char *fileName(int *len = 0) const;
     const char *extension() const;

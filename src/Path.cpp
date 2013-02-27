@@ -37,13 +37,21 @@ Path::Type Path::type() const
     case S_IFCHR: return CharacterDevice;
     case S_IFDIR: return Directory;
     case S_IFIFO: return NamedPipe;
-    case S_IFLNK: return SymLink;
     case S_IFREG: return File;
     case S_IFSOCK: return Socket;
     default:
         break;
     }
     return Invalid;
+}
+
+bool Path::isSymLink() const
+{
+    struct stat st;
+    if (lstat(constData(), &st) == -1)
+        return false;
+
+    return (st.st_mode & S_IFMT) == S_IFLNK;
 }
 
 mode_t Path::mode() const

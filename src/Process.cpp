@@ -462,10 +462,11 @@ void Process::finish(int returnCode)
 bool Process::waitForFinished(int ms)
 {
     MutexLocker lock(&mMutex);
-    if (mPid == -1)
-        return true;
-    mCondition.wait(&mMutex, ms);
-    return mPid == -1;
+    while (mPid != -1) {
+        if (!mCondition.wait(&mMutex, ms))
+            return false;
+    }
+    return true;
 }
 
 void Process::handleInput(int fd)

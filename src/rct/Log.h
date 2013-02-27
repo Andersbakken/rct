@@ -154,7 +154,7 @@ private:
         ~Data()
         {
             if (!out.isEmpty())
-                log(level, "%s", out.nullTerminated());
+                logDirect(level, out);
         }
 
         const int level;

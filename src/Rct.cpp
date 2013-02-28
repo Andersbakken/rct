@@ -197,12 +197,12 @@ bool startProcess(const Path &dotexe, const List<String> &dollarArgs)
 }
 
 static Path sApplicationDirPath;
-Path applicationDirPath()
+Path executablePath()
 {
     return sApplicationDirPath;
 }
 
-void findApplicationDirPath(const char *argv0)
+void findExecutablePath(const char *argv0)
 {
 #if defined(OS_Linux)
     char buf[32];
@@ -220,9 +220,7 @@ void findApplicationDirPath(const char *argv0)
         if (_NSGetExecutablePath(path, &size) == 0) {
             Path p(path, size);
             if (p.resolve()) {
-                assert(p.isFile());
-                sApplicationDirPath = p.parentDir();
-                assert(sApplicationDirPath.isDir());
+                sApplicationDirPath = p;
                 return;
             }
         }
@@ -236,9 +234,7 @@ void findApplicationDirPath(const char *argv0)
             Path p(path, size);
             if (p.resolve()) {
                 // ### bit of a hack
-                assert(p.isFile());
-                sApplicationDirPath = p.parentDir();
-                assert(sApplicationDirPath.isDir());
+                sApplicationDirPath = p;
                 return;
             }
         }
@@ -250,7 +246,7 @@ void findApplicationDirPath(const char *argv0)
         assert(argv0);
         Path a(argv0);
         if (a.resolve()) {
-            sApplicationDirPath = a.parentDir();
+            sApplicationDirPath = a;
             return;
         }
     }
@@ -259,7 +255,7 @@ void findApplicationDirPath(const char *argv0)
     for (int i=0; i<paths.size(); ++i) {
         Path p = (paths.at(i) + "/") + argv0;
         if (p.resolve()) {
-            sApplicationDirPath = p.parentDir();
+            sApplicationDirPath = p;
             return;
         }
     }

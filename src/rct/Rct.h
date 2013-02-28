@@ -25,8 +25,8 @@ void removeDirectory(const Path &path);
 int canonicalizePath(char *path, int len);
 String unescape(String command);
 bool startProcess(const Path &dotexe, const List<String> &dollarArgs);
-void findApplicationDirPath(const char *argv0);
-Path applicationDirPath();
+void findExecutablePath(const char *argv0);
+Path executablePath();
 String backtrace(int maxFrames = -1);
 }
 

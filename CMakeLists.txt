@@ -8,6 +8,7 @@ install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
+        src/rct/Connection.h
         src/rct/Event.h
         src/rct/EventLoop.h
         src/rct/EventReceiver.h
@@ -20,6 +21,8 @@ install(FILES
         src/rct/LocalServer.h
         src/rct/Memory.h
         src/rct/MemoryMonitor.h
+        src/rct/Message.h
+        src/rct/Messages.h
         src/rct/Mutex.h
         src/rct/MutexLocker.h
         src/rct/Path.h
@@ -30,6 +33,7 @@ install(FILES
         src/rct/ReadWriteLock.h
         src/rct/Rect.h
         src/rct/RegExp.h
+        src/rct/ResponseMessage.h
         src/rct/SHA256.h
         src/rct/Semaphore.h
         src/rct/Serializer.h

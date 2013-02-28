@@ -27,12 +27,14 @@ check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(RCT_SOURCES
+    src/Connection.cpp
     src/EventLoop.cpp
     src/EventReceiver.cpp
     src/LocalClient.cpp
     src/LocalServer.cpp
     src/Log.cpp
     src/MemoryMonitor.cpp
+    src/Messages.cpp
     src/Path.cpp
     src/Process.cpp
     src/Rct.cpp

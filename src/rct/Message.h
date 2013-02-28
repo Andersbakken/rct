@@ -4,13 +4,7 @@
 class Message
 {
 public:
-    enum {
-        CompletionId = 1,
-        QueryId,
-        ProjectId,
-        ResponseId,
-        CreateOutputId
-    };
+    enum { ResponseId = 1 };
 
     Message() {}
     virtual ~Message() {}

@@ -29,6 +29,8 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/in
 set(RCT_SOURCES
     src/EventLoop.cpp
     src/EventReceiver.cpp
+    src/LocalClient.cpp
+    src/LocalServer.cpp
     src/Log.cpp
     src/MemoryMonitor.cpp
     src/Path.cpp

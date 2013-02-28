@@ -18,8 +18,8 @@ Message* Messages::create(const char *data, int size)
     size -= sizeof(int);
     data += sizeof(int);
     MutexLocker lock(&sMutex);
-    if (sFactory.isEmpty())
-        registerMessage<ResponseMessage>();
+    if (!sFactory.contains(ResponseMessage::MessageId))
+        sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
 
     MessageCreatorBase *base = sFactory.value(id);
     if (!base) {

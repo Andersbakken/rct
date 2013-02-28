@@ -196,10 +196,10 @@ bool startProcess(const Path &dotexe, const List<String> &dollarArgs)
     return false;
 }
 
-static Path sApplicationDirPath;
+static Path sExecutablePath;
 Path executablePath()
 {
-    return sApplicationDirPath;
+    return sExecutablePath;
 }
 
 void findExecutablePath(const char *argv0)
@@ -209,8 +209,8 @@ void findExecutablePath(const char *argv0)
     const int w = snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
     Path p(buf, w);
     if (p.isSymLink()) {
-        sApplicationDirPath = Path(path, size).followLink();
-        if (sApplicationDirPath.isFile())
+        sExecutablePath = Path(path, size).followLink();
+        if (sExecutablePath.isFile())
             return;
     }
 #elif defined(OS_Darwin)
@@ -218,8 +218,8 @@ void findExecutablePath(const char *argv0)
         char path[PATH_MAX];
         uint32_t size = sizeof(path);
         if (_NSGetExecutablePath(path, &size) == 0) {
-            sApplicationDirPath = Path(path, size).followLink();
-            if (sApplicationDirPath.isFile())
+            sExecutablePath = Path(path, size).followLink();
+            if (sExecutablePath.isFile())
                 return;
         }
     }
@@ -229,8 +229,8 @@ void findExecutablePath(const char *argv0)
         char path[PATH_MAX];
         size_t size = sizeof(path);
         if (!sysctl(mib, 4, path, &size, 0, 0)) {
-            sApplicationDirPath = Path(path, size).followLink();
-            if (sApplicationDirPath.isFile())
+            sExecutablePath = Path(path, size).followLink();
+            if (sExecutablePath.isFile())
                 return;
         }
     }
@@ -240,17 +240,17 @@ void findExecutablePath(const char *argv0)
     {
         assert(argv0);
         Path a(argv0);
-        if (a.resolve()) {
-            sApplicationDirPath = a;
+        if (a.resolve(Path::MakeAbsolute) && a.isFile()) {
+            sExecutablePath = a;
             return;
         }
     }
     const char *path = getenv("PATH");
     const List<String> paths = String(path).split(':');
     for (int i=0; i<paths.size(); ++i) {
-        Path p = (paths.at(i) + "/") + argv0;
-        if (p.resolve()) {
-            sApplicationDirPath = p;
+        const Path p = (paths.at(i) + "/") + argv0;
+        if (p.isFile()) {
+            sExecutablePath = p;
             return;
         }
     }

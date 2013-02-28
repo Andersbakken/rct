@@ -209,20 +209,18 @@ void findExecutablePath(const char *argv0)
     const int w = snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
     Path p(buf, w);
     if (p.isSymLink()) {
-        p.resolve();
-        sApplicationDirPath = p;
-        return;
+        sApplicationDirPath = Path(path, size).followLink();
+        if (sApplicationDirPath.isFile())
+            return;
     }
 #elif defined(OS_Darwin)
     {
         char path[PATH_MAX];
         uint32_t size = sizeof(path);
         if (_NSGetExecutablePath(path, &size) == 0) {
-            Path p(path, size);
-            if (p.resolve()) {
-                sApplicationDirPath = p;
+            sApplicationDirPath = Path(path, size).followLink();
+            if (sApplicationDirPath.isFile())
                 return;
-            }
         }
     }
 #elif defined(OS_FreeBSD)
@@ -231,12 +229,9 @@ void findExecutablePath(const char *argv0)
         char path[PATH_MAX];
         size_t size = sizeof(path);
         if (!sysctl(mib, 4, path, &size, 0, 0)) {
-            Path p(path, size);
-            if (p.resolve()) {
-                // ### bit of a hack
-                sApplicationDirPath = p;
+            sApplicationDirPath = Path(path, size).followLink();
+            if (sApplicationDirPath.isFile())
                 return;
-            }
         }
     }
 #else

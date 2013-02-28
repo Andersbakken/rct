@@ -1,5 +1,6 @@
 #include "rct/Rct.h"
 #include "rct/Log.h"
+#include "rct/rct-config.h"
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/fcntl.h>
@@ -8,6 +9,11 @@
 #elif OS_FreeBSD
 # include <sys/types.h>
 # include <sys/sysctl.h>
+#endif
+
+#ifdef HAVE_MACH_ABSOLUTE_TIME
+#include <mach/mach.h>
+#include <mach/mach_time.h>
 #endif
 
 namespace Rct {
@@ -136,6 +142,7 @@ void removeDirectory(const Path &path)
     }
     rmdir(path.constData());
 }
+
 bool startProcess(const Path &dotexe, const List<String> &dollarArgs)
 {
     switch (fork()) {
@@ -342,7 +349,41 @@ String backtrace(int)
 }
 #endif
 
+
+bool gettime(timeval* time)
+{
+#if defined(HAVE_MACH_ABSOLUTE_TIME)
+    static mach_timebase_info_data_t info;
+    static bool first = true;
+    uint64_t machtime = mach_absolute_time();
+    if (first) {
+        first = false;
+        mach_timebase_info(&info);
+    }
+    machtime = machtime * info.numer / (info.denom * 1000); // microseconds
+    time->tv_sec = machtime / 1000000;
+    time->tv_usec = machtime % 1000000;
+#elif defined(HAVE_CLOCK_MONOTONIC_RAW) || defined(HAVE_CLOCK_MONOTONIC)
+    timespec spec;
+#if defined(HAVE_CLOCK_MONOTONIC_RAW)
+    const clockid_t cid = CLOCK_MONOTONIC_RAW;
+#else
+    const clockid_t cid = CLOCK_MONOTONIC;
+#endif
+    const int ret = ::clock_gettime(cid, &spec);
+    if (ret == -1) {
+        memset(time, 0, sizeof(timeval));
+        return false;
+    }
+    time->tv_sec = spec.tv_sec;
+    time->tv_usec = spec.tv_nsec / 1000;
+#else
+#error No EventLoop::gettime() implementation
+#endif
+    return true;
 }
+
+} // namespace Rct
 
 #ifdef RCT_DEBUG_MUTEX
 void Mutex::lock()
@@ -357,4 +398,3 @@ void Mutex::lock()
     }
 }
 #endif
-

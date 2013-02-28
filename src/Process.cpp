@@ -203,13 +203,14 @@ void ProcessThread::installProcessHandler()
 }
 
 Process::Process()
-    : mPid(-1), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0)
+    : mPid(-1), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0), mMode(Sync)
 {
     pthread_once(&sProcessHandler, ProcessThread::installProcessHandler);
 
     mStdIn[0] = mStdIn[1] = -1;
     mStdOut[0] = mStdOut[1] = -1;
     mStdErr[0] = mStdErr[1] = -1;
+    mSync[0] = mSync[1] = -1;
 }
 
 Process::~Process()
@@ -225,17 +226,17 @@ Process::~Process()
     closeStdIn();
     closeStdOut();
     closeStdErr();
+
+    int w;
+    if (mSync[0] != -1)
+        eintrwrap(w, ::close(mSync[0]));
+    if (mSync[1] != -1)
+        eintrwrap(w, ::close(mSync[1]));
 }
 
 void Process::setCwd(const Path& cwd)
 {
     mCwd = cwd;
-}
-
-bool Process::start(const String& command,
-                    const List<String>& arguments)
-{
-    return start(command, arguments, List<String>());
 }
 
 Path Process::findCommand(const String& command)
@@ -256,14 +257,14 @@ Path Process::findCommand(const String& command)
     return Path();
 }
 
-bool Process::start(const String& command, const List<String>& a, const List<String>& environ)
+Process::ExecState Process::startInternal(const String& command, const List<String>& a, const List<String>& environ, int timeout)
 {
     mErrorString.clear();
 
     Path cmd = findCommand(command);
     if (cmd.isEmpty()) {
         mErrorString = "Command not found";
-        return false;
+        return Error;
     }
     List<String> arguments = a;
 #if 0
@@ -284,6 +285,8 @@ bool Process::start(const String& command, const List<String>& a, const List<Str
     eintrwrap(err, ::pipe(mStdIn));
     eintrwrap(err, ::pipe(mStdOut));
     eintrwrap(err, ::pipe(mStdErr));
+    if (mMode == Sync)
+        eintrwrap(err, ::pipe(mSync));
 
     const char* args[arguments.size() + 2];
     args[arguments.size() + 1] = 0;
@@ -315,7 +318,7 @@ bool Process::start(const String& command, const List<String>& a, const List<Str
         eintrwrap(err, ::close(mStdErr[1]));
         eintrwrap(err, ::close(mStdErr[0]));
         mErrorString = "Fork failed";
-        return false;
+        return Error;
     } else if (mPid == 0) {
         //printf("fork, in child\n");
         // child, should do some error checking here really
@@ -359,12 +362,108 @@ bool Process::start(const String& command, const List<String>& a, const List<Str
         eintrwrap(flags, fcntl(mStdErr[0], F_SETFL, flags | O_NONBLOCK));
 
         //printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
-        if (EventLoop *loop = EventLoop::instance()) {
-            loop->addFileDescriptor(mStdOut[0], EventLoop::Read, processCallback, this);
-            loop->addFileDescriptor(mStdErr[0], EventLoop::Read, processCallback, this);
+        if (mMode == Async) {
+            if (EventLoop *loop = EventLoop::instance()) {
+                loop->addFileDescriptor(mStdOut[0], EventLoop::Read, processCallback, this);
+                loop->addFileDescriptor(mStdErr[0], EventLoop::Read, processCallback, this);
+            }
+        } else {
+            // select and stuff
+            timeval started, now, *selecttime = 0;
+            if (timeout > 0) {
+                Rct::gettime(&started);
+                now = started;
+                selecttime = &now;
+                Rct::timevalAdd(selecttime, timeout);
+            }
+            for (;;) {
+                // set up all the select crap
+                fd_set rfds, wfds;
+                FD_ZERO(&rfds);
+                FD_ZERO(&wfds);
+                int max = 0;
+                FD_SET(mStdOut[0], &rfds);
+                max = std::max(max, mStdOut[0]);
+                FD_SET(mStdErr[0], &rfds);
+                max = std::max(max, mStdErr[0]);
+                FD_SET(mSync[0], &rfds);
+                max = std::max(max, mSync[0]);
+                FD_SET(mStdIn[1], &wfds);
+                max = std::max(max, mStdIn[1]);
+                const int ret = select(max + 1, &rfds, &wfds, 0, selecttime);
+                if (ret == -1) { // ow
+                    mErrorString = "Sync select failed";
+                    return Error;
+                }
+                // check fds and stuff
+                if (FD_ISSET(mStdOut[0], &rfds))
+                    handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
+                if (FD_ISSET(mStdErr[0], &rfds))
+                    handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
+                if (FD_ISSET(mStdIn[1], &wfds))
+                    handleInput(mStdIn[1]);
+                if (FD_ISSET(mSync[0], &rfds)) {
+                    // we're done
+                    {
+                        MutexLocker lock(&mMutex);
+                        assert(mPid == -1);
+                        assert(mSync[1] == -1);
+
+                        // try to read all remaining data on stdout and stderr
+                        handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
+                        handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
+
+                        closeStdOut();
+                        closeStdErr();
+
+                        int w;
+                        eintrwrap(w, ::close(mSync[0]));
+                        mSync[0] = -1;
+                    }
+                    mFinished();
+                    return Done;
+                }
+                if (timeout) {
+                    assert(selecttime);
+                    Rct::gettime(selecttime);
+                    const int lasted = Rct::timevalDiff(selecttime, &started);
+                    if (lasted >= timeout) {
+                        // timeout, we're done
+                        stop(); // attempt to kill
+                        return TimedOut;
+                    }
+                    *selecttime = started;
+                    Rct::timevalAdd(selecttime, timeout);
+                }
+            }
         }
     }
-    return true;
+    return Done;
+}
+
+bool Process::start(const String& command,
+                    const List<String>& arguments)
+{
+    mMode = Async;
+    return startInternal(command, arguments, List<String>(), 0) == Done;
+}
+
+bool Process::start(const String& command, const List<String>& a, const List<String>& environ)
+{
+    mMode = Async;
+    return startInternal(command, a, environ, 0) == Done;
+}
+
+Process::ExecState Process::exec(const String& command, const List<String>& arguments, int timeout)
+{
+    mMode = Sync;
+    return startInternal(command, arguments, List<String>(), timeout);
+}
+
+Process::ExecState Process::exec(const String& command, const List<String>& a, const List<String>& environ, int timeout)
+{
+    mMode = Sync;
+    return startInternal(command, a, environ, timeout);
 }
 
 void Process::write(const String& data)
@@ -445,28 +544,24 @@ void Process::finish(int returnCode)
         mStdInBuffer.clear();
         closeStdIn();
 
-        // try to read all remaining data on stdout and stderr
-        handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
-        handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
+        if (mMode == Async) {
+            // try to read all remaining data on stdout and stderr
+            handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
+            handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
 
-        closeStdOut();
-        closeStdErr();
-        mCondition.wakeAll();
+            closeStdOut();
+            closeStdErr();
+        } else {
+            int w;
+            char q = 'q';
+            eintrwrap(w, ::write(mSync[1], &q, 1));
+            eintrwrap(w, ::close(mSync[1]));
+            mSync[1] = -1;
+        }
     }
 
-    mFinished();
-    
-
-}
-
-bool Process::waitForFinished(int ms)
-{
-    MutexLocker lock(&mMutex);
-    while (mPid != -1) {
-        if (!mCondition.wait(&mMutex, ms))
-            return false;
-    }
-    return true;
+    if (mMode == Async)
+        mFinished();
 }
 
 void Process::handleInput(int fd)

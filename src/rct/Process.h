@@ -6,7 +6,6 @@
 #include <rct/Path.h>
 #include <rct/List.h>
 #include <rct/SignalSlot.h>
-#include <rct/WaitCondition.h>
 #include <rct/MutexLocker.h>
 #include <rct/Mutex.h>
 #include <deque>
@@ -22,6 +21,12 @@ public:
     bool start(const String& command, const List<String>& arguments = List<String>());
     bool start(const String& command, const List<String>& arguments,
                const List<String>& environ);
+
+    enum ExecState { Error, Done, TimedOut };
+
+    ExecState exec(const String& command, const List<String>& arguments = List<String>(), int timeout = 0);
+    ExecState exec(const String& command, const List<String>& arguments,
+                   const List<String>& environ, int timeout = 0);
 
     String errorString() const { MutexLocker lock(&mMutex); return mErrorString; }
 
@@ -44,7 +49,6 @@ public:
 
     static Path findCommand(const String& command);
 
-    bool waitForFinished(int ms = 0);
 private:
     void finish(int returnCode);
     static void processCallback(int fd, unsigned int flags, void* userData);
@@ -55,13 +59,17 @@ private:
     void handleInput(int fd);
     void handleOutput(int fd, String& buffer, int& index, signalslot::Signal0& signal);
 
+    ExecState startInternal(const String& command, const List<String>& arguments,
+                            const List<String>& environ, int timeout);
+
 private:
+
     int mStdIn[2];
     int mStdOut[2];
     int mStdErr[2];
+    int mSync[2];
 
     mutable Mutex mMutex;
-    WaitCondition mCondition;
     pid_t mPid;
     int mReturn;
 
@@ -72,6 +80,8 @@ private:
     Path mCwd;
 
     String mErrorString;
+
+    enum { Sync, Async } mMode;
 
     signalslot::Signal0 mReadyReadStdOut, mReadyReadStdErr, mFinished;
 

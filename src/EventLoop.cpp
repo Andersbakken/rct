@@ -14,89 +14,6 @@
 #include <unistd.h>
 #include <sched.h>
 
-#ifdef HAVE_MACH_ABSOLUTE_TIME
-#include <mach/mach.h>
-#include <mach/mach_time.h>
-#endif
-
-#define MAX_USEC 1000000
-
-static inline bool timevalGreaterEqualThan(const timeval* a, const timeval* b)
-{
-    return (a->tv_sec > b->tv_sec
-            || (a->tv_sec == b->tv_sec && a->tv_usec >= b->tv_usec));
-}
-
-static inline void timevalAdd(timeval* a, int diff)
-{
-    a->tv_sec += diff / 1000;
-    a->tv_usec += (diff % 1000) * 1000;
-    if (a->tv_usec >= MAX_USEC) {
-        ++a->tv_sec;
-        a->tv_usec -= MAX_USEC;
-    }
-}
-
-static inline void timevalSub(timeval* a, timeval* b)
-{
-    a->tv_sec -= b->tv_sec;
-    a->tv_usec -= b->tv_usec;
-    if (a->tv_sec < 0) {
-        a->tv_sec = a->tv_usec = 0;
-    } else if (a->tv_usec < 0) {
-        if (--a->tv_sec < 0) {
-            a->tv_sec = a->tv_usec = 0;
-        } else {
-            a->tv_usec += MAX_USEC;
-        }
-    }
-}
-
-static inline uint64_t timevalMs(timeval* a)
-{
-    return (a->tv_sec * 1000LLU) + (a->tv_usec / 1000LLU);
-}
-
-static inline int timevalDiff(timeval* a, timeval* b)
-{
-    const uint64_t ams = timevalMs(a);
-    const uint64_t bms = timevalMs(b);
-    return ams - bms;
-}
-
-static bool gettime(timeval* time)
-{
-#if defined(HAVE_MACH_ABSOLUTE_TIME)
-    static mach_timebase_info_data_t info;
-    static bool first = true;
-    uint64_t machtime = mach_absolute_time();
-    if (first) {
-        first = false;
-        mach_timebase_info(&info);
-    }
-    machtime = machtime * info.numer / (info.denom * 1000); // microseconds
-    time->tv_sec = machtime / 1000000;
-    time->tv_usec = machtime % 1000000;
-#elif defined(HAVE_CLOCK_MONOTONIC_RAW) || defined(HAVE_CLOCK_MONOTONIC)
-    timespec spec;
-#if defined(HAVE_CLOCK_MONOTONIC_RAW)
-    const clockid_t cid = CLOCK_MONOTONIC_RAW;
-#else
-    const clockid_t cid = CLOCK_MONOTONIC;
-#endif
-    const int ret = ::clock_gettime(cid, &spec);
-    if (ret == -1) {
-        memset(time, 0, sizeof(timeval));
-        return false;
-    }
-    time->tv_sec = spec.tv_sec;
-    time->tv_usec = spec.tv_nsec / 1000;
-#else
-#error No EventLoop::gettime() implementation
-#endif
-    return true;
-}
-
 EventLoop* EventLoop::sInstance = 0;
 
 EventLoop::EventLoop()
@@ -126,7 +43,7 @@ EventLoop* EventLoop::instance()
 
 bool EventLoop::timerLessThan(TimerData* a, TimerData* b)
 {
-    return !timevalGreaterEqualThan(&a->when, &b->when);
+    return !Rct::timevalGreaterEqualThan(&a->when, &b->when);
 }
 
 int EventLoop::addTimer(int timeout, TimerFunc callback, void* userData)
@@ -142,8 +59,8 @@ int EventLoop::addTimer(int timeout, TimerFunc callback, void* userData)
     data->timeout = timeout;
     data->callback = callback;
     data->userData = userData;
-    gettime(&data->when);
-    timevalAdd(&data->when, timeout);
+    Rct::gettime(&data->when);
+    Rct::timevalAdd(&data->when, timeout);
     mTimerByHandle[handle] = data;
 
     List<TimerData*>::iterator it = std::lower_bound(mTimerData.begin(), mTimerData.end(),
@@ -276,9 +193,9 @@ void EventLoop::run()
         if (mTimerData.empty()) {
             timeout = 0;
         } else {
-            gettime(&timenow);
+            Rct::gettime(&timenow);
             timedata = (*mTimerData.begin())->when;
-            timevalSub(&timedata, &timenow);
+            Rct::timevalSub(&timedata, &timenow);
             timeout = &timedata;
         }
         int r;
@@ -289,7 +206,7 @@ void EventLoop::run()
             return;
         }
         if (timeout) {
-            gettime(&timenow);
+            Rct::gettime(&timenow);
 
             assert(mTimerData.begin() != mTimerData.end());
             List<TimerData> copy;
@@ -306,7 +223,7 @@ void EventLoop::run()
             const List<TimerData>::const_iterator end = copy.end();
             if (it != end) {
                 while (true) {
-                    if (!timevalGreaterEqualThan(&timenow, &it->when))
+                    if (!Rct::timevalGreaterEqualThan(&timenow, &it->when))
                         break;
                     if (reinsertTimer(it->handle, &timenow))
                         it->callback(it->handle, it->userData);
@@ -373,11 +290,11 @@ bool EventLoop::reinsertTimer(int handle, timeval* now)
             TimerData* data = *it;
             mTimerData.erase(it);
             // how much over the target time are we?
-            const int overtime = timevalDiff(now, &data->when);
+            const int overtime = Rct::timevalDiff(now, &data->when);
             data->when = *now;
             // the next time we want to fire is now + timeout - overtime
             // but we don't want a negative time
-            timevalAdd(&data->when, std::max(data->timeout - overtime, 0));
+            Rct::timevalAdd(&data->when, std::max(data->timeout - overtime, 0));
             // insert the time so that the list stays sorted by absolute time
             it = std::lower_bound(mTimerData.begin(), mTimerData.end(),
                                   data, timerLessThan);

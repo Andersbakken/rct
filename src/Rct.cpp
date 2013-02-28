@@ -231,7 +231,7 @@ void findExecutablePath(const char *argv0)
     const int w = snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
     Path p(buf, w);
     if (p.isSymLink()) {
-        sExecutablePath = Path(path, w).followLink();
+        sExecutablePath = p.followLink();
         if (sExecutablePath.isFile())
             return;
     }
@@ -240,7 +240,7 @@ void findExecutablePath(const char *argv0)
         char path[PATH_MAX];
         uint32_t size = sizeof(path);
         if (_NSGetExecutablePath(path, &size) == 0) {
-            sExecutablePath = Path(path, size).followLink();
+            sExecutablePath = Path(pathf, size).followLink();
             if (sExecutablePath.isFile())
                 return;
         }

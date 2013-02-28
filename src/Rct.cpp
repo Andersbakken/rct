@@ -231,7 +231,7 @@ void findExecutablePath(const char *argv0)
     const int w = snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
     Path p(buf, w);
     if (p.isSymLink()) {
-        sExecutablePath = Path(path, size).followLink();
+        sExecutablePath = Path(path, w).followLink();
         if (sExecutablePath.isFile())
             return;
     }

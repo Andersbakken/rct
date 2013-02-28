@@ -103,6 +103,17 @@ int Path::canonicalize()
     return ret;
 }
 
+Path Path::resolved(ResolveMode mode, const Path &cwd, bool *ok)
+{
+    Path ret = *this;
+    if (ret.resolve(mode, cwd) && ok) {
+        *ok = true;
+    } else if (ok) {
+        *ok = false;
+    }
+    return ret;
+}
+
 bool Path::resolve(ResolveMode mode, const Path &cwd)
 {
     if (mode == MakeAbsolute) {

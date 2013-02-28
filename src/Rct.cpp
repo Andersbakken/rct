@@ -204,6 +204,28 @@ Path executablePath()
 
 void findExecutablePath(const char *argv0)
 {
+    {
+        assert(argv0);
+        Path a = Path::pwd();
+        if (!strncmp(argv0, "./", 2)) {
+            a += (argv0 + 2);
+        } else {
+            a += argv0;
+        }
+        if (a.isFile()) {
+            sExecutablePath = a;
+            return;
+        }
+    }
+    const char *path = getenv("PATH");
+    const List<String> paths = String(path).split(':');
+    for (int i=0; i<paths.size(); ++i) {
+        const Path p = (paths.at(i) + "/") + argv0;
+        if (p.isFile()) {
+            sExecutablePath = p;
+            return;
+        }
+    }
 #if defined(OS_Linux)
     char buf[32];
     const int w = snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
@@ -237,23 +259,6 @@ void findExecutablePath(const char *argv0)
 #else
 #warning Unknown platform.
 #endif
-    {
-        assert(argv0);
-        Path a(argv0);
-        if (a.resolve(Path::MakeAbsolute) && a.isFile()) {
-            sExecutablePath = a;
-            return;
-        }
-    }
-    const char *path = getenv("PATH");
-    const List<String> paths = String(path).split(':');
-    for (int i=0; i<paths.size(); ++i) {
-        const Path p = (paths.at(i) + "/") + argv0;
-        if (p.isFile()) {
-            sExecutablePath = p;
-            return;
-        }
-    }
     fprintf(stderr, "Can't find applicationDirPath");
 }
 

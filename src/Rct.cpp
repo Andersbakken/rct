@@ -240,7 +240,7 @@ void findExecutablePath(const char *argv0)
         char path[PATH_MAX];
         uint32_t size = sizeof(path);
         if (_NSGetExecutablePath(path, &size) == 0) {
-            sExecutablePath = Path(pathf, size).followLink();
+            sExecutablePath = Path(path, size).followLink();
             if (sExecutablePath.isFile())
                 return;
         }

@@ -206,15 +206,19 @@ void findExecutablePath(const char *argv0)
 {
     {
         assert(argv0);
-        Path a = Path::pwd();
-        if (!strncmp(argv0, "./", 2)) {
-            a += (argv0 + 2);
-        } else {
-            a += argv0;
-        }
-        if (a.isFile()) {
-            sExecutablePath = a;
-            return;
+        Path p = argv0;
+        if (p.isFile()) {
+            if (p.isAbsolute()) {
+                sExecutablePath = p;
+                return;
+            }
+            if (p.startsWith("./"))
+                p.remove(0, 2);
+            p.prepend(Path::pwd());
+            if (p.isFile()) {
+                sExecutablePath = p;
+                return;
+            }
         }
     }
     const char *path = getenv("PATH");

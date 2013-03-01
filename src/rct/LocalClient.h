@@ -4,6 +4,7 @@
 #include <rct/String.h>
 #include <rct/EventReceiver.h>
 #include <rct/SignalSlot.h>
+#include <rct/rct-config.h>
 #include <deque>
 
 class LocalClient : public EventReceiver

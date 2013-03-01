@@ -1,3 +1,4 @@
+#include <rct/rct-config.h>
 #include "rct/Path.h"
 #include "rct/Log.h"
 #include <stdio.h>

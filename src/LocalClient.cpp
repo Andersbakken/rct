@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <signal.h>
 #include <unistd.h>
 
 class DelayedWriteEvent : public Event
@@ -23,14 +24,23 @@ public:
     const String data;
 };
 
+static pthread_once_t sigPipeHandler = PTHREAD_ONCE_INIT;
+
+static void initSigPipe()
+{
+    signal(SIGPIPE, SIG_IGN);
+}
+
 LocalClient::LocalClient()
     : mFd(-1), mBufferIdx(0), mReadBufferPos(0)
 {
+    pthread_once(&sigPipeHandler, initSigPipe);
 }
 
 LocalClient::LocalClient(int fd)
     : mFd(fd), mBufferIdx(0), mReadBufferPos(0)
 {
+    pthread_once(&sigPipeHandler, initSigPipe);
     int flags;
     eintrwrap(flags, fcntl(mFd, F_GETFL, 0));
     eintrwrap(flags, fcntl(mFd, F_SETFL, flags | O_NONBLOCK));

@@ -44,7 +44,7 @@ bool Config::parse(int argc, char **argv)
             option &o = options[optionPointers.size()];
             optionPointers.append(&opt);
             o.name = opt.name;
-            o.has_arg = opt.defaultValue.type() == Value::Type_Boolean ? no_argument : required_argument; // ### no optional arg?
+            o.has_arg = (opt.defaultValue.type() == Value::Type_Boolean) ? no_argument : required_argument; // ### no optional arg?
             o.val = opt.shortOption;
             o.flag = 0;
         }
@@ -52,14 +52,36 @@ bool Config::parse(int argc, char **argv)
     memset(&options[optionPointers.size()], 0, sizeof(option));
     const String shortOpts = Rct::shortOptions(options);
 
+    bool ok = true;
+
     while (true) {
         int idx = -1;
-        (void)getopt_long(argc, argv, shortOpts.constData(), options, &idx);
-        if (idx == -1) {
-            showHelp(stderr);
-            return false;
+        const int ret = getopt_long(argc, argv, shortOpts.constData(), options, &idx);
+        switch (ret) {
+        case -1:
+            goto done;
+        case '?':
+            ok = false;
+            goto done;
+        default:
+            break;
         }
-        Option *opt = optionPointers[idx];
+
+        Option *opt = 0;
+        if (idx != -1) {
+            opt = optionPointers[idx];
+        } else {
+            for (int i = 0; i < optionPointers.size(); ++i) {
+                if (optionPointers[i]->shortOption == ret) {
+                    opt = optionPointers[i];
+                    break;
+                }
+            }
+        }
+        if (!opt) {
+            ok = false;
+            goto done;
+        }
         if (optarg) {
             opt->value = String(optarg);
         } else { // must be a toggle arg
@@ -67,12 +89,16 @@ bool Config::parse(int argc, char **argv)
             opt->value = Value(!opt->defaultValue.toBool());
         }
     }
+
+ done:
     for (int i=0; i<args.size(); ++i) {
         free(a[i + 1]);
     }
     
     delete[] options;
     delete[] a;
+
+    return ok;
 }
 
 void Config::showHelp(FILE *f)

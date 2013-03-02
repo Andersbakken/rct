@@ -9,6 +9,7 @@ install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
         src/rct/Connection.h
+        src/rct/Config.h
         src/rct/Event.h
         src/rct/EventLoop.h
         src/rct/EventReceiver.h
@@ -46,6 +47,7 @@ install(FILES
         src/rct/Thread.h
         src/rct/ThreadLocal.h
         src/rct/ThreadPool.h
+        src/rct/Value.h
         src/rct/WaitCondition.h
         src/rct/WriteLocker.h
         DESTINATION include/rct)

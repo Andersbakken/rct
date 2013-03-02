@@ -49,7 +49,7 @@ bool Config::parse(int argc, char **argv)
             o.flag = 0;
         }
     }
-    memset(&sOptions[optionPointers.size()], 0, sizeof(option));
+    memset(&options[optionPointers.size()], 0, sizeof(option));
     const String shortOpts = Rct::shortOptions(options);
 
     while (true) {
@@ -79,7 +79,7 @@ void Config::showHelp(FILE *f)
 {
     List<String> out;
     int longest = 0;
-    for (int i=0; sOptions.size(); ++i) {
+    for (int i=0; i<sOptions.size(); ++i) {
         const Option &option = sOptions.at(i);
         if (!option.name && !option.shortOption) {
             out.append(String());

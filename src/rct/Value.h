@@ -9,11 +9,13 @@ class Value
 {
 public:
     inline Value() : mType(Type_Invalid) {}
-    explicit inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
-    explicit inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
-    explicit inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
+    inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
+    inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
+    inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
-    ~Value() { if (mType == Type_String) { stringPtr()->~String(); } }
+    Value(const Value &other) { copy(other); }
+    Value &operator=(const Value &other) { clear(); copy(other); return *this; }
+    ~Value() { clear(); }
     inline bool isNull() const { return mType == Type_Invalid; }
     inline bool isValid() const { return mType != Type_Invalid; }
     enum Type {
@@ -31,7 +33,9 @@ public:
     inline String toString() const;
     template <typename T> inline T convert() const { invalidType(T()); return T(); }
     template <typename T> static Value create(const T &t) { return Value(t); }
+    void clear();
 private:
+    void copy(const Value &other);
     String *stringPtr() { return reinterpret_cast<String*>(mData.stringBuf); }
     const String *stringPtr() const { return reinterpret_cast<const String*>(mData.stringBuf); }
     Type mType;

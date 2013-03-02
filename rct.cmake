@@ -44,7 +44,8 @@ set(RCT_SOURCES
     src/Semaphore.cpp
     src/SharedMemory.cpp
     src/Thread.cpp
-    src/ThreadPool.cpp)
+    src/ThreadPool.cpp
+    src/Value.cpp)
 
 if(HAVE_INOTIFY EQUAL 1)
   list(APPEND RCT_SOURCES src/FileSystemWatcher_inotify.cpp)

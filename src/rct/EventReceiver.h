@@ -18,7 +18,7 @@ public:
         Repeat,
         SingleShot
     };
-    
+
     int startTimer(int interval, TimerMode timerMode, void *userData = 0);
     bool stopTimer(int id);
 protected:

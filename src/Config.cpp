@@ -1,39 +1,43 @@
 #include "rct/Config.h"
 
 List<Config::Option> Config::sOptions;
-bool Config::parse(int argc, char **argv)
+bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
 {
     Rct::findExecutablePath(argv[0]);
     List<String> args;
-    FILE *f = fopen((Path::home() + ".gelatorc").constData(), "r");
-    if (f) {
-        char line[1024];
-        int read;
-        while ((read = Rct::readLine(f, line, sizeof(line))) != -1) {
-            char *ch = line;
-            while (isspace(*ch))
-                ++ch;
-            if (*ch == '#')
-                continue;
-            List<String> split = String(ch).split(' '); // ### quoting?
-            if (!split.isEmpty()) {
-                String &first = split.first();
-                if (first.size() == 1 || (first.size() > 2 && first.at(1) == '=')) {
-                    first.prepend('-');
-                } else {
-                    first.prepend("--");
+    for (int i=0; i<rcFiles.size(); ++i) {
+        FILE *f = fopen(rcFiles.at(i).constData(), "r");
+        if (f) {
+            char line[1024];
+            int read;
+            while ((read = Rct::readLine(f, line, sizeof(line))) != -1) {
+                char *ch = line;
+                while (isspace(*ch))
+                    ++ch;
+                if (*ch == '#')
+                    continue;
+                List<String> split = String(ch).split(' '); // ### quoting?
+                if (!split.isEmpty()) {
+                    String &first = split.first();
+                    if (first.size() == 1 || (first.size() > 2 && first.at(1) == '=')) {
+                        first.prepend('-');
+                    } else {
+                        first.prepend("--");
+                    }
+                    args += split;
                 }
-                args += split;
             }
+            fclose(f);
         }
     }
     for (int i=0; i<argc; ++i)
         args.append(argv[i]);
 
-    char **a = new char*[args.size() + 1];
-    a[args.size()] = 0;
+    // error() << "parsing" << args;
+
+    char **a = new char*[args.size()];
     for (int i=0; i<args.size(); ++i) {
-        a[i + 1] = strdup(args.at(i).constData());
+        a[i] = strdup(args.at(i).constData());
     }
     option *options = new option[sOptions.size() + 1];
 
@@ -56,7 +60,7 @@ bool Config::parse(int argc, char **argv)
 
     while (true) {
         int idx = -1;
-        const int ret = getopt_long(argc, argv, shortOpts.constData(), options, &idx);
+        const int ret = getopt_long(args.size(), a, shortOpts.constData(), options, &idx);
         switch (ret) {
         case -1:
             goto done;
@@ -66,6 +70,8 @@ bool Config::parse(int argc, char **argv)
         default:
             break;
         }
+        // error() << optind << ret << optarg;
+        // error("%c [%s] [%s]", ret, optarg, a[optind]);
 
         Option *opt = 0;
         if (idx != -1) {
@@ -83,18 +89,22 @@ bool Config::parse(int argc, char **argv)
             goto done;
         }
         if (optarg) {
-            opt->value = String(optarg);
+            if (optarg[0] == '=' && strcmp(a[optind - 1], optarg)) {
+                opt->value = String(optarg + 1);
+            } else {
+                opt->value = String(optarg);
+            }
         } else { // must be a toggle arg
             assert(opt->defaultValue.type() == Value::Type_Boolean);
             opt->value = Value(!opt->defaultValue.toBool());
         }
     }
 
- done:
+done:
     for (int i=0; i<args.size(); ++i) {
-        free(a[i + 1]);
+        free(a[i]);
     }
-    
+
     delete[] options;
     delete[] a;
 

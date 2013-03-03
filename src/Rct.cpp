@@ -66,24 +66,25 @@ String shortOptions(const option *longOptions)
 {
     String ret;
     for (int i=0; longOptions[i].name; ++i) {
-        if (ret.contains(longOptions[i].val)) {
-            error("%c (%s) is already used", longOptions[i].val, longOptions[i].name);
-            assert(!ret.contains(longOptions[i].val));
-        }
-        ret.append(longOptions[i].val);
-        switch (longOptions[i].has_arg) {
-        case no_argument:
-            break;
-        case optional_argument:
-            ret.append(':');
-            ret.append(':');
-            break;
-        case required_argument:
-            ret.append(':');
-            break;
-        default:
-            assert(0);
-            break;
+        if (longOptions[i].val) {
+            if (ret.contains(longOptions[i].val)) {
+                printf("%c (%s) is already used\n", longOptions[i].val, longOptions[i].name);
+                assert(!ret.contains(longOptions[i].val));
+            }
+            ret.append(longOptions[i].val);
+            switch (longOptions[i].has_arg) {
+            case no_argument:
+                break;
+            case optional_argument:
+                ret.append("::");
+                break;
+            case required_argument:
+                ret.append(':');
+                break;
+            default:
+                assert(0);
+                break;
+            }
         }
     }
 #if 0

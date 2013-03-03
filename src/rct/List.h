@@ -126,7 +126,7 @@ public:
         removeFirst();
         return ret;
     }
-    
+
     T &last()
     {
         return Base::operator[](size() - 1);

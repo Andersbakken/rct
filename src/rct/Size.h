@@ -10,7 +10,7 @@ struct Size
 
     bool isEmpty() const { return !w && !h; }
     bool isNull() const { return isEmpty(); }
-    
+
     int w, h;
 };
 

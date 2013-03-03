@@ -11,20 +11,20 @@
 class Config
 {
 public:
-    static bool parse(int argc, char **argv);
-    template <typename T> static void registerOption(const char *name, const char shortOpt, const String &description, const T &defaultValue = T())
+    static bool parse(int argc, char **argv, const List<String> &rcFiles = List<String>());
+    template <typename T> static void registerOption(const char *name, const String &description, const char shortOpt = '\0', const T &defaultValue = T())
     {
         const Value def = Value::create(defaultValue);
         const Option option = { name, shortOpt, description, def, Value() };
         sOptions.append(option);
     }
 
-    static void registerOption(const char *name, const char shortOpt, const String &description)
+    static void registerOption(const char *name, const String &description, const char shortOpt = '\0')
     {
         const Option option = { name, shortOpt, description, Value(false), Value() };
         sOptions.append(option);
     }
-    
+
 
     static bool isEnabled(const char *name)
     {

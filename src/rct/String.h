@@ -304,6 +304,25 @@ public:
         mString.insert(0, &ch, 1);
     }
 
+    void insert(int pos, const String &text)
+    {
+        mString.insert(pos, text.constData(), text.size());
+    }
+
+    void insert(int pos, const char *str, int len = -1)
+    {
+        if (str) {
+            if (len == -1)
+                len = strlen(str);
+            mString.insert(pos, str, len);
+        }
+    }
+    
+    void insert(int pos, char ch)
+    {
+        mString.insert(pos, &ch, 1);
+    }
+
     void append(char ch)
     {
         mString += ch;

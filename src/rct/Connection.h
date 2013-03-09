@@ -49,19 +49,19 @@ public:
 
     bool isConnected() const { return mClient->isConnected(); }
 
-    signalslot::Signal0 &connected() { return mConnected; }
-    signalslot::Signal0 &disconnected() { return mDisconnected; }
-    signalslot::Signal0 &error() { return mError; }
+    signalslot::Signal1<Connection*> &connected() { return mConnected; }
+    signalslot::Signal1<Connection*> &disconnected() { return mDisconnected; }
+    signalslot::Signal1<Connection*> &error() { return mError; }
     signalslot::Signal2<Message*, Connection*> &newMessage() { return mNewMessage; }
-    signalslot::Signal0 &sendComplete() { return mSendComplete; }
+    signalslot::Signal1<Connection*> &sendComplete() { return mSendComplete; }
     signalslot::Signal1<Connection*> &destroyed() { return mDestroyed; }
 
     LocalClient *client() const { return mClient; }
 protected:
     void event(const Event *e);
 private:
-    void onClientConnected(LocalClient *) { mConnected(); }
-    void onClientDisconnected(LocalClient *) { mDisconnected(); }
+    void onClientConnected(LocalClient *) { mConnected(this); }
+    void onClientDisconnected(LocalClient *) { mDisconnected(this); }
     void dataAvailable(LocalClient *);
     void dataWritten(LocalClient *, int bytes);
 
@@ -69,9 +69,8 @@ private:
     int mPendingRead, mPendingWrite;
     bool mDone, mSilent;
 
-    signalslot::Signal0 mConnected, mDisconnected, mError, mSendComplete;
     signalslot::Signal2<Message*, Connection*> mNewMessage;
-    signalslot::Signal1<Connection*> mDestroyed;
+    signalslot::Signal1<Connection*> mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
 };
 
 template<typename T>

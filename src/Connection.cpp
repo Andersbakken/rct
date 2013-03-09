@@ -127,7 +127,7 @@ void Connection::dataWritten(LocalClient *, int bytes)
     mPendingWrite -= bytes;
     if (!mPendingWrite) {
         if (bytes)
-            sendComplete()();
+            mSendComplete(this);
         if (mDone) {
             mClient->disconnect();
             deleteLater();

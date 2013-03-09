@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <sys/time.h>
+#include <rct/Rct.h>
 
 class StopWatch
 {
@@ -25,7 +26,7 @@ public:
     static int current()
     {
         timeval t;
-        ::gettimeofday(&t, 0);
+        Rct::gettime(&t); // monotonic
         return (t.tv_sec * 1000) + (t.tv_usec / 1000);
     }
 

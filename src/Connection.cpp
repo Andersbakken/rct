@@ -43,7 +43,7 @@ Connection::~Connection()
 
 bool Connection::connectToServer(const String &name, int timeout)
 {
-    return mClient->connect(name, timeout);
+    return mClient->connectUnix(name, timeout);
 }
 
 bool Connection::send(int id, const String &message)

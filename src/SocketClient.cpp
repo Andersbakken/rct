@@ -10,6 +10,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <signal.h>
 #include <unistd.h>
 
@@ -56,51 +58,97 @@ SocketClient::~SocketClient()
     disconnect();
 }
 
-bool SocketClient::connect(const Path& path, int maxTime)
+static inline bool connectInternal(int& fd, int domain, sockaddr* address, size_t addressSize, int maxTime)
 {
-    if (!path.isSocket())
-        return false;
     StopWatch timer;
-    struct sockaddr_un address;
-    memset(&address, 0, sizeof(struct sockaddr_un));
-    address.sun_family = AF_UNIX;
-    const int sz = std::min<int>(sizeof(address.sun_path) - 1, path.size());
-    memcpy(address.sun_path, path.constData(), sz);
-    address.sun_path[sz] = '\0';
+
     while (true) {
-        mFd = ::socket(PF_UNIX, SOCK_STREAM, 0);
-        if (mFd == -1) {
+        fd = ::socket(domain, SOCK_STREAM, 0);
+        if (fd == -1) {
             return false;
         }
         int ret;
-        eintrwrap(ret, ::connect(mFd, (struct sockaddr *)&address, sizeof(struct sockaddr_un)));
+        eintrwrap(ret, ::connect(fd, address, addressSize));
         if (!ret) {
 #ifdef HAVE_NOSIGPIPE
             ret = 1;
-            ::setsockopt(mFd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&ret, sizeof(int));
+            ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&ret, sizeof(int));
 #endif
             break;
         }
-        eintrwrap(ret, ::close(mFd));
-        mFd = -1;
+        eintrwrap(ret, ::close(fd));
+        fd = -1;
         if (maxTime > 0 && timer.elapsed() >= maxTime) {
             return false;
         }
         usleep(100000);
     }
 
-    assert(mFd != -1);
+    assert(fd != -1);
     int flags;
-    eintrwrap(flags, fcntl(mFd, F_GETFL, 0));
-    eintrwrap(flags, fcntl(mFd, F_SETFL, flags | O_NONBLOCK));
+    eintrwrap(flags, fcntl(fd, F_GETFL, 0));
+    eintrwrap(flags, fcntl(fd, F_SETFL, flags | O_NONBLOCK));
 
-    unsigned int fdflags = EventLoop::Read;
-    if (!mBuffers.empty())
-        fdflags |= EventLoop::Write;
-    EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
-
-    mConnected(this);
     return true;
+}
+
+bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
+{
+    addrinfo *result;
+    if (getaddrinfo(host.nullTerminated(), 0, 0, &result))
+        return false;
+
+    sockaddr_in* addr = 0;
+    addrinfo* cur = result;
+    while (cur) {
+        if (cur->ai_family == AF_INET) {
+            addr = reinterpret_cast<sockaddr_in*>(cur->ai_addr);
+            break;
+        }
+        cur = cur->ai_next;
+    }
+
+    bool ok = false;
+    if (addr) {
+        addr->sin_port = htons(port);
+        if (connectInternal(mFd, AF_INET, reinterpret_cast<sockaddr*>(addr), sizeof(sockaddr_in), maxTime)) {
+            ok = true;
+
+            unsigned int fdflags = EventLoop::Read;
+            if (!mBuffers.empty())
+                fdflags |= EventLoop::Write;
+            EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+
+            mConnected(this);
+        }
+    }
+
+    freeaddrinfo(result);
+
+    return ok;
+}
+
+bool SocketClient::connectUnix(const Path& path, int maxTime)
+{
+    sockaddr_un unAddress;
+    memset(&unAddress, 0, sizeof(sockaddr_un));
+
+    unAddress.sun_family = AF_UNIX;
+    const int sz = std::min<int>(sizeof(unAddress.sun_path) - 1, path.size());
+    memcpy(unAddress.sun_path, path.constData(), sz);
+    unAddress.sun_path[sz] = '\0';
+
+    if (connectInternal(mFd, PF_UNIX, reinterpret_cast<sockaddr*>(&unAddress), sizeof(sockaddr_un), maxTime)) {
+        unsigned int fdflags = EventLoop::Read;
+        if (!mBuffers.empty())
+            fdflags |= EventLoop::Write;
+        EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+
+        mConnected(this);
+        return true;
+    }
+
+    return false;
 }
 
 void SocketClient::disconnect()

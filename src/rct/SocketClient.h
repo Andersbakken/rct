@@ -13,7 +13,8 @@ public:
     SocketClient();
     virtual ~SocketClient();
 
-    bool connect(const Path& path, int maxTime = -1);
+    bool connectUnix(const Path& path, int maxTime = -1);
+    bool connectTcp(const String& host, uint16_t port, int maxTime = -1);
     void disconnect();
 
     bool isConnected() const { return mFd != -1; }

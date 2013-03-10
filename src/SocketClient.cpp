@@ -1,4 +1,4 @@
-#include "rct/LocalClient.h"
+#include "rct/SocketClient.h"
 #include "rct/Event.h"
 #include "rct/EventLoop.h"
 #include "rct/Log.h"
@@ -31,13 +31,13 @@ static void initSigPipe()
     signal(SIGPIPE, SIG_IGN);
 }
 
-LocalClient::LocalClient()
+SocketClient::SocketClient()
     : mFd(-1), mBufferIdx(0), mReadBufferPos(0)
 {
     pthread_once(&sigPipeHandler, initSigPipe);
 }
 
-LocalClient::LocalClient(int fd)
+SocketClient::SocketClient(int fd)
     : mFd(fd), mBufferIdx(0), mReadBufferPos(0)
 {
     pthread_once(&sigPipeHandler, initSigPipe);
@@ -51,12 +51,12 @@ LocalClient::LocalClient(int fd)
     EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, dataCallback, this);
 }
 
-LocalClient::~LocalClient()
+SocketClient::~SocketClient()
 {
     disconnect();
 }
 
-bool LocalClient::connect(const Path& path, int maxTime)
+bool SocketClient::connect(const Path& path, int maxTime)
 {
     if (!path.isSocket())
         return false;
@@ -103,7 +103,7 @@ bool LocalClient::connect(const Path& path, int maxTime)
     return true;
 }
 
-void LocalClient::disconnect()
+void SocketClient::disconnect()
 {
     if (mFd != -1) {
         int ret;
@@ -114,16 +114,16 @@ void LocalClient::disconnect()
     }
 }
 
-void LocalClient::dataCallback(int, unsigned int flags, void* userData)
+void SocketClient::dataCallback(int, unsigned int flags, void* userData)
 {
-    LocalClient* client = reinterpret_cast<LocalClient*>(userData);
+    SocketClient* client = reinterpret_cast<SocketClient*>(userData);
     if (flags & EventLoop::Read)
         client->readMore();
     if (flags & EventLoop::Write)
         client->writeMore();
 }
 
-String LocalClient::readAll()
+String SocketClient::readAll()
 {
     String buf;
     std::swap(buf, mReadBuffer);
@@ -134,7 +134,7 @@ String LocalClient::readAll()
     return buf;
 }
 
-int LocalClient::read(char *buf, int size)
+int SocketClient::read(char *buf, int size)
 {
     size = std::min(bytesAvailable(), size);
     if (size) {
@@ -148,7 +148,7 @@ int LocalClient::read(char *buf, int size)
     return size;
 }
 
-bool LocalClient::write(const String& data)
+bool SocketClient::write(const String& data)
 {
     if (pthread_equal(pthread_self(), EventLoop::instance()->thread())) {
         if (mBuffers.empty())
@@ -161,7 +161,7 @@ bool LocalClient::write(const String& data)
     }
 }
 
-void LocalClient::readMore()
+void SocketClient::readMore()
 {
     enum { BufSize = 1024, MaxBufferSize = 1024 * 1024 * 16 };
 
@@ -203,7 +203,7 @@ void LocalClient::readMore()
         disconnect();
 }
 
-bool LocalClient::writeMore()
+bool SocketClient::writeMore()
 {
     bool ret = true;
     int written = 0;
@@ -239,7 +239,7 @@ bool LocalClient::writeMore()
     return ret;
 }
 
-void LocalClient::event(const Event* event)
+void SocketClient::event(const Event* event)
 {
     switch (event->type()) {
     case DelayedWriteEvent::Type: {

@@ -18,8 +18,8 @@ install(FILES
         src/rct/List.h
         src/rct/Log.h
         src/rct/Map.h
-        src/rct/LocalClient.h
-        src/rct/LocalServer.h
+        src/rct/SocketClient.h
+        src/rct/SocketServer.h
         src/rct/Memory.h
         src/rct/MemoryMonitor.h
         src/rct/Message.h

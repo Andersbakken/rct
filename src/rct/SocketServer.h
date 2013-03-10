@@ -1,21 +1,21 @@
-#ifndef LOCALSERVER_H
-#define LOCALSERVER_H
+#ifndef SOCKETSERVER_H
+#define SOCKETSERVER_H
 
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>
 #include <deque>
 
-class LocalClient;
+class SocketClient;
 
-class LocalServer
+class SocketServer
 {
 public:
-    LocalServer();
-    ~LocalServer();
+    SocketServer();
+    ~SocketServer();
 
     bool listen(const Path& path);
 
-    LocalClient* nextClient();
+    SocketClient* nextClient();
 
     signalslot::Signal0& clientConnected() { return mClientConnected; }
 

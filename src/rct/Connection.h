@@ -3,20 +3,20 @@
 
 #include <rct/Message.h>
 #include <rct/EventReceiver.h>
-#include <rct/LocalClient.h>
+#include <rct/SocketClient.h>
 #include <rct/String.h>
 #include <rct/Map.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
 
 class ConnectionPrivate;
-class LocalClient;
+class SocketClient;
 class Event;
 class Connection : public EventReceiver
 {
 public:
     Connection();
-    Connection(LocalClient *client);
+    Connection(SocketClient *client);
     ~Connection();
 
     void setSilent(bool on) { mSilent = on; }
@@ -56,16 +56,16 @@ public:
     signalslot::Signal1<Connection*> &sendComplete() { return mSendComplete; }
     signalslot::Signal1<Connection*> &destroyed() { return mDestroyed; }
 
-    LocalClient *client() const { return mClient; }
+    SocketClient *client() const { return mClient; }
 protected:
     void event(const Event *e);
 private:
-    void onClientConnected(LocalClient *) { mConnected(this); }
-    void onClientDisconnected(LocalClient *) { mDisconnected(this); }
-    void dataAvailable(LocalClient *);
-    void dataWritten(LocalClient *, int bytes);
+    void onClientConnected(SocketClient *) { mConnected(this); }
+    void onClientDisconnected(SocketClient *) { mDisconnected(this); }
+    void dataAvailable(SocketClient *);
+    void dataWritten(SocketClient *, int bytes);
 
-    LocalClient *mClient;
+    SocketClient *mClient;
     int mPendingRead, mPendingWrite;
     bool mDone, mSilent;
 

@@ -31,8 +31,8 @@ set(RCT_SOURCES
     src/Config.cpp
     src/EventLoop.cpp
     src/EventReceiver.cpp
-    src/LocalClient.cpp
-    src/LocalServer.cpp
+    src/SocketClient.cpp
+    src/SocketServer.cpp
     src/Log.cpp
     src/MemoryMonitor.cpp
     src/Messages.cpp

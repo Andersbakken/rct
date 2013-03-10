@@ -1,6 +1,6 @@
-#include "rct/LocalServer.h"
+#include "rct/SocketServer.h"
 #include "rct/EventLoop.h"
-#include "rct/LocalClient.h"
+#include "rct/SocketClient.h"
 #include "rct/Log.h"
 #include "rct/Rct.h"
 #include <errno.h>
@@ -12,12 +12,12 @@
 
 #define LISTEN_BACKLOG 5
 
-LocalServer::LocalServer()
+SocketServer::SocketServer()
     : mFd(-1)
 {
 }
 
-LocalServer::~LocalServer()
+SocketServer::~SocketServer()
 {
     if (mFd != -1) {
         EventLoop::instance()->removeFileDescriptor(mFd);
@@ -26,7 +26,7 @@ LocalServer::~LocalServer()
     }
 }
 
-bool LocalServer::listen(const Path& path)
+bool SocketServer::listen(const Path& path)
 {
     if (path.exists()) {
         return false;
@@ -35,7 +35,7 @@ bool LocalServer::listen(const Path& path)
 
     mFd = socket(PF_UNIX, SOCK_STREAM, 0);
     if (mFd < 0) {
-        error("LocalServer::listen() Unable to create socket");
+        error("SocketServer::listen() Unable to create socket");
         return false;
     }
 
@@ -45,7 +45,7 @@ bool LocalServer::listen(const Path& path)
         int ret;
         eintrwrap(ret, ::close(mFd));
         mFd = -1;
-        error("LocalServer::listen() Path too long %s", path.constData());
+        error("SocketServer::listen() Path too long %s", path.constData());
         return false;
     }
 
@@ -56,14 +56,14 @@ bool LocalServer::listen(const Path& path)
         int ret;
         eintrwrap(ret, ::close(mFd));
         mFd = -1;
-        error("LocalServer::listen() Unable to bind");
+        error("SocketServer::listen() Unable to bind");
         return false;
     }
 
     if (::listen(mFd, LISTEN_BACKLOG) != 0) {
         int ret;
         eintrwrap(ret, ::close(mFd));
-        error("LocalServer::listen() Unable to listen to socket");
+        error("SocketServer::listen() Unable to listen to socket");
         mFd = -1;
         return false;
     }
@@ -72,9 +72,9 @@ bool LocalServer::listen(const Path& path)
     return true;
 }
 
-void LocalServer::listenCallback(int, unsigned int, void* userData)
+void SocketServer::listenCallback(int, unsigned int, void* userData)
 {
-    LocalServer* server = reinterpret_cast<LocalServer*>(userData);
+    SocketServer* server = reinterpret_cast<SocketServer*>(userData);
 
     int clientFd;
     eintrwrap(clientFd, ::accept(server->mFd, NULL, NULL));
@@ -84,11 +84,11 @@ void LocalServer::listenCallback(int, unsigned int, void* userData)
     }
 }
 
-LocalClient* LocalServer::nextClient()
+SocketClient* SocketServer::nextClient()
 {
     if (mPendingClients.empty())
         return 0;
     const int clientFd = mPendingClients.front();
     mPendingClients.pop_front();
-    return new LocalClient(clientFd);
+    return new SocketClient(clientFd);
 }

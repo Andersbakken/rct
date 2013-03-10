@@ -1,5 +1,5 @@
 #include "rct/Connection.h"
-#include "rct/LocalClient.h"
+#include "rct/SocketClient.h"
 #include "rct/Event.h"
 #include "rct/EventLoop.h"
 #include "rct/Serializer.h"
@@ -17,7 +17,7 @@ public:
 };
 
 Connection::Connection()
-    : mClient(new LocalClient), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
+    : mClient(new SocketClient), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
 {
     mClient->connected().connect(this, &Connection::onClientConnected);
     mClient->disconnected().connect(this, &Connection::onClientDisconnected);
@@ -25,7 +25,7 @@ Connection::Connection()
     mClient->bytesWritten().connect(this, &Connection::dataWritten);
 }
 
-Connection::Connection(LocalClient* client)
+Connection::Connection(SocketClient* client)
     : mClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
 {
     assert(client->isConnected());
@@ -84,7 +84,7 @@ void Connection::finish()
     dataWritten(mClient, 0);
 }
 
-void Connection::dataAvailable(LocalClient *)
+void Connection::dataAvailable(SocketClient *)
 {
     while (true) {
         int available = mClient->bytesAvailable();
@@ -121,7 +121,7 @@ void Connection::dataAvailable(LocalClient *)
     }
 }
 
-void Connection::dataWritten(LocalClient *, int bytes)
+void Connection::dataWritten(SocketClient *, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;

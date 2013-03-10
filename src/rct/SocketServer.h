@@ -15,7 +15,7 @@ public:
 
     bool listenUnix(const Path& path);
     bool listenTcp(uint16_t port);
-    bool listenTcp(const String& host, uint16_t port);
+    bool listenTcp(const String& ip, uint16_t port);
 
     SocketClient* nextClient();
 

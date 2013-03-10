@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <signal.h>
 #include <unistd.h>
@@ -21,8 +21,15 @@ public:
     enum { Type = 1 };
     DelayedWriteEvent(const String& d)
         : Event(Type), data(d)
+    {
+        memset(&addr, 0, sizeof(sockaddr_in));
+    }
+
+    DelayedWriteEvent(const sockaddr_in& a, const String& d)
+        : Event(Type), addr(a), data(d)
     {}
 
+    sockaddr_in addr;
     const String data;
 };
 
@@ -92,38 +99,44 @@ static inline bool connectInternal(int& fd, int domain, sockaddr* address, size_
     return true;
 }
 
-bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
+static inline bool lookupHost(const String& host, uint16_t port, sockaddr_in& addr)
 {
     addrinfo *result;
     if (getaddrinfo(host.nullTerminated(), 0, 0, &result))
         return false;
 
-    sockaddr_in* addr = 0;
     addrinfo* cur = result;
     while (cur) {
         if (cur->ai_family == AF_INET) {
-            addr = reinterpret_cast<sockaddr_in*>(cur->ai_addr);
-            break;
+            memcpy(&addr, cur, sizeof(sockaddr_in));
+            addr.sin_port = htons(port);
+            freeaddrinfo(result);
+            return true;
         }
         cur = cur->ai_next;
     }
 
-    bool ok = false;
-    if (addr) {
-        addr->sin_port = htons(port);
-        if (connectInternal(mFd, AF_INET, reinterpret_cast<sockaddr*>(addr), sizeof(sockaddr_in), maxTime)) {
-            ok = true;
-
-            unsigned int fdflags = EventLoop::Read;
-            if (!mBuffers.empty())
-                fdflags |= EventLoop::Write;
-            EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
-
-            mConnected(this);
-        }
-    }
-
     freeaddrinfo(result);
+    return false;
+}
+
+bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
+{
+    sockaddr_in addr;
+    if (!lookupHost(host, port, addr))
+        return false;
+
+    bool ok = false;
+    if (connectInternal(mFd, AF_INET, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in), maxTime)) {
+        ok = true;
+
+        unsigned int fdflags = EventLoop::Read;
+        if (!mBuffers.empty())
+            fdflags |= EventLoop::Write;
+        EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+
+        mConnected(this);
+    }
 
     return ok;
 }
@@ -201,12 +214,128 @@ bool SocketClient::write(const String& data)
     if (pthread_equal(pthread_self(), EventLoop::instance()->thread())) {
         if (mBuffers.empty())
             EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read | EventLoop::Write, dataCallback, this);
-        mBuffers.push_back(data);
+        sockaddr_in addr;
+        memset(&addr, 0, sizeof(sockaddr_in));
+        mBuffers.push_back(std::make_pair(addr, data));
         return writeMore();
     } else {
         EventLoop::instance()->postEvent(this, new DelayedWriteEvent(data));
         return true;
     }
+}
+
+static inline bool setupUdp(int& fd)
+{
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    return fd != -1;
+}
+
+bool SocketClient::writeTo(const String& host, uint16_t port, const String& data)
+{
+    sockaddr_in addr;
+    if (!lookupHost(host, port, addr))
+        return false;
+
+    if (mFd == -1) {
+        if (!setupUdp(mFd))
+            return false;
+    }
+
+
+    if (pthread_equal(pthread_self(), EventLoop::instance()->thread())) {
+        if (mBuffers.empty())
+            EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read | EventLoop::Write, dataCallback, this);
+        mBuffers.push_back(std::make_pair(addr, data));
+        return writeMore();
+    } else {
+        EventLoop::instance()->postEvent(this, new DelayedWriteEvent(addr, data));
+        return true;
+    }
+}
+
+void SocketClient::receiveFrom(uint16_t port)
+{
+    if (mFd == -1) {
+        if (!setupUdp(mFd))
+            return;
+    }
+
+    sockaddr_in from;
+    memset(&from, 0, sizeof(sockaddr_in));
+    from.sin_family = AF_INET;
+    from.sin_addr.s_addr = INADDR_ANY;
+    from.sin_port = htons(port);
+    if (bind(mFd, reinterpret_cast<sockaddr*>(&from), sizeof(sockaddr_in)) == -1) {
+        // boo
+        return;
+    }
+
+    unsigned int fdflags = EventLoop::Read;
+    if (!mBuffers.empty())
+        fdflags |= EventLoop::Write;
+    EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+}
+
+void SocketClient::receiveFrom(const String& ip, uint16_t port)
+{
+    if (mFd == -1) {
+        if (!setupUdp(mFd))
+            return;
+    }
+
+    sockaddr_in from;
+    memset(&from, 0, sizeof(sockaddr_in));
+    from.sin_family = AF_INET;
+    from.sin_addr.s_addr = inet_addr(ip.nullTerminated());
+    from.sin_port = htons(port);
+    if (bind(mFd, reinterpret_cast<sockaddr*>(&from), sizeof(sockaddr_in)) == -1) {
+        // boo
+        return;
+    }
+
+    unsigned int fdflags = EventLoop::Read;
+    if (!mBuffers.empty())
+        fdflags |= EventLoop::Write;
+    EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+}
+
+void SocketClient::addMulticast(const String& multicast, const String& interface)
+{
+    if (mFd == -1) {
+        if (!setupUdp(mFd))
+            return;
+    }
+    ip_mreq multi;
+    memset(&multi, 0, sizeof(ip_mreq));
+    multi.imr_multiaddr.s_addr = inet_addr(multicast.nullTerminated());
+    if (!interface.isEmpty())
+        multi.imr_interface.s_addr = inet_addr(interface.nullTerminated());
+    else
+        multi.imr_interface.s_addr = INADDR_ANY;
+    setsockopt(mFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &multi, sizeof(ip_mreq));
+}
+
+void SocketClient::removeMulticast(const String& multicast)
+{
+    if (mFd == -1) {
+        if (!setupUdp(mFd))
+            return;
+    }
+    ip_mreq multi;
+    memset(&multi, 0, sizeof(ip_mreq));
+    multi.imr_multiaddr.s_addr = inet_addr(multicast.nullTerminated());
+    multi.imr_interface.s_addr = INADDR_ANY;
+    setsockopt(mFd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &multi, sizeof(ip_mreq));
+}
+
+void SocketClient::setMulticastLoop(bool loop)
+{
+    if (mFd == -1) {
+        if (!setupUdp(mFd))
+            return;
+    }
+    const char l = loop; // ### is this needed here? could I just use the bool?
+    setsockopt(mFd, IPPROTO_IP, IP_MULTICAST_LOOP, &l, sizeof(char));
 }
 
 void SocketClient::readMore()
@@ -223,7 +352,7 @@ void SocketClient::readMore()
     bool wasDisconnected = false;
     for (;;) {
         int r;
-        eintrwrap(r, ::recv(mFd, buf, BufSize, recvflags));
+        eintrwrap(r, ::recvfrom(mFd, buf, BufSize, recvflags, 0, 0));
 
         if (r == -1) {
             break;
@@ -265,9 +394,15 @@ bool SocketClient::writeMore()
             EventLoop::instance()->removeFileDescriptor(mFd, EventLoop::Write);
             break;
         }
-        const String& front = mBuffers.front();
+        const sockaddr_in& addr = mBuffers.front().first;
+        const String& front = mBuffers.front().second;
         int w;
-        eintrwrap(w, ::send(mFd, &front[mBufferIdx], front.size() - mBufferIdx, sendflags));
+        if (!addr.sin_port) {
+            eintrwrap(w, ::send(mFd, &front[mBufferIdx], front.size() - mBufferIdx, sendflags));
+        } else {
+            eintrwrap(w, ::sendto(mFd, &front[mBufferIdx], front.size() - mBufferIdx, sendflags,
+                                  reinterpret_cast<const sockaddr*>(&addr), sizeof(sockaddr_in)));
+        }
 
         if (w == -1) {
             ret = (errno == EWOULDBLOCK || errno == EAGAIN); // apparently these can be different
@@ -295,7 +430,7 @@ void SocketClient::event(const Event* event)
         assert(pthread_equal(pthread_self(), EventLoop::instance()->thread()));
         if (mBuffers.empty())
             EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read | EventLoop::Write, dataCallback, this);
-        mBuffers.push_back(ev->data);
+        mBuffers.push_back(std::make_pair(ev->addr, ev->data));
         writeMore();
         break; }
     default:

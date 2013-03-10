@@ -13,7 +13,9 @@ public:
     SocketServer();
     ~SocketServer();
 
-    bool listen(const Path& path);
+    bool listenUnix(const Path& path);
+    bool listenTcp(uint16_t port);
+    bool listenTcp(const String& host, uint16_t port);
 
     SocketClient* nextClient();
 

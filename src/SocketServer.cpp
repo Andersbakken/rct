@@ -8,6 +8,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <unistd.h>
 
 #define LISTEN_BACKLOG 5
@@ -26,50 +29,104 @@ SocketServer::~SocketServer()
     }
 }
 
-bool SocketServer::listen(const Path& path)
+static inline bool listenInternal(int& fd, sockaddr* address, size_t addressSize)
+{
+    if (bind(fd, address, addressSize) != 0) {
+        int ret;
+        eintrwrap(ret, ::close(fd));
+        fd = -1;
+        error("SocketServer::listen() Unable to bind");
+        return false;
+    }
+
+    if (listen(fd, LISTEN_BACKLOG) != 0) {
+        int ret;
+        eintrwrap(ret, ::close(fd));
+        error("SocketServer::listen() Unable to listen to socket");
+        fd = -1;
+        return false;
+    }
+
+    return true;
+}
+
+bool SocketServer::listenUnix(const Path& path)
 {
     if (path.exists()) {
         return false;
     }
-    struct sockaddr_un address;
+    sockaddr_un address;
 
     mFd = socket(PF_UNIX, SOCK_STREAM, 0);
     if (mFd < 0) {
-        error("SocketServer::listen() Unable to create socket");
+        error("SocketServer::listenUnix() Unable to create socket");
         return false;
     }
 
-    memset(&address, 0, sizeof(struct sockaddr_un));
+    memset(&address, 0, sizeof(sockaddr_un));
 
     if (static_cast<int>(sizeof(address.sun_path)) - 1 <= path.size()) {
         int ret;
         eintrwrap(ret, ::close(mFd));
         mFd = -1;
-        error("SocketServer::listen() Path too long %s", path.constData());
+        error("SocketServer::listenUnix() Path too long %s", path.constData());
         return false;
     }
 
     address.sun_family = AF_UNIX;
     memcpy(address.sun_path, path.nullTerminated(), path.size() + 1);
 
-    if (bind(mFd, (struct sockaddr*)&address, sizeof(struct sockaddr_un)) != 0) {
-        int ret;
-        eintrwrap(ret, ::close(mFd));
-        mFd = -1;
-        error("SocketServer::listen() Unable to bind");
+    if (listenInternal(mFd, reinterpret_cast<sockaddr*>(&address), sizeof(sockaddr_un))) {
+        EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
+        return true;
+    }
+    return false;
+}
+
+bool SocketServer::listenTcp(uint16_t port)
+{
+    sockaddr_in address;
+
+    mFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (mFd < 0) {
+        error("SocketServer::listenTcp() Unable to create socket");
         return false;
     }
 
-    if (::listen(mFd, LISTEN_BACKLOG) != 0) {
-        int ret;
-        eintrwrap(ret, ::close(mFd));
-        error("SocketServer::listen() Unable to listen to socket");
-        mFd = -1;
+    memset(&address, 0, sizeof(sockaddr_in));
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(port);
+
+    if (listenInternal(mFd, reinterpret_cast<sockaddr*>(&address), sizeof(sockaddr_in))) {
+        EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
+        return true;
+    }
+    return false;
+}
+
+bool SocketServer::listenTcp(const String& ip, uint16_t port)
+{
+    sockaddr_in address;
+
+    mFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (mFd < 0) {
+        error("SocketServer::listenTcp() Unable to create socket");
         return false;
     }
 
-    EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
-    return true;
+    memset(&address, 0, sizeof(sockaddr_in));
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr(ip.nullTerminated());
+    address.sin_port = htons(port);
+
+    if (listenInternal(mFd, reinterpret_cast<sockaddr*>(&address), sizeof(sockaddr_in))) {
+        EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
+        return true;
+    }
+    return false;
 }
 
 void SocketServer::listenCallback(int, unsigned int, void* userData)

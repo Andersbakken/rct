@@ -26,7 +26,7 @@ public:
 
     int pendingWrite() const;
 
-    template<typename T> bool send(const T *message);
+    bool send(const Message *message);
     bool send(int id, const String& message);
     template <int StaticBufSize>
     bool write(const char *format, ...)
@@ -73,10 +73,12 @@ private:
     signalslot::Signal1<Connection*> mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
 };
 
-template<typename T>
-bool Connection::send(const T *message)
+inline bool Connection::send(const Message *message)
 {
-    return send(message->messageId(), message->encode());
+    String encoded;
+    Serializer serializer(encoded);
+    message->encode(serializer);
+    return send(message->messageId(), encoded);
 }
 
 #endif // CONNECTION_H

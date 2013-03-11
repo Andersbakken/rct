@@ -35,7 +35,8 @@ private:
         virtual Message *create(const char *data, int size)
         {
             T *t = new T;
-            t->fromData(data, size);
+            Deserializer deserializer(data, size);
+            t->decode(deserializer);
             return t;
         }
     };

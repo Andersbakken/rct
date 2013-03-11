@@ -1,14 +1,21 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include <rct/Serializer.h>
 class Message
 {
 public:
     enum { ResponseId = 1 };
 
-    Message() {}
+    Message(int id) : mMessageId(id) {}
     virtual ~Message() {}
-    virtual int messageId() const = 0;
+
+    int messageId() const { return mMessageId; }
+
+    virtual void encode(Serializer &serializer) const = 0;
+    virtual void decode(Deserializer &deserializer) = 0;
+private:
+    const int mMessageId;
 };
 
 #endif // MESSAGE_H

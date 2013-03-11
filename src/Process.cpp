@@ -143,7 +143,7 @@ void ProcessThread::run()
                 //printf("blocking wait pid %d\n", pid);
                 ::waitpid(pid, &ret, 0);
                 //printf("wait complete\n");
-                Process *process;
+                Process *process = 0;
                 {
                     MutexLocker locker(&sProcessMutex);
                     std::map<pid_t, Process*>::iterator proc = sProcesses.find(pid);
@@ -155,8 +155,10 @@ void ProcessThread::run()
                         process = proc->second;
                         sProcesses.erase(proc);
                     }
+                    assert(process);
                 }
-                process->finish(ret);
+                if (process)
+                    process->finish(ret);
             }
             hasread = 0;
         }

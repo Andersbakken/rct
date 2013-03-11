@@ -253,11 +253,11 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const String& data
     }
 }
 
-void SocketClient::receiveFrom(uint16_t port)
+bool SocketClient::receiveFrom(uint16_t port)
 {
     if (mFd == -1) {
         if (!setupUdp(mFd))
-            return;
+            return false;
     }
 
     sockaddr_in from;
@@ -267,20 +267,21 @@ void SocketClient::receiveFrom(uint16_t port)
     from.sin_port = htons(port);
     if (bind(mFd, reinterpret_cast<sockaddr*>(&from), sizeof(sockaddr_in)) == -1) {
         // boo
-        return;
+        return false;
     }
 
     unsigned int fdflags = EventLoop::Read;
     if (!mBuffers.empty())
         fdflags |= EventLoop::Write;
     EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+    return true;
 }
 
-void SocketClient::receiveFrom(const String& ip, uint16_t port)
+bool SocketClient::receiveFrom(const String& ip, uint16_t port)
 {
     if (mFd == -1) {
         if (!setupUdp(mFd))
-            return;
+            return false;
     }
 
     sockaddr_in from;
@@ -290,29 +291,35 @@ void SocketClient::receiveFrom(const String& ip, uint16_t port)
     from.sin_port = htons(port);
     if (bind(mFd, reinterpret_cast<sockaddr*>(&from), sizeof(sockaddr_in)) == -1) {
         // boo
-        return;
+        return false;
     }
 
     unsigned int fdflags = EventLoop::Read;
     if (!mBuffers.empty())
         fdflags |= EventLoop::Write;
     EventLoop::instance()->addFileDescriptor(mFd, fdflags, dataCallback, this);
+    return true;
 }
 
-void SocketClient::addMulticast(const String& multicast, const String& interface)
+bool SocketClient::addMulticast(const String& multicast, const String& interface)
 {
     if (mFd == -1) {
         if (!setupUdp(mFd))
-            return;
+            return false;
     }
     ip_mreq multi;
     memset(&multi, 0, sizeof(ip_mreq));
     multi.imr_multiaddr.s_addr = inet_addr(multicast.nullTerminated());
-    if (!interface.isEmpty())
+    if (multi.imr_multiaddr.s_addr == INADDR_NONE)
+        return false;
+    if (!interface.isEmpty()) {
         multi.imr_interface.s_addr = inet_addr(interface.nullTerminated());
-    else
+        if (multi.imr_interface.s_addr == INADDR_NONE)
+            return false;
+    } else {
         multi.imr_interface.s_addr = INADDR_ANY;
-    setsockopt(mFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &multi, sizeof(ip_mreq));
+    }
+    return (setsockopt(mFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &multi, sizeof(ip_mreq)) == 0);
 }
 
 void SocketClient::removeMulticast(const String& multicast)

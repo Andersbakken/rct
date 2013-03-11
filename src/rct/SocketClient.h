@@ -20,9 +20,9 @@ public:
 
     bool isConnected() const { return mFd != -1; }
 
-    void receiveFrom(uint16_t port);
-    void receiveFrom(const String& ip, uint16_t port);
-    void addMulticast(const String& multicast, const String& interface = String());
+    bool receiveFrom(uint16_t port);
+    bool receiveFrom(const String& ip, uint16_t port);
+    bool addMulticast(const String& multicast, const String& interface = String());
     void removeMulticast(const String& multicast);
     void setMulticastLoop(bool loop = true);
 

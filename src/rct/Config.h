@@ -26,7 +26,7 @@ public:
     }
 
 
-    static bool isEnabled(const char *name)
+    static bool isEnabled(const char *name) // ### should return an int count of enabled-ness
     {
         const Option *opt = findOption(name);
         return opt && opt->value.toBool();

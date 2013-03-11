@@ -420,7 +420,7 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                         eintrwrap(w, ::close(mSync[0]));
                         mSync[0] = -1;
                     }
-                    mFinished();
+                    mFinished(this);
                     return Done;
                 }
                 if (timeout) {
@@ -561,7 +561,7 @@ void Process::finish(int returnCode)
     }
 
     if (mMode == Async)
-        mFinished();
+        mFinished(this);
 }
 
 void Process::handleInput(int fd)
@@ -596,7 +596,7 @@ void Process::handleInput(int fd)
     }
 }
 
-void Process::handleOutput(int fd, String& buffer, int& index, signalslot::Signal0& signal)
+void Process::handleOutput(int fd, String& buffer, int& index, signalslot::Signal1<Process*>& signal)
 {
     //printf("Process::handleOutput %d\n", fd);
     enum { BufSize = 1024, MaxSize = (1024 * 1024 * 16) };
@@ -638,7 +638,7 @@ void Process::handleOutput(int fd, String& buffer, int& index, signalslot::Signa
     //printf("total data '%s'\n", buffer.nullTerminated());
 
     if (total)
-        signal();
+        signal(this);
 }
 
 void Process::stop()

@@ -41,9 +41,9 @@ public:
 
     void stop();
 
-    signalslot::Signal0& readyReadStdOut() { return mReadyReadStdOut; }
-    signalslot::Signal0& readyReadStdErr() { return mReadyReadStdErr; }
-    signalslot::Signal0& finished() { return mFinished; }
+    signalslot::Signal1<Process*>& readyReadStdOut() { return mReadyReadStdOut; }
+    signalslot::Signal1<Process*>& readyReadStdErr() { return mReadyReadStdErr; }
+    signalslot::Signal1<Process*>& finished() { return mFinished; }
 
     static List<String> environment();
 
@@ -57,7 +57,7 @@ private:
     void closeStdErr();
 
     void handleInput(int fd);
-    void handleOutput(int fd, String& buffer, int& index, signalslot::Signal0& signal);
+    void handleOutput(int fd, String& buffer, int& index, signalslot::Signal1<Process*>& signal);
 
     ExecState startInternal(const String& command, const List<String>& arguments,
                             const List<String>& environ, int timeout);
@@ -83,7 +83,7 @@ private:
 
     enum { Sync, Async } mMode;
 
-    signalslot::Signal0 mReadyReadStdOut, mReadyReadStdErr, mFinished;
+    signalslot::Signal1<Process*> mReadyReadStdOut, mReadyReadStdErr, mFinished;
 
     friend class ProcessThread;
 };

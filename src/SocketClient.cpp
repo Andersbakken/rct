@@ -407,7 +407,6 @@ bool SocketClient::writeMore()
             break;
         }
         const sockaddr_in& addr = mBuffers.front().first;
-        assert(addr.sin_family == AF_INET);
         const String& front = mBuffers.front().second;
         int w;
         if (!addr.sin_port) {

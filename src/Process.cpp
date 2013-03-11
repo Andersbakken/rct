@@ -155,7 +155,6 @@ void ProcessThread::run()
                         process = proc->second;
                         sProcesses.erase(proc);
                     }
-                    assert(process);
                 }
                 if (process)
                     process->finish(ret);

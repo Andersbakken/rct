@@ -60,7 +60,7 @@ void error(const char *format, ...);
 void logDirect(int level, const String &out);
 
 bool testLog(int level);
-bool initLogging(int logLevel, const Path &logFile, unsigned flags);
+bool initLogging(int logLevel, const Path &logFile, unsigned flags = 0);
 void cleanupLogging();
 int logLevel();
 void restartTime();

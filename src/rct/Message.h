@@ -15,7 +15,7 @@ public:
     virtual void encode(Serializer &serializer) const = 0;
     virtual void decode(Deserializer &deserializer) = 0;
 private:
-    const int mMessageId;
+    int mMessageId;
 };
 
 #endif // MESSAGE_H

@@ -31,7 +31,7 @@ public:
     void addFileDescriptor(int fd, unsigned int flags, FdFunc callback, void* userData);
     void removeFileDescriptor(int fd, unsigned int flags = 0);
 
-    void run();
+    void run(int maxTime = -1);
     pthread_t thread() const { return mThread; }
 
     // The following two functions are thread safe
@@ -42,6 +42,12 @@ private:
     void handlePipe();
     void sendPostedEvents();
     bool reinsertTimer(int handle, timeval* now);
+    static void exitTimer(int id, void *userData)
+    {
+        EventLoop *loop = static_cast<EventLoop*>(userData);
+        loop->removeTimer(id);
+        loop->exit();
+    }
 
 private:
     int mEventPipe[2];

@@ -169,13 +169,15 @@ void EventLoop::postEvent(EventReceiver* receiver, Event* event)
     }
 }
 
-void EventLoop::run()
+void EventLoop::run(int maxTime)
 {
     mQuit = false;
     mThread = pthread_self();
     fd_set rset, wset;
     int max;
     timeval timedata, timenow;
+    if (maxTime > 0)
+        addTimer(maxTime, EventLoop::exitTimer, this);
     for (;;) {
         FD_ZERO(&rset);
         FD_ZERO(&wset);

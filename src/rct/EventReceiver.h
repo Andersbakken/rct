@@ -3,6 +3,7 @@
 
 #include <rct/EventLoop.h>
 #include <rct/Event.h>
+#include <rct/Value.h>
 #include <rct/SignalSlot.h>
 
 class TimerEvent;
@@ -21,6 +22,17 @@ public:
 
     int startTimer(int interval, TimerMode timerMode, void *userData = 0);
     bool stopTimer(int id);
+
+    void setData(int id, const Value &value)
+    {
+        if (value.isNull()) {
+            mData.erase(id);
+        } else {
+            mData[id] = value;
+        }
+    }
+    Value data(int id) const { return mData.value(id); }
+    void clearData(int id) { setData(id, Value()); }
 protected:
     virtual void timerEvent(TimerEvent *event);
     virtual void event(const Event *event);
@@ -40,6 +52,7 @@ private:
     Map<int, TimerEvent> mTimers;
     static void timerEventCallBack(int id, void *userData);
     friend class EventLoop;
+    Map<int, Value> mData;
 };
 
 class TimerEvent

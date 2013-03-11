@@ -108,7 +108,7 @@ static inline bool lookupHost(const String& host, uint16_t port, sockaddr_in& ad
     addrinfo* cur = result;
     while (cur) {
         if (cur->ai_family == AF_INET) {
-            memcpy(&addr, cur, sizeof(sockaddr_in));
+            memcpy(&addr, cur->ai_addr, sizeof(sockaddr_in));
             addr.sin_port = htons(port);
             freeaddrinfo(result);
             return true;
@@ -227,6 +227,11 @@ bool SocketClient::write(const String& data)
 static inline bool setupUdp(int& fd)
 {
     fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd != -1) {
+        int flags;
+        eintrwrap(flags, fcntl(fd, F_GETFL, 0));
+        eintrwrap(flags, fcntl(fd, F_SETFL, flags | O_NONBLOCK));
+    }
     return fd != -1;
 }
 
@@ -402,6 +407,7 @@ bool SocketClient::writeMore()
             break;
         }
         const sockaddr_in& addr = mBuffers.front().first;
+        assert(addr.sin_family == AF_INET);
         const String& front = mBuffers.front().second;
         int w;
         if (!addr.sin_port) {

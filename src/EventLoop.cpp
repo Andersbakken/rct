@@ -17,7 +17,7 @@
 EventLoop* EventLoop::sInstance = 0;
 
 EventLoop::EventLoop()
-    : mQuit(false), mNextTimerHandle(0), mThread(0)
+    : mQuit(false), mNextTimerHandle(0), mThread(pthread_self())
 {
     if (!sInstance)
         sInstance = this;
@@ -172,7 +172,6 @@ void EventLoop::postEvent(EventReceiver* receiver, Event* event)
 void EventLoop::run(int maxTime)
 {
     mQuit = false;
-    mThread = pthread_self();
     fd_set rset, wset;
     int max;
     timeval timedata, timenow;

@@ -26,9 +26,11 @@ public:
     }
 
 
-    static bool isEnabled(const char *name) // ### should return an int count of enabled-ness
+    static bool isEnabled(const char *name, int *count) // ### should return an int count of enabled-ness
     {
         const Option *opt = findOption(name);
+        if (count)
+            *count = opt ? opt->count : 0;
         return opt && opt->value.toBool();
     }
 
@@ -71,6 +73,7 @@ private:
         String description;
         Value defaultValue;
         Value value;
+        int count;
     };
     static List<Option> sOptions;
     static const Option *findOption(const char *name)

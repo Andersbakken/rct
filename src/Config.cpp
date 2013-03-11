@@ -88,6 +88,7 @@ bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
             ok = false;
             goto done;
         }
+        ++opt->count;
         if (optarg) {
             if (optarg[0] == '=' && strcmp(a[optind - 1], optarg)) {
                 opt->value = String(optarg + 1);

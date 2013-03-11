@@ -26,7 +26,7 @@ public:
 
     enum ExecFlag {
         None = 0x0,
-        CloseStdIn = 0x1
+        NoCloseStdIn = 0x1
     };
     ExecState exec(const String& command, const List<String>& arguments = List<String>(),
                    int timeout = 0, unsigned flags = 0);

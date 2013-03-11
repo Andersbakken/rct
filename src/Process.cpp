@@ -260,7 +260,7 @@ Path Process::findCommand(const String& command)
 }
 
 Process::ExecState Process::startInternal(const String& command, const List<String>& a, const List<String>& environ,
-                                          int timeout, unsigned flags)
+                                          int timeout, unsigned execFlags)
 {
     mErrorString.clear();
 
@@ -379,7 +379,7 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                 selecttime = &now;
                 Rct::timevalAdd(selecttime, timeout);
             }
-            if (flags & CloseStdIn)
+            if (!(execFlags & NoCloseStdIn))
                 closeStdIn();
             for (;;) {
                 // set up all the select crap
@@ -393,8 +393,10 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                 max = std::max(max, mStdErr[0]);
                 FD_SET(mSync[0], &rfds);
                 max = std::max(max, mSync[0]);
-                FD_SET(mStdIn[1], &wfds);
-                max = std::max(max, mStdIn[1]);
+                if (mStdIn[1] != -1) {
+                    FD_SET(mStdIn[1], &wfds);
+                    max = std::max(max, mStdIn[1]);
+                }
                 const int ret = select(max + 1, &rfds, &wfds, 0, selecttime);
                 if (ret == -1) { // ow
                     mErrorString = "Sync select failed";
@@ -405,7 +407,7 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                     handleOutput(mStdOut[0], mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
                 if (FD_ISSET(mStdErr[0], &rfds))
                     handleOutput(mStdErr[0], mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
-                if (FD_ISSET(mStdIn[1], &wfds))
+                if (mStdIn[1] != -1 && FD_ISSET(mStdIn[1], &wfds))
                     handleInput(mStdIn[1]);
                 if (FD_ISSET(mSync[0], &rfds)) {
                     // we're done

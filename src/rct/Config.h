@@ -26,7 +26,7 @@ public:
     }
 
 
-    static bool isEnabled(const char *name, int *count) // ### should return an int count of enabled-ness
+    static bool isEnabled(const char *name, int *count = 0) // ### should return an int count of enabled-ness
     {
         const Option *opt = findOption(name);
         if (count)

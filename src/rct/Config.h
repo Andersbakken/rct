@@ -52,7 +52,7 @@ public:
             *ok = false;
         if (opt) {
             if (opt->value.isNull()) {
-                return opt->defaultValue.convert<T>();
+                return opt->defaultValue.convert<T>(ok);
             } else {
                 if (ok)
                     *ok = true;

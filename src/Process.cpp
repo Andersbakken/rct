@@ -259,7 +259,8 @@ Path Process::findCommand(const String& command)
     return Path();
 }
 
-Process::ExecState Process::startInternal(const String& command, const List<String>& a, const List<String>& environ, int timeout)
+Process::ExecState Process::startInternal(const String& command, const List<String>& a, const List<String>& environ,
+                                          int timeout, unsigned flags)
 {
     mErrorString.clear();
 
@@ -378,6 +379,8 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                 selecttime = &now;
                 Rct::timevalAdd(selecttime, timeout);
             }
+            if (flags & CloseStdIn)
+                closeStdIn();
             for (;;) {
                 // set up all the select crap
                 fd_set rfds, wfds;
@@ -443,29 +446,23 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
     return Done;
 }
 
-bool Process::start(const String& command,
-                    const List<String>& arguments)
-{
-    mMode = Async;
-    return startInternal(command, arguments, List<String>(), 0) == Done;
-}
-
 bool Process::start(const String& command, const List<String>& a, const List<String>& environ)
 {
     mMode = Async;
-    return startInternal(command, a, environ, 0) == Done;
+    return startInternal(command, a, environ) == Done;
 }
 
-Process::ExecState Process::exec(const String& command, const List<String>& arguments, int timeout)
+Process::ExecState Process::exec(const String& command, const List<String>& arguments, int timeout, unsigned flags)
 {
     mMode = Sync;
-    return startInternal(command, arguments, List<String>(), timeout);
+    return startInternal(command, arguments, List<String>(), timeout, flags);
 }
 
-Process::ExecState Process::exec(const String& command, const List<String>& a, const List<String>& environ, int timeout)
+Process::ExecState Process::exec(const String& command, const List<String>& a, const List<String>& environ,
+                                 int timeout, unsigned flags)
 {
     mMode = Sync;
-    return startInternal(command, a, environ, timeout);
+    return startInternal(command, a, environ, timeout, flags);
 }
 
 void Process::write(const String& data)

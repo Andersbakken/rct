@@ -18,15 +18,20 @@ public:
 
     void setCwd(const Path& cwd);
 
-    bool start(const String& command, const List<String>& arguments = List<String>());
-    bool start(const String& command, const List<String>& arguments,
-               const List<String>& environ);
+    bool start(const String& command,
+               const List<String>& arguments = List<String>(),
+               const List<String>& environ = List<String>());
 
     enum ExecState { Error, Done, TimedOut };
 
-    ExecState exec(const String& command, const List<String>& arguments = List<String>(), int timeout = 0);
+    enum ExecFlag {
+        None = 0x0,
+        CloseStdIn = 0x1
+    };
+    ExecState exec(const String& command, const List<String>& arguments = List<String>(),
+                   int timeout = 0, unsigned flags = 0);
     ExecState exec(const String& command, const List<String>& arguments,
-                   const List<String>& environ, int timeout = 0);
+                   const List<String>& environ, int timeout = 0, unsigned flags = 0);
 
     String errorString() const { MutexLocker lock(&mMutex); return mErrorString; }
 
@@ -60,7 +65,7 @@ private:
     void handleOutput(int fd, String& buffer, int& index, signalslot::Signal1<Process*>& signal);
 
     ExecState startInternal(const String& command, const List<String>& arguments,
-                            const List<String>& environ, int timeout);
+                            const List<String>& environ, int timeout = 0, unsigned flags = 0);
 
 private:
 

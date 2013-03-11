@@ -62,6 +62,17 @@ public:
     //     // return tup->second;
     // }
 
+    Value &operator[](const Key &key)
+    {
+        return std::map<Key, Value>::operator[](key);
+    }
+
+    const Value &operator[](const Key &key) const
+    {
+        assert(contains(key));
+        return std::map<Key, Value>::find(key)->second;
+    }
+
     Map<Key, Value> &unite(const Map<Key, Value> &other)
     {
         typename std::map<Key, Value>::const_iterator it = other.begin();

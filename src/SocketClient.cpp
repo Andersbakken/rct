@@ -141,6 +141,37 @@ bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
     return ok;
 }
 
+static inline String getname(sockaddr_in* addr, bool* ok = 0)
+{
+    String str(22, '\0');
+    if (!inet_ntop(AF_INET, addr, str.data(), str.size())) {
+        if (ok)
+            *ok = false;
+        return String();
+    }
+    if (ok)
+        *ok = true;
+    return str;
+}
+
+String SocketClient::remoteAddress() const
+{
+    sockaddr_in in;
+    socklen_t len = sizeof(sockaddr_in);
+    if (getpeername(mFd, reinterpret_cast<sockaddr*>(&in), &len) == -1)
+        return String();
+    return getname(&in);
+}
+
+String SocketClient::localAddress() const
+{
+    sockaddr_in in;
+    socklen_t len = sizeof(sockaddr_in);
+    if (getsockname(mFd, reinterpret_cast<sockaddr*>(&in), &len) == -1)
+        return String();
+    return getname(&in);
+}
+
 bool SocketClient::connectUnix(const Path& path, int maxTime)
 {
     sockaddr_un unAddress;
@@ -362,13 +393,19 @@ void SocketClient::readMore()
     char buf[BufSize];
     int read = 0;
     bool wasDisconnected = false;
+
+    sockaddr_in addr;
+    socklen_t len;
+
     for (;;) {
         int r;
-        eintrwrap(r, ::recvfrom(mFd, buf, BufSize, recvflags, 0, 0));
+        memset(&addr, 0, sizeof(sockaddr_in));
+        len = sizeof(sockaddr_in);
+        eintrwrap(r, ::recvfrom(mFd, buf, BufSize, recvflags, reinterpret_cast<sockaddr*>(&addr), &len));
 
         if (r == -1) {
             break;
-        } else if (!r) {
+        } else if (!r && !addr.sin_addr.s_addr) {
             wasDisconnected = true;
             break;
         }
@@ -384,9 +421,15 @@ void SocketClient::readMore()
                 mReadBuffer.clear();
             }
         }
+
+        if (addr.sin_addr.s_addr && !mReadBuffer.isEmpty()) {
+            mUdpDataAvailable(this, getname(&addr), ntohs(addr.sin_port), mReadBuffer);
+            mReadBuffer.clear();
+            read = 0;
+        }
     }
 
-    if (read && !mReadBuffer.isEmpty())
+    if (read && !addr.sin_addr.s_addr && !mReadBuffer.isEmpty())
         mDataAvailable(this);
     if (wasDisconnected)
         disconnect();

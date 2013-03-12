@@ -18,6 +18,9 @@ public:
     bool connectTcp(const String& host, uint16_t port, int maxTime = -1);
     void disconnect();
 
+    String localAddress() const;
+    String remoteAddress() const;
+
     bool isConnected() const { return mFd != -1; }
 
     bool receiveFrom(uint16_t port);
@@ -33,6 +36,7 @@ public:
     bool writeTo(const String& host, uint16_t port, const String& data);
 
     signalslot::Signal1<SocketClient*> &dataAvailable() { return mDataAvailable; }
+    signalslot::Signal4<SocketClient*, String, uint16_t, String> &udpDataAvailable() { return mUdpDataAvailable; }
     signalslot::Signal1<SocketClient*> &connected() { return mConnected; }
     signalslot::Signal1<SocketClient*> &disconnected() { return mDisconnected; }
     signalslot::Signal2<SocketClient*, int>& bytesWritten() { return mBytesWritten; }
@@ -48,6 +52,7 @@ private:
     int mFd;
     signalslot::Signal1<SocketClient*> mDataAvailable, mConnected, mDisconnected;
     signalslot::Signal2<SocketClient*, int> mBytesWritten;
+    signalslot::Signal4<SocketClient*, String, uint16_t, String> mUdpDataAvailable;
 
     std::deque<std::pair<sockaddr_in, String> > mBuffers;
     int mBufferIdx;

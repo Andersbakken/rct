@@ -404,14 +404,26 @@ void SocketClient::readMore()
     int read = 0;
     bool wasDisconnected = false;
 
-    sockaddr_in addr;
-    socklen_t len;
+    sockaddr_in addr_in;
+    socklen_t len_in;
+
+    sockaddr* addr;
+    socklen_t* len;
+    if (mMode == Udp) {
+        addr = reinterpret_cast<sockaddr*>(&addr_in);
+        len = &len_in;
+    } else {
+        addr = 0;
+        len = 0;
+    }
 
     for (;;) {
         int r;
-        memset(&addr, 0, sizeof(sockaddr_in));
-        len = sizeof(sockaddr_in);
-        eintrwrap(r, ::recvfrom(mFd, buf, BufSize, recvflags, reinterpret_cast<sockaddr*>(&addr), &len));
+        if (addr) {
+            memset(addr, 0, sizeof(sockaddr_in));
+            *len = sizeof(sockaddr_in);
+        }
+        eintrwrap(r, ::recvfrom(mFd, buf, BufSize, recvflags, addr, len));
 
         if (r == -1) {
             break;
@@ -433,7 +445,7 @@ void SocketClient::readMore()
         }
 
         if (mMode == Udp && !mReadBuffer.isEmpty()) {
-            mUdpDataAvailable(this, getname(&addr), ntohs(addr.sin_port), mReadBuffer);
+            mUdpDataAvailable(this, getname(&addr_in), ntohs(addr_in.sin_port), mReadBuffer);
             mReadBuffer.clear();
             read = 0;
         }

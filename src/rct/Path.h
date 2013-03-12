@@ -69,7 +69,13 @@ public:
     const char *fileName(int *len = 0) const;
     const char *extension() const;
     static bool exists(const Path &path) { return path.exists(); }
-    static bool mkdir(const Path &path);
+    enum MkDirMode {
+        Single,
+        Recursive
+    };
+    static bool mkdir(const Path &path,
+                      MkDirMode mode = Single,
+                      mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     static bool rm(const Path &file);
     static Path home();
     bool mksubdir(const String &subdir) const;

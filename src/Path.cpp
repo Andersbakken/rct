@@ -236,12 +236,36 @@ bool Path::mksubdir(const String &path) const
     return false;
 }
 
-bool Path::mkdir(const Path &path)
+bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
 {
-    const mode_t mode = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH;
     errno = 0;
-    return !::mkdir(path.constData(), mode) || errno == EEXIST;
+    if (!::mkdir(path.constData(), permissions) || errno == EEXIST || errno == EISDIR)
+        return true;
+    if (mkdirMode == Single)
+        return false;
+    if (path.size() > PATH_MAX)
+        return false;
+
+    char buf[PATH_MAX + 2];
+    strcpy(buf, path.constData());
+    int len = path.size();
+    if (!path.endsWith('/')) {
+        buf[len++] = '/';
+        buf[len] = '\0';
+    }
+
+    for (int i = 1; i < len; ++i) {
+        if (buf[i] == '/') {
+            buf[i] = 0;
+            const int r = ::mkdir(buf, permissions);
+            if (r && errno != EEXIST && errno != EISDIR)
+                return false;
+            buf[i] = '/';
+        }
+    }
+    return true;
 }
+
 bool Path::rm(const Path &file)
 {
     return !unlink(file.constData());

@@ -299,14 +299,20 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
         //printf("arg: '%s'\n", args[pos]);
         ++pos;
     }
+
+    const bool hasEnviron = !environ.empty();
+
     const char* env[environ.size() + 1];
     env[environ.size()] = 0;
-    pos = 0;
-    //printf("fork, about to exec '%s'\n", cmd.nullTerminated());
-    for (List<String>::const_iterator it = environ.begin(); it != environ.end(); ++it) {
-        env[pos] = it->nullTerminated();
-        //printf("env: '%s'\n", env[pos]);
-        ++pos;
+
+    if (hasEnviron) {
+        pos = 0;
+        //printf("fork, about to exec '%s'\n", cmd.nullTerminated());
+        for (List<String>::const_iterator it = environ.begin(); it != environ.end(); ++it) {
+            env[pos] = it->nullTerminated();
+            //printf("env: '%s'\n", env[pos]);
+            ++pos;
+        }
     }
 
     mPid = ::fork();
@@ -341,7 +347,11 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
 
         if (!mCwd.isEmpty())
             eintrwrap(err, ::chdir(mCwd.nullTerminated()));
-        const int ret = ::execve(cmd.nullTerminated(), const_cast<char* const*>(args), const_cast<char* const*>(env));
+        int ret;
+        if (hasEnviron)
+            ret = ::execve(cmd.nullTerminated(), const_cast<char* const*>(args), const_cast<char* const*>(env));
+        else
+            ret = ::execv(cmd.nullTerminated(), const_cast<char* const*>(args));
         ::_exit(1);
         (void)ret;
         //printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, strerror(errno));

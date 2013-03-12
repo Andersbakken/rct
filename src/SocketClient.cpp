@@ -145,7 +145,7 @@ bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
 
 static inline String getname(sockaddr_in* addr, bool* ok = 0)
 {
-    String str(22, '\0');
+    String str(INET_ADDRSTRLEN, '\0');
     if (!inet_ntop(AF_INET, &addr->sin_addr, str.data(), str.size())) {
         if (ok)
             *ok = false;

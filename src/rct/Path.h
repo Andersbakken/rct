@@ -101,6 +101,7 @@ public:
     static Path canonicalized(const String &path);
     static Path pwd();
     int readAll(char *&, int max = -1) const;
+    String readAll(int max = -1) const;
     Path toTilde() const;
 
     enum VisitResult {

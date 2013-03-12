@@ -103,7 +103,7 @@ template <> inline bool Value::convert<bool>(bool *ok) const
 {
     if (ok)
         *ok = true;
-    
+
     switch (mType) {
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
@@ -116,7 +116,7 @@ template <> inline bool Value::convert<bool>(bool *ok) const
     }
     if (ok)
         *ok = false;
-    
+
     return false;
 }
 
@@ -125,7 +125,7 @@ template <> inline double Value::convert<double>(bool *ok) const
 {
     if (ok)
         *ok = true;
-    
+
     switch (mType) {
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
@@ -136,7 +136,7 @@ template <> inline double Value::convert<double>(bool *ok) const
     }
     if (ok)
         *ok = false;
-    
+
     return .0;
 }
 
@@ -144,7 +144,7 @@ template <> inline String Value::convert<String>(bool *ok) const
 {
     if (ok)
         *ok = true;
-    
+
     switch (mType) {
     case Type_Integer: return String::number(mData.integer);
     case Type_Double: return String::number(mData.dbl);
@@ -155,7 +155,7 @@ template <> inline String Value::convert<String>(bool *ok) const
     }
     if (ok)
         *ok = false;
-    
+
     return String();
 }
 

@@ -41,13 +41,13 @@ static void initSigPipe()
 }
 
 SocketClient::SocketClient()
-    : mFd(-1), mBufferIdx(0), mReadBufferPos(0)
+    : mMode(Unix), mFd(-1), mBufferIdx(0), mReadBufferPos(0)
 {
     pthread_once(&sigPipeHandler, initSigPipe);
 }
 
-SocketClient::SocketClient(int fd)
-    : mFd(fd), mBufferIdx(0), mReadBufferPos(0)
+SocketClient::SocketClient(Mode mode, int fd)
+    : mMode(mode), mFd(fd), mBufferIdx(0), mReadBufferPos(0)
 {
     pthread_once(&sigPipeHandler, initSigPipe);
     int flags;
@@ -126,6 +126,8 @@ bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
     if (!lookupHost(host, port, addr))
         return false;
 
+    mMode = Tcp;
+
     bool ok = false;
     if (connectInternal(mFd, AF_INET, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in), maxTime)) {
         ok = true;
@@ -144,7 +146,7 @@ bool SocketClient::connectTcp(const String& host, uint16_t port, int maxTime)
 static inline String getname(sockaddr_in* addr, bool* ok = 0)
 {
     String str(22, '\0');
-    if (!inet_ntop(AF_INET, addr, str.data(), str.size())) {
+    if (!inet_ntop(AF_INET, &addr->sin_addr, str.data(), str.size())) {
         if (ok)
             *ok = false;
         return String();
@@ -181,6 +183,8 @@ bool SocketClient::connectUnix(const Path& path, int maxTime)
     const int sz = std::min<int>(sizeof(unAddress.sun_path) - 1, path.size());
     memcpy(unAddress.sun_path, path.constData(), sz);
     unAddress.sun_path[sz] = '\0';
+
+    mMode = Unix;
 
     if (connectInternal(mFd, PF_UNIX, reinterpret_cast<sockaddr*>(&unAddress), sizeof(sockaddr_un), maxTime)) {
         unsigned int fdflags = EventLoop::Read;
@@ -275,6 +279,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const String& data
     if (mFd == -1) {
         if (!setupUdp(mFd))
             return false;
+        mMode = Udp;
     }
 
 
@@ -294,6 +299,7 @@ bool SocketClient::receiveFrom(uint16_t port)
     if (mFd == -1) {
         if (!setupUdp(mFd))
             return false;
+        mMode = Udp;
     }
 
     sockaddr_in from;
@@ -318,6 +324,7 @@ bool SocketClient::receiveFrom(const String& ip, uint16_t port)
     if (mFd == -1) {
         if (!setupUdp(mFd))
             return false;
+        mMode = Udp;
     }
 
     sockaddr_in from;
@@ -342,6 +349,7 @@ bool SocketClient::addMulticast(const String& multicast, const String& interface
     if (mFd == -1) {
         if (!setupUdp(mFd))
             return false;
+        mMode = Udp;
     }
     ip_mreq multi;
     memset(&multi, 0, sizeof(ip_mreq));
@@ -363,6 +371,7 @@ void SocketClient::removeMulticast(const String& multicast)
     if (mFd == -1) {
         if (!setupUdp(mFd))
             return;
+        mMode = Udp;
     }
     ip_mreq multi;
     memset(&multi, 0, sizeof(ip_mreq));
@@ -376,6 +385,7 @@ void SocketClient::setMulticastLoop(bool loop)
     if (mFd == -1) {
         if (!setupUdp(mFd))
             return;
+        mMode = Udp;
     }
     const char l = loop; // ### is this needed here? could I just use the bool?
     setsockopt(mFd, IPPROTO_IP, IP_MULTICAST_LOOP, &l, sizeof(char));
@@ -405,7 +415,7 @@ void SocketClient::readMore()
 
         if (r == -1) {
             break;
-        } else if (!r && !addr.sin_addr.s_addr) {
+        } else if (!r && mMode != Udp) {
             wasDisconnected = true;
             break;
         }
@@ -422,14 +432,14 @@ void SocketClient::readMore()
             }
         }
 
-        if (addr.sin_addr.s_addr && !mReadBuffer.isEmpty()) {
+        if (mMode == Udp && !mReadBuffer.isEmpty()) {
             mUdpDataAvailable(this, getname(&addr), ntohs(addr.sin_port), mReadBuffer);
             mReadBuffer.clear();
             read = 0;
         }
     }
 
-    if (read && !addr.sin_addr.s_addr && !mReadBuffer.isEmpty())
+    if (read && mMode != Udp && !mReadBuffer.isEmpty())
         mDataAvailable(this);
     if (wasDisconnected)
         disconnect();

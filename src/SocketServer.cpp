@@ -16,7 +16,7 @@
 #define LISTEN_BACKLOG 5
 
 SocketServer::SocketServer()
-    : mFd(-1)
+    : mMode(SocketClient::Unix), mFd(-1)
 {
 }
 
@@ -52,6 +52,8 @@ static inline bool listenInternal(int& fd, sockaddr* address, size_t addressSize
 
 bool SocketServer::listenUnix(const Path& path)
 {
+    mMode = SocketClient::Unix;
+
     if (path.exists()) {
         return false;
     }
@@ -85,6 +87,8 @@ bool SocketServer::listenUnix(const Path& path)
 
 bool SocketServer::listenTcp(uint16_t port)
 {
+    mMode = SocketClient::Tcp;
+
     sockaddr_in address;
 
     mFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -108,6 +112,8 @@ bool SocketServer::listenTcp(uint16_t port)
 
 bool SocketServer::listenTcp(const String& ip, uint16_t port)
 {
+    mMode = SocketClient::Tcp;
+
     sockaddr_in address;
 
     mFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -147,5 +153,5 @@ SocketClient* SocketServer::nextClient()
         return 0;
     const int clientFd = mPendingClients.front();
     mPendingClients.pop_front();
-    return new SocketClient(clientFd);
+    return new SocketClient(mMode, clientFd);
 }

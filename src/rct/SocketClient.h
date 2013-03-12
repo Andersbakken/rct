@@ -45,9 +45,12 @@ protected:
 private:
     static void dataCallback(int fd, unsigned int flags, void* userData);
 
+    enum Mode { Tcp, Udp, Unix };
+    Mode mMode;
+
     bool writeMore();
     void readMore();
-    SocketClient(int fd);
+    SocketClient(Mode mode, int fd);
     friend class SocketServer;
     int mFd;
     signalslot::Signal1<SocketClient*> mDataAvailable, mConnected, mDisconnected;

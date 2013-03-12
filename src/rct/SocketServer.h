@@ -3,6 +3,7 @@
 
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>
+#include <rct/SocketClient.h>
 #include <deque>
 
 class SocketClient;
@@ -25,6 +26,8 @@ private:
     static void listenCallback(int fd, unsigned int flags, void* userData);
 
 private:
+    SocketClient::Mode mMode;
+
     int mFd;
     std::deque<int> mPendingClients;
     signalslot::Signal0 mClientConnected;

@@ -327,10 +327,15 @@ Path Path::followLink(bool *ok) const
         char buf[PATH_MAX];
         int w = readlink(constData(), buf, sizeof(buf) - 1);
         if (w != -1) {
+            if (ok)
+                *ok = true;
             buf[w] = '\0';
             return buf;
         }
     }
+    if (ok)
+        *ok = false;
+
     return *this;
 }
 

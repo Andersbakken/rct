@@ -34,6 +34,12 @@ public:
             return (ret == static_cast<size_t>(len));
         }
     }
+    const String *string() const { return mOut; }
+    String *string()  { return mOut; }
+    const FILE *file() const { return mOutFile; }
+    FILE *file() { return mOutFile; }
+
+    int pos() const { return mOut ? mOut->size() : static_cast<int>(ftell(mOutFile)); }
 private:
     String *mOut;
     FILE *mOutFile;

@@ -26,7 +26,7 @@ public:
             mString = std::string(data, len);
         }
     }
-    String(int len, char fillChar)
+    String(int len, char fillChar = '\0')
         : mString(len, fillChar)
     {}
 
@@ -317,7 +317,7 @@ public:
             mString.insert(pos, str, len);
         }
     }
-    
+
     void insert(int pos, char ch)
     {
         mString.insert(pos, &ch, 1);

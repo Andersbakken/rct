@@ -76,10 +76,8 @@ public:
 
     bool atEnd() const { return mPos == mLength; }
 
-    int pos() const
-    {
-        return mPos;
-    }
+    int pos() const { return mPos; }
+    int length() const { return mLength; }
 private:
     const char *mData;
     const int mLength;

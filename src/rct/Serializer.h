@@ -125,6 +125,7 @@ template <typename T> inline int fixedSize(const T &)
 DECLARE_NATIVE_TYPE(bool);
 DECLARE_NATIVE_TYPE(char);
 DECLARE_NATIVE_TYPE(unsigned char);
+DECLARE_NATIVE_TYPE(double);
 DECLARE_NATIVE_TYPE(uint16_t);
 DECLARE_NATIVE_TYPE(int16_t);
 DECLARE_NATIVE_TYPE(uint32_t);

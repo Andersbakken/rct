@@ -3,6 +3,7 @@
 
 #include <rct/String.h>
 #include <rct/Log.h>
+#include <rct/Serializer.h>
 #include <math.h>
 
 class Value
@@ -170,6 +171,36 @@ inline Log operator<<(Log log, const Value &value)
     log << String::format<128>("Variant(%s: %s)", Value::typeToString(value.type()),
                                value.toString().constData());
     return log;
+}
+
+inline Serializer& operator<<(Serializer& serializer, const Value& value)
+{
+    serializer << static_cast<int>(value.type());
+    switch (value.type()) {
+    case Value::Type_Integer: serializer << value.toInteger(); break;
+    case Value::Type_Double: serializer << value.toDouble(); break;
+    case Value::Type_Boolean: serializer << value.toBool(); break;
+    case Value::Type_String: serializer << value.toString(); break;
+    case Value::Type_Pointer: error() << "Trying to serialize pointer"; break;
+    case Value::Type_Invalid: break;
+    }
+    return serializer;
+}
+
+inline Deserializer& operator>>(Deserializer& deserializer, Value& value)
+{
+    int t;
+    deserializer >> t;
+    Value::Type type = static_cast<Value::Type>(t);
+    switch (type) {
+    case Value::Type_Integer: { int v; deserializer >> v; value = Value(v); break; }
+    case Value::Type_Double: { double v; deserializer >> v; value = Value(v); break; }
+    case Value::Type_Boolean: { bool v; deserializer >> v; value = Value(v); break; }
+    case Value::Type_String: { String v; deserializer >> v; value = Value(v); break; }
+    case Value::Type_Pointer: value.clear(); error() << "Trying to deserialize pointer"; break;
+    case Value::Type_Invalid: value.clear(); break;
+    }
+    return deserializer;
 }
 
 #endif

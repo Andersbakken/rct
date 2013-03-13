@@ -11,8 +11,12 @@
 class SocketClient : public EventReceiver
 {
 public:
+    enum Mode { Tcp, Udp, Unix };
+
     SocketClient();
     virtual ~SocketClient();
+
+    Mode mode() const { return mMode; }
 
     bool connectUnix(const Path& path, int maxTime = -1);
     bool connectTcp(const String& host, uint16_t port, int maxTime = -1);
@@ -45,7 +49,6 @@ protected:
 private:
     static void dataCallback(int fd, unsigned int flags, void* userData);
 
-    enum Mode { Tcp, Udp, Unix };
     Mode mMode;
 
     bool writeMore();

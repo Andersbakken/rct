@@ -74,6 +74,8 @@ public:
         return 0;
     }
 
+    bool atEnd() const { return mPos == mLength; }
+
     int pos() const
     {
         return mPos;

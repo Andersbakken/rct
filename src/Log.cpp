@@ -229,6 +229,11 @@ void cleanupLogging()
     }
 }
 
+Log::Log(String *out)
+{
+    assert(out);
+    mData.reset(new Data(out));
+}
 Log::Log(int level)
 {
     if (testLog(level))

@@ -72,6 +72,7 @@ public:
         DontRotate = 0x2
     };
 
+    Log(String *out);
     Log(int level = 0);
     Log(const Log &other);
     Log &operator=(const Log &other);
@@ -96,19 +97,20 @@ public:
             if (len == -1)
                 len = strlen(data);
             assert(len >= 0);
+            String &str = mData->outPtr ? *mData->outPtr : mData->out;
             if (len) {
-                const int outLength = mData->out.size();
+                const int outLength = str.size();
                 if (mData->disableSpacingOverride) {
                     --mData->disableSpacingOverride;
-                    mData->out.resize(outLength + len);
-                    memcpy(mData->out.data() + outLength, data, len);
-                } else if (mData->spacing && outLength && !isspace(mData->out.at(mData->out.size() - 1)) && !isspace(*data)) {
-                    mData->out.resize(outLength + len + 1);
-                    mData->out[outLength] = ' ';
-                    memcpy(mData->out.data() + outLength + 1, data, len);
+                    str.resize(outLength + len);
+                    memcpy(str.data() + outLength, data, len);
+                } else if (mData->spacing && outLength && !isspace(str.at(str.size() - 1)) && !isspace(*data)) {
+                    str.resize(outLength + len + 1);
+                    str[outLength] = ' ';
+                    memcpy(str.data() + outLength + 1, data, len);
                 } else {
-                    mData->out.resize(outLength + len);
-                    memcpy(mData->out.data() + outLength, data, len);
+                    str.resize(outLength + len);
+                    memcpy(str.data() + outLength, data, len);
                 }
             }
         }
@@ -147,16 +149,21 @@ private:
     class Data
     {
     public:
+        Data(String *string)
+            : outPtr(string), level(-1), spacing(true), disableSpacingOverride(0)
+        {}
         Data(int lvl)
             : level(lvl), spacing(true), disableSpacingOverride(0)
         {
         }
         ~Data()
         {
-            if (!out.isEmpty())
+            if (!out.isEmpty()) {
                 logDirect(level, out);
+            }
         }
 
+        String *outPtr;
         const int level;
         String out;
         bool spacing;

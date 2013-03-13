@@ -153,7 +153,7 @@ private:
             : outPtr(string), level(-1), spacing(true), disableSpacingOverride(0)
         {}
         Data(int lvl)
-            : level(lvl), spacing(true), disableSpacingOverride(0)
+        : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0)
         {
         }
         ~Data()

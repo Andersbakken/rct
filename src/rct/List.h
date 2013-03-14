@@ -12,7 +12,7 @@ class List : public std::vector<T>
 {
     typedef std::vector<T> Base;
 public:
-    List(int count = 0, const T &defaultValue = T())
+    explicit List(int count = 0, const T &defaultValue = T())
         : Base(count, defaultValue)
     {}
 

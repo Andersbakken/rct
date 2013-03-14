@@ -24,6 +24,8 @@ inline int fileSize(FILE *f)
     fseek(f, pos, SEEK_SET);
     return ret;
 }
+bool readFile(const Path& path, String& data);
+bool writeFile(const Path& path, const String& data);
 String filterPreprocessor(const Path &path);
 void removeDirectory(const Path &path);
 int canonicalizePath(char *path, int len);

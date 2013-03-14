@@ -18,6 +18,44 @@
 
 namespace Rct {
 
+bool readFile(const Path& path, String& data)
+{
+    FILE* f = fopen(path.nullTerminated(), "r");
+    if (!f)
+        return false;
+    const int sz = fileSize(f);
+    if (!sz) {
+        data.clear();
+        return true;
+    }
+    data.resize(sz);
+    const int r = fread(data.data(), sz, 1, f);
+    fclose(f);
+    return (r == 1);
+}
+
+bool writeFile(const Path& path, const String& data)
+{
+    FILE* f = fopen(path.nullTerminated(), "w");
+    if (!f) {
+        // try to make the directory and reopen
+        const Path parent = path.parentDir();
+        if (parent.isEmpty())
+            return false;
+        Path::mkdir(parent, Path::Recursive);
+        f = fopen(path.nullTerminated(), "w");
+        if (!f)
+            return false;
+    }
+    const int w = fwrite(data.data(), data.size(), 1, f);
+    fclose(f);
+    if (w != 1) {
+        unlink(path.nullTerminated());
+        return false;
+    }
+    return true;
+}
+
 int canonicalizePath(char *path, int len)
 {
     assert(path[0] == '/');

@@ -99,6 +99,12 @@ public:
         return unite(other);
     }
 
+    Set<T> &operator+=(const T &t)
+    {
+        insert(t);
+        return *this;
+    }
+
     Set<T> &operator+=(const List<T> &other)
     {
         return unite(other);

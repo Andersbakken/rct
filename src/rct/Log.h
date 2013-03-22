@@ -32,7 +32,7 @@ public:
     {
         switch (level) {
         case CompilationError:
-            return mLogLevel == CompilationError || mLogLevel == CompilationErrorXml;
+            return mLogLevel == CompilationError;
         case CompilationErrorXml:
             return mLogLevel == CompilationErrorXml;
         default:

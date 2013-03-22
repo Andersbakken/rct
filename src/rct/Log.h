@@ -14,6 +14,7 @@
 class Path;
 
 enum LogLevel {
+    CompilationErrorXml = -2,
     CompilationError = -1,
     Error = 0,
     Warning = 1,
@@ -31,7 +32,9 @@ public:
     {
         switch (level) {
         case CompilationError:
-            return mLogLevel == CompilationError;
+            return mLogLevel == CompilationError || mLogLevel == CompilationErrorXml;
+        case CompilationErrorXml:
+            return mLogLevel == CompilationErrorXml;
         default:
             return level <= mLogLevel;
         }

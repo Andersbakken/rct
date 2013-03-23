@@ -14,7 +14,6 @@
 class Path;
 
 enum LogLevel {
-    CompilationError = -1,
     Error = 0,
     Warning = 1,
     Debug = 2,
@@ -29,12 +28,7 @@ public:
 
     virtual bool testLog(int level) const
     {
-        switch (level) {
-        case CompilationError:
-            return mLogLevel == CompilationError;
-        default:
-            return level <= mLogLevel;
-        }
+        return level <= mLogLevel;
     }
     virtual void log(const char */*msg*/, int /*len*/) { }
 

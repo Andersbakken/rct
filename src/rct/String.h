@@ -26,7 +26,7 @@ public:
             mString = std::string(data, len);
         }
     }
-    String(int len, char fillChar = '\0')
+    String(int len, char fillChar)
         : mString(len, fillChar)
     {}
 

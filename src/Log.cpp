@@ -89,7 +89,6 @@ static void log(int level, const char *format, va_list v)
 
     if (n >= Size) {
         msg = new char[n + 2];
-        printf("Got big stuff here %d\n", n);
         n = vsnprintf(msg, n + 1, format, v2);
     }
 

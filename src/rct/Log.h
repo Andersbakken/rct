@@ -28,7 +28,7 @@ public:
 
     virtual bool testLog(int level) const
     {
-        return level <= mLogLevel;
+        return level >= 0 && level <= mLogLevel;
     }
     virtual void log(const char */*msg*/, int /*len*/) { }
 

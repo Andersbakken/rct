@@ -1,7 +1,7 @@
 #include "rct/Thread.h"
 
-Thread::Thread()
-    : mAutoDelete(false), mThread(0)
+Thread::Thread(int stack)
+    : mAutoDelete(false), mThread(0), mStackSize(stack)
 {
 }
 
@@ -20,11 +20,19 @@ void* Thread::internalStart(void* arg)
 
 void Thread::start()
 {
-    pthread_create(&mThread, NULL, internalStart, this);
+    pthread_attr_t attr;
+    if (mStackSize) {
+        pthread_attr_init(&attr);
+        pthread_attr_setstacksize(&attr, mStackSize);
+        pthread_create(&mThread, &attr, internalStart, this);
+        pthread_attr_destroy(&attr);
+    } else {
+        pthread_create(&mThread, 0, internalStart, this);
+    }
 }
 
 bool Thread::join()
 {
-    void* ret;
+    void *ret;
     return !pthread_join(mThread, &ret);
 }

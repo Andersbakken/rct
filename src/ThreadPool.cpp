@@ -18,8 +18,8 @@ ThreadPool* ThreadPool::sGlobalInstance = 0;
 class ThreadPoolThread : public Thread
 {
 public:
-    ThreadPoolThread(ThreadPool* pool);
-    ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job);
+    ThreadPoolThread(ThreadPool* pool, int stackSize);
+    ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job, int stackSize);
 
     void stop();
 
@@ -32,14 +32,14 @@ private:
     bool mStopped;
 };
 
-ThreadPoolThread::ThreadPoolThread(ThreadPool* pool)
-    : mPool(pool), mStopped(false)
+ThreadPoolThread::ThreadPoolThread(ThreadPool* pool, int stackSize)
+    : Thread(stackSize), mPool(pool), mStopped(false)
 {
     setAutoDelete(false);
 }
 
-ThreadPoolThread::ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job)
-    : mJob(job), mPool(0), mStopped(false)
+ThreadPoolThread::ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job, int stackSize)
+    : Thread(stackSize), mJob(job), mPool(0), mStopped(false)
 {
     setAutoDelete(false);
 }
@@ -83,11 +83,11 @@ void ThreadPoolThread::run()
     }
 }
 
-ThreadPool::ThreadPool(int concurrentJobs)
-    : mConcurrentJobs(concurrentJobs), mBusyThreads(0)
+ThreadPool::ThreadPool(int concurrentJobs, int stackSize)
+    : mConcurrentJobs(concurrentJobs), mStackSize(stackSize), mBusyThreads(0)
 {
     for (int i = 0; i < mConcurrentJobs; ++i) {
-        mThreads.push_back(new ThreadPoolThread(this));
+        mThreads.push_back(new ThreadPoolThread(this, mStackSize));
         mThreads.back()->start();
     }
 }
@@ -113,7 +113,7 @@ void ThreadPool::setConcurrentJobs(int concurrentJobs)
     if (concurrentJobs > mConcurrentJobs) {
         MutexLocker locker(&mMutex);
         for (int i = mConcurrentJobs; i < concurrentJobs; ++i) {
-            mThreads.push_back(new ThreadPoolThread(this));
+            mThreads.push_back(new ThreadPoolThread(this, mStackSize));
             mThreads.back()->start();
         }
         mConcurrentJobs = concurrentJobs;
@@ -141,7 +141,7 @@ void ThreadPool::start(const shared_ptr<Job> &job, int priority)
 {
     job->mPriority = priority;
     if (priority == Guaranteed) {
-        ThreadPoolThread *t = new ThreadPoolThread(job);
+        ThreadPoolThread *t = new ThreadPoolThread(job, mStackSize);
         t->start();
         return;
     }

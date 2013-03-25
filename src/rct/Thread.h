@@ -8,7 +8,7 @@
 class Thread
 {
 public:
-    Thread();
+    Thread(int stackSize = 0);
     virtual ~Thread();
 
     void start();
@@ -35,6 +35,7 @@ private:
     bool mAutoDelete;
     mutable Mutex mMutex;
     pthread_t mThread;
+    const int mStackSize;
 };
 
 #endif

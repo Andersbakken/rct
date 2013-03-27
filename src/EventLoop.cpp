@@ -175,8 +175,9 @@ void EventLoop::run(int maxTime)
     fd_set rset, wset;
     int max;
     timeval timedata, timenow;
+    int maxTimeId = -1;
     if (maxTime > 0)
-        addTimer(maxTime, EventLoop::exitTimer, this);
+        maxTimeId = addTimer(maxTime, EventLoop::exitTimer, this);
     for (;;) {
         FD_ZERO(&rset);
         FD_ZERO(&wset);
@@ -277,6 +278,8 @@ void EventLoop::run(int maxTime)
         if (mQuit)
             break;
     }
+    if (maxTimeId != -1)
+        removeTimer(maxTimeId);
 }
 
 bool EventLoop::reinsertTimer(int handle, timeval* now)

@@ -5,14 +5,14 @@ include(CheckSymbolExists)
 include(CheckCXXSymbolExists)
 
 include(CheckCXXCompilerFlag)
-if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX_0X)
-  if(COMPILER_SUPPORTS_CXX_0X)
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  check_cxx_compiler_flag("-std=c++0x" COMPILER_SUPPORTS_CXX_0X)
+  if (COMPILER_SUPPORTS_CXX_0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-  endif()
-else()
+  endif ()
+else ()
   add_definitions(-D_DARWIN_UNLIMITED_SELECT)
-endif()
+endif ()
 
 check_cxx_symbol_exists(backtrace "execinfo.h" HAVE_BACKTRACE)
 check_cxx_symbol_exists(CLOCK_MONOTONIC_RAW "time.h" HAVE_CLOCK_MONOTONIC_RAW)
@@ -24,38 +24,37 @@ check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
-
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
 set(RCT_SOURCES
-    src/Connection.cpp
-    src/Config.cpp
-    src/EventLoop.cpp
-    src/EventReceiver.cpp
-    src/SocketClient.cpp
-    src/SocketServer.cpp
-    src/Log.cpp
-    src/MemoryMonitor.cpp
-    src/Messages.cpp
-    src/Path.cpp
-    src/Process.cpp
-    src/Rct.cpp
-    src/ReadWriteLock.cpp
-    src/SHA256.cpp
-    src/Semaphore.cpp
-    src/SharedMemory.cpp
-    src/Thread.cpp
-    src/ThreadPool.cpp
-    src/Value.cpp)
+  ${CMAKE_CURRENT_LIST_DIR}/src/Connection.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Config.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/EventLoop.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/EventReceiver.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/SocketClient.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/SocketServer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Log.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/MemoryMonitor.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Messages.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Path.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Process.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Rct.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/ReadWriteLock.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/SHA256.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Semaphore.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/SharedMemory.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Thread.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/ThreadPool.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/src/Value.cpp)
 
-if(HAVE_INOTIFY EQUAL 1)
-  list(APPEND RCT_SOURCES src/FileSystemWatcher_inotify.cpp)
-elseif(HAVE_FSEVENTS EQUAL 1)
-  list(APPEND RCT_SOURCES src/FileSystemWatcher_fsevents.cpp)
-elseif(HAVE_KQUEUE EQUAL 1)
-  list(APPEND RCT_SOURCES src/FileSystemWatcher_kqueue.cpp)
-endif()
+if (HAVE_INOTIFY EQUAL 1)
+  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_inotify.cpp)
+elseif (HAVE_FSEVENTS EQUAL 1)
+  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_fsevents.cpp)
+elseif (HAVE_KQUEUE EQUAL 1)
+  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_kqueue.cpp)
+endif ()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 configure_file(${CMAKE_CURRENT_LIST_DIR}/src/rct-config.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
+  ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
 

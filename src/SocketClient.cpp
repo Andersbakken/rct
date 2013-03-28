@@ -75,6 +75,7 @@ static inline bool connectInternal(int& fd, int domain, sockaddr* address, size_
             return false;
         }
         int ret;
+        errno = 0;
         eintrwrap(ret, ::connect(fd, address, addressSize));
         if (!ret) {
 #ifdef HAVE_NOSIGPIPE
@@ -85,7 +86,7 @@ static inline bool connectInternal(int& fd, int domain, sockaddr* address, size_
         }
         eintrwrap(ret, ::close(fd));
         fd = -1;
-        if (!maxTime || (maxTime > 0 && timer.elapsed() >= maxTime)) {
+        if (!maxTime || errno != EAGAIN || (maxTime > 0 && timer.elapsed() >= maxTime)) {
             return false;
         }
         usleep(100000);

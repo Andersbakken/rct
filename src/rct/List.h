@@ -109,6 +109,16 @@ public:
         assert(count <= size());
         Base::resize(size() - count);
     }
+
+    int truncate(int count)
+    {
+        const int s = size();
+        if (s > count) {
+            Base::resize(count);
+            return s - count;
+        }
+        return 0;
+    }
     Set<T> toSet() const; // implemented in Set.h
 
     T &first()

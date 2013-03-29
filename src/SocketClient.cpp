@@ -394,7 +394,7 @@ void SocketClient::setMulticastLoop(bool loop)
 
 void SocketClient::readMore()
 {
-    enum { BufSize = 1024, MaxBufferSize = 1024 * 1024 * 16 };
+    enum { BufSize = 1024, MaxBufferSize = 1024 * 1024 * 128 };
 
 #ifdef HAVE_NOSIGNAL
     const int recvflags = MSG_NOSIGNAL;

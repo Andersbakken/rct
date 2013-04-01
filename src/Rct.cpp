@@ -182,66 +182,6 @@ void removeDirectory(const Path &path)
     rmdir(path.constData());
 }
 
-bool startProcess(const Path &dotexe, const List<String> &dollarArgs)
-{
-    switch (fork()) {
-    case 0:
-        break;
-    case -1:
-        return false;
-    default:
-        return true;
-    }
-
-    if (setsid() < 0)
-        _exit(1);
-
-
-    switch (fork()) {
-    case 0:
-        break;
-    case -1:
-        _exit(1);
-    default:
-        _exit(0);
-    }
-
-    int ret = chdir("/");
-    if (ret == -1)
-        perror("Rct::startProcess() Failed to chdir(\"/\")");
-
-    umask(0);
-
-    const int fdlimit = sysconf(_SC_OPEN_MAX);
-    for (int i=0; i<fdlimit; ++i)
-        close(i);
-
-    open("/dev/null", O_RDWR);
-    ret = dup(0);
-    if (ret == -1)
-        perror("Rct::startProcess() Failed to duplicate fd");
-    ret = dup(0);
-    if (ret == -1)
-        perror("Rct::startProcess() Failed to duplicate fd");
-    char **args = new char*[dollarArgs.size() + 2];
-    args[0] = strndup(dotexe.constData(), dotexe.size());
-    for (int i=0; i<dollarArgs.size(); ++i) {
-        args[i + 1] = strndup(dollarArgs.at(i).constData(), dollarArgs.at(i).size());
-    }
-    args[dollarArgs.size() + 1] = 0;
-    execvp(dotexe.constData(), args);
-    FILE *f = fopen("/tmp/failedtolaunch", "w");
-    if (f) {
-        fwrite(dotexe.constData(), 1, dotexe.size(), f);
-        fwrite(" ", 1, 1, f);
-        const String joined = String::join(dollarArgs, " ");
-        fwrite(joined.constData(), 1, joined.size(), f);
-        fclose(f);
-    }
-    _exit(1);
-    return false;
-}
-
 static Path sExecutablePath;
 Path executablePath()
 {

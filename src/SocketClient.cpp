@@ -86,7 +86,7 @@ static inline bool connectInternal(int& fd, int domain, sockaddr* address, size_
         }
         eintrwrap(ret, ::close(fd));
         fd = -1;
-        if (!maxTime || errno != EAGAIN || (maxTime > 0 && timer.elapsed() >= maxTime)) {
+        if (!maxTime || errno != EAGAIN || (maxTime > 0 && static_cast<int>(timer.elapsed()) >= maxTime)) {
             return false;
         }
         usleep(100000);

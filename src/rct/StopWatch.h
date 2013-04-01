@@ -8,41 +8,51 @@
 class StopWatch
 {
 public:
-    StopWatch()
-        : mStart(current())
+    enum Precision {
+        Millisecond,
+        Microsecond
+    };
+    StopWatch(Precision prec = Millisecond)
+        : mPrecision(prec), mStart(current(prec))
     {
     }
 
-    int start()
+    uint64_t start()
     {
-        return (mStart = current());
+        return (mStart = current(mPrecision));
     }
 
-    int startTime() const
+    uint64_t startTime() const
     {
         return mStart;
     }
 
-    static int current()
+    static uint64_t current(Precision prec)
     {
         timeval t;
         Rct::gettime(&t); // monotonic
-        return (t.tv_sec * 1000) + (t.tv_usec / 1000);
+        if (prec == Millisecond) {
+            return (t.tv_sec * 1000) + (t.tv_usec / 1000);
+        } else {
+            return (t.tv_sec * 1000000) + t.tv_usec;
+        }
     }
 
-    int elapsed() const
+    uint64_t elapsed() const
     {
-        return current() - mStart;
+        return current(mPrecision) - mStart;
     }
 
-    int restart()
+    uint64_t restart()
     {
-        const long int cur = current();
+        const long int cur = current(mPrecision);
         const long int ret = cur - mStart;
         mStart = cur;
         return ret;
     }
+    Precision precision() const { return mPrecision; }
 private:
-    long int mStart;
+    const Precision mPrecision;
+    uint64_t mStart;
 };
 #endif

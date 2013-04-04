@@ -203,8 +203,9 @@ bool initLogging(int level, const Path &file, unsigned flags)
                 if (!rotated.exists()) {
                     if (rename(file.constData(), rotated.constData())) {
                         char buf[1025];
-                        strerror_r(errno, buf, 1024);
-                        error() << "Couldn't rotate log file" << file << "to" << rotated << buf;
+                        if (!strerror_r(errno, buf, 1024)) {
+                            error() << "Couldn't rotate log file" << file << "to" << rotated << buf;
+                        }
                     }
                     break;
                 }

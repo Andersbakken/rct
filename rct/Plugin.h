@@ -27,6 +27,9 @@ public:
     T* instance();
 
 private:
+    Plugin(const Plugin &);
+    Plugin &operator=(const Plugin &);
+
     Path mFileName;
     void* mHandle;
     T* mInstance;
@@ -39,7 +42,10 @@ inline T* Plugin<T>::instance()
         mHandle = Rct::loadPlugin(mFileName);
         if (!mHandle)
             return 0;
-        mInstance = static_cast<T*>(Rct::resolveSymbol(mHandle, "createInstance"));
+        typedef T *(*CreateInstance)();
+        CreateInstance create = reinterpret_cast<CreateInstance>(Rct::resolveSymbol(mHandle, "createInstance"));
+        if (create)
+            mInstance = create();
         if (!mInstance)
             clear();
     }

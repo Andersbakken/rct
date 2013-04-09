@@ -25,7 +25,7 @@ check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
 if (NOT DEFINED RCT_INCLUDE_DIR)
-   set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
+   set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")
 endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})

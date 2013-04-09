@@ -92,7 +92,7 @@ public:
         RealPath,
         MakeAbsolute
     };
-    Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);
+    Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0) const;
     bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path());
     int canonicalize();
     time_t lastModified() const; // returns time_t ... no shit

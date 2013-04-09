@@ -103,7 +103,7 @@ int Path::canonicalize()
     return ret;
 }
 
-Path Path::resolved(ResolveMode mode, const Path &cwd, bool *ok)
+Path Path::resolved(ResolveMode mode, const Path &cwd, bool *ok) const
 {
     Path ret = *this;
     if (ret.resolve(mode, cwd) && ok) {

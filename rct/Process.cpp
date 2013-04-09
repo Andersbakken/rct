@@ -15,6 +15,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#ifdef OS_Darwin
+#include <crt_externs.h>
+#endif
 
 static pthread_once_t sProcessHandler = PTHREAD_ONCE_INIT;
 
@@ -661,8 +664,12 @@ void Process::stop()
 
 List<String> Process::environment()
 {
+#ifdef OS_Darwin
+    char **cur = *_NSGetEnviron();
+#else
     extern char** environ;
     char** cur = environ;
+#endif
     List<String> env;
     while (*cur) {
         env.push_back(*cur);

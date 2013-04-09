@@ -24,6 +24,12 @@ int EventReceiver::startTimer(int interval, TimerMode timerMode, void *userData)
     EventLoop *loop = EventLoop::instance();
     if (!loop)
         return -1;
+    const bool isMainThread = pthread_equal(pthread_self(), loop->thread());
+
+    MutexLocker locker;
+    if (!isMainThread)
+        locker.lock(&mTimerMutex);
+
     void *eventLoopUserData = new weak_ptr<EventReceiver>(shared_from_this());
     int id = loop->addTimer(interval, timerEventCallBack, eventLoopUserData);
     TimerEvent &ev = mTimers[id];
@@ -69,6 +75,7 @@ void EventReceiver::timerEventCallBack(int id, void *userData)
     shared_ptr<EventReceiver> receiver = ptr->lock();
     bool remove = true;
     if (receiver) {
+        MutexLocker locker(&receiver->mTimerMutex);
         Map<int, TimerEvent>::iterator it = receiver->mTimers.find(id);
         if (it != receiver->mTimers.end()) {
             receiver->timerEvent(&it->second);

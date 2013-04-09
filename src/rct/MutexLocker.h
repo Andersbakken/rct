@@ -6,12 +6,15 @@
 class MutexLocker
 {
 public:
-    MutexLocker(Mutex* mutex)
-        : mMutex(mutex), mLocked(true)
+    MutexLocker(Mutex* mutex = 0)
+        : mMutex(mutex), mLocked(mutex != 0)
     {
-        mMutex->lock();
+        if (mMutex)
+            mMutex->lock();
     }
     ~MutexLocker() { if (mLocked) mMutex->unlock(); }
+
+    void lock(Mutex* mutex) { if (mLocked) unlock(); mMutex = mutex; mMutex->lock(); mLocked = true; }
 
     bool isLocked() const { return mLocked; }
     void unlock() { if (mLocked) { mMutex->unlock(); mLocked = false; } }

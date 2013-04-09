@@ -5,6 +5,7 @@
 #include <rct/Event.h>
 #include <rct/Value.h>
 #include <rct/SignalSlot.h>
+#include <rct/Mutex.h>
 
 class TimerEvent;
 class EventReceiver : public enable_shared_from_this<EventReceiver>
@@ -53,6 +54,7 @@ private:
     static void timerEventCallBack(int id, void *userData);
     friend class EventLoop;
     Map<int, Value> mData;
+    Mutex mTimerMutex;
 };
 
 class TimerEvent

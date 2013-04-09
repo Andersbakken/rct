@@ -21,6 +21,7 @@ void EventReceiver::deleteLater()
 
 int EventReceiver::startTimer(int interval, TimerMode timerMode, void *userData)
 {
+
     EventLoop *loop = EventLoop::instance();
     if (!loop)
         return -1;

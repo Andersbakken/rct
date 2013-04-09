@@ -54,7 +54,6 @@ elseif (HAVE_KQUEUE EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_kqueue.cpp)
 endif ()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 configure_file(${CMAKE_CURRENT_LIST_DIR}/src/rct-config.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
 

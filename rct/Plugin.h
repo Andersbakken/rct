@@ -18,7 +18,8 @@ public:
     Plugin(const Path& fileName) : mFileName(fileName) { }
     ~Plugin() { clear(); }
 
-    void clear() { if (mHandle) { Rct::unloadPlugin(mHandle); mHandle = mInstance = 0; } }
+    void clear() { if (mHandle) { deleteInstance(); Rct::unloadPlugin(mHandle); mHandle = 0; } }
+    void deleteInstance() { delete mInstance; mInstance = 0; }
 
     void setFileName(const Path& fileName) { clear(); mFileName = fileName; }
     Path fileName() const { return mFileName; }
@@ -28,7 +29,7 @@ public:
 private:
     Path mFileName;
     void* mHandle;
-    void* mInstance;
+    T* mInstance;
 };
 
 template<typename T>
@@ -38,12 +39,11 @@ inline T* Plugin<T>::instance()
         mHandle = Rct::loadPlugin(mFileName);
         if (!mHandle)
             return 0;
-        mInstance = Rct::resolveSymbol(mHandle, "createInstance");
+        mInstance = static_cast<T*>(Rct::resolveSymbol(mHandle, "createInstance"));
         if (!mInstance)
-            return 0;
+            clear();
     }
-    assert(mInstance);
-    return reinterpret_cast<T*>(mInstance);
+    return mInstance;
 }
 
 #endif

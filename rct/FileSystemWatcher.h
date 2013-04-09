@@ -1,7 +1,7 @@
 #ifndef FileSystemWatcher_h
 #define FileSystemWatcher_h
 
-#include <rct/rct-config.h>
+#include "rct-config.h"
 #include <rct/Path.h>
 #include <rct/Map.h>
 #include <rct/Mutex.h>

@@ -5,7 +5,7 @@
 #include "rct/Thread.h"
 #include "rct/Mutex.h"
 #include "rct/MutexLocker.h"
-#include "rct/rct-config.h"
+#include "rct-config.h"
 #include <map>
 #include <assert.h>
 #include <pthread.h>

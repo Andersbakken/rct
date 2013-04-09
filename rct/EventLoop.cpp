@@ -4,7 +4,7 @@
 #include "rct/EventReceiver.h"
 #include "rct/MutexLocker.h"
 #include "rct/ThreadLocal.h"
-#include "rct/rct-config.h"
+#include "rct-config.h"
 #include <algorithm>
 #include <errno.h>
 #include <fcntl.h>

@@ -1,6 +1,6 @@
 #include "rct/Rct.h"
 #include "rct/Log.h"
-#include "rct/rct-config.h"
+#include "rct-config.h"
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/fcntl.h>

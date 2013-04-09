@@ -24,36 +24,39 @@ check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/include)
-set(RCT_SOURCES
-  ${CMAKE_CURRENT_LIST_DIR}/src/Connection.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Config.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/EventLoop.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/EventReceiver.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/SocketClient.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/SocketServer.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Log.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/MemoryMonitor.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Messages.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Path.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Process.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Rct.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/ReadWriteLock.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/SHA256.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Semaphore.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/SharedMemory.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Thread.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/ThreadPool.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/src/Value.cpp)
-
-if (HAVE_INOTIFY EQUAL 1)
-  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_inotify.cpp)
-elseif (HAVE_FSEVENTS EQUAL 1)
-  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_fsevents.cpp)
-elseif (HAVE_KQUEUE EQUAL 1)
-  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/FileSystemWatcher_kqueue.cpp)
+if (NOT DEFINED RCT_INCLUDE_DIR)
+   set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 endif ()
 
-configure_file(${CMAKE_CURRENT_LIST_DIR}/src/rct-config.h.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h)
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})
+set(RCT_SOURCES
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/EventReceiver.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SocketClient.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SocketServer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Messages.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Path.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SharedMemory.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Thread.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp)
 
+if (HAVE_INOTIFY EQUAL 1)
+  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_inotify.cpp)
+elseif (HAVE_FSEVENTS EQUAL 1)
+  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_fsevents.cpp)
+elseif (HAVE_KQUEUE EQUAL 1)
+  list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_kqueue.cpp)
+endif ()
+
+configure_file(${CMAKE_CURRENT_LIST_DIR}/rct/rct-config.h.in
+  ${RCT_INCLUDE_DIR}/rct-config.h)

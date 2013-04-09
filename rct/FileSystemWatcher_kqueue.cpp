@@ -2,7 +2,7 @@
 #include "rct/EventLoop.h"
 #include "rct/MutexLocker.h"
 #include "rct/Log.h"
-#include "rct/rct-config.h"
+#include "rct-config.h"
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>

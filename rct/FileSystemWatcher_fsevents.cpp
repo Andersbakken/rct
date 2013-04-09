@@ -6,7 +6,7 @@
 #include "rct/WaitCondition.h"
 #include "rct/Log.h"
 #include "rct/Thread.h"
-#include "rct/rct-rct-rct-config.h"
+#include "rct-config.h"
 #include <string.h>
 #include <errno.h>
 #include "rct/CoreFoundation/CoreFoundation.h"

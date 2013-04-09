@@ -27,6 +27,7 @@ install(FILES
         rct/Mutex.h
         rct/MutexLocker.h
         rct/Path.h
+        rct/Plugin.h
         rct/Point.h
         rct/Process.h
         rct/Rct.h

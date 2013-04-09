@@ -40,6 +40,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Messages.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Path.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Plugin.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp

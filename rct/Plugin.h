@@ -14,8 +14,8 @@ template<typename T>
 class Plugin
 {
 public:
-    Plugin() { }
-    Plugin(const Path& fileName) : mFileName(fileName) { }
+    Plugin() : mHandle(0), mInstance(0) { }
+    Plugin(const Path& fileName) : mFileName(fileName), mHandle(0), mInstance(0) { }
     ~Plugin() { clear(); }
 
     void clear() { if (mHandle) { deleteInstance(); Rct::unloadPlugin(mHandle); mHandle = 0; } }

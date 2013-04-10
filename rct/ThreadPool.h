@@ -3,6 +3,7 @@
 
 #include <rct/Mutex.h>
 #include <rct/WaitCondition.h>
+#include <rct/Memory.h>
 #include <deque>
 
 class ThreadPoolThread;

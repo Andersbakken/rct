@@ -96,11 +96,48 @@ Path Path::resolved(const String &path, ResolveMode mode, const Path &cwd, bool 
 
 int Path::canonicalize()
 {
-    const int s = size();
-    const int ret = Rct::canonicalizePath(data(), s);
-    if (s != ret)
-        truncate(ret);
-    return ret;
+    int len = size();
+    char *path = data();
+    for (int i=0; i<len - 1; ++i) {
+        if (path[i] == '/') {
+            if (i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') {
+                for (int j=i - 1; j>=0; --j) {
+                    if (path[j] == '/') {
+                        memmove(path + j, path + i + 3, len - (i + 2));
+                        const int removed = (i + 3 - j);
+                        len -= removed;
+                        i -= removed;
+                        break;
+                    }
+                }
+            } else if (path[i + 1] == '/') {
+                memmove(path + i, path + i + 1, len - (i + 1));
+                --i;
+                --len;
+            }
+        }
+    }
+
+    if (len != size())
+        truncate(len);
+    return len;
+}
+
+Path Path::canonicalized() const
+{
+    Path ret = *this;
+    const int c = ret.canonicalize();
+    if (c != size())
+        return ret;
+    return *this; // better chance of being implicity shared :-)
+}
+
+Path Path::canonicalized(const Path &path)
+{
+    Path p = path;
+    if (p.canonicalize() != path.size())
+        return p;
+    return path; // same as above
 }
 
 Path Path::resolved(ResolveMode mode, const Path &cwd, bool *ok) const

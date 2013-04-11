@@ -13,13 +13,13 @@ class Path : public String
 {
 public:
     Path(const Path &other)
-    : String(other)
+        : String(other)
     {}
     Path(const String &other)
-    : String(other)
+        : String(other)
     {}
     Path(const char *path)
-    : String(path)
+        : String(path)
     {}
     Path(const char *path, int size)
         : String(path, size)
@@ -95,6 +95,8 @@ public:
     Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0) const;
     bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path());
     int canonicalize();
+    Path canonicalized() const;
+    static Path canonicalized(const Path &path);
     time_t lastModified() const; // returns time_t ... no shit
     int64_t fileSize() const;
     static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);

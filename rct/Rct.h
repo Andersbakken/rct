@@ -28,7 +28,6 @@ bool readFile(const Path& path, String& data);
 bool writeFile(const Path& path, const String& data);
 String filterPreprocessor(const Path &path);
 void removeDirectory(const Path &path);
-int canonicalizePath(char *path, int len);
 String unescape(String command);
 void findExecutablePath(const char *argv0);
 Path executablePath();

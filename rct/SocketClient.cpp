@@ -46,15 +46,22 @@ SocketClient::SocketClient()
     pthread_once(&sigPipeHandler, initSigPipe);
 }
 
+static inline void addFlags(int fd, int flags)
+{
+    int ret;
+    eintrwrap(ret, fcntl(fd, F_GETFL, 0));
+    if (ret != -1)
+        flags |= ret;
+    eintrwrap(ret, fcntl(fd, F_SETFL, flags));
+}
+
 SocketClient::SocketClient(Mode mode, int fd)
     : mMode(mode), mFd(fd), mBufferIdx(0), mReadBufferPos(0)
 {
     pthread_once(&sigPipeHandler, initSigPipe);
-    int flags;
-    eintrwrap(flags, fcntl(mFd, F_GETFL, 0));
-    eintrwrap(flags, fcntl(mFd, F_SETFL, flags | O_NONBLOCK));
+    addFlags(mFd, O_NONBLOCK);
 #ifdef HAVE_NOSIGPIPE
-    flags = 1;
+    int flags = 1;
     ::setsockopt(mFd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
 #endif
     EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, dataCallback, this);
@@ -65,39 +72,65 @@ SocketClient::~SocketClient()
     disconnect();
 }
 
-static inline bool connectInternal(int& fd, int domain, sockaddr* address, size_t addressSize, int maxTime)
+static inline bool connectInternal(int &fd, int domain, sockaddr* address, size_t addressSize, int maxTime)
 {
     StopWatch timer;
 
     while (true) {
         fd = ::socket(domain, SOCK_STREAM, 0);
-        if (fd == -1) {
+        if (fd == -1)
             return false;
-        }
-        int ret;
+
+        addFlags(fd, O_NONBLOCK);
         errno = 0;
+        int ret;
         eintrwrap(ret, ::connect(fd, address, addressSize));
         if (!ret) {
 #ifdef HAVE_NOSIGPIPE
             ret = 1;
             ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&ret, sizeof(int));
 #endif
+            return true;
+        }
+
+        int left = -1;
+        if (maxTime >= 0) {
+            left = maxTime - static_cast<int>(timer.elapsed());
+            if (left <= 0)
+                break;
+        }
+
+        if (errno == EINPROGRESS) {
+            fd_set write;
+            FD_ZERO(&write);
+            FD_SET(fd, &write);
+            timeval timeout;
+            if (left != -1) {
+                timeout.tv_sec = left / 1000;
+                timeout.tv_usec = (left % 1000) * 1000;
+            }
+            eintrwrap(ret, select(fd + 1, 0, &write, 0, left == -1 ? 0 : &timeout));
+            if (ret > 0 && FD_ISSET(fd, &write)) {
+                int error;
+                socklen_t len = sizeof(error);
+                if (!getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) && !error)
+                    return true;
+            }
+            break;
+        } else if (errno == EAGAIN) {
+            eintrwrap(ret, ::close(fd));
+            fd = -1;
+            usleep(100000);
+        } else {
             break;
         }
+    }
+    if (fd != -1) {
+        int ret;
         eintrwrap(ret, ::close(fd));
         fd = -1;
-        if (!maxTime || errno != EAGAIN || (maxTime > 0 && static_cast<int>(timer.elapsed()) >= maxTime)) {
-            return false;
-        }
-        usleep(100000);
     }
-
-    assert(fd != -1);
-    int flags;
-    eintrwrap(flags, fcntl(fd, F_GETFL, 0));
-    eintrwrap(flags, fcntl(fd, F_SETFL, flags | O_NONBLOCK));
-
-    return true;
+    return false;
 }
 
 static inline bool lookupHost(const String& host, uint16_t port, sockaddr_in& addr)
@@ -263,11 +296,8 @@ bool SocketClient::write(const String& data)
 static inline bool setupUdp(int& fd)
 {
     fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd != -1) {
-        int flags;
-        eintrwrap(flags, fcntl(fd, F_GETFL, 0));
-        eintrwrap(flags, fcntl(fd, F_SETFL, flags | O_NONBLOCK));
-    }
+    if (fd != -1)
+        addFlags(fd, O_NONBLOCK);
     return fd != -1;
 }
 

@@ -51,5 +51,15 @@ elseif (HAVE_KQUEUE EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_kqueue.cpp)
 endif ()
 
-configure_file(${CMAKE_CURRENT_LIST_DIR}/rct/rct-config.h.in
-  ${RCT_INCLUDE_DIR}/rct-config.h)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/rct/rct-config.h.in ${RCT_INCLUDE_DIR}/rct-config.h.gen)
+if (EXISTS "${RCT_INCLUDE_DIR}/rct-config.h")
+  file(READ "${RCT_INCLUDE_DIR}/rct-config.h" cfif_output)
+else()
+  set(cfif_output "")
+endif ()
+file(READ "${RCT_INCLUDE_DIR}/rct-config.h.gen" cfif_output_gen)
+if (NOT "${cfif_output}" STREQUAL "${cfif_output_gen}")
+  file (WRITE "${RCT_INCLUDE_DIR}/rct-config.h" "${cfif_output_gen}")
+endif()
+file(REMOVE "${RCT_INCLUDE_DIR}/rct-config.h.gen")
+

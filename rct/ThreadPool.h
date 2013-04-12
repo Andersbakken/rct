@@ -25,9 +25,10 @@ public:
 
     protected:
         virtual void run() {}
+        Mutex &mutex() const { return mMutex; }
     private:
         int mPriority;
-        Mutex mMutex;
+        mutable Mutex mMutex;
 
         friend class ThreadPool;
         friend class ThreadPoolThread;

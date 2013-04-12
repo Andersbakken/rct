@@ -4,6 +4,7 @@
 #include <rct/Mutex.h>
 #include <rct/WaitCondition.h>
 #include <rct/Memory.h>
+#include <rct/MutexLocker.h>
 #include <deque>
 
 class ThreadPoolThread;
@@ -21,13 +22,20 @@ public:
     {
     public:
         Job();
-        virtual ~Job();
+        virtual ~Job() {}
 
+        enum State {
+            NotStarted,
+            Running,
+            Finished
+        };
+        State state() const { MutexLocker lock(&mMutex); return mState; }
     protected:
         virtual void run() {}
         Mutex &mutex() const { return mMutex; }
     private:
         int mPriority;
+        State mState;
         mutable Mutex mMutex;
 
         friend class ThreadPool;

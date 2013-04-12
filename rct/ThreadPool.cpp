@@ -75,11 +75,17 @@ void ThreadPoolThread::run()
         assert(item != mPool->mJobs.end());
         shared_ptr<ThreadPool::Job> job = *item;
         mPool->mJobs.erase(item);
-        job->mMutex.lock();
+        {
+            MutexLocker lock(&job->mMutex);
+            job->mState = ThreadPool::Job::Running;
+        }
         ++mPool->mBusyThreads;
         locker.unlock();
         job->run();
-        job->mMutex.unlock();
+        {
+            MutexLocker lock(&job->mMutex);
+            job->mState = ThreadPool::Job::Finished;
+        }
     }
 }
 
@@ -199,14 +205,8 @@ ThreadPool* ThreadPool::globalInstance()
 }
 
 ThreadPool::Job::Job()
-    : mPriority(0)
+    : mPriority(0), mState(NotStarted)
 {
-}
-
-ThreadPool::Job::~Job()
-{
-    // hold the mutex when deleting in order to ensure that run() is done
-    MutexLocker jobLocker(&mMutex);
 }
 
 void ThreadPool::clearBackLog()

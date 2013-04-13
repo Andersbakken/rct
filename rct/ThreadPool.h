@@ -31,8 +31,9 @@ public:
         };
         State state() const { MutexLocker lock(&mMutex); return mState; }
     protected:
-        virtual void run() {}
+        virtual void run() = 0;
         Mutex &mutex() const { return mMutex; }
+
     private:
         int mPriority;
         State mState;

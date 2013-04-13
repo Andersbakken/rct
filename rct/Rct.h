@@ -24,6 +24,13 @@ inline int fileSize(FILE *f)
     fseek(f, pos, SEEK_SET);
     return ret;
 }
+template <typename Container, typename Value>
+inline bool addTo(Container &container, const Value &value)
+{
+    const int oldSize = container.size();
+    container += value;
+    return container.size() != oldSize;
+}
 bool readFile(const Path& path, String& data);
 bool writeFile(const Path& path, const String& data);
 String filterPreprocessor(const Path &path);

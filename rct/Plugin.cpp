@@ -21,4 +21,9 @@ void* resolveSymbol(void* handle, const char* symbol)
     return dlsym(handle, symbol);
 }
 
+char* pluginError()
+{
+    return dlerror();
+}
+
 } // namespace RctPlugin

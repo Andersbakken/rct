@@ -84,6 +84,12 @@ public:
     Log operator<<(double number) { return addStringStream(number); }
     Log operator<<(long double number) { return addStringStream(number); }
     Log operator<<(bool boolean) { return write(boolean ? "true" : "false"); }
+    Log operator<<(void *ptr)
+    {
+        char buf[16];
+        const int w = snprintf(buf, sizeof(buf), "%p", ptr);
+        return write(buf, w);
+    }
     Log operator<<(const char *string) { return write(string); }
     Log write(const char *data, int len = -1)
     {

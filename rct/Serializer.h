@@ -52,6 +52,10 @@ public:
         : mData(data), mLength(length), mPos(0), mFile(0)
     {}
 
+    Deserializer(const String &string)
+        : mData(string.constData()), mLength(string.size()), mPos(0), mFile(0)
+    {}
+
     Deserializer(FILE *file)
         : mData(0), mLength(0), mFile(file)
     {
@@ -103,24 +107,24 @@ template <typename T> inline int fixedSize(const T &)
 {
     return 0;
 }
-#define DECLARE_NATIVE_TYPE(type)                                       \
-    template <> inline int fixedSize(const type &)                      \
-    {                                                                   \
-        return sizeof(type);                                            \
-    }                                                                   \
-    template <> inline Serializer &operator<<(Serializer &s,            \
-                                              const type &t)            \
-    {                                                                   \
-        s.write(reinterpret_cast<const char*>(&t), sizeof(type));       \
-        return s;                                                       \
-    }                                                                   \
-    template <> inline Deserializer &operator>>(Deserializer &s,        \
-                                                type &t)                \
-    {                                                                   \
-        s.read(reinterpret_cast<char*>(&t), sizeof(type));              \
-        return s;                                                       \
-    }
-
+#define DECLARE_NATIVE_TYPE(type)                                   \
+    template <> inline int fixedSize(const type &)                  \
+    {                                                               \
+        return sizeof(type);                                        \
+    }                                                               \
+    template <> inline Serializer &operator<<(Serializer &s,        \
+                                              const type &t)        \
+    {                                                               \
+        s.write(reinterpret_cast<const char*>(&t), sizeof(type));   \
+        return s;                                                   \
+    }                                                               \
+    template <> inline Deserializer &operator>>(Deserializer &s,    \
+                                                type &t)            \
+    {                                                               \
+        s.read(reinterpret_cast<char*>(&t), sizeof(type));          \
+        return s;                                                   \
+    }                                                               \
+    struct macrohack
 
 DECLARE_NATIVE_TYPE(bool);
 DECLARE_NATIVE_TYPE(char);

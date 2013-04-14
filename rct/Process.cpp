@@ -293,7 +293,8 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
     if (mMode == Sync)
         eintrwrap(err, ::pipe(mSync));
 
-    const char* args[arguments.size() + 2];
+    const char **args = new const char*[arguments.size() + 2];
+    // const char* args[arguments.size() + 2];
     args[arguments.size() + 1] = 0;
     args[0] = cmd.nullTerminated();
     int pos = 1;
@@ -305,7 +306,7 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
 
     const bool hasEnviron = !environ.empty();
 
-    const char* env[environ.size() + 1];
+    const char **env = new const char*[environ.size() + 1];
     env[environ.size()] = 0;
 
     if (hasEnviron) {
@@ -329,6 +330,8 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
         eintrwrap(err, ::close(mStdErr[1]));
         eintrwrap(err, ::close(mStdErr[0]));
         mErrorString = "Fork failed";
+        delete[] env;
+        delete[] args;
         return Error;
     } else if (mPid == 0) {
         //printf("fork, in child\n");
@@ -359,6 +362,9 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
         (void)ret;
         //printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, strerror(errno));
     } else {
+        delete[] env;
+        delete[] args;
+
         ProcessThread::addPid(mPid, this);
 
         // parent

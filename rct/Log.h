@@ -70,8 +70,8 @@ public:
     Log(int level = 0);
     Log(const Log &other);
     Log &operator=(const Log &other);
-    Log operator<<(long long number) { return addStringStream(number); }
-    Log operator<<(unsigned long long number) { return addStringStream(number); }
+    Log operator<<(uint64_t number) { return addStringStream(number); }
+    Log operator<<(int64_t number) { return addStringStream(number); }
     Log operator<<(long number) { return addStringStream(number); }
     Log operator<<(unsigned long number) { return addStringStream(number); }
     Log operator<<(int number) { return addStringStream(number); }

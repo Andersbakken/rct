@@ -515,20 +515,20 @@ public:
     }
 
 
-    unsigned long long toULongLong(bool *ok = 0, int base = 10) const
+    uint64_t toULongLong(bool *ok = 0, int base = 10) const
     {
         errno = 0;
         char *end = 0;
-        const unsigned long long ret = strtoull(constData(), &end, base);
+        const uint64_t ret = strtoull(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
-    long long toLongLong(bool *ok = 0, int base = 10) const
+    int64_t toLongLong(bool *ok = 0, int base = 10) const
     {
         errno = 0;
         char *end = 0;
-        const long long ret = strtoll(constData(), &end, base);
+        const int64_t ret = strtoll(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -562,7 +562,7 @@ public:
         return String(buf, w);
     }
 
-    static String number(long long num, int base = 10)
+    static String number(int64_t num, int base = 10)
     {
         const char *format = 0;
         switch (base) {

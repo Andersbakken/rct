@@ -74,7 +74,7 @@ inline void timevalSub(timeval* a, timeval* b)
 
 inline uint64_t timevalMs(timeval* a)
 {
-    return (a->tv_sec * 1000LLU) + (a->tv_usec / 1000LLU);
+    return (a->tv_sec * 1000) + (a->tv_usec / 1000);
 }
 
 inline int timevalDiff(timeval* a, timeval* b)

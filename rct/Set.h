@@ -65,6 +65,31 @@ public:
         return *this;
     }
 
+    bool intersects(const Set<T>& other) const
+    {
+        typename std::set<T>::const_iterator it = other.begin();
+        const typename std::set<T>::const_iterator end = other.end();
+        while (it != end) {
+            if (contains(*it))
+                return true;
+            ++it;
+        }
+        return false;
+    }
+
+    Set<T> intersected(const Set<T>& other)
+    {
+        Set<T> ret;
+        typename std::set<T>::const_iterator it = other.begin();
+        const typename std::set<T>::const_iterator end = other.end();
+        while (it != end) {
+            if (contains(*it))
+                ret.insert(*it);
+            ++it;
+        }
+        return ret;
+    }
+
     Set<T> &unite(const List<T> &other, int *count = 0)
     {
         int c = 0;

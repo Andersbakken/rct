@@ -72,14 +72,12 @@ public:
     Log &operator=(const Log &other);
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }
-    Log operator<<(long number) { return addStringStream(number); }
-    Log operator<<(unsigned long number) { return addStringStream(number); }
-    Log operator<<(int number) { return addStringStream(number); }
-    Log operator<<(unsigned int number) { return addStringStream(number); }
-    Log operator<<(short number) { return addStringStream(number); }
-    Log operator<<(unsigned short number) { return addStringStream(number); }
-    Log operator<<(char number) { return addStringStream(number); }
-    Log operator<<(unsigned char number) { return addStringStream(number); }
+    Log operator<<(uint32_t number) { return addStringStream(number); }
+    Log operator<<(int32_t number) { return addStringStream(number); }
+    Log operator<<(uint16_t number) { return addStringStream(number); }
+    Log operator<<(int16_t number) { return addStringStream(number); }
+    Log operator<<(uint8_t number) { return addStringStream(number); }
+    Log operator<<(int8_t number) { return addStringStream(number); }
     Log operator<<(float number) { return addStringStream(number); }
     Log operator<<(double number) { return addStringStream(number); }
     Log operator<<(long double number) { return addStringStream(number); }

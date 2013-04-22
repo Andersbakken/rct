@@ -9,6 +9,7 @@ install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wformat")
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
+        rct/AtomicString.h
         rct/Connection.h
         rct/Config.h
         rct/Event.h
@@ -21,7 +22,7 @@ install(FILES
         rct/Map.h
         rct/SocketClient.h
         rct/SocketServer.h
-        rct/Memory.h
+        rct/Tr1.h
         rct/MemoryMonitor.h
         rct/Message.h
         rct/Messages.h

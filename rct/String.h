@@ -499,6 +499,11 @@ public:
         return mString;
     }
 
+    const std::string& str() const
+    {
+        return mString;
+    }
+
     List<String> split(char ch) const
     {
         List<String> ret;

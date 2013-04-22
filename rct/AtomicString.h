@@ -4,6 +4,18 @@
 #include <rct/Tr1.h>
 #include <rct/Mutex.h>
 
+namespace std {
+    template<>
+    class hash<String> {
+    public:
+        size_t operator()(const String& str) const
+        {
+            hash<std::string> h;
+            return h(str.str());
+        }
+    };
+}
+
 class AtomicString
 {
 public:

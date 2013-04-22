@@ -4,9 +4,9 @@
 #include <rct/String.h>
 #include <rct/List.h>
 #include <rct/Map.h>
-#include <rct/Memory.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
+#include <rct/Tr1.h>
 #include <assert.h>
 #include <cxxabi.h>
 #include <sstream>

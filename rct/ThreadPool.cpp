@@ -168,6 +168,16 @@ void ThreadPool::start(const shared_ptr<Job> &job, int priority)
     mCond.wakeOne();
 }
 
+bool ThreadPool::remove(const shared_ptr<Job> &job)
+{
+    MutexLocker locker(&mMutex);
+    std::deque<shared_ptr<Job> >::iterator it = std::find(mJobs.begin(), mJobs.end(), job);
+    if (it == mJobs.end())
+        return false;
+    mJobs.erase(it);
+    return true;
+}
+
 int ThreadPool::idealThreadCount()
 {
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)

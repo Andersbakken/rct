@@ -47,6 +47,8 @@ public:
 
     void start(const shared_ptr<Job> &job, int priority = 0);
 
+    bool remove(const shared_ptr<Job> &job);
+
     static int idealThreadCount();
     static ThreadPool* globalInstance();
 

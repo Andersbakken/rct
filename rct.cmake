@@ -22,7 +22,6 @@ endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})
 set(RCT_SOURCES
-  ${CMAKE_CURRENT_LIST_DIR}/rct/AtomicString.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp

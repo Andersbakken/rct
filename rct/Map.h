@@ -31,7 +31,7 @@ public:
 
     Value take(const Key &key, bool *ok = 0)
     {
-        Value ret;
+        Value ret = Value();
         if (remove(key, &ret)) {
             if (ok)
                 *ok = true;
@@ -50,6 +50,8 @@ public:
             std::map<Key, Value>::erase(it);
             return true;
         }
+        if (value)
+            *value = Value();
         return false;
     }
 

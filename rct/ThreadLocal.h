@@ -9,6 +9,7 @@ class ThreadLocal
 public:
     ThreadLocal() { init(); }
     ThreadLocal(const T& t) { init(); set(t); }
+    ThreadLocal(T* t) { init(); set(t); }
     ~ThreadLocal() { clear(); }
 
     void clear() { pthread_key_delete(mKey); }
@@ -16,15 +17,18 @@ public:
     void set(const T& t) { setData(new T(t)); }
     // takes ownership
     void set(T* t) { setData(t); }
+
     void remove() { setData(0); }
     bool has() const { return getData() != 0; }
-    T& get() { return *reinterpret_cast<T*>(getData()); }
-    const T& get() const { return *reinterpret_cast<const T*>(getData()); }
 
-    operator const T& () const { return get(); }
-    operator T& () { return get(); }
+    T* get() { return reinterpret_cast<T*>(getData()); }
+    const T* get() const { return reinterpret_cast<const T*>(getData()); }
+
+    T* operator->() { return reinterpret_cast<T*>(getData()); }
+    const T* operator->() const { return reinterpret_cast<const T*>(getData()); }
+
     ThreadLocal<T>& operator=(const T& other) { set(other); return *this; }
-    ThreadLocal<T>& operator=(const ThreadLocal<T>& other) { set(other.get()); return *this; }
+    ThreadLocal<T>& operator=(const ThreadLocal<T>& other) { set(*other.get()); return *this; }
 
 private:
     void init()

@@ -14,7 +14,10 @@ public:
     void clear() { pthread_key_delete(mKey); }
 
     void set(const T& t) { setData(new T(t)); }
+    // takes ownership
+    void set(T* t) { setData(t); }
     void remove() { setData(0); }
+    bool has() const { return getData() != 0; }
     T& get() { return *reinterpret_cast<T*>(getData()); }
     const T& get() const { return *reinterpret_cast<const T*>(getData()); }
 

@@ -13,7 +13,7 @@
 #   include <sys/sysctl.h>
 #endif
 
-ThreadPool* ThreadPool::sGlobalInstance = 0;
+ThreadPool* ThreadPool::sInstance = 0;
 
 class ThreadPoolThread : public Thread
 {
@@ -92,6 +92,8 @@ void ThreadPoolThread::run()
 ThreadPool::ThreadPool(int concurrentJobs, int stackSize)
     : mConcurrentJobs(concurrentJobs), mStackSize(stackSize), mBusyThreads(0)
 {
+    if (!sInstance)
+        sInstance = this;
     for (int i = 0; i < mConcurrentJobs; ++i) {
         mThreads.push_back(new ThreadPoolThread(this, mStackSize));
         mThreads.back()->start();
@@ -100,6 +102,8 @@ ThreadPool::ThreadPool(int concurrentJobs, int stackSize)
 
 ThreadPool::~ThreadPool()
 {
+    if (sInstance == this)
+        sInstance = 0;
     MutexLocker locker(&mMutex);
     mJobs.clear();
     locker.unlock();
@@ -207,11 +211,11 @@ int ThreadPool::idealThreadCount()
 #endif
 }
 
-ThreadPool* ThreadPool::globalInstance()
+ThreadPool* ThreadPool::instance()
 {
-    if (!sGlobalInstance)
-        sGlobalInstance = new ThreadPool(idealThreadCount());
-    return sGlobalInstance;
+    if (!sInstance)
+        sInstance = new ThreadPool(idealThreadCount());
+    return sInstance;
 }
 
 ThreadPool::Job::Job()

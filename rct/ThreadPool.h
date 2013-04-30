@@ -50,7 +50,7 @@ public:
     bool remove(const shared_ptr<Job> &job);
 
     static int idealThreadCount();
-    static ThreadPool* globalInstance();
+    static ThreadPool* instance();
 
 private:
     static bool jobLessThan(const shared_ptr<Job> &l, const shared_ptr<Job> &r);
@@ -64,7 +64,7 @@ private:
     List<ThreadPoolThread*> mThreads;
     int mBusyThreads;
 
-    static ThreadPool* sGlobalInstance;
+    static ThreadPool* sInstance;
 
     friend class ThreadPoolThread;
 };

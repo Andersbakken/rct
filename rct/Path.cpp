@@ -476,3 +476,13 @@ List<Path> Path::files(unsigned filter, int max, bool recurse) const
     visit(::filesVisitor, &userData);
     return userData.paths;
 }
+
+uint64_t Path::lastModifiedMs() const
+{
+    struct stat st;
+    if (stat(constData(), &st) == -1) {
+        warning("Stat failed for %s", constData());
+        return 0;
+    }
+    return st.st_mtime * 1000 + st.st_mtim.tv_nsec / 1000000;
+}

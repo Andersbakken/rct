@@ -98,6 +98,8 @@ public:
     Path canonicalized() const;
     static Path canonicalized(const Path &path);
     time_t lastModified() const; // returns time_t ... no shit
+    uint64_t lastModifiedMs() const;
+
     int64_t fileSize() const;
     static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);
     static Path canonicalized(const String &path);

@@ -40,6 +40,7 @@ void findExecutablePath(const char *argv0);
 Path executablePath();
 String backtrace(int maxFrames = -1);
 bool gettime(timeval* time);
+uint64_t currenTimeMs();
 
 inline bool timevalGreaterEqualThan(const timeval* a, const timeval* b)
 {

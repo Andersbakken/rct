@@ -7,23 +7,28 @@
 #include <rct/Map.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
+#include <rct/Rct.h>
 #include <assert.h>
 #include <stdint.h>
 
 class Serializer
 {
 public:
-    Serializer(String &out)
-        : mOut(&out), mOutFile(0)
+    Serializer(String &out, const char *key = "")
+        : mOut(&out), mOutFile(0), mKey(key)
     {}
 
-    Serializer(FILE *f)
-        : mOut(0), mOutFile(f)
+    Serializer(FILE *f, const char *key = "")
+        : mOut(0), mOutFile(f), mKey(key)
     {
         assert(f);
     }
     bool write(const char *data, int len)
     {
+        static const bool dump = getenv("RCT_SERIALIZER_DUMP");
+        if (dump) {
+            printf("Writing %d bytes for %s\n", len, mKey);
+        }
         assert(len > 0);
         if (mOut) {
             mOut->append(data, len);
@@ -43,27 +48,49 @@ public:
 private:
     String *mOut;
     FILE *mOutFile;
+    const char *mKey;
 };
 
 class Deserializer
 {
 public:
-    Deserializer(const char *data, int length)
-        : mData(data), mLength(length), mPos(0), mFile(0)
+    Deserializer(const char *data, int length, const char *key = "")
+        : mData(data), mLength(length), mPos(0), mFile(0), mKey(key)
     {}
 
-    Deserializer(const String &string)
-        : mData(string.constData()), mLength(string.size()), mPos(0), mFile(0)
+    Deserializer(const String &string, const char *key = "")
+        : mData(string.constData()), mLength(string.size()), mPos(0), mFile(0), mKey(key)
     {}
 
-    Deserializer(FILE *file)
-        : mData(0), mLength(0), mFile(file)
+    Deserializer(FILE *file, const char *key = "")
+        : mData(0), mLength(0), mFile(file), mKey(key)
     {
         assert(file);
     }
 
+    int peek(char *target, int len)
+    {
+        if (len) {
+            if (mData) {
+                assert(mPos + len <= mLength);
+                memcpy(target, mData + mPos, len);
+                return len;
+            } else {
+                assert(mFile);
+                const int read = fread(target, sizeof(char), len, mFile);
+                fseek(mFile, -read, SEEK_CUR);
+                return read;
+            }
+        }
+        return 0;
+    }
+
     int read(char *target, int len)
     {
+        static const bool dump = getenv("RCT_SERIALIZER_DUMP");
+        if (dump) {
+            printf("Reading %d bytes for %s\n", len, mKey);
+        }
         if (len) {
             if (mData) {
                 assert(mPos + len <= mLength);
@@ -80,13 +107,14 @@ public:
 
     bool atEnd() const { return mPos == mLength; }
 
-    int pos() const { return mPos; }
-    int length() const { return mLength; }
+    int pos() const { return mFile ? ftell(mFile) : mPos; }
+    int length() const { return mFile ? Rct::fileSize(mFile) : mLength; }
 private:
     const char *mData;
     const int mLength;
     int mPos;
     FILE *mFile;
+    const char *mKey;
 };
 
 template <typename T>
@@ -146,7 +174,7 @@ DECLARE_NATIVE_TYPE(time_t);
 template <>
 inline Serializer &operator<<(Serializer &s, const String &byteArray)
 {
-    const int size = byteArray.size();
+    const uint32_t size = byteArray.size();
     s << size;
     if (byteArray.size())
         s.write(byteArray.constData(), byteArray.size()); // do I need to write out null terminator?
@@ -157,7 +185,7 @@ inline Serializer &operator<<(Serializer &s, const String &byteArray)
 template <>
 inline Serializer &operator<<(Serializer &s, const Path &path)
 {
-    const int size = path.size();
+    const uint32_t size = path.size();
     s << size;
     if (path.size())
         s.write(path.constData(), size);
@@ -168,14 +196,14 @@ inline Serializer &operator<<(Serializer &s, const Path &path)
 template <typename T>
 Serializer &operator<<(Serializer &s, const List<T> &list)
 {
-    const int size = list.size();
+    const uint32_t size = list.size();
     s << size;
     if (list.size()) {
         const int fixed = fixedSize<T>(T());
         if (fixed) {
             s.write(reinterpret_cast<const char*>(list.data()), fixed * size);
         } else {
-            for (int i=0; i<size; ++i) {
+            for (uint32_t i=0; i<size; ++i) {
                 s << list.at(i);
             }
         }
@@ -186,7 +214,7 @@ Serializer &operator<<(Serializer &s, const List<T> &list)
 template <typename Key, typename Value>
 Serializer &operator<<(Serializer &s, const Map<Key, Value> &map)
 {
-    const int size = map.size();
+    const uint32_t size = map.size();
     s << size;
     for (typename Map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
         s << it->first << it->second;
@@ -205,7 +233,7 @@ Serializer &operator<<(Serializer &s, const std::pair<First, Second> &pair)
 template <typename T>
 Serializer &operator<<(Serializer &s, const Set<T> &set)
 {
-    const int size = set.size();
+    const uint32_t size = set.size();
     s << size;
     for (typename Set<T>::const_iterator it = set.begin(); it != set.end(); ++it) {
         s << *it;
@@ -216,13 +244,13 @@ Serializer &operator<<(Serializer &s, const Set<T> &set)
 template <typename Key, typename Value>
 Deserializer &operator>>(Deserializer &s, Map<Key, Value> &map)
 {
-    int size;
+    uint32_t size;
     s >> size;
     map.clear();
     if (size) {
         Key key;
         Value value;
-        for (int i=0; i<size; ++i) {
+        for (uint32_t i=0; i<size; ++i) {
             s >> key >> value;
             map[key] = value;
         }
@@ -233,7 +261,7 @@ Deserializer &operator>>(Deserializer &s, Map<Key, Value> &map)
 template <typename T>
 Deserializer &operator>>(Deserializer &s, List<T> &list)
 {
-    int size;
+    uint32_t size;
     s >> size;
     list.resize(size);
     if (size) {
@@ -241,7 +269,7 @@ Deserializer &operator>>(Deserializer &s, List<T> &list)
         if (fixed) {
             s.read(reinterpret_cast<char*>(list.data()), fixed * size);
         } else {
-            for (int i=0; i<size; ++i) {
+            for (uint32_t i=0; i<size; ++i) {
                 s >> list[i];
             }
         }
@@ -253,11 +281,11 @@ template <typename T>
 Deserializer &operator>>(Deserializer &s, Set<T> &set)
 {
     set.clear();
-    int size;
+    uint32_t size;
     s >> size;
     if (size) {
         T t;
-        for (int i=0; i<size; ++i) {
+        for (uint32_t i=0; i<size; ++i) {
             s >> t;
             set.insert(t);
         }
@@ -268,11 +296,12 @@ Deserializer &operator>>(Deserializer &s, Set<T> &set)
 template <>
 inline Deserializer &operator>>(Deserializer &s, String &byteArray)
 {
-    int size;
+    uint32_t size;
     s >> size;
-    byteArray.resize(size);
-    if (size)
+    if (size) {
+        byteArray.resize(size);
         s.read(byteArray.data(), size);
+    }
     return s;
 }
 
@@ -286,11 +315,12 @@ Deserializer &operator>>(Deserializer &s, std::pair<First, Second> &pair)
 template <>
 inline Deserializer &operator>>(Deserializer &s, Path &path)
 {
-    int size;
+    uint32_t size;
     s >> size;
-    path.resize(size);
-    if (size)
+    if (size) {
+        path.resize(size);
         s.read(path.data(), size);
+    }
     return s;
 }
 

@@ -119,12 +119,14 @@ public:
         }
         return 0;
     }
+
     Set<T> toSet() const; // implemented in Set.h
 
     T &first()
     {
         return Base::operator[](0);
     }
+
     const T &first() const
     {
         return Base::at(0);
@@ -154,6 +156,17 @@ public:
         return Base::at(size() - 1);
     }
 
+    bool startsWith(const List<T> &t) const
+    {
+        if (size() < t.size())
+            return false;
+        for (int i = 0; i < t.size(); ++i) {
+            if (Base::at(i) != t.Base::at(i))
+                return false;
+        }
+        return true;
+    }
+
     List<T> &operator+=(const T &t)
     {
         append(t);
@@ -165,11 +178,13 @@ public:
         append(t);
         return *this;
     }
+
     List<T> &operator<<(const T &t)
     {
         append(t);
         return *this;
     }
+
     List<T> &operator<<(const List<T> &t)
     {
         append(t);

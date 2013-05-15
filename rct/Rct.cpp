@@ -347,7 +347,7 @@ uint64_t currenTimeMs()
 {
     timeval time;
     gettimeofday(&time, NULL);
-    return (time.tv_sec * 1000LLU) + (time.tv_usec / 1000LLU);
+    return (time.tv_sec * static_cast<uint64_t>(1000)) + (time.tv_usec / static_cast<uint64_t>(1000));
 }
 } // namespace Rct
 

@@ -486,8 +486,8 @@ uint64_t Path::lastModifiedMs() const
         return 0;
     }
 #ifdef HAVE_STATMTIM
-    return st.st_mtim.tv_sec * 1000LLU + st.st_mtim.tv_nsec / 1000000LLU;
+    return st.st_mtim.tv_sec * static_cast<uint64_t>(1000) + st.st_mtim.tv_nsec / static_cast<uint64_t>(1000000);
 #else
-    return st.st_mtime * 1000LLU;
+    return st.st_mtime * static_cast<uint64_t>(1000);
 #endif
 }

@@ -484,5 +484,5 @@ uint64_t Path::lastModifiedMs() const
         warning("Stat failed for %s", constData());
         return 0;
     }
-    return st.st_mtime * 1000 + st.st_mtim.tv_nsec / 1000000;
+    return st.st_mtim.tv_sec * 1000LLU + st.st_mtim.tv_nsec / 1000000LLU;
 }

@@ -3,6 +3,7 @@ add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 
 include(CheckSymbolExists)
 include(CheckCXXSymbolExists)
+include(CheckCXXSourceCompiles)
 
 include(${CMAKE_CURRENT_LIST_DIR}/compiler.cmake)
 
@@ -15,6 +16,14 @@ check_cxx_symbol_exists(kqueue "sys/types.h;sys/event.h" HAVE_KQUEUE)
 check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
+
+check_cxx_source_compiles("
+  #include <sys/types.h>
+  #include <sys/stat.h>
+  int main(int, char**) {
+      struct stat st;
+      return st.st_mtim.tv_sec;
+  }" HAVE_STATMTIM)
 
 if (NOT DEFINED RCT_INCLUDE_DIR)
    set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")

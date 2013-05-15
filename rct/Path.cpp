@@ -1,7 +1,8 @@
 #include "rct/Path.h"
 #include "rct/Log.h"
-#include <stdio.h>
 #include "rct/Rct.h"
+#include "rct-config.h"
+#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
@@ -484,5 +485,9 @@ uint64_t Path::lastModifiedMs() const
         warning("Stat failed for %s", constData());
         return 0;
     }
+#ifdef HAVE_STATMTIM
     return st.st_mtim.tv_sec * 1000LLU + st.st_mtim.tv_nsec / 1000000LLU;
+#else
+    return st.st_mtime * 1000LLU;
+#endif
 }

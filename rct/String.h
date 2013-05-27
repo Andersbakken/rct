@@ -181,7 +181,7 @@ public:
         return ret;
     }
 
-    String trimmed(const String &trim = " \f\n\r\t\v")
+    String trimmed(const String &trim = " \f\n\r\t\v") const
     {
         const int start = mString.find_first_not_of(trim);
         if (start == static_cast<int>(std::string::npos))

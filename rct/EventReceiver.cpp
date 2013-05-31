@@ -76,12 +76,18 @@ void EventReceiver::timerEventCallBack(int id, void *userData)
     shared_ptr<EventReceiver> receiver = ptr->lock();
     bool remove = true;
     if (receiver) {
-        MutexLocker locker(&receiver->mTimerMutex);
-        Map<int, TimerEvent>::iterator it = receiver->mTimers.find(id);
-        if (it != receiver->mTimers.end()) {
+        Map<int, TimerEvent> events;
+        Set<int> toErase;
+        {
+            MutexLocker locker(&receiver->mTimerMutex);
+            events = receiver->mTimers;
+        }
+        Map<int, TimerEvent>::iterator it = events.find(id);
+        if (it != events.end()) {
             receiver->timerEvent(&it->second);
             if (it->second.mTimerMode == SingleShot) {
-                receiver->mTimers.erase(it);
+                MutexLocker locker(&receiver->mTimerMutex);
+                receiver->mTimers.erase(it->first);
             } else {
                 remove = false;
             }

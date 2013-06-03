@@ -127,18 +127,10 @@ void FileSystemWatcher::clear()
 
 bool FileSystemWatcher::isWatching(const Path& p) const
 {
-    Path path = p, parent;
+    Path path = p;
     if (!path.endsWith('/'))
         path += '/';
-    for (;;) {
-        if (mWatchedByPath.contains(path))
-            return true;
-        parent = path.parentDir();
-        if (parent == path || parent.isEmpty())
-            break;
-        path = parent;
-    }
-    return false;
+    return mWatchedByPath.contains(path);
 }
 
 bool FileSystemWatcher::watch(const Path &p)
@@ -163,8 +155,10 @@ bool FileSystemWatcher::watch(const Path &p)
     if (!path.endsWith('/'))
         path += '/';
 
-    if (isWatching(path))
+    if (isWatching(path)) {
+        error() << "already watching" << path;
         return false;
+    }
 
     int ret = ::open(path.nullTerminated(), O_RDONLY);
     //static int cnt = 0;
@@ -186,6 +180,8 @@ bool FileSystemWatcher::watch(const Path &p)
               path.constData(), errno, strerror(errno));
         return false;
     }
+
+    error() << "watching" << path;
 
     mWatchedByPath[path] = ret;
     mWatchedById[ret] = path;
@@ -209,6 +205,8 @@ bool FileSystemWatcher::watch(const Path &p)
             }
             ::close(wd);
             mWatchedById.remove(wd);
+        } else {
+            error() << "Failed to unwatch" << *it;
         }
     }
 
@@ -250,11 +248,13 @@ bool FileSystemWatcher::unwatch(const Path &p)
 void FileSystemWatcher::notifyReadyRead()
 {
     FSUserData data;
+    bool startTimer = false;
     {
         enum { MaxEvents = 5 };
         struct kevent events[MaxEvents];
         struct timespec nullts = { 0, 0 };
         int ret;
+        MutexLocker lock(&mMutex);
         for (;;) {
             ret = ::kevent(mFd, 0, 0, events, MaxEvents, &nullts);
             if (ret == 0) {
@@ -266,7 +266,6 @@ void FileSystemWatcher::notifyReadyRead()
             }
             assert(ret > 0 && ret <= MaxEvents);
             for (int i = 0; i < ret; ++i) {
-                MutexLocker lock(&mMutex);
                 const struct kevent& event = events[i];
                 const Path p = mWatchedById.value(event.ident);
                 if (event.flags & EV_ERROR) {
@@ -275,10 +274,11 @@ void FileSystemWatcher::notifyReadyRead()
                     continue;
                 }
                 if (p.isEmpty()) {
-                    warning() << "FileSystemWatcher::notifyReadyRead() We don't seem to be watching " << p;
+                    error() << "FileSystemWatcher::notifyReadyRead() We don't seem to be watching " << p;
                     continue;
                 }
                 if (event.fflags & (NOTE_DELETE|NOTE_REVOKE|NOTE_RENAME)) {
+                    error() << "It seems" << p << "has been removed";
                     // our path has been removed
                     const int wd = event.ident;
                     mWatchedById.remove(wd);
@@ -307,32 +307,62 @@ void FileSystemWatcher::notifyReadyRead()
                         data.all.insert(it->first);
                         ++it;
                     }
-                    //printf("before updateFiles, path %s, all %d\n", p.nullTerminated(), data.all.size());
+                    // printf("before updateFiles, path %s, all %d\n", p.nullTerminated(), data.all.size());
                     p.visit(updateFiles, &data);
-                    //printf("after updateFiles, added %d, modified %d, removed %d\n",
-                    //       data.added.size(), data.modified.size(), data.all.size());
-
-                    lock.unlock();
-                    struct {
-                        signalslot::Signal1<const Path&> &signal;
-                        const Set<Path> &paths;
-                    } signals[] = {
-                        { mModified, data.modified },
-                        { mAdded, data.added }
-                    };
-                    const unsigned count = sizeof(signals) / sizeof(signals[0]);
-                    for (unsigned i=0; i<count; ++i) {
-                        for (Set<Path>::const_iterator it = signals[i].paths.begin(); it != signals[i].paths.end(); ++it) {
-                            signals[i].signal(*it);
-                        }
-                    }
+                    // printf("after updateFiles, added %d, modified %d, removed %d\n",
+                    //        data.added.size(), data.modified.size(), data.all.size());
                 }
 
-                lock.unlock();
+                error() << data.modified << data.added << data.all;
+
+                for (Set<Path>::const_iterator it = data.modified.begin(); it != data.modified.end(); ++it) {
+                    startTimer = true;
+                    mPending[*it] |= Modified;
+                }
+                for (Set<Path>::const_iterator it = data.added.begin(); it != data.added.end(); ++it) {
+                    startTimer = true;
+                    uint8_t &cur = mPending[*it];
+                    cur &= Removed;
+                    cur |= Added;
+                }
+
                 for (Set<Path>::const_iterator it = data.all.begin(); it != data.all.end(); ++it) {
-                    mRemoved(*it);
+                    startTimer = true;
+                    mPending[*it] = Removed;
+                    // mTimes.erase(*it);
                 }
+                error() << mPending;
             }
         }
     }
+    if (startTimer) {
+        // error() << "starting timer" << mPending;
+        // printf("[%s:%d]: if (restart) {\n", __func__, __LINE__); fflush(stdout);
+        mTimer.start(shared_from_this(), 50, SingleShot);
+    }
+}
+
+void FileSystemWatcher::timerEvent(TimerEvent *)
+{
+    Map<Path, uint8_t> pending;
+    {
+        MutexLocker lock(&mMutex);
+        std::swap(pending, mPending);
+        error() << "got pending" << pending;
+    }
+    for (Map<Path, uint8_t>::const_iterator it = pending.begin(); it != pending.end(); ++it) {
+        if (it->second & Added) {
+            error() << it->first << "added";
+            mAdded(it->first);
+        }
+        if (it->second & Modified) {
+            error() << it->first << "modified";
+            mModified(it->first);
+        }
+        if (it->second & Removed) {
+            error() << it->first << "removed";
+            mRemoved(it->first);
+        }
+    }
+
 }

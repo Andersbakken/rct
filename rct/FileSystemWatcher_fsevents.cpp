@@ -1,3 +1,4 @@
+#error foo
 #include "rct/FileSystemWatcher.h"
 #include "rct/Event.h"
 #include "rct/EventReceiver.h"

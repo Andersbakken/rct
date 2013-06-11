@@ -42,7 +42,7 @@ private:
     WatcherThread* mWatcher;
     WatcherReceiver* mReceiver;
     friend class WatcherReceiver;
-#elif defined (HAVE_FSPOLL)
+#elif defined(HAVE_FSPOLL)
     PollThread *mThread;
     friend class PollThread;
 #elif defined(HAVE_KQUEUE) || defined(HAVE_INOTIFY)

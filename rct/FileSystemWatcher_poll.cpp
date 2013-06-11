@@ -1,5 +1,7 @@
 #include "rct/FileSystemWatcher.h"
 #include "rct/Thread.h"
+#include "rct/MutexLocker.h"
+#include "rct/WaitCondition.h"
 
 class PollThread : public Thread
 {
@@ -42,7 +44,7 @@ bool FileSystemWatcher::watch(const Path &p)
 {
     if (p.isFile()) {
         return watch(p.parentDir());
-    } else if (p.isDir() && !dir.endsWith('/')) {
+    } else if (p.isDir() && !p.endsWith('/')) {
         return watch(p + '/');
     }
     MutexLocker lock(&mThread->mMutex);
@@ -55,12 +57,12 @@ bool FileSystemWatcher::watch(const Path &p)
 
 bool FileSystemWatcher::unwatch(const Path &path)
 {
-    MutexLocker lock(&mMutex);
-    return mFiles.remove(path);
+     // MutexLocker lock(&mMutex);
+     // return mFiles.remove(path);
 }
 
 Set<Path> FileSystemWatcher::watchedPaths() const
 {
-    MutexLocker lock(&mMutex);
-    return mFiles.keys();
+    MutexLocker lock(&mThread->mMutex);
+    return mThread->mFiles.keysAsSet();
 }

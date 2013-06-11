@@ -125,6 +125,17 @@ public:
         return keys;
     }
 
+    Set<Key> keysAsSet() const
+    {
+        Set<Key> keys;
+        typename std::map<Key, Value>::const_iterator it = std::map<Key, Value>::begin();
+        while (it != std::map<Key, Value>::end()) {
+            keys.insert(it->first);
+            ++it;
+        }
+        return keys;
+    }
+
     List<Value> values() const
     {
         List<Value> values;

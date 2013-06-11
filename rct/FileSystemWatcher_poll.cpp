@@ -1,9 +1,6 @@
 #include "rct/FileSystemWatcher.h"
 #include "rct/Thread.h"
-<<<<<<< HEAD
 #include "rct/MutexLocker.h"
-#include "rct/WaitCondition.h"
-=======
 #include "rct/WaitCondition.h"
 #include <sys/types.h>
 #include <dirent.h>
@@ -15,18 +12,17 @@ static inline uint64_t lastModified(const Path &path)
 #ifdef HAVE_STATMTIM
         return statBuf.st_mtim.tv_sec * static_cast<uint64_t>(1000) + statBuf.st_mtim.tv_nsec / static_cast<uint64_t>(1000000);
 #else
-        return st.st_mtime * static_cast<uint64_t>(1000);
+        return statBuf.st_mtime * static_cast<uint64_t>(1000);
 #endif
     }
     return 0;
 }
->>>>>>> Some more work.
 
 class PollThread : public Thread
 {
 public:
     PollThread(FileSystemWatcher *w)
-        : mWatcher(w), mDone(false)
+        : mWatcher(w), mClear(false), mDone(false)
     {}
 
     void stop();
@@ -37,6 +33,7 @@ public:
 
     Mutex mEventMutex;
     Map<Path, bool> mEvents;
+    bool mClear;
     bool mDone;
 
     Mutex mFilesMutex;
@@ -51,6 +48,7 @@ public:
 FileSystemWatcher::FileSystemWatcher()
     : mThread(new PollThread(this))
 {
+    mThread->start();
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -62,23 +60,21 @@ FileSystemWatcher::~FileSystemWatcher()
 
 void FileSystemWatcher::clear()
 {
-    MutexLocker lock(&mThread->mMutex);
-    mThread->mFiles.clear();
+    MutexLocker lock(&mThread->mEventMutex);
+    mThread->mClear = true;
+    mThread->mCondition.wakeOne();
 }
 
 bool FileSystemWatcher::watch(const Path &p)
 {
+    error() << "Calling watch" << p;
     if (p.isFile()) {
         return watch(p.parentDir());
-<<<<<<< HEAD
     } else if (p.isDir() && !p.endsWith('/')) {
         return watch(p + '/');
     }
     MutexLocker lock(&mThread->mMutex);
     if (mThread->mFiles.contains(p))
-=======
-    } else if (!p.isDir()) {
->>>>>>> Some more work.
         return false;
     }
 
@@ -87,28 +83,27 @@ bool FileSystemWatcher::watch(const Path &p)
         path += '/';
     MutexLocker lock(&mThread->mEventMutex);
     mThread->mEvents[p] = true;
+    mThread->mCondition.wakeOne();
+    printf("[%s:%d]: mThread->mEvents[p] = true;\n", __func__, __LINE__); fflush(stdout);
+    return true;
 }
 
 bool FileSystemWatcher::unwatch(const Path &path)
 {
-<<<<<<< HEAD
-     // MutexLocker lock(&mMutex);
-     // return mFiles.remove(path);
-=======
     MutexLocker lock(&mThread->mEventMutex);
-    mThread->mEvents[path] = false;
+    if (path.isDir() && !path.endsWith('/')) {
+        mThread->mEvents[path + '/'] = false;
+    } else {
+        mThread->mEvents[path] = false;
+    }
+    mThread->mCondition.wakeOne();
     return true;
->>>>>>> Some more work.
 }
 
 Set<Path> FileSystemWatcher::watchedPaths() const
 {
-<<<<<<< HEAD
     MutexLocker lock(&mThread->mMutex);
     return mThread->mFiles.keysAsSet();
-=======
-    MutexLocker lock(&mThread->mFilesMutex);
-    return mThread->mFiles.keys().toSet();
 }
 
 void PollThread::stop()
@@ -121,54 +116,167 @@ void PollThread::stop()
 void PollThread::run()
 {
     Path last;
+    bool empty = true;
     while (true) {
-        Set<Path, bool> events;
+        Map<Path, bool> events;
+        bool clear = false;
         {
             MutexLocker lock(&mEventMutex);
-            mCondition.wait(&mEventMutex, 50);
+            while (mEvents.empty() && !mDone && !mClear) {
+                // error() << "waiting" << empty;
+                error() << "about to sleep" << mEvents << mDone << mClear;
+                printf("[%s:%d]: sleep(1);\n", __func__, __LINE__); fflush(stdout);
+                sleep(1);
+                {
+                    lock.unlock();
+                    lock.relock();
+                }
+                if (!empty) {
+                    printf("[%s:%d]: if (!empty) {\n", __func__, __LINE__); fflush(stdout);
+                    break;
+                }
+
+                // if (!mCondition.wait(&mEventMutex, empty ? 0 : 1000)) {
+                //     // error() << "woke up from timeout";
+                //     break;
+                // }
+            }
             if (mDone)
                 break;
             std::swap(events, mEvents);
+            std::swap(clear, mClear);
         }
+        // error() << "woke up" << events.size() << mClear << last;
         {
-            MutexLocker lock(mFilesMutex);
-            for (Set<Path, bool>::const_iterator it = events.begin(); it != events.end(); ++it) {
-                
-            }
+            MutexLocker lock(&mFilesMutex);
+            if (mClear) {
+                mClear = false;
+                mFiles.clear();
+            } else {
+                for (Map<Path, bool>::const_iterator it = events.begin(); it != events.end(); ++it) {
+                    error() << "processing" << it->first << it->second;
+                    if (!it->second) {
+                        mFiles.remove(it->first);
+                    } else if (!mFiles.contains(it->first)) {
+                        char buf[PATH_MAX + sizeof(dirent) + 1];
+                        dirent *dbuf = reinterpret_cast<dirent*>(buf);
 
-            Map<Path, Directory>
+                        dirent *res;
+                        Path path = it->first;
+                        DIR *d = opendir(path.constData());
+                        error() << "processing" << path;
+                        if (d) {
+                            Directory &dir = mFiles[path];
+                            const int s = path.size();
+                            path.reserve(s + 128);
+                            while (!readdir_r(d, dbuf, &res) && res) {
+                                error() << "got dude" << res->d_name;
+                                if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
+                                    continue;
+                                path.truncate(s);
+                                String fn = res->d_name;
+                                path.append(fn);
+                                const uint64_t mod = lastModified(path);
+                                if (mod)
+                                    dir.files[fn] = mod;
+                            }
+                            closedir(d);
+                            error() << path << "is set up" << dir.files;
+                        } else {
+                            error() << "Can't opendir" << path;
+                        }
+                    }
+                }
+            }
+            empty = mFiles.isEmpty();
+            // error() << "About to scan" << empty << last;
+            if (!empty) {
+                Map<Path, Directory>::const_iterator it = mFiles.lower_bound(last);
+                if (it->first == last)
+                    ++it;
+                if (it == mFiles.end())
+                    it = mFiles.begin();
+                last = it->first;
+                error() << "scanning" << last;
+
+                Path path = it->first;
+                DIR *d = opendir(path.constData());
+                if (d) {
+                    char buf[PATH_MAX + sizeof(dirent) + 1];
+                    dirent *dbuf = reinterpret_cast<dirent*>(buf);
+
+                    dirent *res;
+                    Directory &dir = mFiles[path];
+                    const int s = path.size();
+                    path.reserve(s + 128);
+                    Set<String> seen;
+                    while (!readdir_r(d, dbuf, &res) && res) {
+                        if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
+                            continue;
+                        path.truncate(s);
+                        const String fn = res->d_name;
+                        path.append(fn);
+                        seen.insert(fn);
+                        const uint64_t mod = lastModified(path);
+                        uint64_t &cur = dir.files[fn];
+                        if (mod != cur) {
+                            if (!cur) {
+                                error() << "Added" << path;
+                                mWatcher->mAdded(path);
+                            } else {
+                                error() << "Modified" << path;
+                                mWatcher->mModified(path);
+                            }
+                            cur = mod;
+                        }
+                    }
+                    if (seen.size() != dir.files.size()) { // something removed
+                        // error() << "differences" << seen << dir.files.keys();
+                        Map<String, uint64_t>::iterator p = dir.files.begin();
+                        while (p != dir.files.end()) {
+                            if (!seen.contains(it->first)) {
+                                error() << path + it->first << "seems to have been removed";
+                                mWatcher->mRemoved(path + it->first);
+                                dir.files.erase(p++);
+                            } else {
+                                ++p;
+                            }
+                        }
+                    }
+                    closedir(d);
+                } else {
+                    error() << "couldn't opendir" << last;
+                }
+            }
         }
     }
 
+    // if (mThread->mFiles.contains(path))
+    //     return false;
+    // DIR *d = opendir(path.constData());
+    // if (!d)
+    //     return false;
+    // PollThread::Directory &dir = mThread->mFiles[path];
+    // dir.lastModified = lastModified(path);
 
-    if (mThread->mFiles.contains(path))
-        return false;
-    DIR *d = opendir(path.constData());
-    if (!d)
-        return false;
-    PollThread::Directory &dir = mThread->mFiles[path];
-    dir.lastModified = lastModified(path);
+    // char buf[PATH_MAX + sizeof(dirent) + 1];
+    // dirent *dbuf = reinterpret_cast<dirent*>(buf);
 
-    char buf[PATH_MAX + sizeof(dirent) + 1];
-    dirent *dbuf = reinterpret_cast<dirent*>(buf);
+    // dirent *res;
+    // const int s = path.size();
+    // path.reserve(s + 128);
+    // while (!readdir_r(d, dbuf, &res) && res) {
+    //     if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
+    //         continue;
+    //     path.truncate(s);
+    //     String fn = res->d_name;
+    //     path.append(fn);
+    //     const uint64_t mod = lastModified(p.constData());
+    //     if (mod)
+    //         dir.files[fn] = mod;
+    // }
 
-    dirent *res;
-    const int s = path.size();
-    path.reserve(s + 128);
-    while (!readdir_r(d, dbuf, &res) && res) {
-        if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
-            continue;
-        path.truncate(s);
-        String fn = res->d_name;
-        path.append(fn);
-        const uint64_t mod = lastModified(p.constData());
-        if (mod)
-            dir.files[fn] = mod;
-    }
-
-    closedir(d);
-    return true;
+    // closedir(d);
+    // return true;
 }
     
->>>>>>> Some more work.
-}

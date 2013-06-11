@@ -127,18 +127,9 @@ void FileSystemWatcher::clear()
 
 bool FileSystemWatcher::isWatching(const Path& p) const
 {
-    Path path = p, parent;
-    if (!path.endsWith('/'))
-        path += '/';
-    for (;;) {
-        if (mWatchedByPath.contains(path))
-            return true;
-        parent = path.parentDir();
-        if (parent == path || parent.isEmpty())
-            break;
-        path = parent;
-    }
-    return false;
+    if (!p.endsWith('/'))
+        return isWatching(p + '/');
+    return mWatchedByPath.contains(p);
 }
 
 bool FileSystemWatcher::watch(const Path &p)
@@ -193,24 +184,6 @@ bool FileSystemWatcher::watch(const Path &p)
     FSUserData data;
     data.watcher = this;
     path.visit(scanFiles, &data);
-
-    // did we watch any parent directories of what we've already watched?
-    // if so, unwatch the subdirectories
-    int wd;
-    struct kevent change;
-    struct timespec nullts = { 0, 0 };
-    for (Set<Path>::const_iterator it = data.modified.begin(); it != data.modified.end(); ++it) {
-        if (mWatchedByPath.remove(*it, &wd)) {
-            EV_SET(&change, wd, EVFILT_VNODE, EV_DELETE, 0, 0, 0);
-            if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
-                // bad stuff
-                error("FileSystemWatcher::watch() kevent (for existing path) failed for '%s' (%d) %s",
-                      it->constData(), errno, strerror(errno));
-            }
-            ::close(wd);
-            mWatchedById.remove(wd);
-        }
-    }
 
     return true;
 }

@@ -28,6 +28,8 @@ public:
     void stop();
     virtual void run();
 
+    void prepareDirectory(const Path &path);
+
     FileSystemWatcher *mWatcher;
     WaitCondition mCondition;
 
@@ -115,6 +117,8 @@ void PollThread::run()
 {
     Path last;
     bool empty = true;
+    Path lastModifiedPath;
+    bool ordered = true;
     while (true) {
         Map<Path, bool> events;
         bool clear = false;
@@ -154,50 +158,33 @@ void PollThread::run()
             for (Map<Path, bool>::const_iterator it = events.begin(); it != events.end(); ++it) {
                 error() << "processing" << it->first << it->second;
                 if (!it->second) {
+                    error() << "removing path" << it->first;
                     mWatched.remove(it->first);
                 } else if (!mWatched.contains(it->first)) {
-                    char buf[PATH_MAX + sizeof(dirent) + 1];
-                    dirent *dbuf = reinterpret_cast<dirent*>(buf);
-
-                    dirent *res;
-                    Path path = it->first;
-                    DIR *d = opendir(path.constData());
-                    error() << "processing" << path;
-                    if (d) {
-                        Directory &dir = mWatched[path];
-                        const int s = path.size();
-                        path.reserve(s + 128);
-                        while (!readdir_r(d, dbuf, &res) && res) {
-                            error() << "got dude" << res->d_name;
-                            if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
-                                continue;
-                            path.truncate(s);
-                            String fn = res->d_name;
-                            path.append(fn);
-                            const uint64_t mod = lastModified(path);
-                            if (mod)
-                                dir.files[fn] = mod;
-                        }
-                        closedir(d);
-                        error() << path << "is set up" << dir.files;
-                    } else {
-                        error() << "Can't opendir" << path;
-                    }
+                    prepareDirectory(it->first);
                 }
             }
         }
         empty = mWatched.isEmpty();
         // error() << "About to scan" << empty << last;
         if (!empty) {
-            Map<Path, Directory>::const_iterator it = mWatched.lower_bound(last);
-            if (it->first == last)
-                ++it;
-            if (it == mWatched.end())
-                it = mWatched.begin();
-            last = it->first;
-            error() << "scanning" << last;
+            Path path;
+            if (ordered) {
+                Map<Path, Directory>::const_iterator it = mWatched.lower_bound(last);
+                if (it->first == last)
+                    ++it;
+                if (it == mWatched.end())
+                    it = mWatched.begin();
+                last = it->first;
+                path = it->first;
+                if (!lastModifiedPath.isEmpty())
+                    ordered = false;
+            } else {
+                ordered = true;
+                path = lastModifiedPath;
+            }
+            // error() << "scanning" << last;
 
-            Path path = it->first;
             DIR *d = opendir(path.constData());
             if (d) {
                 char buf[PATH_MAX + sizeof(dirent) + 1];
@@ -205,9 +192,16 @@ void PollThread::run()
 
                 dirent *res;
                 Directory &dir = mWatched[path];
+                uint64_t mod = lastModified(path);
+                if (dir.lastModified != mod) {
+                    // files removed or added. Not sure if useful
+                    dir.lastModified = mod;
+                }
+
                 const int s = path.size();
                 path.reserve(s + 128);
                 Set<String> seen;
+                bool found = false;
                 while (!readdir_r(d, dbuf, &res) && res) {
                     if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
                         continue;
@@ -215,31 +209,36 @@ void PollThread::run()
                     const String fn = res->d_name;
                     path.append(fn);
                     seen.insert(fn);
-                    const uint64_t mod = lastModified(path);
+                    mod = lastModified(path);
                     uint64_t &cur = dir.files[fn];
                     if (mod != cur) {
+                        found = true;
                         if (!cur) {
-                            error() << "Added" << path;
+                            // error() << "Added" << path << cur << mod;
                             mWatcher->mAdded(path);
                         } else {
-                            error() << "Modified" << path;
+                            // error() << "Modified" << path << cur << mod;
                             mWatcher->mModified(path);
                         }
                         cur = mod;
                     }
                 }
                 if (seen.size() != dir.files.size()) { // something removed
+                    found = true;
                     // error() << "differences" << seen << dir.files.keys();
                     Map<String, uint64_t>::iterator p = dir.files.begin();
                     while (p != dir.files.end()) {
-                        if (!seen.contains(it->first)) {
-                            error() << path + it->first << "seems to have been removed";
-                            mWatcher->mRemoved(path + it->first);
+                        if (!seen.contains(p->first)) {
+                            error() << path + p->first << "seems to have been removed";
+                            mWatcher->mRemoved(path + p->first);
                             dir.files.erase(p++);
                         } else {
                             ++p;
                         }
                     }
+                }
+                if (found) {
+                    lastModifiedPath = path;
                 }
                 closedir(d);
             } else {
@@ -278,3 +277,35 @@ void PollThread::run()
     // return true;
 // }
     
+void PollThread::prepareDirectory(const Path &p)
+{
+    char buf[PATH_MAX + sizeof(dirent) + 1];
+    dirent *dbuf = reinterpret_cast<dirent*>(buf);
+
+    dirent *res;
+    Path path = p;
+    DIR *d = opendir(path.constData());
+    error() << "adding" << path;
+    if (d) {
+        Directory &dir = mWatched[path];
+        dir.lastModified = lastModified(path);
+        const int s = path.size();
+        path.reserve(s + 128);
+        while (!readdir_r(d, dbuf, &res) && res) {
+            error() << "got dude" << res->d_name;
+            if (!strcmp(res->d_name, ".") || !strcmp(res->d_name, ".."))
+                continue;
+            path.truncate(s);
+            String fn = res->d_name;
+            path.append(fn);
+            const uint64_t mod = lastModified(path);
+            if (mod)
+                dir.files[fn] = mod;
+        }
+        closedir(d);
+        error() << path << "is set up" << dir.files;
+    } else {
+        error() << "Can't opendir" << path;
+    }
+}
+

@@ -12,16 +12,18 @@ public:
     WaitCondition() { pthread_cond_init(&mCond, NULL); }
     ~WaitCondition() { pthread_cond_destroy(&mCond); }
 
-    bool wait(Mutex* mutex, int maxTime = 0)
+    bool wait(Mutex* mutex, long maxTime = 0)
     {
         int ret;
         if (maxTime > 0) {
             timeval now;
             gettimeofday(&now, 0);
+
             timespec timeout;
-            memset(&timeout, 0, sizeof(timespec));
-            timeout.tv_sec = now.tv_sec + (maxTime / 1000);
-            timeout.tv_nsec = ((now.tv_usec * 1000) + maxTime % 1000) * 1000;
+
+            const long time = (now.tv_sec * 1000) + (now.tv_usec / 1000) + maxTime;
+            timeout.tv_sec = time / 1000;
+            timeout.tv_nsec = (time % 1000) * 1000;
             ret = pthread_cond_timedwait(&mCond, &mutex->mMutex, &timeout);
         } else {
             ret = pthread_cond_wait(&mCond, &mutex->mMutex);

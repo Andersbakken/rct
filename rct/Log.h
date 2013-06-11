@@ -70,6 +70,9 @@ public:
     Log(int level = 0);
     Log(const Log &other);
     Log &operator=(const Log &other);
+#ifdef OS_Darwin
+    Log operator<<(long number) { return addStringStream(number); }
+#endif
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }
     Log operator<<(uint32_t number) { return addStringStream(number); }

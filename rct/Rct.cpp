@@ -343,7 +343,16 @@ bool gettime(timeval* time)
     return true;
 }
 
-uint64_t currenTimeMs()
+uint64_t monoMs()
+{
+    timeval time;
+    if (gettime(&time)) {
+        return (time.tv_sec * static_cast<uint64_t>(1000)) + (time.tv_usec / static_cast<uint64_t>(1000));
+    }
+    return 0;
+}
+
+uint64_t currentTimeMs()
 {
     timeval time;
     gettimeofday(&time, NULL);

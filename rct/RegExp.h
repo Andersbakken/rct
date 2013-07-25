@@ -69,7 +69,7 @@ public:
         if (!isValid())
             return -1;
         regmatch_t captures[10];
-        if (regexec(&mRegex, string.constData() + offset, sizeof(captures) / sizeof(regmatch_t), captures, flags)) {
+        if (regexec(&mRegex, string.constData() + offset, caps ? sizeof(captures) / sizeof(regmatch_t) : 1, captures, flags)) {
             return -1;
         }
         if (caps) {

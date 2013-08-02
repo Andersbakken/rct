@@ -272,19 +272,6 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
         return Error;
     }
     List<String> arguments = a;
-#if 0
-    char *contents;
-    const int read = cmd.readAll(contents, 33);
-
-    contents[std::min(read, 32)] = '\0';
-    if (read > 2 && !strncmp(contents, "#!", 2)) {
-        char *newLine = strchr(contents, '\n');
-        if (newLine) {
-            arguments.prepend(command);
-            cmd = findCommand(String(contents + 2, newLine - contents - 2));
-        }
-    }
-#endif
     int err;
 
     eintrwrap(err, ::pipe(mStdIn));

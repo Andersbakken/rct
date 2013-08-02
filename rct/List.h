@@ -167,6 +167,34 @@ public:
         return true;
     }
 
+    List<T> operator+(const T &t) const
+    {
+        const int s = Base::size();
+        List<T> ret(s + 1);
+        for (int i=0; i<s; ++i)
+            ret[i] = Base::at(i);
+        ret[s] = t;
+        return ret;
+    }
+
+    List<T> operator+(const List<T> &t) const
+    {
+        if (t.isEmpty())
+            return *this;
+
+        int s = Base::size();
+        List<T> ret(s + t.size());
+
+        for (int i=0; i<s; ++i)
+            ret[i] = Base::at(i);
+
+        for (typename List<T>::const_iterator it = t.begin(); it != t.end(); ++it)
+            ret[s++] = *it;
+
+        return ret;
+    }
+
+
     List<T> &operator+=(const T &t)
     {
         append(t);

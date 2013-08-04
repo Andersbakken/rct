@@ -78,6 +78,8 @@ public:
                       mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     static bool rm(const Path &file);
     static Path home();
+
+    bool rm() const { return Path::rm(*this); }
     bool mksubdir(const String &subdir) const;
     bool isSource() const;
     static bool isSource(const char *extension);

@@ -29,7 +29,7 @@ void SocketServer::close()
 {
     if (fd == -1)
         return;
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
+    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop())
         loop->unregisterSocket(fd);
     ::close(fd);
     fd = -1;
@@ -102,7 +102,7 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
         return false;
     }
 
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite,
                              std::bind(&SocketServer::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
         int e;

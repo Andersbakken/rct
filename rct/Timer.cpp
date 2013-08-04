@@ -19,7 +19,7 @@ Timer::~Timer()
 
 void Timer::restart(int interval, int flags)
 {
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
         // ### this is a bit inefficient, should revisit
         if (timerId)
             loop->unregisterTimer(timerId);
@@ -31,7 +31,7 @@ void Timer::restart(int interval, int flags)
 void Timer::stop()
 {
     if (timerId) {
-        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
             loop->unregisterTimer(timerId);
         }
         timerId = 0;

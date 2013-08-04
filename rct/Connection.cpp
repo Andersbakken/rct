@@ -175,7 +175,7 @@ void Connection::dataWritten(const SocketClient::SharedPtr&, int bytes)
             mSendComplete(this);
         if (mDone) {
             mClient->close();
-            EventLoop::mainEventLoop()->deleteLater(this);
+            EventLoop::deleteLater(EventLoop::mainEventLoop(), this);
         }
     }
 }

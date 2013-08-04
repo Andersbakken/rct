@@ -22,6 +22,7 @@ Connection::Connection(SocketClient::SharedPtr client)
     mClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
     mClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
     mClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    EventLoop::mainEventLoop()->callLater(std::bind(&Connection::checkData, this));
 }
 
 Connection::~Connection()
@@ -30,6 +31,11 @@ Connection::~Connection()
     mClient.reset();
 }
 
+void Connection::checkData()
+{
+    if (!mClient->buffer().isEmpty())
+        dataAvailable(mClient);
+}
 
 bool Connection::connectToServer(const String &name, int timeout)
 {
@@ -85,6 +91,7 @@ static inline unsigned int bufferSize(const LinkedList<Buffer>& buffers)
     for (const Buffer& buffer: buffers) {
         sz += buffer.size();
     }
+    return sz;
 }
 
 static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned int size)

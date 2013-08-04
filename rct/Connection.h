@@ -66,6 +66,7 @@ private:
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
     void dataAvailable(SocketClient::SharedPtr&);
     void dataWritten(const SocketClient::SharedPtr&, int);
+    void checkData();
 
     SocketClient::SharedPtr mClient;
     LinkedList<Buffer> mBuffers;

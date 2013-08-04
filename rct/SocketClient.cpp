@@ -289,6 +289,10 @@ void SocketClient::socketCallback(int f, int mode)
                 }
             } else if (e == 0) {
                 // socket closed
+                if (total) {
+                    readBuffer.resize(total);
+                    signalReadyRead(tcpSocket);
+                }
                 signalDisconnected(tcpSocket);
                 close();
                 return;

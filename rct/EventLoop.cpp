@@ -568,7 +568,7 @@ int EventLoop::exec(int timeoutTime)
 #if defined(HAVE_EPOLL)
                 const uint32_t ev = events[i].events;
                 const int fd = events[i].data.fd;
-                if (ev & (EPOLLERR|EPOLLHUP)) {
+                if (ev & (EPOLLERR|EPOLLHUP) && !(ev & EPOLLRDHUP)) {
                     // bad, take the fd out
                     epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &events[i]);
                     locker.lock();

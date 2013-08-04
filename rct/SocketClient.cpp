@@ -271,11 +271,12 @@ void SocketClient::socketCallback(int f, int mode)
         unsigned int total = 0;
         for(;;) {
             unsigned int rem = readBuffer.capacity() - readBuffer.size();
-            //printf("reading, remaining size %u\n", rem);
+            // printf("reading, remaining size %u\n", rem);
             if (rem <= AllocateAt) {
-                //printf("allocating more\n");
+                // printf("allocating more\n");
                 readBuffer.reserve(readBuffer.size() + BlockSize);
                 rem = readBuffer.capacity() - readBuffer.size();
+                // printf("Rem is now %d\n", rem);
             }
             eintrwrap(e, ::read(fd, readBuffer.end(), rem));
             if (e == -1) {
@@ -290,7 +291,6 @@ void SocketClient::socketCallback(int f, int mode)
             } else if (e == 0) {
                 // socket closed
                 if (total) {
-                    readBuffer.resize(total);
                     signalReadyRead(tcpSocket);
                 }
                 signalDisconnected(tcpSocket);
@@ -298,11 +298,11 @@ void SocketClient::socketCallback(int f, int mode)
                 return;
             } else {
                 total += e;
-                //printf("read %d bytes\n", e);
+                readBuffer.resize(total);
+                // printf("read %d bytes %d\n", e, total);
             }
         }
         assert(total <= readBuffer.capacity());
-        readBuffer.resize(total);
         signalReadyRead(tcpSocket);
 
         if (writeWait) {

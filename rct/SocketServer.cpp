@@ -1,157 +1,149 @@
-#include "rct/SocketServer.h"
-#include "rct/EventLoop.h"
-#include "rct/SocketClient.h"
-#include "rct/Log.h"
-#include "rct/Rct.h"
-#include <errno.h>
+#include "SocketServer.h"
+#include "EventLoop.h"
+#include <assert.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netdb.h>
-#include <unistd.h>
 
-#define LISTEN_BACKLOG 5
+#define eintrwrap(VAR, BLOCK)                   \
+    do {                                        \
+        VAR = BLOCK;                            \
+    } while (VAR == -1 && errno == EINTR)
 
 SocketServer::SocketServer()
-    : mMode(SocketClient::Unix), mFd(-1)
+    : fd(-1)
 {
 }
 
 SocketServer::~SocketServer()
 {
-    if (mFd != -1) {
-        EventLoop::instance()->removeFileDescriptor(mFd);
-        int ret;
-        eintrwrap(ret, ::close(mFd));
-    }
+    close();
 }
 
-static inline bool listenInternal(int& fd, sockaddr* address, size_t addressSize)
+void SocketServer::close()
 {
-    if (bind(fd, address, addressSize) != 0) {
-        int ret;
-        eintrwrap(ret, ::close(fd));
-        fd = -1;
-        error("SocketServer::listen() Unable to bind");
+    if (fd == -1)
+        return;
+    if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
+        loop->unregisterSocket(fd);
+    ::close(fd);
+    fd = -1;
+}
+
+bool SocketServer::listen(uint16_t port)
+{
+    close();
+
+    fd = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        // bad
+        serverError(this, InitializeError);
         return false;
     }
 
-    if (listen(fd, LISTEN_BACKLOG) != 0) {
-        int ret;
-        eintrwrap(ret, ::close(fd));
-        error("SocketServer::listen() Unable to listen to socket");
-        fd = -1;
+    // turn on nodelay
+    int e;
+    {
+        int on = 1;
+        e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+        if (e == -1) {
+            serverError(this, InitializeError);
+            close();
+            return false;
+        }
+    }
+
+    // ### support IPv6 and specific interfaces
+    sockaddr_in addr;
+    memset(&addr, '\0', sizeof(sockaddr_in));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
+
+    return commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+}
+
+bool SocketServer::listen(const std::string& path)
+{
+    close();
+
+    fd = ::socket(PF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) {
+        // bad
+        serverError(this, InitializeError);
         return false;
+    }
+
+    sockaddr_un addr;
+    memset(&addr, '\0', sizeof(sockaddr_un));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path));
+
+    return commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un));
+}
+
+bool SocketServer::commonListen(sockaddr* addr, size_t size)
+{
+    if (::bind(fd, reinterpret_cast<sockaddr*>(addr), size) < 0) {
+        serverError(this, BindError);
+        close();
+        return false;
+    }
+
+    // ### should be able to customize the backlog
+    if (::listen(fd, 5) < 0) {
+        serverError(this, ListenError);
+        close();
+        return false;
+    }
+
+    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        loop->registerSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite,
+                             std::bind(&SocketServer::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+        int e;
+        eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
+        if (e != -1) {
+            eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
+        } else {
+            serverError(this, InitializeError);
+            close();
+            return false;
+        }
     }
 
     return true;
 }
 
-bool SocketServer::listenUnix(const Path& path)
+SocketClient::SharedPtr SocketServer::nextConnection()
 {
-    mMode = SocketClient::Unix;
-
-    if (path.exists()) {
-        return false;
-    }
-    sockaddr_un address;
-
-    mFd = socket(PF_UNIX, SOCK_STREAM, 0);
-    if (mFd < 0) {
-        error("SocketServer::listenUnix() Unable to create socket");
-        return false;
-    }
-
-    memset(&address, 0, sizeof(sockaddr_un));
-
-    if (static_cast<int>(sizeof(address.sun_path)) - 1 <= path.size()) {
-        int ret;
-        eintrwrap(ret, ::close(mFd));
-        mFd = -1;
-        error("SocketServer::listenUnix() Path too long %s", path.constData());
-        return false;
-    }
-
-    address.sun_family = AF_UNIX;
-    memcpy(address.sun_path, path.nullTerminated(), path.size() + 1);
-
-    if (listenInternal(mFd, reinterpret_cast<sockaddr*>(&address), sizeof(sockaddr_un))) {
-        EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
-        return true;
-    }
-    return false;
-}
-
-bool SocketServer::listenTcp(uint16_t port)
-{
-    mMode = SocketClient::Tcp;
-
-    sockaddr_in address;
-
-    mFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (mFd < 0) {
-        error("SocketServer::listenTcp() Unable to create socket");
-        return false;
-    }
-
-    memset(&address, 0, sizeof(sockaddr_in));
-
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(port);
-
-    if (listenInternal(mFd, reinterpret_cast<sockaddr*>(&address), sizeof(sockaddr_in))) {
-        EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
-        return true;
-    }
-    return false;
-}
-
-bool SocketServer::listenTcp(const String& ip, uint16_t port)
-{
-    mMode = SocketClient::Tcp;
-
-    sockaddr_in address;
-
-    mFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (mFd < 0) {
-        error("SocketServer::listenTcp() Unable to create socket");
-        return false;
-    }
-
-    memset(&address, 0, sizeof(sockaddr_in));
-
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr(ip.nullTerminated());
-    address.sin_port = htons(port);
-
-    if (listenInternal(mFd, reinterpret_cast<sockaddr*>(&address), sizeof(sockaddr_in))) {
-        EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, listenCallback, this);
-        return true;
-    }
-    return false;
-}
-
-void SocketServer::listenCallback(int, unsigned int, void* userData)
-{
-    SocketServer* server = reinterpret_cast<SocketServer*>(userData);
-
-    int clientFd;
-    eintrwrap(clientFd, ::accept(server->mFd, NULL, NULL));
-    if (clientFd != -1) {
-        server->mPendingClients.push_back(clientFd);
-        server->mClientConnected();
-    }
-}
-
-SocketClient* SocketServer::nextClient()
-{
-    if (mPendingClients.empty())
+    if (accepted.empty())
         return 0;
-    const int clientFd = mPendingClients.front();
-    mPendingClients.pop_front();
-    return new SocketClient(mMode, clientFd);
+    const int fd = accepted.front();
+    accepted.pop();
+    return SocketClient::SharedPtr(new SocketClient(fd));
+}
+
+void SocketServer::socketCallback(int /*fd*/, int /*mode*/)
+{
+    sockaddr_in client;
+    socklen_t size = sizeof(sockaddr_in);
+    int e;
+    for (;;) {
+        eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
+        if (e == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return;
+            }
+            serverError(this, AcceptError);
+            close();
+            return;
+        }
+        accepted.push(e);
+        serverNewConnection(this);
+    }
 }

@@ -1,36 +1,43 @@
-#ifndef SOCKETSERVER_H
-#define SOCKETSERVER_H
+#ifndef TCPSERVER_H
+#define TCPSERVER_H
 
-#include <rct/Path.h>
-#include <rct/SignalSlot.h>
-#include <rct/SocketClient.h>
-#include <deque>
+#include "SignalSlot.h"
+#include "SocketClient.h"
+#include <memory>
+#include <string>
+#include <queue>
 
-class SocketClient;
+struct sockaddr;
 
 class SocketServer
 {
 public:
+    typedef std::shared_ptr<SocketServer> SharedPtr;
+    typedef std::weak_ptr<SocketServer> WeakPtr;
+
     SocketServer();
     ~SocketServer();
 
-    bool listenUnix(const Path& path);
-    bool listenTcp(uint16_t port);
-    bool listenTcp(const String& ip, uint16_t port);
+    void close();
+    bool listen(uint16_t port); // TCP
+    bool listen(const std::string& path); // UNIX
 
-    SocketClient* nextClient();
+    SocketClient::SharedPtr nextConnection();
 
-    signalslot::Signal0& clientConnected() { return mClientConnected; }
+    Signal<std::function<void(SocketServer*)> >& newConnection() { return serverNewConnection; }
+
+    enum Error { InitializeError, BindError, ListenError, AcceptError };
+    Signal<std::function<void(SocketServer*, Error)> >& error() { return serverError; }
 
 private:
-    static void listenCallback(int fd, unsigned int flags, void* userData);
+    void socketCallback(int fd, int mode);
+    bool commonListen(sockaddr* addr, size_t size);
 
 private:
-    SocketClient::Mode mMode;
-
-    int mFd;
-    std::deque<int> mPendingClients;
-    signalslot::Signal0 mClientConnected;
+    int fd;
+    std::queue<int> accepted;
+    Signal<std::function<void(SocketServer*)> > serverNewConnection;
+    Signal<std::function<void(SocketServer*, Error)> > serverError;
 };
 
 #endif

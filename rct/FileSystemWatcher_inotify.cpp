@@ -11,12 +11,12 @@ FileSystemWatcher::FileSystemWatcher()
 {
     mFd = inotify_init();
     assert(mFd != -1);
-    EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, notifyCallback, this);
+    EventLoop::mainEventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
 FileSystemWatcher::~FileSystemWatcher()
 {
-    EventLoop::instance()->removeFileDescriptor(mFd);
+    EventLoop::mainEventLoop()->unregisterSocket(mFd);
     for (Map<Path, int>::const_iterator it = mWatchedByPath.begin(); it != mWatchedByPath.end(); ++it) {
         inotify_rm_watch(mFd, it->second);
     }
@@ -160,7 +160,7 @@ void FileSystemWatcher::notifyReadyRead()
     }
 
     struct {
-        signalslot::Signal1<const Path&> &signal;
+        Signal<std::function<void(const Path&)> > &signal;
         const Set<Path> &paths;
     } signals[] = {
         { mModified, modified },

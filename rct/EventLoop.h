@@ -1,89 +1,214 @@
 #ifndef EVENTLOOP_H
 #define EVENTLOOP_H
 
-#include <rct/Mutex.h>
-#include <rct/Thread.h>
-#include <deque>
-#include <sys/time.h>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <tuple>
+#include <queue>
+#include <set>
+#include <unordered_set>
+#include "Apply.h"
 
-class Event;
-class EventReceiver;
-struct timeval;
-
-class EventLoop
+class Event
 {
 public:
+    virtual ~Event() { }
+    virtual void exec() = 0;
+};
+
+template<typename Object, typename... Args>
+class SignalEvent : public Event
+{
+public:
+    enum MoveType { Move };
+
+    SignalEvent(Object& o, Args&&... a)
+        : obj(o), args(a...)
+    {
+    }
+    SignalEvent(Object&& o, Args&&... a)
+        : obj(o), args(a...)
+    {
+    }
+    SignalEvent(Object& o, MoveType, Args&&... a)
+        : obj(o), args(std::move(a...))
+    {
+    }
+    SignalEvent(Object&& o, MoveType, Args&&... a)
+        : obj(o), args(std::move(a...))
+    {
+    }
+
+    void exec() { applyMove(obj, args); }
+
+private:
+    Object obj;
+    std::tuple<Args...> args;
+};
+
+template<typename T>
+class DeleteLaterEvent : public Event
+{
+public:
+    DeleteLaterEvent(T* d)
+        : del(d)
+    {
+    }
+
+    void exec() { delete del; }
+
+private:
+    T* del;
+};
+
+class EventLoop : public std::enable_shared_from_this<EventLoop>
+{
+public:
+    typedef std::shared_ptr<EventLoop> SharedPtr;
+    typedef std::weak_ptr<EventLoop> WeakPtr;
+
     EventLoop();
     ~EventLoop();
 
-    static EventLoop* instance();
+    void init();
 
-    enum Flag {
-        Read = 0x1,
-        Write = 0x2,
-        Disconnected = 0x4
-    };
-    typedef void(*FdFunc)(int, unsigned int, void*);
-    typedef void(*TimerFunc)(int, void*);
-
-    int addTimer(int timeout, TimerFunc callback, void* userData);
-    void removeTimer(int handle);
-    void addFileDescriptor(int fd, unsigned int flags, FdFunc callback, void* userData);
-    void removeFileDescriptor(int fd, unsigned int flags = 0);
-
-    void run(int maxTime = -1);
-    pthread_t thread() const { return mThread; }
-
-    // The following two functions are thread safe
-    void postEvent(EventReceiver* object, Event* event);
-    void exit();
-    void removeEvents(EventReceiver *e);
-private:
-    void handlePipe();
-    void sendPostedEvents();
-    bool reinsertTimer(int handle, timeval* now);
-    static void exitTimer(int id, void *userData)
+    template<typename T>
+    static void deleteLater(T* del)
     {
-        EventLoop *loop = static_cast<EventLoop*>(userData);
-        loop->removeTimer(id);
-        loop->exit();
+        if (EventLoop::SharedPtr loop = eventLoop()) {
+            loop->post(new DeleteLaterEvent<T>(del));
+        } else {
+            error("No event loop!");
+        }
     }
+    template<typename T>
+    static void deleteLater(EventLoop::SharedPtr loop, T* del)
+    {
+        loop->post(new DeleteLaterEvent<T>(del));
+    }
+    template<typename Object, typename... Args>
+    void post(Object& object, Args&&... args)
+    {
+        post(new SignalEvent<Object, Args...>(object, std::forward<Args>(args)...));
+    }
+    template<typename Object, typename... Args>
+    void postMove(Object& object, Args&&... args)
+    {
+        post(new SignalEvent<Object, Args...>(object, SignalEvent<Object, Args...>::Move, std::forward<Args>(args)...));
+    }
+    template<typename Object, typename... Args>
+    void callLater(Object&& object, Args&&... args)
+    {
+        post(new SignalEvent<Object, Args...>(std::forward<Object>(object), std::forward<Args>(args)...));
+    }
+    template<typename Object, typename... Args>
+    void callLaterMove(Object&& object, Args&&... args)
+    {
+        post(new SignalEvent<Object, Args...>(std::forward<Object>(object), SignalEvent<Object, Args...>::Move, std::forward<Args>(args)...));
+    }
+    void post(Event* event);
+    void wakeup();
+
+    enum { SocketRead = 0x1, SocketWrite = 0x2, SocketOneShot = 0x4 };
+    void registerSocket(int fd, int mode, std::function<void(int, int)>&& func);
+    void updateSocket(int fd, int mode);
+    void unregisterSocket(int fd);
+
+    // See Timer.h for the flags
+    int registerTimer(std::function<void(int)>&& func, int timeout, int flags = 0);
+    void unregisterTimer(int id);
+
+    int exec(int timeout = -1);
+    void quit(int code = 0);
+
+    static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
+    static void setMainEventLoop(EventLoop::SharedPtr main);
+
+    static EventLoop::SharedPtr eventLoop();
 
 private:
-    int mEventPipe[2];
-    bool mQuit;
+    void sendPostedEvents();
+    void sendTimers();
+    void cleanup();
 
-    Mutex mMutex;
+    static void error(const char* err);
 
-    struct FdData {
-        unsigned int flags;
-        FdFunc callback;
-        void* userData;
+private:
+    static std::mutex mainMutex;
+    std::mutex mutex;
+    std::thread::id threadId;
+
+    std::queue<Event*> events;
+    int eventPipe[2];
+    int pollFd;
+    bool isMainEventLoop;
+
+    std::map<int, std::pair<int, std::function<void(int, int)> > > sockets;
+
+    class TimerData
+    {
+    public:
+        TimerData() { }
+        TimerData(uint64_t w, int i, int f, int in, std::function<void(int)>&& cb)
+            : when(w), id(i), flags(f), interval(in), callback(std::move(cb))
+        {
+        }
+        TimerData(TimerData&& other)
+            : when(other.when), id(other.id), flags(other.flags),
+              interval(other.interval), callback(std::move(other.callback))
+        {
+        }
+        TimerData& operator=(TimerData&& other)
+        {
+            when = other.when;
+            id = other.id;
+            flags = other.flags;
+            interval = other.interval;
+            callback = std::move(other.callback);
+            return *this;
+        }
+
+        bool operator<(const TimerData& other) const
+        {
+            return when < other.when;
+        }
+
+        uint64_t when;
+        uint32_t id;
+        int flags, interval;
+        std::function<void(int)> callback;
+
+    private:
+        TimerData(const TimerData& other) = delete;
+        TimerData& operator=(const TimerData& other) = delete;
     };
-    Map<int, FdData> mFdData;
 
-    int mNextTimerHandle;
-    struct TimerData {
-        int handle;
-        int timeout;
-        timeval when;
-        TimerFunc callback;
-        void* userData;
+    struct TimerDataSet
+    {
+        bool operator()(TimerData* a, TimerData* b) const { return a->when < b->when; }
     };
-    List<TimerData*> mTimerData;
-    Map<int, TimerData*> mTimerByHandle;
-
-    static bool timerLessThan(TimerData* a, TimerData* b);
-
-    struct EventData {
-        EventReceiver* receiver;
-        Event* event;
+    struct TimerDataHash
+    {
+        // two operators for the price of one!
+        size_t operator()(TimerData* a) const { return a->id; }
+        bool operator()(TimerData* a, TimerData* b) const { return a->id == b->id; }
     };
-    std::deque<EventData> mEvents;
+    typedef std::multiset<TimerData*, TimerDataSet> TimersByTime;
+    typedef std::unordered_set<TimerData*, TimerDataHash, TimerDataHash> TimersById;
+    TimersByTime timersByTime;
+    TimersById timersById;
+    uint32_t nextTimerId;
 
-    static EventLoop* sInstance;
+    bool stopped;
+    int exitCode;
 
-    pthread_t mThread;
+    static EventLoop::WeakPtr mainLoop;
+
+private:
+    EventLoop(const EventLoop&) = delete;
+    EventLoop& operator=(const EventLoop&) = delete;
 };
 
 #endif

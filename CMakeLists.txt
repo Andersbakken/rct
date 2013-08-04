@@ -9,12 +9,11 @@ install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wformat")
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
+        rct/Apply.h
+        rct/Buffer.h
         rct/Connection.h
         rct/Config.h
-        rct/Event.h
         rct/EventLoop.h
-        rct/EventReceiver.h
-        rct/FastDelegate.h
         rct/FileSystemWatcher.h
         rct/List.h
         rct/Log.h
@@ -49,6 +48,7 @@ install(FILES
         rct/Thread.h
         rct/ThreadLocal.h
         rct/ThreadPool.h
+        rct/Timer.h
         rct/Value.h
         rct/WaitCondition.h
         rct/WriteLocker.h

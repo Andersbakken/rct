@@ -1,49 +1,44 @@
 #include "rct/Connection.h"
 #include "rct/SocketClient.h"
-#include "rct/Event.h"
 #include "rct/EventLoop.h"
 #include "rct/Serializer.h"
 #include "rct/Messages.h"
-
-class ResponseMessageEvent : public Event
-{
-public:
-    enum { Type = 1 };
-    ResponseMessageEvent(const String &r)
-        : Event(Type), response(r)
-    {}
-
-    const String response;
-};
+#include "rct/Timer.h"
+#include <assert.h>
 
 Connection::Connection()
-    : mClient(new SocketClient), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
+    : mClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
 {
-    mClient->connected().connect(this, &Connection::onClientConnected);
-    mClient->disconnected().connect(this, &Connection::onClientDisconnected);
-    mClient->dataAvailable().connect(this, &Connection::dataAvailable);
-    mClient->bytesWritten().connect(this, &Connection::dataWritten);
+    mClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
+    mClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
+    mClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-Connection::Connection(SocketClient* client)
+Connection::Connection(SocketClient::SharedPtr client)
     : mClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
 {
     assert(client->isConnected());
-    mClient->disconnected().connect(this, &Connection::onClientDisconnected);
-    mClient->dataAvailable().connect(this, &Connection::dataAvailable);
-    mClient->bytesWritten().connect(this, &Connection::dataWritten);
+    mClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
+    mClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 Connection::~Connection()
 {
     mDestroyed(this);
-    delete mClient;
+    mClient.reset();
 }
 
 
 bool Connection::connectToServer(const String &name, int timeout)
 {
-    return mClient->connectUnix(name, timeout);
+    // if (timeout != -1)
+    //     EventLoop::mainEventLoop()->registerTimer([=]() {
+    //             if (mClient->state() == SocketClient::Connecting)
+    //                 mClient->close();
+    //         }, timeout, Timer::SingleShot);
+    return mClient->connect(name);
 }
 
 bool Connection::send(int id, const String &message)
@@ -84,16 +79,59 @@ void Connection::finish()
     dataWritten(mClient, 0);
 }
 
-void Connection::dataAvailable(SocketClient *)
+static inline unsigned int bufferSize(const LinkedList<Buffer>& buffers)
+{
+    unsigned int sz = 0;
+    for (const Buffer& buffer: buffers) {
+        sz += buffer.size();
+    }
+}
+
+static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned int size)
+{
+    if (!size)
+        return 0;
+    unsigned int num = 0, rem = size, cur;
+    LinkedList<Buffer>::iterator it = buffers.begin();
+    while (it != buffers.end()) {
+        cur = std::min(it->size(), rem);
+        memcpy(out, it->data(), cur);
+        rem -= cur;
+        num += cur;
+        if (cur == it->size()) {
+            // we've read the entire buffer, remove it
+            it = buffers.erase(it);
+        } else {
+            assert(!rem);
+            assert(it->size() > cur);
+            assert(cur > 0);
+            // we need to shrink & memmove the front buffer at this point
+            Buffer& front = *it;
+            memmove(front.data(), front.data() + cur, front.size() - cur);
+            front.resize(front.size() - cur);
+        }
+        if (!rem) {
+            assert(num == size);
+            return size;
+        }
+        assert(rem > 0);
+    }
+    return num;
+}
+
+void Connection::dataAvailable(SocketClient::SharedPtr&)
 {
     while (true) {
-        int available = mClient->bytesAvailable();
+        if (mClient->buffer().isEmpty())
+            break;
+        mBuffers.push_back(std::move(mClient->buffer()));
+        unsigned int available = bufferSize(mBuffers);
         assert(available >= 0);
         if (!mPendingRead) {
             if (available < static_cast<int>(sizeof(uint32_t)))
                 break;
             char buf[sizeof(uint32_t)];
-            const int read = mClient->read(buf, 4);
+            const int read = bufferRead(mBuffers, buf, 4);
             assert(read == 4);
             Deserializer strm(buf, read);
             strm >> mPendingRead;
@@ -106,7 +144,7 @@ void Connection::dataAvailable(SocketClient *)
         if (mPendingRead > static_cast<int>(sizeof(buf))) {
             buffer = new char[mPendingRead];
         }
-        const int read = mClient->read(buffer, mPendingRead);
+        const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
         Message *message = Messages::create(buffer, read);
         if (message) {
@@ -121,7 +159,7 @@ void Connection::dataAvailable(SocketClient *)
     }
 }
 
-void Connection::dataWritten(SocketClient *, int bytes)
+void Connection::dataWritten(const SocketClient::SharedPtr&, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;
@@ -129,25 +167,13 @@ void Connection::dataWritten(SocketClient *, int bytes)
         if (bytes)
             mSendComplete(this);
         if (mDone) {
-            mClient->disconnect();
-            deleteLater();
+            mClient->close();
+            EventLoop::mainEventLoop()->deleteLater(this);
         }
     }
 }
 
 void Connection::writeAsync(const String &out)
 {
-    EventLoop::instance()->postEvent(this, new ResponseMessageEvent(out));
-}
-
-void Connection::event(const Event *e)
-{
-    switch (e->type()) {
-    case ResponseMessageEvent::Type: {
-        ResponseMessage msg(static_cast<const ResponseMessageEvent*>(e)->response);
-        send(&msg);
-        break; }
-    default:
-        EventReceiver::event(e);
-    }
+    EventLoop::mainEventLoop()->callLaterMove(std::bind(&Connection::sendRef, this, std::placeholders::_1), ResponseMessage(out));
 }

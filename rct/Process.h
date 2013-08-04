@@ -2,7 +2,6 @@
 #define PROCESS_H
 
 #include <rct/String.h>
-#include <rct/EventReceiver.h>
 #include <rct/Path.h>
 #include <rct/List.h>
 #include <rct/SignalSlot.h>
@@ -10,7 +9,7 @@
 #include <rct/Mutex.h>
 #include <deque>
 
-class Process : public EventReceiver
+class Process
 {
 public:
     Process();
@@ -46,9 +45,9 @@ public:
 
     void stop();
 
-    signalslot::Signal1<Process*>& readyReadStdOut() { return mReadyReadStdOut; }
-    signalslot::Signal1<Process*>& readyReadStdErr() { return mReadyReadStdErr; }
-    signalslot::Signal1<Process*>& finished() { return mFinished; }
+    Signal<std::function<void(Process*)> >& readyReadStdOut() { return mReadyReadStdOut; }
+    Signal<std::function<void(Process*)> >& readyReadStdErr() { return mReadyReadStdErr; }
+    Signal<std::function<void(Process*)> >& finished() { return mFinished; }
 
     static List<String> environment();
 
@@ -56,13 +55,13 @@ public:
 
 private:
     void finish(int returnCode);
-    static void processCallback(int fd, unsigned int flags, void* userData);
+    void processCallback(int fd, int mode);
 
     void closeStdOut();
     void closeStdErr();
 
     void handleInput(int fd);
-    void handleOutput(int fd, String& buffer, int& index, signalslot::Signal1<Process*>& signal);
+    void handleOutput(int fd, String& buffer, int& index, Signal<std::function<void(Process*)> >& signal);
 
     ExecState startInternal(const String& command, const List<String>& arguments,
                             const List<String>& environ, int timeout = 0, unsigned flags = 0);
@@ -88,7 +87,7 @@ private:
 
     enum { Sync, Async } mMode;
 
-    signalslot::Signal1<Process*> mReadyReadStdOut, mReadyReadStdErr, mFinished;
+    Signal<std::function<void(Process*)> > mReadyReadStdOut, mReadyReadStdErr, mFinished;
 
     friend class ProcessThread;
 };

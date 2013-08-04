@@ -27,9 +27,9 @@ public:
 
     bool watch(const Path &path);
     bool unwatch(const Path &path);
-    signalslot::Signal1<const Path &> &removed() { return mRemoved; }
-    signalslot::Signal1<const Path &> &added() { return mAdded; }
-    signalslot::Signal1<const Path &> &modified() { return mModified; }
+    Signal<std::function<void(const Path &)> > &removed() { return mRemoved; }
+    Signal<std::function<void(const Path &)> > &added() { return mAdded; }
+    Signal<std::function<void(const Path &)> > &modified() { return mModified; }
     void clear();
 #ifdef HAVE_FSEVENTS
     Set<Path> watchedPaths() const;
@@ -43,7 +43,6 @@ private:
     friend class WatcherReceiver;
 #else
     Mutex mMutex;
-    static void notifyCallback(int, unsigned int, void *user) { reinterpret_cast<FileSystemWatcher*>(user)->notifyReadyRead(); }
     void notifyReadyRead();
     int mFd;
     Map<Path, int> mWatchedByPath;
@@ -56,6 +55,6 @@ private:
     bool isWatching(const Path& path) const;
 #endif
 #endif
-    signalslot::Signal1<const Path&> mRemoved, mModified, mAdded;
+    Signal<std::function<void(const Path&)> > mRemoved, mModified, mAdded;
 };
 #endif

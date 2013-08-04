@@ -371,9 +371,9 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
 
         //printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
         if (mMode == Async) {
-            if (EventLoop *loop = EventLoop::instance()) {
-                loop->addFileDescriptor(mStdOut[0], EventLoop::Read, processCallback, this);
-                loop->addFileDescriptor(mStdErr[0], EventLoop::Read, processCallback, this);
+            if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+                loop->registerSocket(mStdOut[0], EventLoop::SocketRead, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
+                loop->registerSocket(mStdErr[0], EventLoop::SocketRead, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
             }
         } else {
             // select and stuff
@@ -485,7 +485,7 @@ void Process::closeStdIn()
     if (mStdIn[1] == -1)
         return;
 
-    EventLoop::instance()->removeFileDescriptor(mStdIn[1]);
+    EventLoop::mainEventLoop()->unregisterSocket(mStdIn[1]);
     int err;
     eintrwrap(err, ::close(mStdIn[1]));
     mStdIn[1] = -1;
@@ -496,7 +496,7 @@ void Process::closeStdOut()
     if (mStdOut[0] == -1)
         return;
 
-    EventLoop::instance()->removeFileDescriptor(mStdOut[0]);
+    EventLoop::mainEventLoop()->unregisterSocket(mStdOut[0]);
     int err;
     eintrwrap(err, ::close(mStdOut[0]));
     mStdOut[0] = -1;
@@ -507,7 +507,7 @@ void Process::closeStdErr()
     if (mStdErr[0] == -1)
         return;
 
-    EventLoop::instance()->removeFileDescriptor(mStdErr[0]);
+    EventLoop::mainEventLoop()->unregisterSocket(mStdErr[0]);
     int err;
     eintrwrap(err, ::close(mStdErr[0]));
     mStdErr[0] = -1;
@@ -529,15 +529,14 @@ String Process::readAllStdErr()
     return out;
 }
 
-void Process::processCallback(int fd, unsigned int flags, void* userData)
+void Process::processCallback(int fd, int mode)
 {
-    Process* proc = reinterpret_cast<Process*>(userData);
-    if (fd == proc->mStdIn[1])
-        proc->handleInput(fd);
-    else if (fd == proc->mStdOut[0])
-        proc->handleOutput(fd, proc->mStdOutBuffer, proc->mStdOutIndex, proc->mReadyReadStdOut);
-    else if (fd == proc->mStdErr[0])
-        proc->handleOutput(fd, proc->mStdErrBuffer, proc->mStdErrIndex, proc->mReadyReadStdErr);
+    if (fd == mStdIn[1])
+        handleInput(fd);
+    else if (fd == mStdOut[0])
+        handleOutput(fd, mStdOutBuffer, mStdOutIndex, mReadyReadStdOut);
+    else if (fd == mStdErr[0])
+        handleOutput(fd, mStdErrBuffer, mStdErrIndex, mReadyReadStdErr);
 }
 
 void Process::finish(int returnCode)
@@ -572,8 +571,8 @@ void Process::finish(int returnCode)
 
 void Process::handleInput(int fd)
 {
-    assert(EventLoop::instance());
-    EventLoop::instance()->removeFileDescriptor(fd);
+    assert(EventLoop::mainEventLoop());
+    EventLoop::mainEventLoop()->unregisterSocket(fd);
 
     //static int ting = 0;
     //printf("Process::handleInput (cnt=%d)\n", ++ting);
@@ -592,7 +591,7 @@ void Process::handleInput(int fd)
             eintrwrap(w, ::write(fd, front.constData(), want));
         }
         if (w == -1) {
-            EventLoop::instance()->addFileDescriptor(fd, EventLoop::Write, processCallback, this);
+            EventLoop::mainEventLoop()->registerSocket(fd, EventLoop::SocketWrite, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
             break;
         } else if (w == want) {
             mStdInBuffer.pop_front();
@@ -602,7 +601,7 @@ void Process::handleInput(int fd)
     }
 }
 
-void Process::handleOutput(int fd, String& buffer, int& index, signalslot::Signal1<Process*>& signal)
+void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::function<void(Process*)> >& signal)
 {
     //printf("Process::handleOutput %d\n", fd);
     enum { BufSize = 1024, MaxSize = (1024 * 1024 * 16) };
@@ -616,7 +615,7 @@ void Process::handleOutput(int fd, String& buffer, int& index, signalslot::Signa
             break;
         } else if (r == 0) { // file descriptor closed, remove it
             //printf("Process::handleOutput %d returning 0\n", fd);
-            EventLoop::instance()->removeFileDescriptor(fd);
+            EventLoop::mainEventLoop()->unregisterSocket(fd);
             break;
         } else {
             //printf("Process::handleOutput in loop %d\n", fd);

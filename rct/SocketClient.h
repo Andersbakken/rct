@@ -1,69 +1,57 @@
-#ifndef SOCKETCLIENT_H
-#define SOCKETCLIENT_H
+#ifndef TCPSOCKET_H
+#define TCPSOCKET_H
 
-#include <rct/String.h>
-#include <rct/EventReceiver.h>
-#include <rct/SignalSlot.h>
-#include "rct-config.h"
-#include <deque>
-#include <netinet/in.h>
+#include "SignalSlot.h"
+#include "Buffer.h"
+#include <string>
+#include <memory>
 
-class SocketClient : public EventReceiver
+class SocketClient : public std::enable_shared_from_this<SocketClient>
 {
 public:
-    enum Mode { Tcp, Udp, Unix };
+    typedef std::shared_ptr<SocketClient> SharedPtr;
+    typedef std::weak_ptr<SocketClient> WeakPtr;
 
-    SocketClient();
-    virtual ~SocketClient();
+    enum Mode { Tcp, Unix };
 
-    Mode mode() const { return mMode; }
+    SocketClient(Mode mode);
+    SocketClient(int fd);
+    ~SocketClient();
 
-    bool connectUnix(const Path& path, int maxTime = -1);
-    bool connectTcp(const String& host, uint16_t port, int maxTime = -1);
-    void disconnect();
+    enum State { Disconnected, Connecting, Connected };
+    State state() const { return socketState; }
 
-    String localAddress() const;
-    String remoteAddress() const;
+    bool connect(const std::string& path); // UNIX
+    bool connect(const std::string& host, uint16_t port); // TCP
+    bool isConnected() const { return fd != -1; }
 
-    bool isConnected() const { return mFd != -1; }
+    void close();
 
-    bool receiveFrom(uint16_t port);
-    bool receiveFrom(const String& ip, uint16_t port);
-    bool addMulticast(const String& multicast, const String& interface = String());
-    void removeMulticast(const String& multicast);
-    void setMulticastLoop(bool loop = true);
+    bool write(const unsigned char* data, unsigned int num);
+    bool write(const std::string& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
 
-    String readAll();
-    int read(char *buf, int size);
-    int bytesAvailable() const { return mReadBuffer.size() - mReadBufferPos; }
-    bool write(const String& data);
-    bool writeTo(const String& host, uint16_t port, const String& data);
+    const Buffer& buffer() const { return readBuffer; }
+    Buffer&& buffer() { return std::move(readBuffer); }
 
-    signalslot::Signal1<SocketClient*> &dataAvailable() { return mDataAvailable; }
-    signalslot::Signal4<SocketClient*, String, uint16_t, String> &udpDataAvailable() { return mUdpDataAvailable; }
-    signalslot::Signal1<SocketClient*> &connected() { return mConnected; }
-    signalslot::Signal1<SocketClient*> &disconnected() { return mDisconnected; }
-    signalslot::Signal2<SocketClient*, int>& bytesWritten() { return mBytesWritten; }
-protected:
-    virtual void event(const Event* event);
+    Signal<std::function<void(SocketClient::SharedPtr&)> >& readyRead() { return signalReadyRead; }
+    Signal<std::function<void(const SocketClient::SharedPtr&)> >& connected() { return signalConnected; }
+    Signal<std::function<void(const SocketClient::SharedPtr&)> >& disconnected() { return signalDisconnected; }
+    Signal<std::function<void(const SocketClient::SharedPtr&, int)> >& bytesWritten() { return signalBytesWritten; }
+
+    enum Error { InitializeError, DnsError, ConnectError, ReadError, WriteError };
+    Signal<std::function<void(const SocketClient::SharedPtr&, Error)> >& error() { return signalError; }
+
 private:
-    static void dataCallback(int fd, unsigned int flags, void* userData);
+    int fd;
+    State socketState;
+    bool writeWait;
+    Signal<std::function<void(SocketClient::SharedPtr&)> > signalReadyRead;
+    Signal<std::function<void(const SocketClient::SharedPtr&)> >signalConnected, signalDisconnected;
+    Signal<std::function<void(const SocketClient::SharedPtr&, Error)> > signalError;
+    Signal<std::function<void(const SocketClient::SharedPtr&, int)> > signalBytesWritten;
+    Buffer readBuffer, writeBuffer;
 
-    Mode mMode;
-
-    bool writeMore();
-    void readMore();
-    SocketClient(Mode mode, int fd);
-    friend class SocketServer;
-    int mFd;
-    signalslot::Signal1<SocketClient*> mDataAvailable, mConnected, mDisconnected;
-    signalslot::Signal2<SocketClient*, int> mBytesWritten;
-    signalslot::Signal4<SocketClient*, String, uint16_t, String> mUdpDataAvailable;
-
-    std::deque<std::pair<sockaddr_in, String> > mBuffers;
-    int mBufferIdx;
-    String mReadBuffer;
-    int mReadBufferPos;
+    void socketCallback(int, int);
 };
 
 #endif

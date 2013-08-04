@@ -1,10 +1,11 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
+#include <rct/Buffer.h>
 #include <rct/Message.h>
-#include <rct/EventReceiver.h>
 #include <rct/SocketClient.h>
 #include <rct/String.h>
+#include <rct/LinkedList.h>
 #include <rct/Map.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
@@ -12,11 +13,11 @@
 class ConnectionPrivate;
 class SocketClient;
 class Event;
-class Connection : public EventReceiver
+class Connection
 {
 public:
     Connection();
-    Connection(SocketClient *client);
+    Connection(SocketClient::SharedPtr client);
     ~Connection();
 
     void setSilent(bool on) { mSilent = on; }
@@ -28,6 +29,8 @@ public:
 
     bool send(const Message *message);
     bool send(int id, const String& message);
+    bool sendRef(Message&& message) { return send(&message); }
+    bool sendDelete(Message* message) { const bool ok = send(message); delete message; return ok; }
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {
@@ -49,28 +52,28 @@ public:
 
     bool isConnected() const { return mClient->isConnected(); }
 
-    signalslot::Signal1<Connection*> &connected() { return mConnected; }
-    signalslot::Signal1<Connection*> &disconnected() { return mDisconnected; }
-    signalslot::Signal1<Connection*> &error() { return mError; }
-    signalslot::Signal2<Message*, Connection*> &newMessage() { return mNewMessage; }
-    signalslot::Signal1<Connection*> &sendComplete() { return mSendComplete; }
-    signalslot::Signal1<Connection*> &destroyed() { return mDestroyed; }
+    Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
+    Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
+    Signal<std::function<void(Connection*)> > &error() { return mError; }
+    Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
+    Signal<std::function<void(Connection*)> > &sendComplete() { return mSendComplete; }
+    Signal<std::function<void(Connection*)> > &destroyed() { return mDestroyed; }
 
-    SocketClient *client() const { return mClient; }
-protected:
-    void event(const Event *e);
+    SocketClient::SharedPtr client() const { return mClient; }
+
 private:
-    void onClientConnected(SocketClient *) { mConnected(this); }
-    void onClientDisconnected(SocketClient *) { mDisconnected(this); }
-    void dataAvailable(SocketClient *);
-    void dataWritten(SocketClient *, int bytes);
+    void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
+    void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
+    void dataAvailable(SocketClient::SharedPtr&);
+    void dataWritten(const SocketClient::SharedPtr&, int);
 
-    SocketClient *mClient;
+    SocketClient::SharedPtr mClient;
+    LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
     bool mDone, mSilent;
 
-    signalslot::Signal2<Message*, Connection*> mNewMessage;
-    signalslot::Signal1<Connection*> mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
+    Signal<std::function<void(Message*, Connection*)> > mNewMessage;
+    Signal<std::function<void(Connection*)> > mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
 };
 
 inline bool Connection::send(const Message *message)

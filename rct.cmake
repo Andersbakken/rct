@@ -13,6 +13,7 @@ check_cxx_symbol_exists(CLOCK_MONOTONIC "time.h" HAVE_CLOCK_MONOTONIC)
 check_cxx_symbol_exists(mach_absolute_time "mach/mach.h;mach/mach_time.h" HAVE_MACH_ABSOLUTE_TIME)
 check_cxx_symbol_exists(inotify_init "sys/inotify.h" HAVE_INOTIFY)
 check_cxx_symbol_exists(kqueue "sys/types.h;sys/event.h" HAVE_KQUEUE)
+check_cxx_symbol_exists(epoll_wait "sys/epoll.h" HAVE_EPOLL)
 check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
@@ -31,10 +32,10 @@ endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})
 set(RCT_SOURCES
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/EventReceiver.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SocketClient.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SocketServer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
@@ -50,6 +51,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/SharedMemory.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Thread.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp)
 
 if (HAVE_INOTIFY EQUAL 1)

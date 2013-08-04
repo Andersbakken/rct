@@ -175,8 +175,6 @@ static inline void removeOutputs()
 bool testLog(int level)
 {
     MutexLocker lock(&sOutputsMutex);
-    if (sOutputs.isEmpty())
-        return true;
     for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
         if ((*it)->testLog(level))
             return true;

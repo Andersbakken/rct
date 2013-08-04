@@ -4,7 +4,6 @@
 #include <rct/Mutex.h>
 #include <rct/WaitCondition.h>
 #include <rct/MutexLocker.h>
-#include <rct/Tr1.h>
 #include <deque>
 
 class ThreadPoolThread;

@@ -14,7 +14,7 @@ FileSystemWatcher::FileSystemWatcher()
 {
     mFd = kqueue();
     assert(mFd != -1);
-    EventLoop::instance()->addFileDescriptor(mFd, EventLoop::Read, notifyCallback, this);
+    EventLoop::mainEventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -22,7 +22,7 @@ FileSystemWatcher::~FileSystemWatcher()
     struct kevent change;
     struct timespec nullts = { 0, 0 };
 
-    EventLoop::instance()->removeFileDescriptor(mFd);
+    EventLoop::mainEventLoop()->unregisterSocket(mFd);
     for (Map<Path, int>::const_iterator it = mWatchedByPath.begin(); it != mWatchedByPath.end(); ++it) {
         EV_SET(&change, it->second, EVFILT_VNODE, EV_DELETE, 0, 0, 0);
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
@@ -287,7 +287,7 @@ void FileSystemWatcher::notifyReadyRead()
 
                     lock.unlock();
                     struct {
-                        signalslot::Signal1<const Path&> &signal;
+                        Signal<std::function<void(const Path&)> > &signal;
                         const Set<Path> &paths;
                     } signals[] = {
                         { mModified, data.modified },

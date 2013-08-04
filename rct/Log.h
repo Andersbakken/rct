@@ -6,10 +6,15 @@
 #include <rct/Map.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
-#include <rct/Tr1.h>
 #include <assert.h>
 #include <cxxabi.h>
 #include <sstream>
+#include <memory>
+
+using std::shared_ptr;
+using std::weak_ptr;
+using std::enable_shared_from_this;
+using std::static_pointer_cast;
 
 class Path;
 

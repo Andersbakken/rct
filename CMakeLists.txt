@@ -6,7 +6,10 @@ add_library(rct STATIC ${RCT_SOURCES})
 
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wformat")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wformat -std=c++0x")
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+endif ()
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
         rct/Apply.h
@@ -20,7 +23,6 @@ install(FILES
         rct/Map.h
         rct/SocketClient.h
         rct/SocketServer.h
-        rct/Tr1.h
         rct/MemoryMonitor.h
         rct/Message.h
         rct/Messages.h

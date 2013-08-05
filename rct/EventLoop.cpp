@@ -34,8 +34,11 @@ static std::atomic<int> mainEventPipe;
 static std::once_flag mainOnce;
 static pthread_key_t eventLoopKey;
 
-// sadly GCC < 4.7 doesn't support thread_local
-// fall back to pthread instead
+// sadly GCC < 4.8 doesn't support thread_local
+// fall back to pthread instead in order to support 4.7
+
+// ### static leak, one EventLoop::WeakPtr for each thread
+// ### that calls EventLoop::eventLoop()
 static EventLoop::WeakPtr& localEventLoop()
 {
     EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(eventLoopKey));

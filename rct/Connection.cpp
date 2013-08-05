@@ -39,11 +39,11 @@ void Connection::checkData()
 
 bool Connection::connectToServer(const String &name, int timeout)
 {
-    // if (timeout != -1)
-    //     EventLoop::mainEventLoop()->registerTimer([=]() {
-    //             if (mClient->state() == SocketClient::Connecting)
-    //                 mClient->close();
-    //         }, timeout, Timer::SingleShot);
+    if (timeout != -1)
+        EventLoop::mainEventLoop()->registerTimer([=](int) {
+                if (mClient->state() == SocketClient::Connecting)
+                    mClient->close();
+            }, timeout, Timer::SingleShot);
     return mClient->connect(name);
 }
 
@@ -102,7 +102,7 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
     LinkedList<Buffer>::iterator it = buffers.begin();
     while (it != buffers.end()) {
         cur = std::min(it->size(), rem);
-        memcpy(out, it->data(), cur);
+        memcpy(out + num, it->data(), cur);
         rem -= cur;
         num += cur;
         if (cur == it->size()) {

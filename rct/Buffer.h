@@ -63,6 +63,10 @@ public:
 
     void resize(unsigned int sz)
     {
+        if (!sz) {
+            clear();
+            return;
+        }
         if (sz >= bufferSize && sz <= bufferReserved) {
             bufferSize = sz;
             return;

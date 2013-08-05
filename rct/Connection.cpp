@@ -130,11 +130,11 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
 void Connection::dataAvailable(SocketClient::SharedPtr&)
 {
     while (true) {
-        if (mClient->buffer().isEmpty())
-            break;
-        mBuffers.push_back(std::move(mClient->buffer()));
+        if (!mClient->buffer().isEmpty())
+            mBuffers.push_back(std::move(mClient->buffer()));
         unsigned int available = bufferSize(mBuffers);
-        assert(available >= 0);
+        if (!available)
+            break;
         if (!mPendingRead) {
             if (available < static_cast<int>(sizeof(uint32_t)))
                 break;

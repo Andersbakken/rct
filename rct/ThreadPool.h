@@ -1,10 +1,11 @@
 #ifndef ThreadPool_h
 #define ThreadPool_h
 
-#include <rct/Mutex.h>
-#include <rct/WaitCondition.h>
-#include <rct/MutexLocker.h>
+#include "List.h"
 #include <deque>
+#include <memory>
+#include <mutex>
+#include <condition_variable>
 
 class ThreadPoolThread;
 
@@ -28,15 +29,15 @@ public:
             Running,
             Finished
         };
-        State state() const { MutexLocker lock(&mMutex); return mState; }
+        State state() const { std::lock_guard<std::mutex> lock(mMutex); return mState; }
     protected:
         virtual void run() = 0;
-        Mutex &mutex() const { return mMutex; }
+        std::mutex &mutex() const { return mMutex; }
 
     private:
         int mPriority;
         State mState;
-        mutable Mutex mMutex;
+        mutable std::mutex mMutex;
 
         friend class ThreadPool;
         friend class ThreadPoolThread;
@@ -44,22 +45,22 @@ public:
 
     enum { Guaranteed = -1 };
 
-    void start(const shared_ptr<Job> &job, int priority = 0);
+    void start(const std::shared_ptr<Job> &job, int priority = 0);
 
-    bool remove(const shared_ptr<Job> &job);
+    bool remove(const std::shared_ptr<Job> &job);
 
     static int idealThreadCount();
     static ThreadPool* instance();
 
 private:
-    static bool jobLessThan(const shared_ptr<Job> &l, const shared_ptr<Job> &r);
+    static bool jobLessThan(const std::shared_ptr<Job> &l, const std::shared_ptr<Job> &r);
 
 private:
     int mConcurrentJobs;
     const int mStackSize;
-    Mutex mMutex;
-    WaitCondition mCond;
-    std::deque<shared_ptr<Job> > mJobs;
+    std::mutex mMutex;
+    std::condition_variable mCond;
+    std::deque<std::shared_ptr<Job> > mJobs;
     List<ThreadPoolThread*> mThreads;
     int mBusyThreads;
 

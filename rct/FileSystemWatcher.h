@@ -4,9 +4,9 @@
 #include "rct-config.h"
 #include <rct/Path.h>
 #include <rct/Map.h>
-#include <rct/Mutex.h>
 #include <rct/SignalSlot.h>
 #include <stdint.h>
+#include <mutex>
 #ifdef HAVE_FSEVENTS
 #include <rct/CoreServices/CoreServices.h>
 class WatcherThread;
@@ -41,7 +41,7 @@ private:
     WatcherReceiver* mReceiver;
     friend class WatcherReceiver;
 #else
-    Mutex mMutex;
+    std::mutex mMutex;
     void notifyReadyRead();
     int mFd;
     Map<Path, int> mWatchedByPath;

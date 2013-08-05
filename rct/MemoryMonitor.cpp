@@ -6,10 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 #ifdef OS_Darwin
-# include "rct/Mutex.h"
-# include "rct/MutexLocker.h"
-# include <pthread.h>
+# include <mutex>
 # include <mach/mach_traps.h>
 # include <mach/mach_init.h>
 # include <mach/mach_port.h>
@@ -69,24 +68,15 @@ static inline uint64_t usageFreeBSD()
     return 0;
 }
 #elif defined(OS_Darwin)
-static pthread_once_t mutexOnce = PTHREAD_ONCE_INIT;
-static Mutex* mutex;
-
-static void initMutex()
-{
-    mutex = new Mutex;
-}
+static std::once_flag mutexOnce;
+static std::mutex* mutex = 0;
 
 static inline uint64_t usageOSX()
 {
-    if (pthread_once(&mutexOnce, initMutex)) {
-        // something bad happened
-        error("MemoryMonitor::usageOSX: pthread_once failure %d %s\n",
-              errno, strerror(errno));
-        abort();
-    }
+    std::call_once(mutexOnce, []() { ::mutex = new std::mutex; });
 
-    MutexLocker locker(mutex);
+    assert(::mutex);
+    std::lock_guard<std::mutex> lock(*::mutex);
 
     int total = 0;
 

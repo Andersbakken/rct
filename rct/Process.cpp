@@ -3,8 +3,6 @@
 #include "rct/EventLoop.h"
 #include "rct/Log.h"
 #include "rct/Thread.h"
-#include "rct/Mutex.h"
-#include "rct/MutexLocker.h"
 #include "rct-config.h"
 #include <map>
 #include <assert.h>
@@ -46,13 +44,13 @@ private:
     static ProcessThread* sProcessThread;
     static int sProcessPipe[2];
 
-    static Mutex sProcessMutex;
+    static std::mutex sProcessMutex;
     static std::map<pid_t, Process*> sProcesses;
 };
 
 ProcessThread* ProcessThread::sProcessThread = 0;
 int ProcessThread::sProcessPipe[2];
-Mutex ProcessThread::sProcessMutex;
+std::mutex ProcessThread::sProcessMutex;
 std::map<pid_t, Process*> ProcessThread::sProcesses;
 
 ProcessThread::ProcessThread()
@@ -75,13 +73,13 @@ ProcessThread::ProcessThread()
 
 void ProcessThread::addPid(pid_t pid, Process* process)
 {
-    MutexLocker locker(&sProcessMutex);
+    std::lock_guard<std::mutex> lock(sProcessMutex);
     sProcesses[pid] = process;
 }
 
 void ProcessThread::removePid(pid_t pid)
 {
-    MutexLocker locker(&sProcessMutex);
+    std::lock_guard<std::mutex> lock(sProcessMutex);
     sProcesses.erase(pid);
 }
 
@@ -114,7 +112,7 @@ void ProcessThread::run()
                 // regardless, we need to go through all children and call a non-blocking waitpid on each of them
                 int ret;
                 pid_t p;
-                MutexLocker locker(&sProcessMutex);
+                std::unique_lock<std::mutex> lock(sProcessMutex);
                 std::map<pid_t, Process*>::iterator proc = sProcesses.begin();
                 const std::map<pid_t, Process*>::const_iterator end = sProcesses.end();
                 while (proc != end) {
@@ -134,9 +132,9 @@ void ProcessThread::run()
                             ret = -1;
                         Process *process = proc->second;
                         sProcesses.erase(proc++);
-                        locker.unlock();
+                        lock.unlock();
                         process->finish(ret);
-                        locker.relock();
+                        lock.lock();
                     }
                 }
             } else if (pid == 1) { // stopped
@@ -148,7 +146,7 @@ void ProcessThread::run()
                 //printf("wait complete\n");
                 Process *process = 0;
                 {
-                    MutexLocker locker(&sProcessMutex);
+                    std::lock_guard<std::mutex> lock(sProcessMutex);
                     std::map<pid_t, Process*>::iterator proc = sProcesses.find(pid);
                     if (proc != sProcesses.end()) {
                         if (WIFEXITED(ret))
@@ -417,7 +415,7 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                 if (FD_ISSET(mSync[0], &rfds)) {
                     // we're done
                     {
-                        MutexLocker lock(&mMutex);
+                        std::lock_guard<std::mutex> lock(mMutex);
                         assert(mPid == -1);
                         assert(mSync[1] == -1);
 
@@ -542,7 +540,7 @@ void Process::processCallback(int fd, int mode)
 void Process::finish(int returnCode)
 {
     {
-        MutexLocker lock(&mMutex);
+        std::lock_guard<std::mutex> lock(mMutex);
         mPid = -1;
         mReturn = returnCode;
 

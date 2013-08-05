@@ -3,8 +3,7 @@
 
 #include <rct/Message.h>
 #include <rct/Map.h>
-#include <rct/Mutex.h>
-#include <rct/MutexLocker.h>
+#include <mutex>
 
 class Message;
 class Messages
@@ -14,7 +13,7 @@ public:
     template<typename T> static void registerMessage()
     {
         const int id = T::MessageId;
-        MutexLocker lock(&sMutex);
+        std::lock_guard<std::mutex> lock(sMutex);
         MessageCreatorBase *&base = sFactory[id];
         if (!base)
             base = new MessageCreator<T>();
@@ -42,7 +41,7 @@ private:
     };
 
     static Map<int, MessageCreatorBase *> sFactory;
-    static Mutex sMutex;
+    static std::mutex sMutex;
 };
 
 #endif // MESSAGES_H

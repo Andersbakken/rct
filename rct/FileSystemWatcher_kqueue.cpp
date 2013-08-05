@@ -1,6 +1,5 @@
 #include "rct/FileSystemWatcher.h"
 #include "rct/EventLoop.h"
-#include "rct/MutexLocker.h"
 #include "rct/Log.h"
 #include "rct-config.h"
 #include <sys/types.h>
@@ -102,7 +101,7 @@ Path::VisitResult FileSystemWatcher::updateFiles(const Path& path, void* userDat
 
 void FileSystemWatcher::clear()
 {
-    MutexLocker locker(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
 
     List<struct kevent> changes;
     changes.resize(mWatchedById.size());
@@ -136,7 +135,7 @@ bool FileSystemWatcher::watch(const Path &p)
 {
     Path path = p;
     assert(!path.isEmpty());
-    MutexLocker lock(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     const Path::Type type = path.type();
     uint32_t flags = 0;
     switch (type) {
@@ -190,7 +189,7 @@ bool FileSystemWatcher::watch(const Path &p)
 
 bool FileSystemWatcher::unwatch(const Path &p)
 {
-    MutexLocker lock(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     Path path = p;
     if (path.isFile())
         path = path.parentDir();
@@ -239,7 +238,7 @@ void FileSystemWatcher::notifyReadyRead()
             }
             assert(ret > 0 && ret <= MaxEvents);
             for (int i = 0; i < ret; ++i) {
-                MutexLocker lock(&mMutex);
+                std::unique_lock<std::mutex> lock(mMutex);
                 const struct kevent& event = events[i];
                 const Path p = mWatchedById.value(event.ident);
                 if (event.flags & EV_ERROR) {

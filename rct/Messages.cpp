@@ -3,7 +3,7 @@
 #include "rct/Serializer.h"
 #include <assert.h>
 
-Mutex Messages::sMutex;
+std::mutex Messages::sMutex;
 Map<int, Messages::MessageCreatorBase *> Messages::sFactory;
 
 Message* Messages::create(const char *data, int size)
@@ -17,7 +17,7 @@ Message* Messages::create(const char *data, int size)
     ds >> id;
     size -= sizeof(int);
     data += sizeof(int);
-    MutexLocker lock(&sMutex);
+    std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId))
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
 
@@ -36,7 +36,7 @@ Message* Messages::create(const char *data, int size)
 
 void Messages::cleanup()
 {
-    MutexLocker lock(&sMutex);
+    std::lock_guard<std::mutex> lock(sMutex);
     for (Map<int, MessageCreatorBase *>::const_iterator it = sFactory.begin(); it != sFactory.end(); ++it)
         delete it->second;
     sFactory.clear();

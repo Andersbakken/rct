@@ -1,8 +1,8 @@
 #ifndef READWRITELOCK_H
 #define READWRITELOCK_H
 
-#include <rct/Mutex.h>
-#include <rct/WaitCondition.h>
+#include <mutex>
+#include <condition_variable>
 
 class ReadWriteLock
 {
@@ -23,9 +23,10 @@ public:
     bool tryLock(LockType type);
 
     void unlock();
+
 private:
-    Mutex mMutex;
-    WaitCondition mCond;
+    std::mutex mMutex;
+    std::condition_variable mCond;
     int mCount;
     bool mWrite;
 };

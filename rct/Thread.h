@@ -2,8 +2,7 @@
 #define THREAD_H
 
 #include <pthread.h>
-#include <rct/Mutex.h>
-#include <rct/MutexLocker.h>
+#include <mutex>
 
 class Thread
 {
@@ -16,12 +15,12 @@ public:
 
     void setAutoDelete(bool on)
     {
-        MutexLocker lock(&mMutex);
+        std::lock_guard<std::mutex> lock(mMutex);
         mAutoDelete = on;
     }
     bool isAutoDelete() const
     {
-        MutexLocker lock(&mMutex);
+        std::lock_guard<std::mutex> lock(mMutex);
         return mAutoDelete;
     }
     pthread_t self() const { return mThread; }
@@ -33,7 +32,7 @@ private:
 
 private:
     bool mAutoDelete;
-    mutable Mutex mMutex;
+    mutable std::mutex mMutex;
     pthread_t mThread;
     const int mStackSize;
 };

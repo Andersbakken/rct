@@ -1,6 +1,6 @@
 #include "rct/ReadWriteLock.h"
-#include "rct/MutexLocker.h"
 #include <assert.h>
+#include <chrono>
 
 ReadWriteLock::ReadWriteLock()
     : mCount(0), mWrite(false)
@@ -9,16 +9,29 @@ ReadWriteLock::ReadWriteLock()
 
 bool ReadWriteLock::lock(LockType type, int maxTime)
 {
-    MutexLocker locker(&mMutex);
+    std::unique_lock<std::mutex> locker(mMutex);
+    bool ok;
     if (type == Read) {
         while (mWrite) {
-            if (!mCond.wait(&mMutex, maxTime))
+            if (maxTime > 0) {
+                ok = mCond.wait_for(locker, std::chrono::milliseconds(maxTime));
+            } else {
+                mCond.wait(locker);
+                ok = true;
+            }
+            if (!ok)
                 return false;
         }
         ++mCount;
     } else {
         while (mCount) {
-            if (!mCond.wait(&mMutex, maxTime))
+            if (maxTime > 0) {
+                ok = mCond.wait_for(locker, std::chrono::milliseconds(maxTime));
+            } else {
+                mCond.wait(locker);
+                ok = true;
+            }
+            if (!ok)
                 return false;
         }
         assert(!mWrite);
@@ -30,7 +43,7 @@ bool ReadWriteLock::lock(LockType type, int maxTime)
 
 void ReadWriteLock::unlock()
 {
-    MutexLocker locker(&mMutex);
+    std::lock_guard<std::mutex> locker(mMutex);
     assert(mCount > 0);
     if (mCount > 1) {
         --mCount;
@@ -40,12 +53,12 @@ void ReadWriteLock::unlock()
     --mCount;
     assert(!mCount);
     mWrite = false;
-    mCond.wakeAll();
+    mCond.notify_all();
 }
 
 bool ReadWriteLock::tryLock(LockType type)
 {
-    MutexLocker locker(&mMutex);
+    std::lock_guard<std::mutex> locker(mMutex);
     if (type == Read) {
         if (mWrite)
             return false;

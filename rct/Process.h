@@ -5,9 +5,8 @@
 #include <rct/Path.h>
 #include <rct/List.h>
 #include <rct/SignalSlot.h>
-#include <rct/MutexLocker.h>
-#include <rct/Mutex.h>
 #include <deque>
+#include <mutex>
 
 class Process
 {
@@ -32,7 +31,7 @@ public:
     ExecState exec(const String& command, const List<String>& arguments,
                    const List<String>& environ, int timeout = 0, unsigned flags = 0);
 
-    String errorString() const { MutexLocker lock(&mMutex); return mErrorString; }
+    String errorString() const { std::lock_guard<std::mutex> lock(mMutex); return mErrorString; }
 
     void write(const String& data);
     void closeStdIn();
@@ -40,8 +39,8 @@ public:
     String readAllStdOut();
     String readAllStdErr();
 
-    bool isFinished() const { MutexLocker lock(&mMutex); return mPid == -1; }
-    int returnCode() const { MutexLocker lock(&mMutex); return mReturn; }
+    bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return mPid == -1; }
+    int returnCode() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn; }
 
     void stop();
 
@@ -73,7 +72,7 @@ private:
     int mStdErr[2];
     int mSync[2];
 
-    mutable Mutex mMutex;
+    mutable std::mutex mMutex;
     pid_t mPid;
     int mReturn;
 

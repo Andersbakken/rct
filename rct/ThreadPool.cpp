@@ -1,6 +1,5 @@
 #include "rct/ThreadPool.h"
 #include "rct/Thread.h"
-#include "rct/MutexLocker.h"
 #include <algorithm>
 #include <assert.h>
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
@@ -12,6 +11,8 @@
 #   include <sys/param.h>
 #   include <sys/sysctl.h>
 #endif
+
+using std::shared_ptr;
 
 ThreadPool* ThreadPool::sInstance = 0;
 
@@ -46,9 +47,9 @@ ThreadPoolThread::ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job, int s
 
 void ThreadPoolThread::stop()
 {
-    MutexLocker locker(&mPool->mMutex);
+    std::lock_guard<std::mutex> lock(mPool->mMutex);
     mStopped = true;
-    mPool->mCond.wakeAll();
+    mPool->mCond.notify_all();
 }
 
 void ThreadPoolThread::run()
@@ -61,14 +62,14 @@ void ThreadPoolThread::run()
     }
     bool first = true;
     for (;;) {
-        MutexLocker locker(&mPool->mMutex);
+        std::unique_lock<std::mutex> lock(mPool->mMutex);
         if (!first) {
             --mPool->mBusyThreads;
         } else {
             first = false;
         }
         while (mPool->mJobs.empty() && !mStopped)
-            mPool->mCond.wait(&mPool->mMutex);
+            mPool->mCond.wait(lock);
         if (mStopped)
             break;
         std::deque<shared_ptr<ThreadPool::Job> >::iterator item = mPool->mJobs.begin();
@@ -76,14 +77,14 @@ void ThreadPoolThread::run()
         shared_ptr<ThreadPool::Job> job = *item;
         mPool->mJobs.erase(item);
         {
-            MutexLocker lock(&job->mMutex);
+            std::lock_guard<std::mutex> joblock(job->mMutex);
             job->mState = ThreadPool::Job::Running;
         }
         ++mPool->mBusyThreads;
-        locker.unlock();
+        lock.unlock();
         job->run();
         {
-            MutexLocker lock(&job->mMutex);
+            std::lock_guard<std::mutex> joblock(job->mMutex);
             job->mState = ThreadPool::Job::Finished;
         }
     }
@@ -104,9 +105,9 @@ ThreadPool::~ThreadPool()
 {
     if (sInstance == this)
         sInstance = 0;
-    MutexLocker locker(&mMutex);
+    std::unique_lock<std::mutex> lock(mMutex);
     mJobs.clear();
-    locker.unlock();
+    lock.unlock();
     for (List<ThreadPoolThread*>::iterator it = mThreads.begin();
          it != mThreads.end(); ++it) {
         ThreadPoolThread* t = *it;
@@ -121,21 +122,21 @@ void ThreadPool::setConcurrentJobs(int concurrentJobs)
     if (concurrentJobs == mConcurrentJobs)
         return;
     if (concurrentJobs > mConcurrentJobs) {
-        MutexLocker locker(&mMutex);
+        std::lock_guard<std::mutex> lock(mMutex);
         for (int i = mConcurrentJobs; i < concurrentJobs; ++i) {
             mThreads.push_back(new ThreadPoolThread(this, mStackSize));
             mThreads.back()->start();
         }
         mConcurrentJobs = concurrentJobs;
     } else {
-        MutexLocker locker(&mMutex);
+        std::unique_lock<std::mutex> lock(mMutex);
         for (int i = mConcurrentJobs; i > concurrentJobs; --i) {
             ThreadPoolThread* t = mThreads.back();
             mThreads.pop_back();
-            locker.unlock();
+            lock.unlock();
             t->stop();
             t->join();
-            locker.relock();
+            lock.lock();
             delete t;
         }
         mConcurrentJobs = concurrentJobs;
@@ -156,7 +157,7 @@ void ThreadPool::start(const shared_ptr<Job> &job, int priority)
         return;
     }
 
-    MutexLocker locker(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mJobs.empty()) {
         mJobs.push_back(job);
     } else {
@@ -169,12 +170,12 @@ void ThreadPool::start(const shared_ptr<Job> &job, int priority)
             std::sort(mJobs.begin(), mJobs.end(), jobLessThan);
         }
     }
-    mCond.wakeOne();
+    mCond.notify_one();
 }
 
 bool ThreadPool::remove(const shared_ptr<Job> &job)
 {
-    MutexLocker locker(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     std::deque<shared_ptr<Job> >::iterator it = std::find(mJobs.begin(), mJobs.end(), job);
     if (it == mJobs.end())
         return false;
@@ -225,6 +226,6 @@ ThreadPool::Job::Job()
 
 void ThreadPool::clearBackLog()
 {
-    MutexLocker locker(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     mJobs.clear();
 }

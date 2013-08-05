@@ -1,7 +1,6 @@
 #include "rct/Log.h"
-#include "rct/Mutex.h"
-#include "rct/MutexLocker.h"
 #include "rct/Path.h"
+#include <mutex>
 #include <stdio.h>
 #include <errno.h>
 #include "rct/StopWatch.h"
@@ -10,7 +9,7 @@
 static unsigned sFlags = 0;
 static StopWatch sStart;
 static Set<LogOutput*> sOutputs;
-static Mutex sOutputsMutex;
+static std::mutex sOutputsMutex;
 static int sLevel = 0;
 
 class FileOutput : public LogOutput
@@ -92,7 +91,7 @@ static void log(int level, const char *format, va_list v)
         n = vsnprintf(msg, n + 1, format, v2);
     }
 
-    MutexLocker lock(&sOutputsMutex);
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
     if (sOutputs.isEmpty()) {
         printf("%s\n", msg);
     } else {
@@ -111,7 +110,7 @@ static void log(int level, const char *format, va_list v)
 
 void logDirect(int level, const String &out)
 {
-    MutexLocker lock(&sOutputsMutex);
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
     if (sOutputs.isEmpty()) {
         printf("%s\n", out.constData());
     } else {
@@ -166,7 +165,7 @@ void error(const char *format, ...)
 
 static inline void removeOutputs()
 {
-    MutexLocker lock(&sOutputsMutex);
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
     for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it)
         delete *it;
     sOutputs.clear();
@@ -174,7 +173,7 @@ static inline void removeOutputs()
 
 bool testLog(int level)
 {
-    MutexLocker lock(&sOutputsMutex);
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
     for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
         if ((*it)->testLog(level))
             return true;
@@ -252,12 +251,12 @@ Log &Log::operator=(const Log &other)
 LogOutput::LogOutput(int logLevel)
     : mLogLevel(logLevel)
 {
-    MutexLocker lock(&sOutputsMutex);
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
     sOutputs.insert(this);
 }
 
 LogOutput::~LogOutput()
 {
-    MutexLocker lock(&sOutputsMutex);
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
     sOutputs.remove(this);
 }

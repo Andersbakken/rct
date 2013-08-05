@@ -26,8 +26,6 @@ install(FILES
         rct/MemoryMonitor.h
         rct/Message.h
         rct/Messages.h
-        rct/Mutex.h
-        rct/MutexLocker.h
         rct/Path.h
         rct/Plugin.h
         rct/Point.h
@@ -52,7 +50,6 @@ install(FILES
         rct/ThreadPool.h
         rct/Timer.h
         rct/Value.h
-        rct/WaitCondition.h
         rct/WriteLocker.h
         DESTINATION include/rct)
 

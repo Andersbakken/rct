@@ -1,6 +1,5 @@
 #include "rct/FileSystemWatcher.h"
 #include "rct/EventLoop.h"
-#include "rct/MutexLocker.h"
 #include "rct/Log.h"
 #include "rct-config.h"
 #include <sys/inotify.h>
@@ -38,7 +37,7 @@ bool FileSystemWatcher::watch(const Path &p)
         return false;
     Path path = p;
     assert(!path.isEmpty());
-    MutexLocker lock(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     const Path::Type type = path.type();
     uint32_t flags = 0;
     switch (type) {
@@ -72,7 +71,7 @@ bool FileSystemWatcher::watch(const Path &p)
 
 bool FileSystemWatcher::unwatch(const Path &path)
 {
-    MutexLocker lock(&mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
     int wd = -1;
     if (mWatchedByPath.remove(path, &wd)) {
         debug("FileSystemWatcher::unwatch(\"%s\")", path.constData());
@@ -118,7 +117,7 @@ void FileSystemWatcher::notifyReadyRead()
 {
     Set<Path> modified, removed, added;
     {
-        MutexLocker lock(&mMutex);
+        std::lock_guard<std::mutex> lock(mMutex);
         int s = 0;
         ioctl(mFd, FIONREAD, &s);
         if (!s)

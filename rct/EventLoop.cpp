@@ -107,6 +107,7 @@ EventLoop::EventLoop()
 
 #if defined(HAVE_EPOLL)
     epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = eventPipe[0];
     e = epoll_ctl(pollFd, EPOLL_CTL_ADD, eventPipe[0], &ev);
@@ -379,6 +380,7 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
     int e;
 #if defined(HAVE_EPOLL)
     epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLET|EPOLLRDHUP;
     if (mode & SocketRead)
         ev.events |= EPOLLIN;
@@ -432,6 +434,7 @@ void EventLoop::updateSocket(int fd, int mode)
     int e;
 #if defined(HAVE_EPOLL)
     epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLET|EPOLLRDHUP;
     if (mode & SocketRead)
         ev.events |= EPOLLIN;
@@ -488,6 +491,7 @@ void EventLoop::unregisterSocket(int fd)
     int e;
 #if defined(HAVE_EPOLL)
     epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
     e = epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &ev);
 #elif defined(HAVE_KQUEUE)
     const struct { int rf; int kf; } flags[] = {

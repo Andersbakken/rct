@@ -45,6 +45,7 @@ public:
         enum { ClearThreshold = 1024 * 512 };
         if (bufferSize >= ClearThreshold) {
             free(bufferData);
+            bufferData = 0;
             bufferReserved = 0;
         }
         bufferSize = 0;

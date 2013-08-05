@@ -663,7 +663,7 @@ int EventLoop::exec(int timeoutTime)
                                     struct kevent ev;
                                     memset(&ev, '\0', sizeof(struct kevent));
                                     ev.ident = fd;
-                                    ev.flags = EV_ADD|EV_ENABLE;
+                                    ev.flags = EV_DELETE|EV_DISABLE;
                                     ev.filter = kf[i];
                                     eintrwrap(e, kevent(pollFd, &ev, 1, 0, 0, 0));
                                 }

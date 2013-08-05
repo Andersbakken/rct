@@ -39,11 +39,12 @@ void Connection::checkData()
 
 bool Connection::connectToServer(const String &name, int timeout)
 {
-    if (timeout != -1)
-        EventLoop::mainEventLoop()->registerTimer([=](int) {
-                if (mClient->state() == SocketClient::Connecting)
-                    mClient->close();
-            }, timeout, Timer::SingleShot);
+    // ### need to revisit this
+    // if (timeout != -1)
+    //     EventLoop::mainEventLoop()->registerTimer([=](int) {
+    //             if (mClient->state() == SocketClient::Connecting)
+    //                 mClient->close();
+    //         }, timeout, Timer::SingleShot);
     return mClient->connect(name);
 }
 

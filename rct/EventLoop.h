@@ -69,10 +69,17 @@ public:
     typedef std::shared_ptr<EventLoop> SharedPtr;
     typedef std::weak_ptr<EventLoop> WeakPtr;
 
-    EventLoop();
+    enum Flag {
+        None = 0x0,
+        EnableSigIntHandler = 0x1
+
+    };
+    EventLoop(unsigned flags = 0);
     ~EventLoop();
 
     void init();
+
+    unsigned flags() const { return flgs; }
 
     template<typename T>
     static void deleteLater(T* del)
@@ -128,6 +135,7 @@ public:
 
     static EventLoop::SharedPtr eventLoop();
 
+    static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
 private:
     void sendPostedEvents();
     void sendTimers();
@@ -205,6 +213,8 @@ private:
     int exitCode;
 
     static EventLoop::WeakPtr mainLoop;
+
+    const unsigned flgs;
 
 private:
     EventLoop(const EventLoop&) = delete;

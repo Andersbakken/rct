@@ -64,8 +64,8 @@ static void signalHandler(int sig, siginfo_t *siginfo, void *context)
         eintrwrap(w, ::write(pipe, &b, 1));
 }
 
-EventLoop::EventLoop()
-    : pollFd(-1), isMainEventLoop(false), nextTimerId(0), stopped(false), exitCode(0)
+EventLoop::EventLoop(unsigned flags)
+    : pollFd(-1), isMainEventLoop(false), nextTimerId(0), stopped(false), exitCode(0), flgs(flags)
 {
     std::call_once(mainOnce, [](){
             mainEventPipe = -1;
@@ -124,12 +124,14 @@ EventLoop::EventLoop()
         return;
     }
 
-    struct sigaction act;
-    act.sa_sigaction = signalHandler;
-    act.sa_flags = SA_SIGINFO;
-    if (::sigaction(SIGINT, &act, 0) == -1) {
-        cleanup();
-        return;
+    if (flgs & EnableSigIntHandler) {
+        struct sigaction act;
+        act.sa_sigaction = signalHandler;
+        act.sa_flags = SA_SIGINFO;
+        if (::sigaction(SIGINT, &act, 0) == -1) {
+            cleanup();
+            return;
+        }
     }
 }
 

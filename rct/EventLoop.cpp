@@ -64,15 +64,25 @@ static void signalHandler(int sig, siginfo_t *siginfo, void *context)
         eintrwrap(w, ::write(pipe, &b, 1));
 }
 
-EventLoop::EventLoop(unsigned flags)
-    : pollFd(-1), isMainEventLoop(false), nextTimerId(0), stopped(false), exitCode(0), flgs(flags)
+EventLoop::EventLoop()
+    : pollFd(-1), nextTimerId(0), stopped(false), exitCode(0), flgs(0)
 {
     std::call_once(mainOnce, [](){
             mainEventPipe = -1;
             pthread_key_create(&eventLoopKey, 0);
         });
+}
 
+EventLoop::~EventLoop()
+{
+    cleanup();
+}
+
+void EventLoop::init(unsigned flags)
+{
     std::lock_guard<std::mutex> locker(mutex);
+    flgs = flags;
+
     threadId = std::this_thread::get_id();
     int e = ::pipe(eventPipe);
     if (e == -1) {
@@ -133,11 +143,11 @@ EventLoop::EventLoop(unsigned flags)
             return;
         }
     }
-}
 
-EventLoop::~EventLoop()
-{
-    cleanup();
+    std::shared_ptr<EventLoop> that = shared_from_this();
+    localEventLoop() = that;
+    if (flags & MainEventLoop)
+        mainLoop = that;
 }
 
 void EventLoop::cleanup()
@@ -157,9 +167,6 @@ void EventLoop::cleanup()
         ::close(eventPipe[0]);
     if (eventPipe[1] != -1)
         ::close(eventPipe[1]);
-
-    if (isMainEventLoop)
-        mainEventPipe = -1;
 }
 
 EventLoop::SharedPtr EventLoop::eventLoop()
@@ -167,21 +174,6 @@ EventLoop::SharedPtr EventLoop::eventLoop()
     return localEventLoop().lock();
 }
 
-void EventLoop::setMainEventLoop(EventLoop::SharedPtr main)
-{
-    std::lock_guard<std::mutex> locker(mainMutex);
-    if (EventLoop::SharedPtr oldMain = mainLoop.lock())
-        oldMain->isMainEventLoop = false;
-    mainLoop = main;
-    mainEventPipe = main->eventPipe[1];
-    main->isMainEventLoop = true;
-}
-
-void EventLoop::init()
-{
-    std::lock_guard<std::mutex> locker(mutex);
-    localEventLoop() = shared_from_this();
-}
 
 void EventLoop::error(const char* err)
 {

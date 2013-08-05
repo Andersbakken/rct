@@ -69,15 +69,16 @@ public:
     typedef std::shared_ptr<EventLoop> SharedPtr;
     typedef std::weak_ptr<EventLoop> WeakPtr;
 
-    enum Flag {
-        None = 0x0,
-        EnableSigIntHandler = 0x1
-
-    };
-    EventLoop(unsigned flags = 0);
+    EventLoop();
     ~EventLoop();
 
-    void init();
+    enum Flag {
+        None = 0x0,
+        MainEventLoop = 0x1,
+        EnableSigIntHandler = 0x2
+    };
+
+    void init(unsigned flags = None);
 
     unsigned flags() const { return flgs; }
 
@@ -131,8 +132,6 @@ public:
     void quit(int code = 0);
 
     static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
-    static void setMainEventLoop(EventLoop::SharedPtr main);
-
     static EventLoop::SharedPtr eventLoop();
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
@@ -151,7 +150,6 @@ private:
     std::queue<Event*> events;
     int eventPipe[2];
     int pollFd;
-    bool isMainEventLoop;
 
     std::map<int, std::pair<int, std::function<void(int, int)> > > sockets;
 
@@ -214,7 +212,7 @@ private:
 
     static EventLoop::WeakPtr mainLoop;
 
-    const unsigned flgs;
+    unsigned flgs;
 
 private:
     EventLoop(const EventLoop&) = delete;

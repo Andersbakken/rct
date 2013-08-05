@@ -300,7 +300,8 @@ void FileSystemWatcher::notifyReadyRead()
                     }
                 }
 
-                lock.unlock();
+                if (lock.owns_lock())
+                    lock.unlock();
                 for (Set<Path>::const_iterator it = data.all.begin(); it != data.all.end(); ++it) {
                     mRemoved(*it);
                 }

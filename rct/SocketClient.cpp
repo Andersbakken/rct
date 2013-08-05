@@ -202,8 +202,8 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
             }
             if (total && total < writeBuffer.size()) {
                 memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
-                writeBuffer.resize(writeBuffer.size() - total);
             }
+            writeBuffer.resize(writeBuffer.size() - total);
         }
 
         if (done) {

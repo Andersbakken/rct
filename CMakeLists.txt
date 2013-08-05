@@ -58,7 +58,6 @@ install(FILES
         rct/Rect.h
         rct/RegExp.h
         rct/ResponseMessage.h
-        rct/SHA256.h
         rct/Semaphore.h
         rct/Serializer.h
         rct/Set.h

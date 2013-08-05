@@ -46,7 +46,6 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SharedMemory.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Thread.cpp

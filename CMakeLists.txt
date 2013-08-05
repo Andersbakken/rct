@@ -10,6 +10,23 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wformat -std=c++0x")
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif ()
+
+check_cxx_source_compiles("
+  #include <memory>
+  #include <mutex>
+  #include <tuple>
+  #include <${CMAKE_CURRENT_LIST_DIR}/rct/Apply.h>
+  int main(int, char**) {
+      std::shared_ptr<int> ptr;
+      std::mutex mtx;
+      std::unique_lock<std::mutex> lock(mtx);
+      std::tuple<int, std::mutex> tpl;
+  }" HAVE_CXX11)
+
+if (NOT HAVE_CXX11)
+  message(FATAL_ERROR "C++11 support not detected. rct requires a modern compiler, GCC >= 4.7 or Clang >= 3.2 should suffice")
+endif ()
+
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
         rct/Apply.h

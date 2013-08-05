@@ -14,7 +14,7 @@ bool ReadWriteLock::lock(LockType type, int maxTime)
     if (type == Read) {
         while (mWrite) {
             if (maxTime > 0) {
-                ok = mCond.wait_for(locker, std::chrono::milliseconds(maxTime));
+                ok = mCond.wait_for(locker, std::chrono::milliseconds(maxTime)) != std::cv_status::timeout;
             } else {
                 mCond.wait(locker);
                 ok = true;
@@ -26,7 +26,7 @@ bool ReadWriteLock::lock(LockType type, int maxTime)
     } else {
         while (mCount) {
             if (maxTime > 0) {
-                ok = mCond.wait_for(locker, std::chrono::milliseconds(maxTime));
+                ok = mCond.wait_for(locker, std::chrono::milliseconds(maxTime)) != std::cv_status::timeout;
             } else {
                 mCond.wait(locker);
                 ok = true;

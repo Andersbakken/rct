@@ -23,8 +23,8 @@ public:
         return id;
     }
 
-    template<typename Call>
-    Key connectAsync(Call&& call)
+    template<size_t Value, typename Call, typename std::enable_if<Value == EventLoop::Async, int>::type = 0>
+    Key connect(Call&& call)
     {
         std::lock_guard<std::mutex> locker(mutex);
         connections.insert(std::make_pair(++id, SignatureWrapper(std::forward<Call>(call))));
@@ -33,8 +33,8 @@ public:
 
     // this connection type will std::move all the call arguments so if this type is used
     // then no other connections may be used on the same signal
-    template<typename Call>
-    Key connectMoveAsync(Call&& call)
+    template<size_t Value, typename Call, typename std::enable_if<Value == EventLoop::Move, int>::type = 0>
+    Key connect(Call&& call)
     {
         std::lock_guard<std::mutex> locker(mutex);
         assert(connections.empty());

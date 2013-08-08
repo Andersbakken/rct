@@ -77,6 +77,10 @@ public:
         MainEventLoop = 0x1,
         EnableSigIntHandler = 0x2
     };
+    enum PostType {
+        Move = 1,
+        Async
+    };
 
     void init(unsigned flags = None);
 

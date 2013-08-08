@@ -369,7 +369,7 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
 
         //printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
         if (mMode == Async) {
-            if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+            if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                 loop->registerSocket(mStdOut[0], EventLoop::SocketRead, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
                 loop->registerSocket(mStdErr[0], EventLoop::SocketRead, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
             }
@@ -483,7 +483,7 @@ void Process::closeStdIn()
     if (mStdIn[1] == -1)
         return;
 
-    EventLoop::mainEventLoop()->unregisterSocket(mStdIn[1]);
+    EventLoop::eventLoop()->unregisterSocket(mStdIn[1]);
     int err;
     eintrwrap(err, ::close(mStdIn[1]));
     mStdIn[1] = -1;
@@ -494,7 +494,7 @@ void Process::closeStdOut()
     if (mStdOut[0] == -1)
         return;
 
-    EventLoop::mainEventLoop()->unregisterSocket(mStdOut[0]);
+    EventLoop::eventLoop()->unregisterSocket(mStdOut[0]);
     int err;
     eintrwrap(err, ::close(mStdOut[0]));
     mStdOut[0] = -1;
@@ -505,7 +505,7 @@ void Process::closeStdErr()
     if (mStdErr[0] == -1)
         return;
 
-    EventLoop::mainEventLoop()->unregisterSocket(mStdErr[0]);
+    EventLoop::eventLoop()->unregisterSocket(mStdErr[0]);
     int err;
     eintrwrap(err, ::close(mStdErr[0]));
     mStdErr[0] = -1;
@@ -569,8 +569,8 @@ void Process::finish(int returnCode)
 
 void Process::handleInput(int fd)
 {
-    assert(EventLoop::mainEventLoop());
-    EventLoop::mainEventLoop()->unregisterSocket(fd);
+    assert(EventLoop::eventLoop());
+    EventLoop::eventLoop()->unregisterSocket(fd);
 
     //static int ting = 0;
     //printf("Process::handleInput (cnt=%d)\n", ++ting);
@@ -589,7 +589,7 @@ void Process::handleInput(int fd)
             eintrwrap(w, ::write(fd, front.constData(), want));
         }
         if (w == -1) {
-            EventLoop::mainEventLoop()->registerSocket(fd, EventLoop::SocketWrite, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
+            EventLoop::eventLoop()->registerSocket(fd, EventLoop::SocketWrite, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
             break;
         } else if (w == want) {
             mStdInBuffer.pop_front();
@@ -613,7 +613,7 @@ void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::funct
             break;
         } else if (r == 0) { // file descriptor closed, remove it
             //printf("Process::handleOutput %d returning 0\n", fd);
-            EventLoop::mainEventLoop()->unregisterSocket(fd);
+            EventLoop::eventLoop()->unregisterSocket(fd);
             break;
         } else {
             //printf("Process::handleOutput in loop %d\n", fd);

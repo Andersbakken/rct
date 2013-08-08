@@ -13,7 +13,7 @@ FileSystemWatcher::FileSystemWatcher()
 {
     mFd = kqueue();
     assert(mFd != -1);
-    EventLoop::mainEventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
+    EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -21,7 +21,7 @@ FileSystemWatcher::~FileSystemWatcher()
     struct kevent change;
     struct timespec nullts = { 0, 0 };
 
-    EventLoop::mainEventLoop()->unregisterSocket(mFd);
+    EventLoop::eventLoop()->unregisterSocket(mFd);
     for (Map<Path, int>::const_iterator it = mWatchedByPath.begin(); it != mWatchedByPath.end(); ++it) {
         EV_SET(&change, it->second, EVFILT_VNODE, EV_DELETE, 0, 0, 0);
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {

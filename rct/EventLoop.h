@@ -91,11 +91,6 @@ public:
             error("No event loop!");
         }
     }
-    template<typename T>
-    static void deleteLater(EventLoop::SharedPtr loop, T* del)
-    {
-        loop->post(new DeleteLaterEvent<T>(del));
-    }
     template<typename Object, typename... Args>
     void post(Object& object, Args&&... args)
     {

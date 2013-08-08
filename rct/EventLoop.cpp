@@ -171,7 +171,12 @@ void EventLoop::cleanup()
 
 EventLoop::SharedPtr EventLoop::eventLoop()
 {
-    return localEventLoop().lock();
+    EventLoop::SharedPtr loop = localEventLoop().lock();
+    if (!loop) {
+        std::lock_guard<std::mutex> locker(mainMutex);
+        loop = mainLoop.lock();
+    }
+    return loop;
 }
 
 

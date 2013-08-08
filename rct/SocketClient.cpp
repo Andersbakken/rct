@@ -25,7 +25,7 @@ SocketClient::SocketClient(Mode mode)
         signalError(shared_from_this(), InitializeError);
         return;
     }
-    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
         int e;
@@ -44,7 +44,7 @@ SocketClient::SocketClient(int f)
     : fd(f), socketState(Connected), writeWait(false)
 {
     assert(fd >= 0);
-    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
         int e;
@@ -69,7 +69,7 @@ void SocketClient::close()
     if (fd == -1)
         return;
     socketState = Disconnected;
-    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop())
+    if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
         loop->unregisterSocket(fd);
     ::close(fd);
     fd = -1;
@@ -128,7 +128,7 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
             freeaddrinfo(res);
             return false;
         }
-        if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
             writeWait = true;
         }
@@ -160,7 +160,7 @@ bool SocketClient::connect(const std::string& path)
             close();
             return false;
         }
-        if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
             writeWait = true;
         }
@@ -184,7 +184,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         assert(!writeWait);
-                        if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+                        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                             loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
                             writeWait = true;
                         }
@@ -218,7 +218,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     assert(!writeWait);
-                    if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+                    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                         loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
                         writeWait = true;
                     }
@@ -258,7 +258,7 @@ void SocketClient::socketCallback(int f, int mode)
     SocketClient::SharedPtr tcpSocket = shared_from_this();
 
     if (writeWait && (mode & EventLoop::SocketWrite)) {
-        if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead);
             writeWait = false;
         }
@@ -306,7 +306,7 @@ void SocketClient::socketCallback(int f, int mode)
         signalReadyRead(tcpSocket);
 
         if (writeWait) {
-            if (EventLoop::SharedPtr loop = EventLoop::mainEventLoop()) {
+            if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                 loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
             }
         }

@@ -10,12 +10,12 @@ FileSystemWatcher::FileSystemWatcher()
 {
     mFd = inotify_init();
     assert(mFd != -1);
-    EventLoop::mainEventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
+    EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
 FileSystemWatcher::~FileSystemWatcher()
 {
-    EventLoop::mainEventLoop()->unregisterSocket(mFd);
+    EventLoop::eventLoop()->unregisterSocket(mFd);
     for (Map<Path, int>::const_iterator it = mWatchedByPath.begin(); it != mWatchedByPath.end(); ++it) {
         inotify_rm_watch(mFd, it->second);
     }

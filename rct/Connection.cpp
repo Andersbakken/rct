@@ -22,7 +22,7 @@ Connection::Connection(SocketClient::SharedPtr client)
     mClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
     mClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
     mClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
-    EventLoop::mainEventLoop()->callLater(std::bind(&Connection::checkData, this));
+    EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
 }
 
 Connection::~Connection()
@@ -41,7 +41,7 @@ bool Connection::connectToServer(const String &name, int timeout)
 {
     // ### need to revisit this
     // if (timeout != -1)
-    //     EventLoop::mainEventLoop()->registerTimer([=](int) {
+    //     EventLoop::eventLoop()->registerTimer([=](int) {
     //             if (mClient->state() == SocketClient::Connecting)
     //                 mClient->close();
     //         }, timeout, Timer::SingleShot);
@@ -176,12 +176,12 @@ void Connection::dataWritten(const SocketClient::SharedPtr&, int bytes)
             mSendComplete(this);
         if (mDone) {
             mClient->close();
-            EventLoop::deleteLater(EventLoop::mainEventLoop(), this);
+            EventLoop::deleteLater(this);
         }
     }
 }
 
 void Connection::writeAsync(const String &out)
 {
-    EventLoop::mainEventLoop()->callLaterMove(std::bind(&Connection::sendRef, this, std::placeholders::_1), ResponseMessage(out));
+    EventLoop::eventLoop()->callLaterMove(std::bind(&Connection::sendRef, this, std::placeholders::_1), ResponseMessage(out));
 }

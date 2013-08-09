@@ -10,6 +10,7 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <rct-config.h>
 
 #define eintrwrap(VAR, BLOCK)                   \
     do {                                        \
@@ -25,6 +26,10 @@ SocketClient::SocketClient(Mode mode)
         signalError(shared_from_this(), InitializeError);
         return;
     }
+#ifdef HAVE_NOSIGPIPE
+    int flags = 1;
+    ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
+#endif
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
@@ -44,6 +49,11 @@ SocketClient::SocketClient(int f)
     : fd(f), socketState(Connected), writeWait(false)
 {
     assert(fd >= 0);
+#ifdef HAVE_NOSIGPIPE
+    int flags = 1;
+    ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
+#endif
+
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));

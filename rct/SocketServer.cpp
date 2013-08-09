@@ -1,5 +1,6 @@
 #include "SocketServer.h"
 #include "EventLoop.h"
+#include <rct-config.h>
 #include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -46,16 +47,23 @@ bool SocketServer::listen(uint16_t port)
         return false;
     }
 
-    // turn on nodelay
     int e;
-    {
-        int on = 1;
-        e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-        if (e == -1) {
-            serverError(this, InitializeError);
-            close();
-            return false;
-        }
+    int flags = 1;
+#ifdef HAVE_NOSIGPIPE
+    e = ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
+    if (e == -1) {
+        serverError(this, InitializeError);
+        close();
+        return false;
+    }
+#endif
+    // turn on nodelay
+    flags = 1;
+    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof(int));
+    if (e == -1) {
+        serverError(this, InitializeError);
+        close();
+        return false;
     }
 
     // ### support IPv6 and specific interfaces

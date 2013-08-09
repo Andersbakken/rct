@@ -6,35 +6,36 @@
 #include "rct/Timer.h"
 #include <assert.h>
 
+#include "Connection.h"
+
 Connection::Connection()
-    : mClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
+    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
 {
-    mClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
-    mClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
-    mClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
 }
 
-Connection::Connection(SocketClient::SharedPtr client)
-    : mClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
+Connection::Connection(const SocketClient::SharedPtr &client)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
 {
     assert(client->isConnected());
-    mClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
-    mClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
     EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
 }
 
 Connection::~Connection()
 {
     mDestroyed(this);
-    mClient.reset();
 }
 
 void Connection::checkData()
 {
-    if (!mClient->buffer().isEmpty())
-        dataAvailable(mClient);
+    if (!mSocketClient->buffer().isEmpty())
+        dataAvailable(mSocketClient);
 }
 
 bool Connection::connectToServer(const String &name, int timeout)
@@ -45,7 +46,7 @@ bool Connection::connectToServer(const String &name, int timeout)
     //             if (mClient->state() == SocketClient::Connecting)
     //                 mClient->close();
     //         }, timeout, Timer::SingleShot);
-    return mClient->connect(name);
+    return mSocketClient->connect(name);
 }
 
 bool Connection::send(int id, const String &message)
@@ -53,7 +54,7 @@ bool Connection::send(int id, const String &message)
     if (message.isEmpty())
         return true;
 
-    if (!mClient->isConnected()) {
+    if (!mSocketClient->isConnected()) {
         ::error("Trying to send message to unconnected client (%d)", id);
         return false;
     }
@@ -72,7 +73,7 @@ bool Connection::send(int id, const String &message)
         strm << data.size();
     }
     mPendingWrite += (header.size() + data.size());
-    return mClient->write(header) && mClient->write(data);
+    return mSocketClient->write(header) && mSocketClient->write(data);
 }
 
 int Connection::pendingWrite() const
@@ -83,7 +84,7 @@ int Connection::pendingWrite() const
 void Connection::finish()
 {
     mDone = true;
-    dataWritten(mClient, 0);
+    dataWritten(mSocketClient, 0);
 }
 
 static inline unsigned int bufferSize(const LinkedList<Buffer>& buffers)
@@ -130,8 +131,8 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
 void Connection::dataAvailable(SocketClient::SharedPtr&)
 {
     while (true) {
-        if (!mClient->buffer().isEmpty())
-            mBuffers.push_back(std::move(mClient->buffer()));
+        if (!mSocketClient->buffer().isEmpty())
+            mBuffers.push_back(std::move(mSocketClient->buffer()));
         unsigned int available = bufferSize(mBuffers);
         if (!available)
             break;
@@ -175,7 +176,7 @@ void Connection::dataWritten(const SocketClient::SharedPtr&, int bytes)
         if (bytes)
             mSendComplete(this);
         if (mDone) {
-            mClient->close();
+            mSocketClient->close();
             EventLoop::deleteLater(this);
         }
     }

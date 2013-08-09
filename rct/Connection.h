@@ -17,7 +17,7 @@ class Connection
 {
 public:
     Connection();
-    Connection(SocketClient::SharedPtr client);
+    Connection(const SocketClient::SharedPtr &client);
     ~Connection();
 
     void setSilent(bool on) { mSilent = on; }
@@ -50,7 +50,7 @@ public:
     void writeAsync(const String &out);
     void finish();
 
-    bool isConnected() const { return mClient->isConnected(); }
+    bool isConnected() const { return mSocketClient->isConnected(); }
 
     Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
     Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
@@ -59,7 +59,7 @@ public:
     Signal<std::function<void(Connection*)> > &sendComplete() { return mSendComplete; }
     Signal<std::function<void(Connection*)> > &destroyed() { return mDestroyed; }
 
-    SocketClient::SharedPtr client() const { return mClient; }
+    SocketClient::SharedPtr client() const { return mSocketClient; }
 
 private:
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
@@ -68,7 +68,7 @@ private:
     void dataWritten(const SocketClient::SharedPtr&, int);
     void checkData();
 
-    SocketClient::SharedPtr mClient;
+    SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
     bool mDone, mSilent;

@@ -127,8 +127,11 @@ public:
     int registerTimer(std::function<void(int)>&& func, int timeout, int flags = 0);
     void unregisterTimer(int id);
 
+    enum { Success, GeneralError = -1, Timeout = -2 };
     int exec(int timeout = -1);
     void quit(int code = 0);
+
+    bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return execLevel; }
 
     static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
     static EventLoop::SharedPtr eventLoop();
@@ -143,7 +146,7 @@ private:
 
 private:
     static std::mutex mainMutex;
-    std::mutex mutex;
+    mutable std::mutex mutex;
     std::thread::id threadId;
 
     std::queue<Event*> events;
@@ -206,8 +209,8 @@ private:
     TimersById timersById;
     uint32_t nextTimerId;
 
-    bool stopped;
-    int exitCode;
+    bool stop;
+    int exitCode, execLevel;
 
     static EventLoop::WeakPtr mainLoop;
 

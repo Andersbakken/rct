@@ -56,7 +56,6 @@ static EventLoop::WeakPtr& localEventLoop()
 
 static void signalHandler(int sig, siginfo_t *siginfo, void *context)
 {
-
     char b = 'q';
     int w;
     const int pipe = mainEventPipe;
@@ -65,16 +64,18 @@ static void signalHandler(int sig, siginfo_t *siginfo, void *context)
 }
 
 EventLoop::EventLoop()
-    : pollFd(-1), nextTimerId(0), stopped(false), exitCode(0), flgs(0)
+    : pollFd(-1), nextTimerId(0), stop(false), exitCode(0), execLevel(0), flgs(0)
 {
     std::call_once(mainOnce, [](){
             mainEventPipe = -1;
             pthread_key_create(&eventLoopKey, 0);
+            signal(SIGPIPE, SIG_IGN);
         });
 }
 
 EventLoop::~EventLoop()
 {
+    assert(!execLevel);
     cleanup();
 }
 
@@ -206,15 +207,19 @@ void EventLoop::wakeup()
 void EventLoop::quit(int code)
 {
     if (std::this_thread::get_id() == threadId) {
-        stopped = true;
-        exitCode = code;
+        if (execLevel) {
+            stop = true;
+            exitCode = code;
+        }
         return;
     }
 
     std::lock_guard<std::mutex> locker(mutex);
-    stopped = true;
-    exitCode = code;
-    wakeup();
+    if (execLevel && !stop) {
+        stop = true;
+        exitCode = code;
+        wakeup();
+    }
 }
 
 inline void EventLoop::sendPostedEvents()
@@ -520,9 +525,14 @@ void EventLoop::unregisterSocket(int fd)
 
 int EventLoop::exec(int timeoutTime)
 {
+    {
+        std::lock_guard<std::mutex> locker(mutex);
+        ++execLevel;
+    }
+
     if (timeoutTime != -1) {
         // register a timer that will quit the event loop
-        registerTimer(std::bind(&EventLoop::quit, this, 0), timeoutTime, Timer::SingleShot);
+        registerTimer(std::bind(&EventLoop::quit, this, Timeout), timeoutTime, Timer::SingleShot);
     }
 
     int i, e, mode;
@@ -537,13 +547,18 @@ int EventLoop::exec(int timeoutTime)
 #endif
 
     for (;;) {
+        sendPostedEvents();
+        sendTimers();
         int waitUntil = -1;
         {
             std::lock_guard<std::mutex> locker(mutex);
 
             // check if we're stopped
-            if (stopped)
+            if (stop) {
+                stop = false;
+                --execLevel;
                 return exitCode;
+            }
 
             const auto timer = timersByTime.begin();
             if (timer != timersByTime.end()) {
@@ -564,7 +579,9 @@ int EventLoop::exec(int timeoutTime)
 #endif
         if (e < 0) {
             // bad
-            return -1;
+            std::lock_guard<std::mutex> locker(mutex);
+            execLevel = 0;
+            return GeneralError;
         } else if (e) {
             std::unique_lock<std::mutex> locker(mutex);
             std::map<int, std::pair<int, std::function<void(int, int)> > > local = sockets;
@@ -640,7 +657,9 @@ int EventLoop::exec(int timeoutTime)
                             if (q == 'q') {
                                 // signal caught, we need to shut down
                                 fprintf(stderr, "Caught Ctrl-C\n");
-                                return 0;
+                                std::lock_guard<std::mutex> locker(mutex);
+                                execLevel = 0;
+                                return Success;
                             }
                         } while (e == 1);
                         if (e == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
@@ -648,7 +667,9 @@ int EventLoop::exec(int timeoutTime)
                             char buf[128];
                             STRERROR_R(errno, buf, sizeof(buf));
                             fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, buf);
-                            return -1;
+                            std::lock_guard<std::mutex> locker(mutex);
+                            execLevel = 0;
+                            return GeneralError;
                         }
                     } else {
                         auto socket = local.find(fd);
@@ -684,9 +705,8 @@ int EventLoop::exec(int timeoutTime)
                 }
             }
         }
-        sendPostedEvents();
-        sendTimers();
     }
 
-    return -1;
+    assert(0);
+    return GeneralError;
 }

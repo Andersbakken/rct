@@ -79,6 +79,13 @@ public:
     static bool rm(const Path &file);
     static Path home();
 
+    inline Path ensureTrailingSlash() const
+    {
+        if (!isEmpty() && !endsWith('/'))
+            return *this + '/';
+        return *this;
+    }
+
     bool rm() const { return Path::rm(*this); }
     bool mksubdir(const String &subdir) const;
     bool isSource() const;

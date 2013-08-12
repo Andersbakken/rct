@@ -138,8 +138,8 @@ public:
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
 private:
-    void sendPostedEvents();
-    void sendTimers();
+    bool sendPostedEvents();
+    bool sendTimers();
     void cleanup();
 
     static void error(const char* err);

@@ -222,9 +222,11 @@ void EventLoop::quit(int code)
     }
 }
 
-inline void EventLoop::sendPostedEvents()
+inline bool EventLoop::sendPostedEvents()
 {
     std::unique_lock<std::mutex> locker(mutex);
+    if (events.empty())
+        return false;
     while (!events.empty()) {
         auto event = events.front();
         events.pop();
@@ -233,6 +235,7 @@ inline void EventLoop::sendPostedEvents()
         delete event;
         locker.lock();
     }
+    return true;
 }
 
 // milliseconds
@@ -316,7 +319,7 @@ void EventLoop::unregisterTimer(int id)
     abort();
 }
 
-inline void EventLoop::sendTimers()
+inline bool EventLoop::sendTimers()
 {
     std::set<uint64_t> fired;
     std::unique_lock<std::mutex> locker(mutex);
@@ -324,18 +327,18 @@ inline void EventLoop::sendTimers()
     for (;;) {
         auto timer = timersByTime.begin();
         if (timer == timersByTime.end())
-            return;
+            return !fired.empty();
         TimerData* timerData = *timer;
         int currentId = timerData->id;
         while (fired.count(currentId)) {
             // already fired this round, ignore for now
             ++timer;
             if (timer == timersByTime.end())
-                return;
+                return !fired.empty();
             currentId = timerData->id;
         }
         if (timerData->when > now)
-            return;
+            return !fired.empty();
         if (timerData->flags & Timer::SingleShot) {
             // remove the timer before firing
             std::function<void(int)> func = std::move(timerData->callback);
@@ -374,6 +377,7 @@ inline void EventLoop::sendTimers()
             locker.lock();
         }
     }
+    return !fired.empty();
 }
 
 void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&& func)
@@ -547,8 +551,10 @@ int EventLoop::exec(int timeoutTime)
 #endif
 
     for (;;) {
-        sendPostedEvents();
-        sendTimers();
+        for (;;) {
+            if (!sendPostedEvents() && !sendTimers())
+                break;
+        }
         int waitUntil = -1;
         {
             std::lock_guard<std::mutex> locker(mutex);

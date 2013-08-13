@@ -335,6 +335,7 @@ inline bool EventLoop::sendTimers()
             ++timer;
             if (timer == timersByTime.end())
                 return !fired.empty();
+            timerData = *timer;
             currentId = timerData->id;
         }
         if (timerData->when > now)

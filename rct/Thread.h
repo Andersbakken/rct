@@ -29,6 +29,7 @@ protected:
 
 private:
     static void* internalStart(void* arg);
+    void finish();
 
 private:
     bool mAutoDelete;

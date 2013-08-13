@@ -1,4 +1,5 @@
 #include "rct/Thread.h"
+#include "rct/EventLoop.h"
 
 Thread::Thread(int stack)
     : mAutoDelete(false), mThread(0), mStackSize(stack)
@@ -14,7 +15,7 @@ void* Thread::internalStart(void* arg)
     Thread* that = reinterpret_cast<Thread*>(arg);
     that->run();
     if (that->isAutoDelete())
-        delete that;
+        EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, that));
     return 0;
 }
 
@@ -35,4 +36,10 @@ bool Thread::join()
 {
     void *ret;
     return !pthread_join(mThread, &ret);
+}
+
+void Thread::finish()
+{
+    join();
+    delete this;
 }

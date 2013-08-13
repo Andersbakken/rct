@@ -620,6 +620,9 @@ int EventLoop::exec(int timeoutTime)
                     if (ev & EPOLLHUP) {
                         fprintf(stderr, "HUP on socket %d, removing\n", fd);
                     }
+                    auto socket = local.find(fd);
+                    if (socket != local.end())
+                        socket->second.second(fd, SocketError);
                     continue;
                 }
                 if (ev & (EPOLLIN|EPOLLRDHUP)) {
@@ -648,6 +651,9 @@ int EventLoop::exec(int timeoutTime)
                         STRERROR_R(errno, buf, sizeof(buf));
                         fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, buf);
                     }
+                    auto socket = local.find(fd);
+                    if (socket != local.end())
+                        socket->second.second(fd, SocketError);
                     continue;
                 }
                 if (filter == EVFILT_READ)

@@ -267,6 +267,12 @@ void SocketClient::socketCallback(int f, int mode)
 
     SocketClient::SharedPtr tcpSocket = shared_from_this();
 
+    if (mode == EventLoop::SocketError) {
+        signalError(tcpSocket, EventLoopError);
+        close();
+        return;
+    }
+
     if (writeWait && (mode & EventLoop::SocketWrite)) {
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead);

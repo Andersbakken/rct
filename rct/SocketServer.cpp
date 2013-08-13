@@ -104,7 +104,8 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
     }
 
     // ### should be able to customize the backlog
-    if (::listen(fd, 5) < 0) {
+    enum { Backlog = 128 };
+    if (::listen(fd, Backlog) < 0) {
         serverError(this, ListenError);
         close();
         return false;

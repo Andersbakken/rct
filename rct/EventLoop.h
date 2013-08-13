@@ -118,7 +118,12 @@ public:
     void post(Event* event);
     void wakeup();
 
-    enum { SocketRead = 0x1, SocketWrite = 0x2, SocketOneShot = 0x4 };
+    enum Mode {
+        SocketRead = 0x1,
+        SocketWrite = 0x2,
+        SocketOneShot = 0x4,
+        SocketError = 0x8
+    };
     void registerSocket(int fd, int mode, std::function<void(int, int)>&& func);
     void updateSocket(int fd, int mode);
     void unregisterSocket(int fd);

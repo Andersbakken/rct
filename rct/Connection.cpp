@@ -13,8 +13,9 @@ Connection::Connection()
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
-    mSocketClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
@@ -22,8 +23,9 @@ Connection::Connection(const SocketClient::SharedPtr &client)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::dataAvailable, this, std::placeholders::_1));
-    mSocketClient->bytesWritten().connect(std::bind(&Connection::dataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
     EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
 }
 
@@ -35,7 +37,7 @@ Connection::~Connection()
 void Connection::checkData()
 {
     if (!mSocketClient->buffer().isEmpty())
-        dataAvailable(mSocketClient);
+        onDataAvailable(mSocketClient);
 }
 
 bool Connection::connectToServer(const String &name, int timeout)
@@ -84,7 +86,7 @@ int Connection::pendingWrite() const
 void Connection::finish()
 {
     mDone = true;
-    dataWritten(mSocketClient, 0);
+    onDataWritten(mSocketClient, 0);
 }
 
 static inline unsigned int bufferSize(const LinkedList<Buffer>& buffers)
@@ -128,7 +130,7 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
     return num;
 }
 
-void Connection::dataAvailable(SocketClient::SharedPtr&)
+void Connection::onDataAvailable(SocketClient::SharedPtr&)
 {
     while (true) {
         if (!mSocketClient->buffer().isEmpty())
@@ -168,7 +170,7 @@ void Connection::dataAvailable(SocketClient::SharedPtr&)
     }
 }
 
-void Connection::dataWritten(const SocketClient::SharedPtr&, int bytes)
+void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;

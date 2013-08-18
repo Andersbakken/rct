@@ -309,18 +309,19 @@ bool Path::rm(const Path &file)
     return !unlink(file.constData());
 }
 
-void Path::visit(VisitCallback callback, void *userData) const
+static void visitorWrapper(Path path, Path::VisitCallback callback, Set<Path> &seen, void *userData)
 {
-    if (!callback)
+    if (!seen.insert(path.resolved())) {
         return;
-    DIR *d = opendir(constData());
+    }
+    DIR *d = opendir(path.constData());
     if (!d)
         return;
+
     char buf[PATH_MAX + sizeof(dirent) + 1];
     dirent *dbuf = reinterpret_cast<dirent*>(buf);
 
     dirent *p;
-    Path path = *this;
     if (!path.endsWith('/'))
         path.append('/');
     const int s = path.size();
@@ -339,14 +340,14 @@ void Path::visit(VisitCallback callback, void *userData) const
             path.append('/');
 #endif
         switch (callback(path, userData)) {
-        case Abort:
+        case Path::Abort:
             p = 0;
             break;
-        case Recurse:
+        case Path::Recurse:
             if (path.isDir())
                 recurseDirs.append(p->d_name);
             break;
-        case Continue:
+        case Path::Continue:
             break;
         }
     }
@@ -355,8 +356,16 @@ void Path::visit(VisitCallback callback, void *userData) const
     for (int i=0; i<count; ++i) {
         path.truncate(s);
         path.append(recurseDirs.at(i));
-        path.visit(callback, userData);
+        visitorWrapper(path, callback, seen, userData);
     }
+}
+
+void Path::visit(VisitCallback callback, void *userData) const
+{
+    if (!callback || !isDir())
+        return;
+    Set<Path> seenDirs;
+    visitorWrapper(*this, callback, seenDirs, userData);
 }
 
 Path Path::followLink(bool *ok) const

@@ -72,9 +72,11 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
-    bool mDone, mSilent;
+
     int mCheckDataTimer;
-    
+
+    bool mDone, mSilent, mFinished;
+
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
 };

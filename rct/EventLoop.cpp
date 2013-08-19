@@ -667,7 +667,7 @@ int EventLoop::exec(int timeoutTime)
                         char q;
                         do {
                             eintrwrap(e, ::read(eventPipe[0], &q, 1));
-                            if (q == 'q') {
+                            if (e == 1 && q == 'q') {
                                 // signal caught, we need to shut down
                                 fprintf(stderr, "Caught Ctrl-C\n");
                                 std::lock_guard<std::mutex> locker(mutex);

@@ -20,7 +20,7 @@ class ThreadPoolThread : public Thread
 {
 public:
     ThreadPoolThread(ThreadPool* pool);
-    ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job);
+    ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job);
 
     void stop();
 
@@ -39,7 +39,7 @@ ThreadPoolThread::ThreadPoolThread(ThreadPool* pool)
     setAutoDelete(false);
 }
 
-ThreadPoolThread::ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job)
+ThreadPoolThread::ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job)
     : mJob(job), mPool(0), mStopped(false)
 {
     setAutoDelete(false);

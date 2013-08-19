@@ -13,8 +13,8 @@ Thread::~Thread()
 void Thread::start()
 {
     mThread = std::thread([=]() {
-            run();
-            if (isAutoDelete())
+	    run();
+	    if (isAutoDelete())
                 EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, this));
         });
 }

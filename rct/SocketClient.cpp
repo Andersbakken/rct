@@ -195,7 +195,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
         if (!writeBuffer.isEmpty()) {
             while (total < writeBuffer.size()) {
                 assert(writeBuffer.size() > total);
-                e = ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total);
+                eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         if (mode == Synchronous) {
@@ -247,7 +247,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
 
         for (;;) {
             assert(size > total);
-            e = ::write(fd, data + total, size - total);
+            eintrwrap(e, ::write(fd, data + total, size - total));
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     if (mode == Synchronous) {

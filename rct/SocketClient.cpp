@@ -190,6 +190,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
     if (!writeWait) {
         if (!writeBuffer.isEmpty()) {
             while (total < writeBuffer.size()) {
+                assert(writeBuffer.size() > total);
                 eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -224,6 +225,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
         assert(data != 0 && size > 0);
 
         for (;;) {
+            assert(size > total);
             eintrwrap(e, ::write(fd, data + total, size - total));
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {

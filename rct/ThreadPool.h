@@ -1,71 +1,118 @@
-#ifndef ThreadPool_h
-#define ThreadPool_h
+#ifndef THREADPOOL2_H
+#define THREADPOOL2_H
 
-#include "List.h"
-#include <deque>
-#include <memory>
+#include "Apply.h"
+#include "Thread.h"
+#include <tuple>
+#include <vector>
+#include <map>
 #include <mutex>
 #include <condition_variable>
-
-class ThreadPoolThread;
 
 class ThreadPool
 {
 public:
-    ThreadPool(int concurrentJobs);
-    ~ThreadPool();
+    typedef unsigned int Key;
 
-    void setConcurrentJobs(int concurrentJobs);
-    void clearBackLog();
-
-    class Job
+    ThreadPool(int concurrentJobs)
+        : concurrent(concurrentJobs), nextId(0)
     {
-    public:
-        Job();
-        virtual ~Job() {}
+        init();
+    }
+    ~ThreadPool()
+    {
+        clear();
+    }
 
-        enum State {
-            NotStarted,
-            Running,
-            Finished
-        };
-        State state() const { std::lock_guard<std::mutex> lock(mMutex); return mState; }
-    protected:
-        virtual void run() = 0;
-        std::mutex &mutex() const { return mMutex; }
+    template<typename Functor, typename... Args>
+    Key start(Functor&& func, const Args&... args)
+    {
+        Job<Functor, Args...>* job = new Job<Functor, Args...>(std::move(func), args...);
+        std::unique_lock<std::mutex> lock(mutex);
+        const Key id = findNextId();
+        jobs[id] = job;
+        cond.notify_one();
+        return id;
+    }
 
-    private:
-        int mPriority;
-        State mState;
-        mutable std::mutex mMutex;
+    template<typename Functor, typename... Args>
+    Key startMove(Functor&& func, Args&&... args)
+    {
+        Job<Functor, Args...>* job = new Job<Functor, Args...>(std::move(func), std::move(args...));
+        std::unique_lock<std::mutex> lock(mutex);
+        const Key id = findNextId();
+        jobs[id] = job;
+        cond.notify_one();
+        return id;
+    }
 
-        friend class ThreadPool;
-        friend class ThreadPoolThread;
+    bool remove(Key key)
+    {
+        std::unique_lock<std::mutex> lock(mutex);
+        std::map<Key, JobBase*>::iterator it = jobs.find(key);
+        if (it != jobs.end()) {
+            jobs.erase(it);
+            return true;
+        }
+        return false;
+    }
+
+    int concurrentJobs() const { std::lock_guard<std::mutex> lock(mutex); return concurrent; }
+    void setConcurrentJobs(int concurrentJobs);
+
+private:
+    struct JobBase
+    {
+        virtual ~JobBase() { }
+        virtual void exec() = 0;
     };
 
-    enum { Guaranteed = -1 };
+    template<typename Functor, typename... Args>
+    struct Job : public JobBase
+    {
+        Functor functor;
+        std::tuple<Args...> args;
 
-    void start(const std::shared_ptr<Job> &job, int priority = 0);
+        virtual void exec() { applyMove(functor, args); }
+    };
 
-    bool remove(const std::shared_ptr<Job> &job);
+    Key findNextId()
+    {
+        while (jobs.find(++nextId) != jobs.end())
+            ;
+        return nextId;
+    }
 
-    static int idealThreadCount();
-    static ThreadPool* instance();
+    class Thread : public ::Thread
+    {
+    public:
+        Thread(ThreadPool* threadPool)
+            : pool(threadPool)
+        {
+        }
+
+    protected:
+        virtual void run();
+
+    private:
+        ThreadPool* pool;
+    };
+
+    void init();
+    void clear();
+    void stop();
+    JobBase* nextJob();
 
 private:
-    static bool jobLessThan(const std::shared_ptr<Job> &l, const std::shared_ptr<Job> &r);
+    int concurrent;
+    Key nextId;
+    bool stopped;
+    std::map<Key, JobBase*> jobs;
+    std::vector<ThreadPool::Thread> threads;
+    std::condition_variable cond;
+    mutable std::mutex mutex;
 
-private:
-    int mConcurrentJobs;
-    std::mutex mMutex;
-    std::condition_variable mCond;
-    std::deque<std::shared_ptr<Job> > mJobs;
-    List<ThreadPoolThread*> mThreads;
-    int mBusyThreads;
-
-    static ThreadPool* sInstance;
-
-    friend class ThreadPoolThread;
+    friend class ThreadPool::Thread;
 };
 
 #endif

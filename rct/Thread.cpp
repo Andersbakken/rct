@@ -6,6 +6,13 @@ Thread::Thread()
 {
 }
 
+Thread::Thread(Thread&& other)
+{
+    mAutoDelete = other.mAutoDelete;
+    other.mAutoDelete = false;
+    mThread = std::move(other.mThread);
+}
+
 Thread::~Thread()
 {
 }

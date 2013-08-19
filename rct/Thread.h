@@ -8,6 +8,7 @@ class Thread
 {
 public:
     Thread();
+    Thread(Thread&& other);
     virtual ~Thread();
 
     void start();

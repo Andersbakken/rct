@@ -9,7 +9,7 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
+    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false), mFinished(false)
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -19,7 +19,7 @@ Connection::Connection()
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false), mFinished(false)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -85,6 +85,9 @@ int Connection::pendingWrite() const
 
 void Connection::finish()
 {
+    if (mFinished)
+        return;
+    mFinished = true;
     mDone = true;
     onDataWritten(mSocketClient, 0);
 }

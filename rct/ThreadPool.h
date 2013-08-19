@@ -12,7 +12,7 @@ class ThreadPoolThread;
 class ThreadPool
 {
 public:
-    ThreadPool(int concurrentJobs, int stackSize = 0);
+    ThreadPool(int concurrentJobs);
     ~ThreadPool();
 
     void setConcurrentJobs(int concurrentJobs);
@@ -57,7 +57,6 @@ private:
 
 private:
     int mConcurrentJobs;
-    const int mStackSize;
     std::mutex mMutex;
     std::condition_variable mCond;
     std::deque<std::shared_ptr<Job> > mJobs;

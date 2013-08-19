@@ -1,13 +1,13 @@
 #ifndef THREAD_H
 #define THREAD_H
 
-#include <pthread.h>
+#include <thread>
 #include <mutex>
 
 class Thread
 {
 public:
-    Thread(int stackSize = 0);
+    Thread();
     virtual ~Thread();
 
     void start();
@@ -18,24 +18,25 @@ public:
         std::lock_guard<std::mutex> lock(mMutex);
         mAutoDelete = on;
     }
+
     bool isAutoDelete() const
     {
         std::lock_guard<std::mutex> lock(mMutex);
         return mAutoDelete;
     }
-    pthread_t self() const { return mThread; }
+
+    std::thread::id self() const { return mThread.get_id(); }
+
 protected:
     virtual void run() = 0;
 
 private:
-    static void* internalStart(void* arg);
     void finish();
 
 private:
     bool mAutoDelete;
     mutable std::mutex mMutex;
-    pthread_t mThread;
-    const int mStackSize;
+    std::thread mThread;
 };
 
 #endif

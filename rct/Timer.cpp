@@ -17,9 +17,10 @@ Timer::~Timer()
     stop();
 }
 
-void Timer::restart(int interval, int flags)
+void Timer::restart(int interval, int flags, const std::shared_ptr<EventLoop> &l)
 {
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+    EventLoop::SharedPtr loop = l ? l : EventLoop::eventLoop();
+    if (loop) {
         // ### this is a bit inefficient, should revisit
         if (timerId)
             loop->unregisterTimer(timerId);

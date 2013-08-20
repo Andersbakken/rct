@@ -573,8 +573,9 @@ int EventLoop::exec(int timeoutTime)
                 waitUntil = std::max<int>((*timer)->when - now, 0);
             }
         }
+        int eventCount;
 #if defined(HAVE_EPOLL)
-        eintrwrap(e, epoll_wait(pollFd, events, MaxEvents, waitUntil));
+        eintrwrap(eventCount, epoll_wait(pollFd, events, MaxEvents, waitUntil));
 #elif defined(HAVE_KQUEUE)
         timespec* timeptr = 0;
         if (waitUntil != -1) {
@@ -582,18 +583,18 @@ int EventLoop::exec(int timeoutTime)
             timeout.tv_nsec = (waitUntil % 1000LLU) * 1000000;
             timeptr = &timeout;
         }
-        eintrwrap(e, kevent(pollFd, 0, 0, events, MaxEvents, timeptr));
+        eintrwrap(eventCount, kevent(pollFd, 0, 0, events, MaxEvents, timeptr));
 #endif
-        if (e < 0) {
+        if (eventCount < 0) {
             // bad
             std::lock_guard<std::mutex> locker(mutex);
             execLevel = 0;
             return GeneralError;
-        } else if (e) {
+        } else if (eventCount) {
             std::unique_lock<std::mutex> locker(mutex);
             std::map<int, std::pair<int, std::function<void(int, int)> > > local = sockets;
             locker.unlock();
-            for (i = 0; i < e; ++i) {
+            for (i = 0; i < eventCount; ++i) {
                 mode = 0;
 #if defined(HAVE_EPOLL)
                 const uint32_t ev = events[i].events;

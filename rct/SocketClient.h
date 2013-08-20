@@ -31,7 +31,7 @@ public:
     bool write(const std::string& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
 
     const Buffer& buffer() const { return readBuffer; }
-    Buffer&& buffer() { return std::move(readBuffer); }
+    Buffer&& takeBuffer() { return std::move(readBuffer); }
 
     Signal<std::function<void(SocketClient::SharedPtr&)> >& readyRead() { return signalReadyRead; }
     Signal<std::function<void(const SocketClient::SharedPtr&)> >& connected() { return signalConnected; }

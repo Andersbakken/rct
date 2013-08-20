@@ -32,11 +32,6 @@ Connection::Connection(const SocketClient::SharedPtr &client)
       registerTimer([&](int){ this->checkData(); }, 1, Timer::SingleShot);
 }
 
-Connection::~Connection()
-{
-    mDestroyed(this);
-}
-
 void Connection::checkData()
 {
     if (!mSocketClient->buffer().isEmpty())

@@ -130,24 +130,33 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
 
 void Connection::onDataAvailable(SocketClient::SharedPtr&)
 {
+    printf("DATA AVAILABLE %d\n", mSocketClient->socket());
     while (true) {
         if (!mSocketClient->buffer().isEmpty())
             mBuffers.push_back(std::move(mSocketClient->takeBuffer()));
         unsigned int available = bufferSize(mBuffers);
-        if (!available)
+        if (!available) {
+            printf("NOTHING AVAILABLE\n");
             break;
+        }
         if (!mPendingRead) {
-            if (available < static_cast<int>(sizeof(uint32_t)))
+            printf("no pending read ready\n");
+            if (available < static_cast<int>(sizeof(uint32_t))) {
+                printf("[%s:%d]: if (available < static_cast<int>(sizeof(uint32_t))) {\n", __func__, __LINE__); fflush(stdout);
                 break;
+            }
             char buf[sizeof(uint32_t)];
             const int read = bufferRead(mBuffers, buf, 4);
             assert(read == 4);
             Deserializer strm(buf, read);
             strm >> mPendingRead;
             available -= 4;
+            printf("need %d bytes\n", mPendingRead);
         }
-        if (available < mPendingRead)
+        if (available < mPendingRead) {
+            printf("[%s:%d]: if (available < mPendingRead) {\n", __func__, __LINE__); fflush(stdout);
             break;
+        }
         char buf[1024];
         char *buffer = buf;
         if (mPendingRead > static_cast<int>(sizeof(buf))) {
@@ -157,8 +166,12 @@ void Connection::onDataAvailable(SocketClient::SharedPtr&)
         assert(read == mPendingRead);
         Message *message = Messages::create(buffer, read);
         if (message) {
+            printf("CREATED A MESSAGE, firing it\n");
             newMessage()(message, this);
+            printf("MESSAGE FIRED %d\n", message->messageId());
             delete message;
+        } else {
+            printf("FAILED TO CREATE A MESSAGE\n");
         }
         if (buffer != buf)
             delete[] buffer;

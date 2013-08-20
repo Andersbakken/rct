@@ -529,6 +529,10 @@ String Process::readAllStdErr()
 
 void Process::processCallback(int fd, int mode)
 {
+    if (mode == EventLoop::SocketError) {
+        // we're closed, shut down
+        return;
+    }
     if (fd == mStdIn[1])
         handleInput(fd);
     else if (fd == mStdOut[0])

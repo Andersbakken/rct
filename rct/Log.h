@@ -11,11 +11,6 @@
 #include <sstream>
 #include <memory>
 
-using std::shared_ptr;
-using std::weak_ptr;
-using std::enable_shared_from_this;
-using std::static_pointer_cast;
-
 class Path;
 
 enum LogLevel {
@@ -176,7 +171,7 @@ private:
         int disableSpacingOverride;
     };
 
-    shared_ptr<Data> mData;
+    std::shared_ptr<Data> mData;
 };
 
 template <typename T> inline String typeName()

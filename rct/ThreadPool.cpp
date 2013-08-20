@@ -20,7 +20,7 @@ class ThreadPoolThread : public Thread
 {
 public:
     ThreadPoolThread(ThreadPool* pool);
-    ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job);
+    ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job);
 
     void stop();
 
@@ -28,7 +28,7 @@ protected:
     virtual void run();
 
 private:
-    shared_ptr<ThreadPool::Job> mJob;
+    std::shared_ptr<ThreadPool::Job> mJob;
     ThreadPool* mPool;
     bool mStopped;
 };
@@ -39,7 +39,7 @@ ThreadPoolThread::ThreadPoolThread(ThreadPool* pool)
     setAutoDelete(false);
 }
 
-ThreadPoolThread::ThreadPoolThread(const shared_ptr<ThreadPool::Job> &job)
+ThreadPoolThread::ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job)
     : mJob(job), mPool(0), mStopped(false)
 {
     setAutoDelete(false);
@@ -72,9 +72,9 @@ void ThreadPoolThread::run()
             mPool->mCond.wait(lock);
         if (mStopped)
             break;
-        std::deque<shared_ptr<ThreadPool::Job> >::iterator item = mPool->mJobs.begin();
+        std::deque<std::shared_ptr<ThreadPool::Job> >::iterator item = mPool->mJobs.begin();
         assert(item != mPool->mJobs.end());
-        shared_ptr<ThreadPool::Job> job = *item;
+        std::shared_ptr<ThreadPool::Job> job = *item;
         mPool->mJobs.erase(item);
         {
             std::lock_guard<std::mutex> joblock(job->mMutex);
@@ -143,12 +143,12 @@ void ThreadPool::setConcurrentJobs(int concurrentJobs)
     }
 }
 
-bool ThreadPool::jobLessThan(const shared_ptr<Job> &l, const shared_ptr<Job> &r)
+bool ThreadPool::jobLessThan(const std::shared_ptr<Job> &l, const std::shared_ptr<Job> &r)
 {
     return static_cast<unsigned>(l->mPriority) > static_cast<unsigned>(r->mPriority);
 }
 
-void ThreadPool::start(const shared_ptr<Job> &job, int priority)
+void ThreadPool::start(const std::shared_ptr<Job> &job, int priority)
 {
     job->mPriority = priority;
     if (priority == Guaranteed) {
@@ -173,10 +173,10 @@ void ThreadPool::start(const shared_ptr<Job> &job, int priority)
     mCond.notify_one();
 }
 
-bool ThreadPool::remove(const shared_ptr<Job> &job)
+bool ThreadPool::remove(const std::shared_ptr<Job> &job)
 {
     std::lock_guard<std::mutex> lock(mMutex);
-    std::deque<shared_ptr<Job> >::iterator it = std::find(mJobs.begin(), mJobs.end(), job);
+    std::deque<std::shared_ptr<Job> >::iterator it = std::find(mJobs.begin(), mJobs.end(), job);
     if (it == mJobs.end())
         return false;
     mJobs.erase(it);

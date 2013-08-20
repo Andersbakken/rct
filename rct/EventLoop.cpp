@@ -191,13 +191,16 @@ void EventLoop::post(Event* event)
 {
     std::lock_guard<std::mutex> locker(mutex);
     events.push(event);
+    printf("PUSHING EVENT %d\n", event->type);
     wakeup();
 }
 
 void EventLoop::wakeup()
 {
-    if (std::this_thread::get_id() == threadId)
+    printf("wakeup %d\n", std::this_thread::get_id() == threadId);
+    if (std::this_thread::get_id() == threadId) {
         return;
+    }
 
     char b = 'w';
     int w;
@@ -225,8 +228,10 @@ void EventLoop::quit(int code)
 inline bool EventLoop::sendPostedEvents()
 {
     std::unique_lock<std::mutex> locker(mutex);
-    if (events.empty())
+    printf("Sending posted events %lu\n", events.size());
+    if (events.empty()) {
         return false;
+    }
     while (!events.empty()) {
         auto event = events.front();
         events.pop();
@@ -553,8 +558,15 @@ int EventLoop::exec(int timeoutTime)
 
     for (;;) {
         for (;;) {
-            if (!sendPostedEvents() && !sendTimers())
-                break;
+            if (sendPostedEvents()) {
+                printf("Sent some events...restarting\n");
+                continue;
+            }
+            if (sendTimers()) {
+                printf("Sent some timers...restarting\n");
+                continue;
+            }
+            break;
         }
         int waitUntil = -1;
         {
@@ -574,7 +586,9 @@ int EventLoop::exec(int timeoutTime)
             }
         }
 #if defined(HAVE_EPOLL)
+        printf("About to wait %d\n", waitUntil);
         eintrwrap(e, epoll_wait(pollFd, events, MaxEvents, waitUntil));
+        printf("Woke up %d\n", e);
 #elif defined(HAVE_KQUEUE)
         timespec* timeptr = 0;
         if (waitUntil != -1) {

@@ -14,8 +14,14 @@
 class Event
 {
 public:
+    enum Type {
+        Type_SignalEvent = 1,
+        Type_DeleteLater
+    };
+    Event(int typ) : type(typ) {}
     virtual ~Event() { }
     virtual void exec() = 0;
+    const int type;
 };
 
 template<typename Object, typename... Args>
@@ -25,19 +31,19 @@ public:
     enum MoveType { Move };
 
     SignalEvent(Object& o, Args&&... a)
-        : obj(o), args(a...)
+        : Event(Type_SignalEvent), obj(o), args(a...)
     {
     }
     SignalEvent(Object&& o, Args&&... a)
-        : obj(o), args(a...)
+        : Event(Type_SignalEvent), obj(o), args(a...)
     {
     }
     SignalEvent(Object& o, MoveType, Args&&... a)
-        : obj(o), args(std::move(a...))
+        : Event(Type_SignalEvent), obj(o), args(std::move(a...))
     {
     }
     SignalEvent(Object&& o, MoveType, Args&&... a)
-        : obj(o), args(std::move(a...))
+        : Event(Type_SignalEvent), obj(o), args(std::move(a...))
     {
     }
 
@@ -53,7 +59,7 @@ class DeleteLaterEvent : public Event
 {
 public:
     DeleteLaterEvent(T* d)
-        : del(d)
+        : Event(Type_DeleteLater), del(d)
     {
     }
 

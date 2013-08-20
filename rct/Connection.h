@@ -70,7 +70,8 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
-    bool mDone, mSilent, mFinished;
+    bool mDone, mSilent, mFinished, mDeleted;
+
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mSendComplete, mError;

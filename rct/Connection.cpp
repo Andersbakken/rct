@@ -9,7 +9,8 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false), mFinished(false)
+    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false),
+      mSilent(false), mFinished(false), mDeleted(false)
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -19,7 +20,8 @@ Connection::Connection()
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false), mFinished(false)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mDone(false),
+      mSilent(false), mFinished(false), mDeleted(false)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -177,6 +179,8 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
             mSendComplete(this);
         if (mDone) {
             mSocketClient->close();
+            assert(!mDeleted);
+            mDeleted = true;
             EventLoop::deleteLater(this);
         }
     }

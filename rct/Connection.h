@@ -18,7 +18,6 @@ class Connection
 public:
     Connection();
     Connection(const SocketClient::SharedPtr &client);
-    ~Connection();
 
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }
@@ -57,7 +56,6 @@ public:
     Signal<std::function<void(Connection*)> > &error() { return mError; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
     Signal<std::function<void(Connection*)> > &sendComplete() { return mSendComplete; }
-    Signal<std::function<void(Connection*)> > &destroyed() { return mDestroyed; }
 
     SocketClient::SharedPtr client() const { return mSocketClient; }
 
@@ -75,7 +73,7 @@ private:
     bool mDone, mSilent, mFinished;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
-    Signal<std::function<void(Connection*)> > mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
+    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mSendComplete, mError;
 };
 
 inline bool Connection::send(const Message *message)

@@ -29,11 +29,6 @@ Connection::Connection(const SocketClient::SharedPtr &client)
     EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
 }
 
-Connection::~Connection()
-{
-    mDestroyed(this);
-}
-
 void Connection::checkData()
 {
     if (!mSocketClient->buffer().isEmpty())

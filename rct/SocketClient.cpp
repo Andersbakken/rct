@@ -31,6 +31,7 @@ SocketClient::SocketClient(Mode mode)
     ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
 #endif
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        printf("%s:%d registerSocket %d\n", __FILE__, __LINE__, fd);
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
         int e;
@@ -55,6 +56,7 @@ SocketClient::SocketClient(int f)
 #endif
 
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        printf("%s:%d registerSocket %d\n", __FILE__, __LINE__, fd);
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
         int e;

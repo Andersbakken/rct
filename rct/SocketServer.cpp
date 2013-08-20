@@ -112,6 +112,7 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
     }
 
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        printf("%s:%d registerSocket %d\n", __FILE__, __LINE__, fd);
         loop->registerSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite,
                              std::bind(&SocketServer::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
         int e;
@@ -130,9 +131,11 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
 
 SocketClient::SharedPtr SocketServer::nextConnection()
 {
+    printf("FETCHING A CONNECTION %d\n", accepted.size());
     if (accepted.empty())
         return 0;
     const int fd = accepted.front();
+    printf("FETCHING A CONNECTION fd %d\n", fd);
     accepted.pop();
     return SocketClient::SharedPtr(new SocketClient(fd));
 }
@@ -144,6 +147,7 @@ void SocketServer::socketCallback(int /*fd*/, int /*mode*/)
     int e;
     for (;;) {
         eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
+        printf("ACCEPTED A CONNECTION %d\n", e);
         if (e == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 return;

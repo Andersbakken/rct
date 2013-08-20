@@ -175,10 +175,8 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
     if (!mPendingWrite) {
         if (bytes)
             mSendComplete(this);
-        if (mDone) {
+        if (mDone)
             mSocketClient->close();
-            EventLoop::deleteLater(this);
-        }
     }
 }
 

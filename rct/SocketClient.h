@@ -24,6 +24,7 @@ public:
     bool connect(const std::string& path); // UNIX
     bool connect(const std::string& host, uint16_t port); // TCP
     bool isConnected() const { return fd != -1; }
+    int socket() const { return fd; }
 
     void close();
 

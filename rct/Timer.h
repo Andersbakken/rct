@@ -2,7 +2,9 @@
 #define TIMER_H
 
 #include "SignalSlot.h"
+#include <memory>
 
+class EventLoop;
 class Timer
 {
 public:
@@ -12,7 +14,7 @@ public:
     Timer(int interval, int flags = 0);
     ~Timer();
 
-    void restart(int interval, int flags = 0);
+    void restart(int interval, int flags = 0, const std::shared_ptr<EventLoop> &eventLoop = std::shared_ptr<EventLoop>());
     void stop();
 
     Signal<std::function<void(Timer*)> >& timeout() { return signalTimeout; }

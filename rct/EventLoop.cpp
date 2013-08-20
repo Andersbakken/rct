@@ -647,6 +647,7 @@ int EventLoop::exec(int timeoutTime)
                     // write
                     mode |= SocketWrite;
                 }
+                printf("Got a socket %d for 0x%0x\n", fd, mode);
 #elif defined(HAVE_KQUEUE)
                 const int16_t filter = events[i].filter;
                 const uint16_t flags = events[i].flags;
@@ -679,8 +680,11 @@ int EventLoop::exec(int timeoutTime)
                     if (fd == eventPipe[0]) {
                         // drain the pipe
                         char q;
+                        int bytes = 0;
                         do {
                             eintrwrap(e, ::read(eventPipe[0], &q, 1));
+                            if (e == 1)
+                                ++bytes;
                             if (e == 1 && q == 'q') {
                                 // signal caught, we need to shut down
                                 fprintf(stderr, "Caught Ctrl-C\n");
@@ -689,6 +693,7 @@ int EventLoop::exec(int timeoutTime)
                                 return Success;
                             }
                         } while (e == 1);
+                        printf("PIPE WRITTEN TO...draining %d bytes\n", bytes);
                         if (e == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
                             // error
                             char buf[128];
@@ -700,6 +705,7 @@ int EventLoop::exec(int timeoutTime)
                         }
                     } else {
                         auto socket = local.find(fd);
+                        printf("OTHER SOCK at end %d\n", socket == local.end());
                         if (socket == local.end()) {
                             // could happen if the socket is unregistered right after epoll_wait has woken up
                             // and just before we've taken the local copy of the sockets map
@@ -707,6 +713,7 @@ int EventLoop::exec(int timeoutTime)
                             // really make sure it's gone
                             locker.lock();
                             socket = sockets.find(fd);
+                            printf("OTHER SOCK 2 at end %d\n", socket == local.end());
                             if (socket == sockets.end()) {
 #if defined(HAVE_EPOLL)
                                 epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &events[i]);
@@ -727,6 +734,7 @@ int EventLoop::exec(int timeoutTime)
                             }
                             locker.unlock();
                         }
+                        printf("firing socket %d\n", socket == local.end());
                         socket->second.second(fd, mode);
                     }
                 }

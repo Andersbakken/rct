@@ -180,7 +180,10 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
     mPendingWrite -= bytes;
     // ::error() << "wrote some bytes" << mPendingWrite << bytes;
     if (!mPendingWrite) {
-        mSendFinished(this);
+        if (bytes)
+            mSendComplete(this);
+        if (mDone)
+            mSocketClient->close();
     }
 }
 

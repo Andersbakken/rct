@@ -10,6 +10,8 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <iostream>
+#include "Log.h"
 
 #define eintrwrap(VAR, BLOCK)                   \
     do {                                        \
@@ -19,6 +21,7 @@
 SocketServer::SocketServer()
     : fd(-1)
 {
+  warning("%s", __PRETTY_FUNCTION__);
 }
 
 SocketServer::~SocketServer()
@@ -97,6 +100,8 @@ bool SocketServer::listen(const std::string& path)
 
 bool SocketServer::commonListen(sockaddr* addr, size_t size)
 {
+  fprintf(stdout, "%s Entered!\n", __PRETTY_FUNCTION__);
+  
     if (::bind(fd, reinterpret_cast<sockaddr*>(addr), size) < 0) {
         serverError(this, BindError);
         close();
@@ -106,6 +111,9 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
     // ### should be able to customize the backlog
     enum { Backlog = 128 };
     if (::listen(fd, Backlog) < 0) {
+      fprintf(stderr, "::listen() failed with errno: %s\n",
+	      strerror( errno ));
+      
         serverError(this, ListenError);
         close();
         return false;

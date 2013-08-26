@@ -1,15 +1,16 @@
 #ifndef String_h
 #define String_h
 
-#include <string>
-#include <stdint.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cstdint>
 #include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <string>
 #include <stdarg.h>
 #include <time.h>
 #include <rct/List.h>
+#include <strings.h>
 
 class String
 {
@@ -520,7 +521,7 @@ public:
     {
         errno = 0;
         char *end = 0;
-        const uint64_t ret = strtoull(constData(), &end, base);
+        const uint64_t ret = ::strtoull(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -529,7 +530,7 @@ public:
     {
         errno = 0;
         char *end = 0;
-        const int64_t ret = strtoll(constData(), &end, base);
+        const int64_t ret = ::strtoll(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -626,7 +627,7 @@ public:
 
         char buffer[StaticBufSize];
         char *ch = buffer;
-        int size = vsnprintf(buffer, StaticBufSize, format, args);
+        int size = ::vsnprintf(buffer, StaticBufSize, format, args);
         assert(size >= 0);
         if (size >= StaticBufSize) {
             ch = reinterpret_cast<char*>(malloc(size + 1));

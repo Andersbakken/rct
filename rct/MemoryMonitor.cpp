@@ -20,7 +20,7 @@ MemoryMonitor::MemoryMonitor()
 {
 }
 
-#if defined(OS_Linux)
+#if defined(OS_Linux) || defined(__CYGWIN__ )
 typedef bool (*LineVisitor)(char*, void*);
 static void visitLine(FILE* stream, LineVisitor visitor, void* userData)
 {
@@ -110,7 +110,7 @@ static inline uint64_t usageOSX()
 
 uint64_t MemoryMonitor::usage()
 {
-#if defined(OS_Linux)
+#if defined(OS_Linux) || defined(__CYGWIN__)
     return usageLinux();
 #elif defined(OS_FreeBSD)
     return usageFreeBSD();

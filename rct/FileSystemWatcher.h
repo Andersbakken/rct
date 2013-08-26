@@ -12,6 +12,8 @@
 class WatcherData;
 #elif defined(HAVE_KQUEUE)
 #elif defined(HAVE_INOTIFY)
+#elif defined(HAVE_FAM)
+#include "fam.h"
 #else
 #error no filesystemwatcher backend
 #endif
@@ -48,6 +50,13 @@ private:
     int mFd;
     Map<Path, int> mWatchedByPath;
     Map<int, Path> mWatchedById;
+
+#ifdef HAVE_FAM
+    FAMConnection mFAMCon;
+    void checkFAMEvents(int);
+    bool isFAMEventPending();
+#endif
+
 #ifdef HAVE_KQUEUE
     Map<Path, uint64_t> mTimes;
     static Path::VisitResult scanFiles(const Path& path, void* userData);
@@ -59,3 +68,22 @@ private:
     Signal<std::function<void(const Path&)> > mRemoved, mModified, mAdded;
 };
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

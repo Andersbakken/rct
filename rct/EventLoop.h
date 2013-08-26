@@ -8,17 +8,12 @@
 #include <tuple>
 #include <queue>
 #include <set>
+#include <list>
 #include <unordered_set>
-#include <vector>
+
+#include <event2/event.h>
+
 #include "Apply.h"
-#include "rct-config.h"
-#if defined(HAVE_EPOLL)
-#  include <sys/epoll.h>
-#elif defined(HAVE_KQUEUE)
-#  include <sys/types.h>
-#  include <sys/event.h>
-#  include <sys/time.h>
-#endif
 
 class Event
 {
@@ -133,38 +128,32 @@ public:
         SocketOneShot = 0x4,
         SocketError = 0x8
     };
-    void registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func);
-    void updateSocket(int fd, unsigned int mode);
+    void registerSocket(int fd, int mode, std::function<void(int, int)>&& func);
+    void updateSocket(int fd, int mode);
     void unregisterSocket(int fd);
-    unsigned int processSocket(int fd, int timeout = -1);
 
     // See Timer.h for the flags
-    int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
+    int registerTimer(std::function<void(int)>&& func, int timeout, int flags = 0);
     void unregisterTimer(int id);
 
-    enum { Success = 0x100, GeneralError = 0x200, Timeout = 0x400 };
-    unsigned int exec(int timeout = -1);
-    void quit();
+    enum { Success, GeneralError = -1, Timeout = -2 };
+    int exec(int timeout = -1);
+    void quit(int code = 0);
 
-    //bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return !mExecStack.empty(); }
+    bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return execLevel; }
 
     static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
     static EventLoop::SharedPtr eventLoop();
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
-private:
-#if defined(HAVE_EPOLL)
-    typedef epoll_event NativeEvent;
-#elif defined(HAVE_KQUEUE)
-    typedef struct kevent NativeEvent;
-#endif
 
-    void clearTimer(int id);
+    void eventTimerCB(evutil_socket_t, short, void *userdata);
+    void socketEventCB(evutil_socket_t fd, short what, void *arg);
+
+private:
     bool sendPostedEvents();
     bool sendTimers();
     void cleanup();
-    unsigned int processSocketEvents(NativeEvent* events, int eventCount);
-    unsigned int fireSocket(int fd, unsigned int mode);
 
     static void error(const char* err);
 
@@ -174,75 +163,45 @@ private:
     std::thread::id threadId;
 
     std::queue<Event*> events;
-    int eventPipe[2];
-    int pollFd;
 
-    std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > sockets;
+    event_base *eventBase;
 
-    class TimerData
+    struct EventCallbackData 
     {
-    public:
-        TimerData() { }
-        TimerData(uint64_t w, int i, unsigned int f, int in, std::function<void(int)>&& cb)
-            : when(w), id(i), flags(f), interval(in), callback(std::move(cb))
-        {
-        }
-        TimerData(TimerData&& other)
-            : when(other.when), id(other.id), flags(other.flags),
-              interval(other.interval), callback(std::move(other.callback))
-        {
-        }
-        TimerData& operator=(TimerData&& other)
-        {
-            when = other.when;
-            id = other.id;
-            flags = other.flags;
-            interval = other.interval;
-            callback = std::move(other.callback);
-            return *this;
-        }
-
-        bool operator<(const TimerData& other) const
-        {
-            return when < other.when;
-        }
-
-        uint64_t when;
-        uint32_t id;
-        unsigned int flags;
-        int interval;
-        std::function<void(int)> callback;
-
-    private:
-        TimerData(const TimerData& other) = delete;
-        TimerData& operator=(const TimerData& other) = delete;
+      EventLoop *parent;
+      void *userdata;
     };
+    std::list<EventCallbackData> eventcbs;
+    
+    typedef std::function<void(int,int)> SocketCallback;
+    typedef std::function<void(int)> TimerCallback;
+    
+    typedef std::map<int, std::pair<int, std::function<void(int, int)> > > SocketMap;
+    
+    SocketMap sockets;
+    std::map<int, event *> socketEventMap;
+    
+    typedef std::map<event *, std::function<void(int)> > EventCallbackMap;
+    typedef std::map<int, event *> IdEventMap;
+    
+    IdEventMap idEventMap;
+    EventCallbackMap eventCbMap;
 
-    struct TimerDataSet
-    {
-        bool operator()(TimerData* a, TimerData* b) const { return a->when < b->when; }
-    };
-    struct TimerDataHash
-    {
-        // two operators for the price of one!
-        size_t operator()(TimerData* a) const { return a->id; }
-        bool operator()(TimerData* a, TimerData* b) const { return a->id == b->id; }
-    };
-    typedef std::multiset<TimerData*, TimerDataSet> TimersByTime;
-    typedef std::unordered_set<TimerData*, TimerDataHash, TimerDataHash> TimersById;
-    TimersByTime timersByTime;
-    TimersById timersById;
     uint32_t nextTimerId;
 
     bool stop;
-    bool timeout;
+    int exitCode, execLevel;
 
     static EventLoop::WeakPtr mainLoop;
 
     unsigned flgs;
+
 private:
     EventLoop(const EventLoop&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;
 };
 
 #endif
+
+
+

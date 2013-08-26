@@ -203,7 +203,7 @@ void findExecutablePath(const char *argv0)
             return;
         }
     }
-#if defined(OS_Linux)
+#if defined(OS_Linux) || defined(__CYGWIN__)
     char buf[32];
     const int w = snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
     Path p(buf, w);

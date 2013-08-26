@@ -67,12 +67,21 @@ private:
     T* del;
 };
 
+extern "C" void postCallback(evutil_socket_t fd,
+			     short w,
+			     void *data)
+  ;
+
 class EventLoop : public std::enable_shared_from_this<EventLoop>
 {
 public:
     typedef std::shared_ptr<EventLoop> SharedPtr;
     typedef std::weak_ptr<EventLoop> WeakPtr;
 
+    friend void postCallback(evutil_socket_t fd,
+			     short w,
+			     void *data);
+    
     EventLoop();
     ~EventLoop();
 

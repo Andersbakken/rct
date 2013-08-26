@@ -135,11 +135,26 @@ void EventLoop::error(const char* err)
     abort();
 }
 
+extern "C" void postCallback(evutil_socket_t fd,
+			     short w,
+			     void *data)
+{
+  EventLoop *evl = (EventLoop *)data;
+  std::cout << __PRETTY_FUNCTION__ << " on fd = " << fd << "\n";
+  evl->sendPostedEvents();
+}
+
 void EventLoop::post(Event* event)
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    events.push(event);
-    wakeup();
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  std::lock_guard<std::mutex> locker(mutex);
+  events.push(event);
+
+  auto ev =
+    event_new( eventBase, -1, 0, postCallback, this );
+  event_add( ev, nullptr );
+    
+  wakeup();
 }
 
 void EventLoop::wakeup()
@@ -154,20 +169,29 @@ void EventLoop::wakeup()
 
 void EventLoop::quit(int code)
 {
-    if (std::this_thread::get_id() == threadId) {
-        if (execLevel) {
-            stop = true;
-            exitCode = code;
-        }
-        return;
-    }
+  std::cout << __PRETTY_FUNCTION__ << std::endl;
+  
+  std::lock_guard<std::mutex> locker(mutex);
 
-    std::lock_guard<std::mutex> locker(mutex);
-    if (execLevel && !stop) {
-        stop = true;
-        exitCode = code;
-        wakeup();
+
+  if (!event_base_got_exit( eventBase )) {
+    timeval tv = { 0, 1 * 1000l };
+    event_base_loopexit( eventBase, &tv );
+  }
+
+  if (std::this_thread::get_id() == threadId) {
+    if (execLevel) {
+      stop = true;
+      exitCode = code;
     }
+    return;
+  }
+
+  if (execLevel && !stop) {
+    stop = true;
+    exitCode = code;
+    wakeup();
+  }
 }
 
 inline bool EventLoop::sendPostedEvents()
@@ -245,7 +269,7 @@ int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, int f
 
   timeval tv { 0, timeout * 1000l };
 
-  short tflags = flags == Timer::SingleShot ? EV_PERSIST : 0;
+  short tflags = flags == Timer::SingleShot ? 0 : EV_PERSIST;
   auto bound =
     std::bind(&EventLoop::eventTimerCB,
 	      this,
@@ -332,6 +356,10 @@ void EventLoop::socketEventCB(evutil_socket_t fd, short what, void *arg)
     std::lock_guard<std::mutex> locker(mutex);
 
     sockcb_it = sockets.find( fd );
+    bool found = sockcb_it == std::end(sockets) ? false : true;
+    std::cout << "socket cb iter found = "
+	      << std::boolalpha
+	      << found  << "\n";
     if ( sockcb_it == std::end( sockets ))
       return;
 
@@ -341,13 +369,14 @@ void EventLoop::socketEventCB(evutil_socket_t fd, short what, void *arg)
 void socket_event_cb( evutil_socket_t fd, short what, void *arg )
 {
   EventLoop *evl = (EventLoop *)arg;
-  std::cout << "Socket Event CB hit! fd = " << fd << "\n";
+  std::cout << "Socket Event CB hit! fd = " << fd
+	    << " evl = " << evl << "\n";
   evl->socketEventCB( fd, what, arg );
 }
 
 void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&& func)
 {
-  std::cout << "Register Socket Request!\n";
+  std::cout << "Register Socket Request! fd = " << fd << "\n";
   
   std::lock_guard<std::mutex> locker(mutex);
   sockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, int)> >(func));
@@ -358,7 +387,7 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
     
   auto socketEvent = event_new( eventBase, fd, what,
 				socket_event_cb,
-				nullptr );
+				this );
 
   socketEventMap[ fd ] = socketEvent;
 
@@ -390,7 +419,7 @@ void EventLoop::updateSocket(int fd, int mode)
     
     auto socketEvent = event_new( eventBase, fd, what,
 				  socket_event_cb,
-				  nullptr );
+				  this );
 
     socketEventMap[ fd ] = socketEvent;
     event_add( socketEvent, nullptr );
@@ -423,22 +452,32 @@ int EventLoop::exec(int timeoutTime)
   }
 
   while (!exit) {
-      
-    if (timeoutTime != -1) {
+
+    if ( event_base_got_exit( eventBase ) ) {
+      exit = true;
+      continue;
+    }
+    
+    else if (timeoutTime != -1) {
       // register a timer that will quit the event loop
       //registerTimer(std::bind(&EventLoop::quit, this, Timeout), timeoutTime, Timer::SingleShot);
       timeval tv = { 0, timeoutTime * 1000l };
       event_base_loopexit( eventBase, &tv );
       exit = true;
-    }
-
+    } 
+  
     if (!sendPostedEvents())
       return GeneralError;
 
-    ret = event_base_dispatch( eventBase );
+    //ret = event_base_dispatch( eventBase );
+    ret = event_base_loop( eventBase, EVLOOP_NONBLOCK );
     if ( ret == -1 )
       std::cout << "ERROR: EventLoop dispatch ret = " << ret << "\n";
+    //std::cout << "event_base_dispatch returned!\n";
+    
   }
+
+  std::cout << "Exiting EventLoop!\n";
 
   return ret == 1 ? Success : Timeout ;
 }

@@ -5,14 +5,17 @@
 
 #include "fam.h"
 
+#include <iostream>
+
 FileSystemWatcher::FileSystemWatcher()
 {
+  std::cout << __PRETTY_FUNCTION__ << "\n";
   auto ret = FAMOpen( &mFAMCon );
   assert( ! (ret < 0) );
   EventLoop::eventLoop()->
     registerTimer( std::bind(&FileSystemWatcher::checkFAMEvents,
 			     this, std::placeholders::_1),
-		   1 );
+		   10 );
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -20,6 +23,7 @@ FileSystemWatcher::~FileSystemWatcher()
 
 void FileSystemWatcher::clear()
 {
+  std::cout << __PRETTY_FUNCTION__ << "\n";
   for (Map<Path, int>::const_iterator it = mWatchedByPath.begin();
        it != mWatchedByPath.end(); ++it) {
     FAMRequest freq;
@@ -37,6 +41,9 @@ bool FileSystemWatcher::watch(const Path &p)
     return false;
   Path path = p;
 
+  std::cout << __PRETTY_FUNCTION__ << ": "
+	    << path.fileName() << "\n";
+  
   std::lock_guard<std::mutex> lock(mMutex);
 
   FAMRequest mFAMReq;
@@ -69,6 +76,8 @@ bool FileSystemWatcher::watch(const Path &p)
 
 bool FileSystemWatcher::unwatch(const Path &path)
 {
+  std::cout << __PRETTY_FUNCTION__ << "\n";
+  
   std::lock_guard<std::mutex> lock(mMutex);
   int wd;
   if (!mWatchedByPath.remove(path, &wd))
@@ -94,6 +103,8 @@ bool FileSystemWatcher::isFAMEventPending()
   
 void FileSystemWatcher::checkFAMEvents(int something)
 {
+  std::cout << __PRETTY_FUNCTION__ << "\n";
+  
   Set<Path> modified, removed, added;
   std::lock_guard<std::mutex> lock(mMutex);
   

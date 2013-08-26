@@ -20,7 +20,7 @@ MemoryMonitor::MemoryMonitor()
 {
 }
 
-#if defined(OS_Linux)
+#if defined(OS_Linux) || defined(__CYGWIN__ )
 typedef bool (*LineVisitor)(char*, void*);
 static void visitLine(FILE* stream, LineVisitor visitor, void* userData)
 {
@@ -51,9 +51,12 @@ static inline uint64_t usageLinux()
 {
     const pid_t pid = getpid();
     FILE* file = fopen(("/proc/" + String::number(pid) + "/smaps").constData(), "r");
-    if (!file)
-        return 0;
-
+    if (!file) {
+      file = fopen(("/proc/" + String::number(pid) + "/smaps").constData(), "r");
+      if (!file)
+	return 0;
+    }
+    
     int total = 0;
     visitLine(file, lineVisitor, &total);
 
@@ -110,7 +113,7 @@ static inline uint64_t usageOSX()
 
 uint64_t MemoryMonitor::usage()
 {
-#if defined(OS_Linux)
+#if defined(OS_Linux) || defined(__CYGWIN__)
     return usageLinux();
 #elif defined(OS_FreeBSD)
     return usageFreeBSD();

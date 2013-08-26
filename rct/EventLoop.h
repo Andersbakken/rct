@@ -8,7 +8,11 @@
 #include <tuple>
 #include <queue>
 #include <set>
+#include <list>
 #include <unordered_set>
+
+#include <event2/event.h>
+
 #include "Apply.h"
 
 class Event
@@ -142,6 +146,10 @@ public:
     static EventLoop::SharedPtr eventLoop();
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
+
+    void eventTimerCB(evutil_socket_t, short, void *userdata);
+    void socketEventCB(evutil_socket_t fd, short what, void *arg);
+
 private:
     bool sendPostedEvents();
     bool sendTimers();
@@ -155,63 +163,30 @@ private:
     std::thread::id threadId;
 
     std::queue<Event*> events;
-    int eventPipe[2];
-    int pollFd;
 
-    std::map<int, std::pair<int, std::function<void(int, int)> > > sockets;
+    event_base *eventBase;
 
-    class TimerData
+    struct EventCallbackData 
     {
-    public:
-        TimerData() { }
-        TimerData(uint64_t w, int i, int f, int in, std::function<void(int)>&& cb)
-            : when(w), id(i), flags(f), interval(in), callback(std::move(cb))
-        {
-        }
-        TimerData(TimerData&& other)
-            : when(other.when), id(other.id), flags(other.flags),
-              interval(other.interval), callback(std::move(other.callback))
-        {
-        }
-        TimerData& operator=(TimerData&& other)
-        {
-            when = other.when;
-            id = other.id;
-            flags = other.flags;
-            interval = other.interval;
-            callback = std::move(other.callback);
-            return *this;
-        }
-
-        bool operator<(const TimerData& other) const
-        {
-            return when < other.when;
-        }
-
-        uint64_t when;
-        uint32_t id;
-        int flags, interval;
-        std::function<void(int)> callback;
-
-    private:
-        TimerData(const TimerData& other) = delete;
-        TimerData& operator=(const TimerData& other) = delete;
+      EventLoop *parent;
+      void *userdata;
     };
+    std::list<EventCallbackData> eventcbs;
+    
+    typedef std::function<void(int,int)> SocketCallback;
+    typedef std::function<void(int)> TimerCallback;
+    
+    typedef std::map<int, std::pair<int, std::function<void(int, int)> > > SocketMap;
+    
+    SocketMap sockets;
+    std::map<int, event *> socketEventMap;
+    
+    typedef std::map<event *, std::function<void(int)> > EventCallbackMap;
+    typedef std::map<int, event *> IdEventMap;
+    
+    IdEventMap idEventMap;
+    EventCallbackMap eventCbMap;
 
-    struct TimerDataSet
-    {
-        bool operator()(TimerData* a, TimerData* b) const { return a->when < b->when; }
-    };
-    struct TimerDataHash
-    {
-        // two operators for the price of one!
-        size_t operator()(TimerData* a) const { return a->id; }
-        bool operator()(TimerData* a, TimerData* b) const { return a->id == b->id; }
-    };
-    typedef std::multiset<TimerData*, TimerDataSet> TimersByTime;
-    typedef std::unordered_set<TimerData*, TimerDataHash, TimerDataHash> TimersById;
-    TimersByTime timersByTime;
-    TimersById timersById;
     uint32_t nextTimerId;
 
     bool stop;
@@ -227,3 +202,6 @@ private:
 };
 
 #endif
+
+
+

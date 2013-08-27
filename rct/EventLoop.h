@@ -15,11 +15,16 @@
 
 #include "Apply.h"
 
+class EventLoop;
+
 class Event
 {
+  friend class EventLoop;
+
+  event *mEvent = nullptr;
 public:
-    virtual ~Event() { }
-    virtual void exec() = 0;
+  virtual ~Event() { if (mEvent) event_del( mEvent ); }
+  virtual void exec() = 0;
 };
 
 template<typename Object, typename... Args>
@@ -156,7 +161,6 @@ public:
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
 
-    void eventTimerCB(evutil_socket_t, short, void *userdata);
     void socketEventCB(evutil_socket_t fd, short what, void *arg);
 
 private:
@@ -164,6 +168,9 @@ private:
     bool sendTimers();
     void cleanup();
 
+    static void eventDispatch(evutil_socket_t fd, short what, void *arg);
+    void dispatch(event *ev);
+    
     static void error(const char* err);
 
 private:
@@ -177,10 +184,11 @@ private:
 
     struct EventCallbackData 
     {
-      EventLoop *parent;
-      void *userdata;
+      EventLoop *evloop;
+      event *ev;
     };
-    std::list<EventCallbackData> eventcbs;
+    
+    std::map< event *, std::unique_ptr<EventCallbackData> > eventCbDataMap;
     
     typedef std::function<void(int,int)> SocketCallback;
     typedef std::function<void(int)> TimerCallback;

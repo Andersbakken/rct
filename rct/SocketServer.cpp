@@ -120,8 +120,12 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
     }
 
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-        loop->registerSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite,
-                             std::bind(&SocketServer::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+      loop->registerSocket(fd, EventLoop::SocketRead,
+			     //|EventLoop::SocketWrite,
+			   std::bind(&SocketServer::socketCallback,
+				     this,
+				     std::placeholders::_1,
+				     std::placeholders::_2));
         int e;
         eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
         if (e != -1) {
@@ -145,22 +149,33 @@ SocketClient::SharedPtr SocketServer::nextConnection()
     return SocketClient::SharedPtr(new SocketClient(fd));
 }
 
-void SocketServer::socketCallback(int /*fd*/, int /*mode*/)
+void SocketServer::socketCallback(int /*fd*/, int mode)
 {
-    sockaddr_in client;
-    socklen_t size = sizeof(sockaddr_in);
-    int e;
-    for (;;) {
-        eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
-        if (e == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                return;
-            }
-            serverError(this, AcceptError);
-            close();
-            return;
-        }
-        accepted.push(e);
-        serverNewConnection(this);
+  sockaddr_in client;
+  socklen_t size = sizeof(sockaddr_in);
+  int e;
+  long count = 0;
+
+  if ( mode & EventLoop::SocketRead )
+    std::cout << __PRETTY_FUNCTION__ << " : fd = " << fd
+	      << " mode = " << mode << "\n";
+  
+  if (! ( mode & EventLoop::SocketRead ) )
+    return;
+  
+  for (;;) {
+    eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
+    if (e == -1) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+	return;
+      }
+      serverError(this, AcceptError);
+      close();
+      return;
     }
+
+    //EventLoop::eventLoop()->unregisterSocket( fd );
+    accepted.push(e);
+    serverNewConnection(this);
+  }
 }

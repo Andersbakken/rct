@@ -26,7 +26,9 @@ Connection::Connection(const SocketClient::SharedPtr &client)
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
-    EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
+    //EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
+    EventLoop::eventLoop()->
+      registerTimer([&](int){ this->checkData(); }, 1, Timer::SingleShot);
 }
 
 void Connection::checkData()

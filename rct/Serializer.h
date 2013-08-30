@@ -187,7 +187,7 @@ inline Serializer &operator<<(Serializer &s, const Path &path)
 {
     const uint32_t size = path.size();
     s << size;
-    if (path.size())
+    if (size)
         s.write(path.constData(), size);
     return s;
 }
@@ -298,8 +298,8 @@ inline Deserializer &operator>>(Deserializer &s, String &byteArray)
 {
     uint32_t size;
     s >> size;
+    byteArray.resize(size);
     if (size) {
-        byteArray.resize(size);
         s.read(byteArray.data(), size);
     }
     return s;
@@ -317,8 +317,8 @@ inline Deserializer &operator>>(Deserializer &s, Path &path)
 {
     uint32_t size;
     s >> size;
+    path.resize(size);
     if (size) {
-        path.resize(size);
         s.read(path.data(), size);
     }
     return s;

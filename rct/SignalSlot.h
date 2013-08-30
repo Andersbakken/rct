@@ -60,8 +60,12 @@ public:
     template<typename... Args>
     void operator()(Args&&... args)
     {
-        std::lock_guard<std::mutex> locker(mutex);
-        for (auto& connection : connections) {
+        std::map<Key, Signature> conn;
+        {
+            std::lock_guard<std::mutex> locker(mutex);
+            conn = connections;
+        }
+        for (auto& connection : conn) {
             connection.second(std::forward<Args>(args)...);
         }
     }
@@ -69,17 +73,25 @@ public:
     template<typename... Args>
     void operator()(const Args&... args)
     {
-        std::lock_guard<std::mutex> locker(mutex);
-        for (auto& connection : connections) {
-            connection.second(std::forward<const Args>(args)...);
+        std::map<Key, Signature> conn;
+        {
+            std::lock_guard<std::mutex> locker(mutex);
+            conn = connections;
+        }
+        for (auto& connection : conn) {
+            connection.second(std::forward<const Args &>(args)...);
         }
     }
 
     template<typename... Args>
     void operator()()
     {
-        std::lock_guard<std::mutex> locker(mutex);
-        for (auto& connection : connections) {
+        std::map<Key, Signature> conn;
+        {
+            std::lock_guard<std::mutex> locker(mutex);
+            conn = connections;
+        }
+        for (auto& connection : conn) {
             connection.second();
         }
     }

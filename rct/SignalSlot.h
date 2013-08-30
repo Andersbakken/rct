@@ -48,6 +48,14 @@ public:
         return connections.erase(key) == 1;
     }
 
+    int disconnect()
+    {
+        std::lock_guard<std::mutex> locker(mutex);
+        const int ret = connections.size();
+        connections.clear();
+        return ret;
+    }
+
     // ignore result_type for now
     template<typename... Args>
     void operator()(Args&&... args)

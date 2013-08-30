@@ -73,8 +73,11 @@ public:
             return -1;
         }
         if (caps) {
+            caps->clear();
             for (unsigned i=0; i<sizeof(captures) / sizeof(regmatch_t); ++i) {
                 if (captures[i].rm_so != -1) {
+                    captures[i].rm_so += offset;
+                    captures[i].rm_eo += offset;
                     Capture capture;
                     capture.index = captures[i].rm_so;
                     capture.capture = string.mid(capture.index, captures[i].rm_eo - capture.index);
@@ -83,6 +86,8 @@ public:
                     break;
                 }
             }
+        } else {
+            captures[0].rm_so += offset;
         }
         return captures[0].rm_so;
     }

@@ -181,7 +181,7 @@ void EventLoop::quit(int code)
   std::lock_guard<std::mutex> locker(mutex);
 
 
-  if (!event_base_got_exit( eventBase )) {
+  if (eventBase && !event_base_got_exit( eventBase )) {
     timeval tv = { 0, 1 * 1000l };
     event_base_loopexit( eventBase, &tv );
   }
@@ -350,10 +350,11 @@ inline bool EventLoop::sendTimers()
 
 void EventLoop::socketEventCB(evutil_socket_t fd, short what, void *arg)
 {
-  /*
+  
   int err;
+  char buf[512];
   socklen_t size = sizeof(err);
-  e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
+  auto e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
   if (e == -1) {
     STRERROR_R(errno, buf, sizeof(buf));
     fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, buf);
@@ -361,7 +362,6 @@ void EventLoop::socketEventCB(evutil_socket_t fd, short what, void *arg)
     STRERROR_R(errno, buf, sizeof(buf));
     fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, buf);
   }
-  */
 
   auto mode = ((  what & EV_READ ? SocketRead : 0)
 	       | (what & EV_WRITE ? SocketWrite : 0));
@@ -391,9 +391,15 @@ void socket_event_cb( evutil_socket_t fd, short what, void *arg )
 
 void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&& func)
 {
-  std::cout << "Register Socket Request! fd = " << fd << "\n";
-  
+  std::cout << "Register Socket Request! fd = " << fd
+	    << " mode = " << mode << "\n";
   std::lock_guard<std::mutex> locker(mutex);
+
+  if (!eventBase) {
+    std::cout << "NULL eventBase!!!\n";
+    return;
+  }
+  
   sockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, int)> >(func));
 
   auto what = (( mode & SocketRead ? EV_READ : 0 )
@@ -414,7 +420,7 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
 
 void EventLoop::updateSocket(int fd, int mode)
 {
-    std::cout << __PRETTY_FUNCTION__ << " new mode = " << mode << "\n";
+    std::cout << __PRETTY_FUNCTION__ << " fd = " << fd << " new mode = " << mode << "\n";
     std::lock_guard<std::mutex> locker(mutex);
     std::map<int, std::pair<int, std::function<void(int, int)> > >::iterator socket = sockets.find(fd);
     if (socket == sockets.end()) {
@@ -428,6 +434,7 @@ void EventLoop::updateSocket(int fd, int mode)
       return;
     }
 
+    event_del( sockev_it->second );
     event_free( sockev_it->second );
     socket->second.first = mode;
 
@@ -474,7 +481,10 @@ int EventLoop::exec(int timeoutTime)
 
   while (!exit) {
 
-    if ( event_base_got_exit( eventBase ) ) {
+    if ( !eventBase )
+      return Success;
+    
+    else if ( event_base_got_exit( eventBase ) ) {
       exit = true;
       continue;
     }
@@ -482,9 +492,10 @@ int EventLoop::exec(int timeoutTime)
     else if (timeoutTime != -1) {
       // register a timer that will quit the event loop
       //registerTimer(std::bind(&EventLoop::quit, this, Timeout), timeoutTime, Timer::SingleShot);
-      timeval tv = { 0, timeoutTime * 1000l };
-      event_base_loopexit( eventBase, &tv );
-      exit = true;
+      // std::cout << "Setting Timeout for EventLoop => " << timeoutTime << "\n"; 
+      // timeval tv = { 0, timeoutTime * 1000l };
+      //event_base_loopexit( eventBase, &tv );
+      //exit = true;
     } 
   
     if (!sendPostedEvents())

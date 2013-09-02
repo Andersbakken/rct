@@ -103,7 +103,7 @@ bool FileSystemWatcher::isFAMEventPending()
   
 void FileSystemWatcher::checkFAMEvents(int something)
 {
-  std::cout << __PRETTY_FUNCTION__ << "\n";
+  //std::cout << __PRETTY_FUNCTION__ << "\n";
   
   Set<Path> modified, removed, added;
   std::lock_guard<std::mutex> lock(mMutex);
@@ -124,13 +124,16 @@ void FileSystemWatcher::checkFAMEvents(int something)
   
     switch( fevent.code ) {
     case FAMCreated:
+      std::cout << __PRETTY_FUNCTION__ << " : FAMCreated!\n";
       added.insert( path );
     
     case FAMDeleted:
+      std::cout << __PRETTY_FUNCTION__ << " : FAMDeleted!\n";
       added.remove( path );
       removed.insert( path );
 
     case FAMChanged:
+      std::cout << __PRETTY_FUNCTION__ << " : FAMChanged!\n";
       modified.insert( path );
     
     default:

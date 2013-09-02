@@ -73,7 +73,8 @@ private:
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
     bool mDone, mSilent;
-
+    int mCheckDataTimer;
+    
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mDestroyed, mConnected, mDisconnected, mSendComplete, mError;
 };

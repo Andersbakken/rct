@@ -284,7 +284,8 @@ void EventLoop::dispatch(event *ev)
 
 int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, int flags)
 {
-  std::cout << "Register Timer Request! flags = " << flags << "\n";
+  std::cout << "Register Timer Request! id = " << nextTimerId
+	    << "flags = " << flags << "\n";
   std::lock_guard<std::mutex> locker(mutex);
 
   timeval tv { 0, timeout * 1000l };
@@ -317,6 +318,7 @@ int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, int f
 
 void EventLoop::unregisterTimer(int id)
 {
+    std::cout << "UnRegister Timer! id = " << id << "\n";
     // rather slow
     std::lock_guard<std::mutex> locker(mutex);
 
@@ -351,17 +353,17 @@ inline bool EventLoop::sendTimers()
 void EventLoop::socketEventCB(evutil_socket_t fd, short what, void *arg)
 {
   
-  int err;
-  char buf[512];
-  socklen_t size = sizeof(err);
-  auto e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
-  if (e == -1) {
-    STRERROR_R(errno, buf, sizeof(buf));
-    fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, buf);
-  } else {
-    STRERROR_R(errno, buf, sizeof(buf));
-    fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, buf);
-  }
+  // int err;
+  // char buf[512];
+  // socklen_t size = sizeof(err);
+  // auto e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
+  // if (e == -1) {
+  //   STRERROR_R(errno, buf, sizeof(buf));
+  //   fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, buf);
+  // } else {
+  //   STRERROR_R(errno, buf, sizeof(buf));
+  //   fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, buf);
+  // }
 
   auto mode = ((  what & EV_READ ? SocketRead : 0)
 	       | (what & EV_WRITE ? SocketWrite : 0));

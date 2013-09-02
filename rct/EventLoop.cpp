@@ -268,6 +268,22 @@ void EventLoop::dispatch(event *ev)
     }
 
     cb = it->second;
+
+    auto flags = event_get_events( it->first );
+
+    if (flags & ~EV_PERSIST) {
+      std::cout << "Timer was ONE SHOT - expiring!\n";
+      
+      auto cb_it = eventCbDataMap.find( it->first );
+
+      if (cb_it != std::end(eventCbDataMap))
+	eventCbDataMap.erase( cb_it );
+
+      event_del( it->first );
+      event_free( it->first );
+
+      eventCbMap.erase( it );
+    }
   }
 
   if (!cb)
@@ -333,7 +349,7 @@ void EventLoop::unregisterTimer(int id)
     auto evcb_it = eventCbMap.find( idev_it->second );
     auto cb_it = eventCbDataMap.find( idev_it->second );
 
-    event_del( idev_it->second );
+    //event_del( idev_it->second );
     event_free( idev_it->second );
 
     if (evcb_it == std::end(eventCbMap)) {

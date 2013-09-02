@@ -504,11 +504,14 @@ int EventLoop::exec(int timeoutTime)
       return GeneralError;
 
     //ret = event_base_dispatch( eventBase );
-    ret = event_base_loop( eventBase, EVLOOP_NONBLOCK );
+    //ret = event_base_loop( eventBase, EVLOOP_NONBLOCK );
+    ret = event_base_loop( eventBase, EVLOOP_NO_EXIT_ON_EMPTY );
     if ( ret == -1 )
       std::cout << "ERROR: EventLoop dispatch ret = " << ret << "\n";
 
-    //std::cout << "event_base_dispatch returned!\n";
+    std::cout << "event_base_dispatch returned!\n";
+
+    //std::this_thread::sleep_for( std::chrono::milliseconds(1) );
   }
 
   std::cout << "Exiting EventLoop!\n";

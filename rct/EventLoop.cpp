@@ -285,8 +285,6 @@ void EventLoop::eventDispatch(evutil_socket_t fd, short what, void *arg)
   if (!cbd || !cbd->evloop )
     return;
 
-  std::cout << "Dispatching fd = " << fd << "\n";
-  
   cbd->evloop->dispatch( cbd->ev, cbd->cb, fd, what );
 }
 
@@ -301,6 +299,7 @@ void EventLoop::dispatch(event *ev, EventCallback cb,
       return;
     }
 
+    // TODO: handle ONE SHOT's correctly! remove 'em
     // cb = it->second;
 
     // auto flags = event_get_events( it->first );

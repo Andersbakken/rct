@@ -12,14 +12,20 @@ if ( HAVE_FAM EQUAL 1 )
     )
 endif()
 
-include_directories( 
-  /usr/local/include
+pkg_check_modules( LIBEVENT libevent libevent_pthreads )
+if (LIBEVENT_FOUND)
+  message("Found libevent: ${LIBEVENT_FOUND}")
+  message("${LIBEVENT_CFLAGS} ${LIBEVENT_LDFLAGS}")
+else ()
+  message(FATAL_ERROR "libevent library not found")
+endif()
+
+add_definitions(
+  ${LIBEVENT_CFLAGS}
 )
 
 target_link_libraries(rct
-  -L/usr/local/lib
-  -levent_pthreads
-  -levent
+  ${LIBEVENT_LDFLAGS}
 )
 
 install(CODE "message(\"Installing rct...\")")

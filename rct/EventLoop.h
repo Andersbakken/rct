@@ -23,7 +23,11 @@ class Event
 
   event *mEvent = nullptr;
 public:
-  virtual ~Event() { if (mEvent) event_del( mEvent ); }
+  virtual ~Event() 
+  { 
+    if (mEvent)
+    { event_del( mEvent ); event_free( mEvent ); mEvent = nullptr; }
+  }
   virtual void exec() = 0;
 };
 
@@ -178,6 +182,8 @@ private:
     mutable std::mutex mutex;
     std::thread::id threadId;
 
+    event *sigEvent;
+    
     std::queue<Event*> events;
 
     event_base *eventBase;

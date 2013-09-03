@@ -87,6 +87,7 @@ EventLoop::EventLoop()
 
 EventLoop::~EventLoop()
 {
+    std::cout << __PRETTY_FUNCTION__ << "\n";
     assert(!execLevel);
     cleanup();
 }
@@ -97,7 +98,7 @@ void EventLoop::init(unsigned flags)
     flgs = flags;
     evthread_use_pthreads();
     eventBase = event_base_new();
-    auto sigEvent = evsignal_new(eventBase, SIGINT, eventSIGINTcb, NULL);
+    sigEvent = evsignal_new(eventBase, SIGINT, eventSIGINTcb, NULL);
     
     std::shared_ptr<EventLoop> that = shared_from_this();
     localEventLoop() = that;
@@ -109,7 +110,7 @@ void EventLoop::cleanup()
 {
   std::cout << __PRETTY_FUNCTION__ << "\n";
   
-  std::lock_guard<std::mutex> locker(mutex);
+  std::unique_lock<std::mutex> locker(mutex);
   localEventLoop().reset();
 
   while (!events.empty()) {
@@ -118,6 +119,22 @@ void EventLoop::cleanup()
   }
 
   if ( eventBase ) {
+    event_del( sigEvent );
+    event_free( sigEvent );
+    
+    for ( auto idev : idEventMap ) {
+      event_del( idev.second );
+      event_free( idev.second );
+    }
+    
+    for ( auto sockev : socketEventMap ) {
+      //event_del( sockev.second );
+      //event_free( sockev.second );
+      locker.unlock();
+      unregisterSocket( sockev.first );
+      locker.lock();
+    }
+  
     event_base_free( eventBase );
     eventBase = nullptr;
   }
@@ -153,6 +170,12 @@ void EventLoop::post(Event* event)
 {
   std::cout << __PRETTY_FUNCTION__ << std::endl;
   std::lock_guard<std::mutex> locker(mutex);
+
+  if (!eventBase) {
+    std::cout << "NULL eventBase!!!\n";
+    return;
+  }
+
   events.push(event);
 
   event->mEvent =
@@ -171,7 +194,7 @@ void EventLoop::wakeup()
   if (std::this_thread::get_id() == threadId)
     return;
 
-  // TODO: Perhaps force running of event ?? Dunno wtf this is for
+  // TODO: Perhaps force running of event ?? Dunno
 }
 
 void EventLoop::quit(int code)
@@ -204,8 +227,10 @@ void EventLoop::quit(int code)
 inline bool EventLoop::sendPostedEvents()
 {
     std::unique_lock<std::mutex> locker(mutex);
-    if (events.empty())
-        return true;
+    if (events.empty()) {
+      return true;
+    }
+    
     while (!events.empty()) {
         auto event = events.front();
         events.pop();
@@ -338,19 +363,24 @@ void EventLoop::unregisterTimer(int id)
     // rather slow
     std::lock_guard<std::mutex> locker(mutex);
 
+    if (!eventBase) {
+      std::cout << "NULL eventBase!!!\n";
+      return;
+    }
+      
     auto idev_it = idEventMap.find( id ); 
     if (idev_it == std::end(idEventMap)) {
       std::cout << "Event ID " << id << " not Found!\n";
       return;
     }
 
-    idEventMap.erase( idev_it );
-    
     auto evcb_it = eventCbMap.find( idev_it->second );
     auto cb_it = eventCbDataMap.find( idev_it->second );
 
     //event_del( idev_it->second );
     event_free( idev_it->second );
+
+    idEventMap.erase( idev_it );
 
     if (evcb_it == std::end(eventCbMap)) {
       std::cout << "Event Not found in EventCB Map!\n";
@@ -409,9 +439,9 @@ void socket_event_cb( evutil_socket_t fd, short what, void *arg )
 
 void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&& func)
 {
+  std::lock_guard<std::mutex> locker(mutex);
   std::cout << "Register Socket Request! fd = " << fd
 	    << " mode = " << mode << "\n";
-  std::lock_guard<std::mutex> locker(mutex);
 
   if (!eventBase) {
     std::cout << "NULL eventBase!!!\n";
@@ -427,9 +457,9 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
   auto ret = evutil_make_socket_nonblocking( fd );
   std::cout << "Make Socket Nonblocking: " << ret << "\n";
 
-  auto socketEvent = event_new( eventBase, fd, what,
-				socket_event_cb,
-				this );
+  event *socketEvent = event_new( eventBase, fd, what,
+				  socket_event_cb,
+				  this );
 
   socketEventMap[ fd ] = socketEvent;
 
@@ -440,6 +470,12 @@ void EventLoop::updateSocket(int fd, int mode)
 {
     std::cout << __PRETTY_FUNCTION__ << " fd = " << fd << " new mode = " << mode << "\n";
     std::lock_guard<std::mutex> locker(mutex);
+
+    if (!eventBase) {
+      std::cout << "NULL eventBase!!!\n";
+      return;
+    }
+    
     std::map<int, std::pair<int, std::function<void(int, int)> > >::iterator socket = sockets.find(fd);
     if (socket == sockets.end()) {
         fprintf(stderr, "Unable to find socket to update %d\n", fd);
@@ -473,18 +509,25 @@ void EventLoop::unregisterSocket(int fd)
 {
   std::cout << __PRETTY_FUNCTION__ << " : fd = " << fd << "\n";
   std::lock_guard<std::mutex> locker(mutex);
-    auto socket = sockets.find(fd);
-    if (socket == sockets.end())
-        return;
 
-    auto sockev_it = socketEventMap.find( fd );
-    if (sockev_it == std::end(socketEventMap))
-      return;
+  if (!eventBase)
+    return;
+  
+  auto socket = sockets.find(fd);
+  if (socket == sockets.end())
+    return;
 
-    event_del( sockev_it->second );
-    event_free( sockev_it->second );
-    sockets.erase(socket);
-    socketEventMap.erase( sockev_it );
+  auto sockev_it = socketEventMap.find( fd );
+  if (sockev_it == std::end(socketEventMap))
+    return;
+
+  event *ev = sockev_it->second;
+
+  sockets.erase(socket);
+  socketEventMap.erase( sockev_it );
+
+  event_del( ev );
+  event_free( ev );
 }
 
 int EventLoop::exec(int timeoutTime)
@@ -539,7 +582,7 @@ int EventLoop::exec(int timeoutTime)
 	    << event_base_get_num_events( eventBase, EVENT_BASE_COUNT_ADDED )
 	    << "\n";
 
-  cleanup();
+  //cleanup();
   
   return ret == 1 ? Success : Timeout ;
 }

@@ -17,16 +17,20 @@
 
 class EventLoop;
 
+typedef std::function<void(int, int)> EventCallback;
+typedef std::function<void(int, int)> SocketCallback;
+typedef std::function<void(int)> TimerCallback;
+    
 class Event
 {
   friend class EventLoop;
 
-  event *mEvent = nullptr;
+  event *ev = nullptr;
 public:
   virtual ~Event() 
   { 
-    if (mEvent)
-    { event_del( mEvent ); event_free( mEvent ); mEvent = nullptr; }
+    if (ev)
+    { event_del( ev ); event_free( ev ); ev = nullptr; }
   }
   virtual void exec() = 0;
 };
@@ -60,6 +64,48 @@ private:
     Object obj;
     std::tuple<Args...> args;
 };
+
+/* class BaseEvent : public Event  */
+/* { */
+/* public: */
+/*   virtual ~BaseEvent()  */
+/*   {} */
+  
+/*   virtual bool dispatch(int fd, int mode)  */
+/*   {return false;} */
+  
+/*   virtual bool dispatch(int /\* unused *\/) */
+/*   {return false;} */
+  
+/*   virtual bool dispatch() */
+/*   {return false;} */
+/* }; */
+
+/* class SocketEvent : public BaseEvent */
+/* { */
+/*   SocketCallback cb; */
+  
+/* public: */
+/*   SocketEvent(SocketCallback callback) */
+/*     : cb(callback) */
+/*   {} */
+  
+/*   bool dispatch(int fd, int mode)  */
+/*   {cb( fd, mode ); return true;} */
+/* }; */
+
+/* class TimerEvent : public BaseEvent  */
+/* { */
+/*   TimerCallback cb; */
+  
+/* public: */
+/*   TimerEvent(TimerCallback callback) */
+/*     : cb(callback) */
+/*   {} */
+  
+/*   bool dispatch(int unused) */
+/*   {cb( unused ); return true;} */
+/* }; */
 
 template<typename T>
 class DeleteLaterEvent : public Event
@@ -173,10 +219,13 @@ private:
     void cleanup();
 
     static void eventDispatch(evutil_socket_t fd, short what, void *arg);
-    void dispatch(event *ev);
+    void dispatch(event *ev, EventCallback cb, evutil_socket_t fd, short what);
     
     static void error(const char* err);
 
+    int generateId() 
+    {return nextId;}
+    
 private:
     static std::mutex mainMutex;
     mutable std::mutex mutex;
@@ -192,25 +241,16 @@ private:
     {
       EventLoop *evloop;
       event *ev;
+      EventCallback cb;
     };
     
-    std::map< event *, std::unique_ptr<EventCallbackData> > eventCbDataMap;
-    
-    typedef std::function<void(int,int)> SocketCallback;
-    typedef std::function<void(int)> TimerCallback;
-    
-    typedef std::map<int, std::pair<int, std::function<void(int, int)> > > SocketMap;
-    
-    SocketMap sockets;
-    std::map<int, event *> socketEventMap;
-    
-    typedef std::map<event *, std::function<void(int)> > EventCallbackMap;
+    typedef std::map<event *, std::unique_ptr<EventCallbackData> > EventCallbackMap;
     typedef std::map<int, event *> IdEventMap;
     
     IdEventMap idEventMap;
     EventCallbackMap eventCbMap;
 
-    uint32_t nextTimerId;
+    uint32_t nextId;
 
     bool stop;
     int exitCode, execLevel;

@@ -224,7 +224,7 @@ private:
     static void error(const char* err);
 
     int generateId() 
-    {return nextId;}
+    {return nextId++;}
     
 private:
     static std::mutex mainMutex;

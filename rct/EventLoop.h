@@ -20,17 +20,18 @@ class EventLoop;
 typedef std::function<void(int, int)> EventCallback;
 typedef std::function<void(int, int)> SocketCallback;
 typedef std::function<void(int)> TimerCallback;
-    
+typedef std::function<void(void)> EventCleanup;
+
 class Event
 {
   friend class EventLoop;
 
-  event *ev = nullptr;
+  /* event *ev = nullptr; */
 public:
   virtual ~Event() 
   { 
-    if (ev)
-    { event_del( ev ); event_free( ev ); ev = nullptr; }
+    /* if (ev) */
+    /* { event_del( ev ); event_free( ev ); ev = nullptr; } */
   }
   virtual void exec() = 0;
 };
@@ -129,6 +130,8 @@ extern "C" void postCallback(evutil_socket_t fd,
 
 class EventLoop : public std::enable_shared_from_this<EventLoop>
 {
+  struct EventCallbackData;    
+
 public:
     typedef std::shared_ptr<EventLoop> SharedPtr;
     typedef std::weak_ptr<EventLoop> WeakPtr;
@@ -219,10 +222,15 @@ private:
     void cleanup();
 
     static void eventDispatch(evutil_socket_t fd, short what, void *arg);
-    void dispatch(event *ev, EventCallback cb, evutil_socket_t fd, short what);
+    //void dispatch(event *ev, EventCallback cb, evutil_socket_t fd, short what);
+    void dispatch(EventCallbackData *cbdata, evutil_socket_t fd, short what);
     
     static void error(const char* err);
 
+    // TODO: revisit feasibility
+    int fdToId(int fd)
+    {return -fd;}
+    
     int generateId() 
     {return nextId++;}
     
@@ -233,21 +241,12 @@ private:
 
     event *sigEvent;
     
-    std::queue<Event*> events;
+    //std::queue<Event*> events;
 
     event_base *eventBase;
 
-    struct EventCallbackData 
-    {
-      EventLoop *evloop;
-      event *ev;
-      EventCallback cb;
-    };
-    
-    typedef std::map<event *, std::unique_ptr<EventCallbackData> > EventCallbackMap;
-    typedef std::map<int, event *> IdEventMap;
-    
-    IdEventMap idEventMap;
+    typedef std::map<int, std::unique_ptr<EventCallbackData> > EventCallbackMap;
+
     EventCallbackMap eventCbMap;
 
     uint32_t nextId;

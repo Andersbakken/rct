@@ -75,6 +75,25 @@ void eventSIGINTcb(evutil_socket_t fd, short what, void *userdata)
     std::cout << "Caught signal: " << fd << std::endl;
 }
 
+struct EventLoop::EventCallbackData
+{
+  EventCallbackData()
+    : id(0), evloop(nullptr), ev(nullptr), cb(), cleanup()
+  {}
+
+  ~EventCallbackData()
+  {
+    if (cleanup) { std::cout << "Cleaning up!\n"; cleanup(); }
+    if (ev) { event_free(ev); ev = nullptr; }
+  }
+  
+  int id;
+  EventLoop *evloop;
+  event *ev;
+  EventCallback cb;
+  EventCleanup cleanup;
+};
+
 EventLoop::EventLoop()
     : nextId(0), stop(false), exitCode(0), execLevel(0), flgs(0)
 {
@@ -87,9 +106,9 @@ EventLoop::EventLoop()
 
 EventLoop::~EventLoop()
 {
-    std::cout << __PRETTY_FUNCTION__ << "\n";
-    assert(!execLevel);
-    cleanup();
+  cleanup();
+  std::cout << __PRETTY_FUNCTION__ << "\n";
+  assert(!execLevel);
 }
 
 void EventLoop::init(unsigned flags)
@@ -113,19 +132,25 @@ void EventLoop::cleanup()
   std::unique_lock<std::mutex> locker(mutex);
   localEventLoop().reset();
 
-  while (!events.empty()) {
-    delete events.front();
-    events.pop();
-  }
+  // while (!events.empty()) {
+  //   delete events.front();
+  //   events.pop();
+  // }
 
   if ( eventBase ) {
     event_del( sigEvent );
     event_free( sigEvent );
     
-    for ( auto idev : idEventMap ) {
-      event_del( idev.second );
-      event_free( idev.second );
-    }
+    // for ( auto& idev : eventCbMap ) {
+    //   event *ev = idev.second->ev;
+    //   if ( !ev )
+    // 	continue;
+    //   event_del( ev );
+    //   event_free( ev );
+    //   idev.second->ev = nullptr;
+    // }
+
+    eventCbMap.clear();
     
     event_base_free( eventBase );
     eventBase = nullptr;
@@ -149,13 +174,37 @@ void EventLoop::error(const char* err)
     abort();
 }
 
+static int what2sockflags(int what)
+{
+  auto flags = ((  what & EV_READ ? EventLoop::SocketRead : 0)
+		| (what & EV_WRITE ? EventLoop::SocketWrite : 0));
+  return flags;
+}
+
+static int sockflags2what(int flags)
+{
+  auto what = (( flags & EventLoop::SocketRead ? EV_READ : 0 )
+	       | (flags & EventLoop::SocketWrite ? EV_WRITE : 0)
+	       | (flags & EventLoop::SocketOneShot ? 0 : EV_PERSIST ));
+  return what; 
+}
+
 extern "C" void postCallback(evutil_socket_t fd,
 			     short w,
 			     void *data)
 {
-  EventLoop *evl = (EventLoop *)data;
+  EventLoop::EventCallbackData *cbdata = (EventLoop::EventCallbackData *)data;
   std::cout << __PRETTY_FUNCTION__ << " on fd = " << fd << "\n";
-  evl->sendPostedEvents();
+
+  if (!cbdata) {
+    std::cout << "cbdata null!!!\n";
+    return;
+  }
+  
+  cbdata->cb(fd, what2sockflags(w) );
+
+  //std::lock_guard<std::mutex> locker(cbdata->evloop->mutex);
+  cbdata->evloop->eventCbMap.erase( cbdata->id );
 }
 
 void EventLoop::post(Event* event)
@@ -168,14 +217,38 @@ void EventLoop::post(Event* event)
     return;
   }
 
-  events.push(event);
+  auto func_wrapper =
+    [event](int, int)
+    {
+      event->exec();
+    };
 
-  event->ev =
-    event_new( eventBase, -1, 0, postCallback, this );
+  auto cleanup =
+    [event]()
+    { delete event; };
+  
+  std::unique_ptr<EventCallbackData> data ( new EventCallbackData );
 
-  timeval tv = { 0, 1 * 100l };
-  event_add( event->ev, &tv );
-    
+  // event->ev =
+  //   event_new( eventBase, -1, 0, postCallback, this );
+
+  auto id = generateId();
+  
+  data->id = id; 
+  data->cb = func_wrapper;
+  data->evloop = this;
+  data->ev = nullptr;
+  data->cleanup = cleanup;
+  
+  eventCbMap[ id ] = std::move( data );
+  auto dataptr = eventCbMap[ id ].get();
+  
+  timeval tv = { 0, 1000 };
+  event_base_once( eventBase, -1, EV_TIMEOUT, postCallback,
+		   dataptr, &tv );
+
+  //event_add( event->ev, &tv );
+  //event_add( event->ev, nullptr );
   wakeup();
 }
 
@@ -197,7 +270,7 @@ void EventLoop::quit(int code)
 
 
   if (eventBase && !event_base_got_exit( eventBase )) {
-    timeval tv = { 0, 1 * 1000l };
+    timeval tv = { 0, 0 };
     event_base_loopexit( eventBase, &tv );
   }
 
@@ -219,19 +292,19 @@ void EventLoop::quit(int code)
 inline bool EventLoop::sendPostedEvents()
 {
     std::unique_lock<std::mutex> locker(mutex);
-    if (events.empty()) {
-      return true;
-    }
+    // if (events.empty()) {
+    //   return true;
+    // }
     
-    while (!events.empty()) {
-        auto event = events.front();
-        events.pop();
-        locker.unlock();
-	std::cout << "Sending Posted Event..." << std::endl;
-        event->exec();
-        delete event;
-        locker.lock();
-    }
+    // while (!events.empty()) {
+    //     auto event = events.front();
+    //     events.pop();
+    //     locker.unlock();
+    // 	std::cout << "Sending Posted Event..." << std::endl;
+    //     event->exec();
+    //     delete event;
+    //     locker.lock();
+    // }
     return true;
 }
 
@@ -264,67 +337,26 @@ static inline uint64_t currentTime()
     return t;
 }
 
-static int what2sockflags(int what)
-{
-  auto flags = ((  what & EV_READ ? EventLoop::SocketRead : 0)
-		| (what & EV_WRITE ? EventLoop::SocketWrite : 0));
-  return flags;
-}
-
-static int sockflags2what(int flags)
-{
-  auto what = (( flags & EventLoop::SocketRead ? EV_READ : 0 )
-	       | (flags & EventLoop::SocketWrite ? EV_WRITE : 0)
-	       | (flags & EventLoop::SocketOneShot ? 0 : EV_PERSIST ));
-  return what; 
-}
-
 void EventLoop::eventDispatch(evutil_socket_t fd, short what, void *arg)
 {
   EventCallbackData *cbd = reinterpret_cast<EventCallbackData *>( arg );
   if (!cbd || !cbd->evloop )
     return;
 
-  cbd->evloop->dispatch( cbd->ev, cbd->cb, fd, what );
+  //cbd->evloop->dispatch( cbd->ev, cbd->cb, fd, what );
+  cbd->evloop->dispatch( cbd, fd, what );  
 }
 
-void EventLoop::dispatch(event *ev, EventCallback cb,
+// void EventLoop::dispatch(event *ev, EventCallback cb,
+// 			 evutil_socket_t fd, short what)
+void EventLoop::dispatch(EventCallbackData *cbdata,
 			 evutil_socket_t fd, short what)
+
 {
-  {
-    std::lock_guard<std::mutex> locker(mutex);
-    auto it = eventCbMap.find( ev );
-    if ( it == std::end(eventCbMap) ) {
-      std::cout << "Event not found in Callback Map!\n";
-      return;
-    }
-
-    // TODO: handle ONE SHOT's correctly! remove 'em
-    // cb = it->second;
-
-    // auto flags = event_get_events( it->first );
-
-    // if (flags & ~EV_PERSIST) {
-    //   std::cout << "Timer was ONE SHOT - expiring!\n";
-      
-    //   auto cb_it = eventCbDataMap.find( it->first );
-
-    //   if (cb_it != std::end(eventCbDataMap))
-    // 	eventCbDataMap.erase( cb_it );
-
-    //   event_del( it->first );
-    //   event_free( it->first );
-
-    //   eventCbMap.erase( it );
-    // }
-  }
-
-  if (!cb)
+  if ( !cbdata->cb )
     std::cout << "Warning! cb null?!\n";
   else
-    cb( fd, what2sockflags(what) );
-
-  //std::cout << __PRETTY_FUNCTION__ << " : timer fired -> dispatching cb\n";
+    cbdata->cb( fd, what2sockflags(what) );
 }
 
 // timeout (ms)
@@ -353,12 +385,12 @@ int EventLoop::registerTimer(TimerCallback&& func, int timeout, int flags)
       func( flags );
     };
 
+  data->id = id;
   data->evloop = this;
   data->ev = etimer;
   data->cb = func_wrapper;
   
-  eventCbMap[ etimer ] = std::move( data );
-  idEventMap[ id ] = etimer;
+  eventCbMap[ id ] = std::move( data );
     
   evtimer_add( etimer, &tv );
 
@@ -377,18 +409,10 @@ void EventLoop::unregisterTimer(int id)
       return;
     }
       
-    auto idev_it = idEventMap.find( id ); 
-    if (idev_it == std::end(idEventMap)) {
-      std::cout << "Event ID " << id << " not Found!\n";
-      return;
-    }
-
-    auto evcb_it = eventCbMap.find( idev_it->second );
+    auto evcb_it = eventCbMap.find( id ); //idev_it->second );
 
     //event_del( idev_it->second );
-    event_free( idev_it->second );
-
-    idEventMap.erase( idev_it );
+    //event_free( evcb_it->second->ev );
 
     if (evcb_it == std::end(eventCbMap)) {
       std::cout << "Event Not found in EventCB Map!\n";
@@ -410,8 +434,7 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
     return;
   }
 
-  // TODO: magic
-  auto id = 1000 * fd;
+  auto id = fdToId(fd);
   
   auto what = (( mode & SocketRead ? EV_READ : 0 )
 	       | (mode & SocketWrite ? EV_WRITE : 0)
@@ -420,21 +443,27 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
   auto ret = evutil_make_socket_nonblocking( fd );
   std::cout << "Make Socket Nonblocking: " << ret << "\n";
 
-
-
-
   std::unique_ptr<EventCallbackData> data( new EventCallbackData );
   
   event *e = event_new( eventBase, fd, what,
 			eventDispatch,
 			data.get() );
 
+  data->id = id; 
   data->evloop = this;
   data->ev = e;
   data->cb = func;
+
+  if ( mode & SocketOneShot ) {
+    auto cleanup =
+      [&, id]()
+      {
+	eventCbMap.erase( id );
+      };
+    data->cleanup = cleanup;
+  }
   
-  eventCbMap[ e ] = std::move( data );
-  idEventMap[ id ] = e;
+  eventCbMap[ id ] = std::move( data );
     
   event_add( e, nullptr );
 }
@@ -449,35 +478,27 @@ void EventLoop::updateSocket(int fd, int mode)
       return;
     }
 
-    auto id = 1000 * fd;
+    auto id = fdToId( fd );
 
     auto what = (( mode & SocketRead ? EV_READ : 0 )
     		 | (mode & SocketWrite ? EV_WRITE : 0)
     		 | (mode & SocketOneShot ? 0 : EV_PERSIST ));
 
-    auto it = idEventMap.find( id );
-    if ( it == std::end( idEventMap )) {
-      std::cout << __PRETTY_FUNCTION__ << " : BARF ! id = "
-		<< id << " not found!\n";
+    if ( eventCbMap.find( id ) == std::end( eventCbMap ) )
       return;
-    }
     
-    event *ev = it->second;
-
-    auto data = std::move( eventCbMap[ ev ] );
+    event *ev = eventCbMap[ id ]->ev;
     
     event_del( ev );
     event_free( ev );
 
     ev = event_new( eventBase, fd, what,
 		    eventDispatch,
-		    data.get() );
+		    eventCbMap[ id ].get() );
 
-    data->ev = ev;
+    eventCbMap[ id ]->id = id;
+    eventCbMap[ id ]->ev = ev;
     
-    eventCbMap[ ev ] = std::move( data );
-    idEventMap[ id ] = ev;
-
     event_add( ev, nullptr );
     
     // std::map<int, std::pair<int, std::function<void(int, int)> > >::iterator socket = sockets.find(fd);
@@ -514,29 +535,31 @@ void EventLoop::unregisterSocket(int fd)
   std::cout << __PRETTY_FUNCTION__ << " : fd = " << fd << "\n";
   std::lock_guard<std::mutex> locker(mutex);
 
-  if (!eventBase)
+  if (!eventBase) {
+    std::cout << "eventBase NULL!!\n";
     return;
-
-  // TODO: magic
-  auto id = 1000 * fd;
+  }
   
-    auto idev_it = idEventMap.find( id ); 
-    if (idev_it == std::end(idEventMap)) {
-      std::cout << "Event ID " << id << " not Found!\n";
-      return;
-    }
+  auto id = fdToId( fd );
+  
+  auto evcb_it = eventCbMap.find( id );  // idev_it->second );
 
-    auto evcb_it = eventCbMap.find( idev_it->second );
+  if (evcb_it == std::end(eventCbMap)) {
+    std::cout << "Event Not found in EventCB Map!\n";
+    return;
+  }
 
-    event_del( idev_it->second );
-    event_free( idev_it->second );
+  if (!evcb_it->second) {
+    std::cout << "Event Callback Data's is NULL!\n";
+    return;
+  }
+  
+  event *ev = evcb_it->second->ev;
+  
+  eventCbMap.erase( evcb_it );
 
-    idEventMap.erase( idev_it );
-
-    if (evcb_it == std::end(eventCbMap)) {
-      std::cout << "Event Not found in EventCB Map!\n";
-    } else 
-      eventCbMap.erase( evcb_it );
+  // event_del( ev );
+  // event_free( ev );
 
   // auto socket = sockets.find(fd);
   // if (socket == sockets.end())
@@ -584,8 +607,8 @@ int EventLoop::exec(int timeoutTime)
       //exit = true;
     } 
   
-    if (!sendPostedEvents())
-      return GeneralError;
+    // if (!sendPostedEvents())
+    //   return GeneralError;
 
     //ret = event_base_dispatch( eventBase );
     //ret = event_base_loop( eventBase, EVLOOP_NONBLOCK );

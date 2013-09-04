@@ -50,17 +50,17 @@ bool FileSystemWatcher::watch(const Path &p)
   auto type = path.type();
   switch (type) {
   case Path::File:
-    FAMMonitorDirectory( &mFAMCon,
-			 path.nullTerminated(),
-			 &mFAMReq,
-			 NULL );
-    break;
-
-  case Path::Directory:
     FAMMonitorFile( &mFAMCon,
 		    path.nullTerminated(),
 		    &mFAMReq,
 		    NULL );
+    break;
+
+  case Path::Directory:
+    FAMMonitorDirectory( &mFAMCon,
+			 path.nullTerminated(),
+			 &mFAMReq,
+			 NULL );
     break;
 
   default:
@@ -118,22 +118,27 @@ void FileSystemWatcher::checkFAMEvents(int something)
     bool isDir = reqpath.isDir();
     Path path = reqpath;
     char *filename = (char *)fevent.filename;
-  
-    if ( isDir )
+
+    if ( Path( filename ).isAbsolute() )
+      path = filename;
+    else if ( isDir )
       path.append( filename );
   
     switch( fevent.code ) {
     case FAMCreated:
-      std::cout << __PRETTY_FUNCTION__ << " : FAMCreated!\n";
+      std::cout << __PRETTY_FUNCTION__ << " : FAMCreated : "
+		<< path.nullTerminated() << "\n";
       added.insert( path );
     
     case FAMDeleted:
-      std::cout << __PRETTY_FUNCTION__ << " : FAMDeleted!\n";
+      std::cout << __PRETTY_FUNCTION__ << " : FAMDeleted : "
+		<< path.nullTerminated() << "\n";
       added.remove( path );
       removed.insert( path );
 
     case FAMChanged:
-      std::cout << __PRETTY_FUNCTION__ << " : FAMChanged!\n";
+      std::cout << __PRETTY_FUNCTION__ << " : FAMChanged : "
+		<< path.nullTerminated() << "\n";
       modified.insert( path );
     
     default:

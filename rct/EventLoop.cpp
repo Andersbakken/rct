@@ -267,8 +267,7 @@ static inline uint64_t currentTime()
 static int what2sockflags(int what)
 {
   auto flags = ((  what & EV_READ ? EventLoop::SocketRead : 0)
-		| (what & EV_WRITE ? EventLoop::SocketWrite : 0)
-		| (what & EV_PERSIST ? 0 : EventLoop::SocketOneShot) );
+		| (what & EV_WRITE ? EventLoop::SocketWrite : 0));
   return flags;
 }
 
@@ -292,61 +291,40 @@ void EventLoop::eventDispatch(evutil_socket_t fd, short what, void *arg)
 void EventLoop::dispatch(event *ev, EventCallback cb,
 			 evutil_socket_t fd, short what)
 {
-  std::unique_lock<std::mutex> locker(mutex);
-  auto it = eventCbMap.find( ev );
-  if ( it == std::end(eventCbMap) ) {
-    std::cout << "Event not found in Callback Map!\n";
-    return;
+  {
+    std::lock_guard<std::mutex> locker(mutex);
+    auto it = eventCbMap.find( ev );
+    if ( it == std::end(eventCbMap) ) {
+      std::cout << "Event not found in Callback Map!\n";
+      return;
+    }
+
+    // TODO: handle ONE SHOT's correctly! remove 'em
+    // cb = it->second;
+
+    // auto flags = event_get_events( it->first );
+
+    // if (flags & ~EV_PERSIST) {
+    //   std::cout << "Timer was ONE SHOT - expiring!\n";
+      
+    //   auto cb_it = eventCbDataMap.find( it->first );
+
+    //   if (cb_it != std::end(eventCbDataMap))
+    // 	eventCbDataMap.erase( cb_it );
+
+    //   event_del( it->first );
+    //   event_free( it->first );
+
+    //   eventCbMap.erase( it );
+    // }
   }
 
-  // TODO: handle ONE SHOT's correctly! remove 'em
-  // cb = it->second;
-
-  // auto flags = event_get_events( it->first );
-
-  // if (flags & ~EV_PERSIST) {
-  //   std::cout << "Timer was ONE SHOT - expiring!\n";
-      
-  //   auto cb_it = eventCbDataMap.find( it->first );
-
-  //   if (cb_it != std::end(eventCbDataMap))
-  // 	eventCbDataMap.erase( cb_it );
-
-  //   event_del( it->first );
-  //   event_free( it->first );
-
-  //   eventCbMap.erase( it );
-  // }
-
-  //std::cout << "Invoking callback!  fd = " << fd << "\n";
-  
   if (!cb)
     std::cout << "Warning! cb null?!\n";
-  else {
-    locker.unlock();
+  else
     cb( fd, what2sockflags(what) );
-    locker.lock();
-  }
 
-  //std::cout << "Callback Finished!  fd = " << fd << "\n";
-
-  if ( eventCbMap.find( ev ) == std::end(eventCbMap) )
-    return;
-  
-  auto flags = event_get_events( ev );
-
-  if (!(flags & EV_PERSIST)) {
-    std::cout << "Event " << ev << " was ONE SHOT " << "fd = " << fd
-	      << " flags = " << flags << " - free'ing!\n";
-
-    auto it = eventCbMap.find( ev );
-    if (it != std::end(eventCbMap))
-      eventCbMap.erase( it );
-
-    //event_del( ev );
-    event_free( ev );
-  }
-  
+  //std::cout << __PRETTY_FUNCTION__ << " : timer fired -> dispatching cb\n";
 }
 
 // timeout (ms)
@@ -439,7 +417,6 @@ void EventLoop::registerSocket(int fd, int mode, std::function<void(int, int)>&&
 	       | (mode & SocketWrite ? EV_WRITE : 0)
 	       | (mode & SocketOneShot ? 0 : EV_PERSIST ));
 
-  std::cout << "event what = " << what << "\n";
   auto ret = evutil_make_socket_nonblocking( fd );
   std::cout << "Make Socket Nonblocking: " << ret << "\n";
 
@@ -551,8 +528,6 @@ void EventLoop::unregisterSocket(int fd)
 
     auto evcb_it = eventCbMap.find( idev_it->second );
 
-    std::cout << " event = " << idev_it->second << "\n";
-    
     event_del( idev_it->second );
     event_free( idev_it->second );
 

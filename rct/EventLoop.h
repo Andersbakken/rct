@@ -17,22 +17,16 @@
 
 class EventLoop;
 
+// TODO: (All?) Needed for Header file ?
 typedef std::function<void(int, int)> EventCallback;
-typedef std::function<void(int, int)> SocketCallback;
 typedef std::function<void(int)> TimerCallback;
-typedef std::function<void(void)> EventCleanup;
 
 class Event
 {
   friend class EventLoop;
 
-  /* event *ev = nullptr; */
 public:
-  virtual ~Event() 
-  { 
-    /* if (ev) */
-    /* { event_del( ev ); event_free( ev ); ev = nullptr; } */
-  }
+  virtual ~Event() {}
   virtual void exec() = 0;
 };
 
@@ -66,48 +60,6 @@ private:
     std::tuple<Args...> args;
 };
 
-/* class BaseEvent : public Event  */
-/* { */
-/* public: */
-/*   virtual ~BaseEvent()  */
-/*   {} */
-  
-/*   virtual bool dispatch(int fd, int mode)  */
-/*   {return false;} */
-  
-/*   virtual bool dispatch(int /\* unused *\/) */
-/*   {return false;} */
-  
-/*   virtual bool dispatch() */
-/*   {return false;} */
-/* }; */
-
-/* class SocketEvent : public BaseEvent */
-/* { */
-/*   SocketCallback cb; */
-  
-/* public: */
-/*   SocketEvent(SocketCallback callback) */
-/*     : cb(callback) */
-/*   {} */
-  
-/*   bool dispatch(int fd, int mode)  */
-/*   {cb( fd, mode ); return true;} */
-/* }; */
-
-/* class TimerEvent : public BaseEvent  */
-/* { */
-/*   TimerCallback cb; */
-  
-/* public: */
-/*   TimerEvent(TimerCallback callback) */
-/*     : cb(callback) */
-/*   {} */
-  
-/*   bool dispatch(int unused) */
-/*   {cb( unused ); return true;} */
-/* }; */
-
 template<typename T>
 class DeleteLaterEvent : public Event
 {
@@ -125,8 +77,7 @@ private:
 
 extern "C" void postCallback(evutil_socket_t fd,
 			     short w,
-			     void *data)
-  ;
+			     void *data);
 
 class EventLoop : public std::enable_shared_from_this<EventLoop>
 {
@@ -187,7 +138,6 @@ public:
         post(new SignalEvent<Object, Args...>(std::forward<Object>(object), SignalEvent<Object, Args...>::Move, std::forward<Args>(args)...));
     }
     void post(Event* event);
-    void wakeup();
 
     enum Mode {
         SocketRead = 0x1,
@@ -207,22 +157,25 @@ public:
     int exec(int timeout = -1);
     void quit(int code = 0);
 
-    bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return execLevel; }
+    // TODO: re-establish the original const function??
+    bool isRunning();
 
-    static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
+    static EventLoop::SharedPtr mainEventLoop()
+    { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
     static EventLoop::SharedPtr eventLoop();
 
-    static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
-
-    void socketEventCB(evutil_socket_t fd, short what, void *arg);
+    static bool isMainThread() 
+    {
+      return ( EventLoop::mainEventLoop() 
+	       && ( std::this_thread::get_id() 
+		    == EventLoop::mainEventLoop()->threadId ) ); 
+    }
 
 private:
-    bool sendPostedEvents();
-    bool sendTimers();
     void cleanup();
 
     static void eventDispatch(evutil_socket_t fd, short what, void *arg);
-    //void dispatch(event *ev, EventCallback cb, evutil_socket_t fd, short what);
+
     void dispatch(EventCallbackData *cbdata, evutil_socket_t fd, short what);
     
     static void error(const char* err);
@@ -239,20 +192,17 @@ private:
     mutable std::mutex mutex;
     std::thread::id threadId;
 
+    event_base *eventBase;
+
     event *sigEvent;
     
     //std::queue<Event*> events;
-
-    event_base *eventBase;
 
     typedef std::map<int, std::unique_ptr<EventCallbackData> > EventCallbackMap;
 
     EventCallbackMap eventCbMap;
 
     uint32_t nextId;
-
-    bool stop;
-    int exitCode, execLevel;
 
     static EventLoop::WeakPtr mainLoop;
 
@@ -264,6 +214,3 @@ private:
 };
 
 #endif
-
-
-

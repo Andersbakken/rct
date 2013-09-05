@@ -379,7 +379,10 @@ void EventLoop::unregisterSocket(int fd)
   auto id = fdToId( fd );
 
   assert( eventBase != nullptr );
-  assert( eventCbMap.find( id ) != std::end( eventCbMap ) );
+
+  if ( eventCbMap.find( id ) == std::end( eventCbMap ) ) {
+    return;
+  }
 
   eventCbMap.erase( id );
 }

@@ -404,15 +404,13 @@ int EventLoop::exec(int timeoutTime)
     
     else if (timeoutTime != -1) {
       // register a timer that will quit the event loop
-      //registerTimer(std::bind(&EventLoop::quit, this, Timeout), timeoutTime, Timer::SingleShot);
-      // std::cout << "Setting Timeout for EventLoop => " << timeoutTime << "\n"; 
-      // timeval tv = { 0, timeoutTime * 1000l };
-      //event_base_loopexit( eventBase, &tv );
-      //exit = true;
+      registerTimer( std::bind(&EventLoop::quit, this, Timeout),
+		     timeoutTime,
+		     Timer::SingleShot );
+
+      std::cout << "Setting Timeout for EventLoop => " << timeoutTime << "\n"; 
     } 
   
-    //ret = event_base_dispatch( eventBase );
-    //ret = event_base_loop( eventBase, EVLOOP_NONBLOCK );
     ret = event_base_loop( eventBase, EVLOOP_NO_EXIT_ON_EMPTY );
     if ( ret == -1 )
       std::cout << "ERROR: EventLoop dispatch ret = " << ret << "\n";
@@ -428,8 +426,6 @@ int EventLoop::exec(int timeoutTime)
 	    << " Added: "
 	    << event_base_get_num_events( eventBase, EVENT_BASE_COUNT_ADDED )
 	    << "\n";
-
-  //cleanup();
   
   return ret == 1 ? Success : Timeout ;
 }

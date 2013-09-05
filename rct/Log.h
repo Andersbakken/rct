@@ -84,6 +84,7 @@ public:
     Log operator<<(float number) { return addStringStream(number); }
     Log operator<<(double number) { return addStringStream(number); }
     Log operator<<(long double number) { return addStringStream(number); }
+    Log operator<<(char ch) { return write(&ch, 1); }
     Log operator<<(bool boolean) { return write(boolean ? "true" : "false"); }
     Log operator<<(void *ptr)
     {

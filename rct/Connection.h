@@ -71,8 +71,6 @@ private:
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
 
-    int mCheckDataTimer;
-
     bool mDone, mSilent, mFinished;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;

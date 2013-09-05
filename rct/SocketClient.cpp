@@ -11,7 +11,6 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <rct-config.h>
-#include <iostream>
 
 #define eintrwrap(VAR, BLOCK)                   \
     do {                                        \
@@ -130,7 +129,7 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
     eintrwrap(e, ::connect(fd, addr, size));
     if (e == 0) { // we're done
         socketState = Connected;
-	std::cout << __PRETTY_FUNCTION__ << " : Connected!\n";
+	
         signalConnected(tcpSocket);
     } else {
         if (errno != EINPROGRESS) {
@@ -164,7 +163,7 @@ bool SocketClient::connect(const std::string& path)
     eintrwrap(e, ::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un)));
     if (e == 0) { // we're done
         socketState = Connected;
-	std::cout << __PRETTY_FUNCTION__ << " : Connected!\n";
+	
         signalConnected(unixSocket);
     } else {
         if (errno != EINPROGRESS) {
@@ -305,7 +304,7 @@ void SocketClient::socketCallback(int f, int mode)
     }
 
     if (writeWait && (mode & EventLoop::SocketWrite)) {
-      std::cout << __PRETTY_FUNCTION__ << " : Socket Ready to WRITE!\n";
+      
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead);
             writeWait = false;
@@ -318,7 +317,6 @@ void SocketClient::socketCallback(int f, int mode)
     Closer closer(ff);
 
     if (mode & EventLoop::SocketRead) {
-        std::cout << __PRETTY_FUNCTION__ << " : Socket Ready to Read!\n";
       
         enum { BlockSize = 1024, AllocateAt = 512 };
         int e;
@@ -334,7 +332,6 @@ void SocketClient::socketCallback(int f, int mode)
                 // printf("Rem is now %d\n", rem);
             }
             eintrwrap(e, ::read(fd, readBuffer.end(), rem));
-	    std::cout << __PRETTY_FUNCTION__ << " read ret = " << e << "\n";
             if (e == -1) {
                 if (ff) {
                     fprintf(ff, "\nGot error %d:%s\n", errno, strerror(errno));

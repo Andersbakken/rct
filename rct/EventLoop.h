@@ -23,11 +23,11 @@ typedef std::function<void(int)> TimerCallback;
 
 class Event
 {
-  friend class EventLoop;
+    friend class EventLoop;
 
 public:
-  virtual ~Event() {}
-  virtual void exec() = 0;
+    virtual ~Event() {}
+    virtual void exec() = 0;
 };
 
 template<typename Object, typename... Args>
@@ -37,19 +37,19 @@ public:
     enum MoveType { Move };
 
     SignalEvent(Object& o, Args&&... a)
-        : obj(o), args(a...)
+	: obj(o), args(a...)
     {
     }
     SignalEvent(Object&& o, Args&&... a)
-        : obj(o), args(a...)
+	: obj(o), args(a...)
     {
     }
     SignalEvent(Object& o, MoveType, Args&&... a)
-        : obj(o), args(std::move(a...))
+	: obj(o), args(std::move(a...))
     {
     }
     SignalEvent(Object&& o, MoveType, Args&&... a)
-        : obj(o), args(std::move(a...))
+	: obj(o), args(std::move(a...))
     {
     }
 
@@ -65,7 +65,7 @@ class DeleteLaterEvent : public Event
 {
 public:
     DeleteLaterEvent(T* d)
-        : del(d)
+	: del(d)
     {
     }
 
@@ -81,7 +81,7 @@ extern "C" void postCallback(evutil_socket_t fd,
 
 class EventLoop : public std::enable_shared_from_this<EventLoop>
 {
-  struct EventCallbackData;    
+    struct EventCallbackData;    
 
 public:
     typedef std::shared_ptr<EventLoop> SharedPtr;
@@ -117,26 +117,39 @@ public:
             error("No event loop!");
         }
     }
+    
     template<typename Object, typename... Args>
     void post(Object& object, Args&&... args)
     {
-        post(new SignalEvent<Object, Args...>(object, std::forward<Args>(args)...));
+        post(new SignalEvent<Object, Args...>(object, 
+					      std::forward<Args>(args)...));
     }
+    
     template<typename Object, typename... Args>
     void postMove(Object& object, Args&&... args)
     {
-        post(new SignalEvent<Object, Args...>(object, SignalEvent<Object, Args...>::Move, std::forward<Args>(args)...));
+        post( new SignalEvent<Object, Args...>(object, 
+					       SignalEvent<Object, Args...>
+					       ::Move, 
+					       std::forward<Args>(args)...));
     }
+    
     template<typename Object, typename... Args>
     void callLater(Object&& object, Args&&... args)
     {
-        post(new SignalEvent<Object, Args...>(std::forward<Object>(object), std::forward<Args>(args)...));
+        post(new SignalEvent<Object, Args...>(std::forward<Object>(object), 
+					      std::forward<Args>(args)...));
     }
+
     template<typename Object, typename... Args>
     void callLaterMove(Object&& object, Args&&... args)
     {
-        post(new SignalEvent<Object, Args...>(std::forward<Object>(object), SignalEvent<Object, Args...>::Move, std::forward<Args>(args)...));
+        post(new SignalEvent<Object, Args...>(std::forward<Object>(object),
+					      SignalEvent<Object, Args...>
+					      ::Move,
+					      std::forward<Args>(args)...));
     }
+    
     void post(Event* event);
 
     enum Mode {
@@ -145,12 +158,14 @@ public:
         SocketOneShot = 0x4,
         SocketError = 0x8
     };
+    
     void registerSocket(int fd, int mode, std::function<void(int, int)>&& func);
     void updateSocket(int fd, int mode);
     void unregisterSocket(int fd);
 
     // See Timer.h for the flags
-    int registerTimer(std::function<void(int)>&& func, int timeout, int flags = 0);
+    int registerTimer(std::function<void(int)>&& func, int timeout, 
+		      int flags = 0);
     void unregisterTimer(int id);
 
     enum { Success, GeneralError = -1, Timeout = -2 };
@@ -162,13 +177,14 @@ public:
 
     static EventLoop::SharedPtr mainEventLoop()
     { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
+    
     static EventLoop::SharedPtr eventLoop();
 
     static bool isMainThread() 
     {
-      return ( EventLoop::mainEventLoop() 
-	       && ( std::this_thread::get_id() 
-		    == EventLoop::mainEventLoop()->threadId ) ); 
+	return ( EventLoop::mainEventLoop() 
+		 && ( std::this_thread::get_id() 
+		      == EventLoop::mainEventLoop()->threadId ) ); 
     }
 
 private:

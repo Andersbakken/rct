@@ -10,7 +10,7 @@
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <iostream>
+
 #include "Log.h"
 
 #define eintrwrap(VAR, BLOCK)                   \
@@ -20,9 +20,7 @@
 
 SocketServer::SocketServer()
     : fd(-1)
-{
-  warning("%s", __PRETTY_FUNCTION__);
-}
+{}
 
 SocketServer::~SocketServer()
 {
@@ -100,8 +98,6 @@ bool SocketServer::listen(const std::string& path)
 
 bool SocketServer::commonListen(sockaddr* addr, size_t size)
 {
-  fprintf(stdout, "%s Entered!\n", __PRETTY_FUNCTION__);
-  
     if (::bind(fd, reinterpret_cast<sockaddr*>(addr), size) < 0) {
         serverError(this, BindError);
         close();
@@ -156,10 +152,6 @@ void SocketServer::socketCallback(int /*fd*/, int mode)
   int e;
   long count = 0;
 
-  if ( mode & EventLoop::SocketRead )
-    std::cout << __PRETTY_FUNCTION__ << " : fd = " << fd
-	      << " mode = " << mode << "\n";
-  
   if (! ( mode & EventLoop::SocketRead ) )
     return;
   

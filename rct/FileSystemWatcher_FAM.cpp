@@ -5,17 +5,15 @@
 
 #include "fam.h"
 
-#include <iostream>
-
 FileSystemWatcher::FileSystemWatcher()
 {
-  std::cout << __PRETTY_FUNCTION__ << "\n";
-  auto ret = FAMOpen( &mFAMCon );
-  assert( ! (ret < 0) );
-  EventLoop::eventLoop()->
-    registerTimer( std::bind(&FileSystemWatcher::checkFAMEvents,
-			     this, std::placeholders::_1),
-		   10 );
+    //std::cout << __PRETTY_FUNCTION__ << "\n";
+    auto ret = FAMOpen( &mFAMCon );
+    assert( ! (ret < 0) );
+    EventLoop::eventLoop()->
+	registerTimer( std::bind(&FileSystemWatcher::checkFAMEvents,
+				 this, std::placeholders::_1),
+		       10 );
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -23,145 +21,143 @@ FileSystemWatcher::~FileSystemWatcher()
 
 void FileSystemWatcher::clear()
 {
-  std::cout << __PRETTY_FUNCTION__ << "\n";
-  for (Map<Path, int>::const_iterator it = mWatchedByPath.begin();
-       it != mWatchedByPath.end(); ++it) {
-    FAMRequest freq;
-    freq.reqnum = it->second;
+    //std::cout << __PRETTY_FUNCTION__ << "\n";
+    for (Map<Path, int>::const_iterator it = mWatchedByPath.begin();
+	 it != mWatchedByPath.end(); ++it) {
+	FAMRequest freq;
+	freq.reqnum = it->second;
     
-    FAMCancelMonitor(&mFAMCon, &freq );
-  }
-  mWatchedByPath.clear();
-  mWatchedById.clear();
+	FAMCancelMonitor(&mFAMCon, &freq );
+    }
+    mWatchedByPath.clear();
+    mWatchedById.clear();
 }
 
 bool FileSystemWatcher::watch(const Path &p)
 {
-  if (p.isEmpty())
-    return false;
-  Path path = p;
+    if (p.isEmpty())
+	return false;
+    Path path = p;
 
-  std::cout << __PRETTY_FUNCTION__ << ": "
-	    << path.fileName() << "\n";
+    //std::cout << __PRETTY_FUNCTION__ << ": "
+    //<< path.fileName() << "\n";
   
-  std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> lock(mMutex);
 
-  FAMRequest mFAMReq;
-  auto type = path.type();
-  switch (type) {
-  case Path::File:
-    FAMMonitorFile( &mFAMCon,
-		    path.nullTerminated(),
-		    &mFAMReq,
-		    NULL );
-    break;
+    FAMRequest mFAMReq;
+    auto type = path.type();
+    switch (type) {
+    case Path::File:
+	FAMMonitorFile( &mFAMCon,
+			path.nullTerminated(),
+			&mFAMReq,
+			NULL );
+	break;
 
-  case Path::Directory:
-    FAMMonitorDirectory( &mFAMCon,
-			 path.nullTerminated(),
-			 &mFAMReq,
-			 NULL );
-    break;
+    case Path::Directory:
+	FAMMonitorDirectory( &mFAMCon,
+			     path.nullTerminated(),
+			     &mFAMReq,
+			     NULL );
+	break;
 
-  default:
-    return false;
-  }
+    default:
+	return false;
+    }
 
-  auto reqid = FAMREQUEST_GETREQNUM( &mFAMReq );
+    auto reqid = FAMREQUEST_GETREQNUM( &mFAMReq );
   
-  mWatchedByPath[path] = reqid;
-  mWatchedById[reqid] = path;
-  return true;
+    mWatchedByPath[path] = reqid;
+    mWatchedById[reqid] = path;
+    return true;
 }
 
 bool FileSystemWatcher::unwatch(const Path &path)
 {
-  std::cout << __PRETTY_FUNCTION__ << "\n";
+    //std::cout << __PRETTY_FUNCTION__ << "\n";
   
-  std::lock_guard<std::mutex> lock(mMutex);
-  int wd;
-  if (!mWatchedByPath.remove(path, &wd))
-    return false;
+    std::lock_guard<std::mutex> lock(mMutex);
+    int wd;
+    if (!mWatchedByPath.remove(path, &wd))
+	return false;
   
-  // TODO: hacky on private'ish struct!
-  FAMRequest freq;
-  freq.reqnum = wd;
+    // TODO: hacky on private'ish struct!
+    FAMRequest freq;
+    freq.reqnum = wd;
 
-  FAMCancelMonitor( &mFAMCon, &freq );
+    FAMCancelMonitor( &mFAMCon, &freq );
 
-  return true;
+    return true;
 }
 
 bool FileSystemWatcher::isFAMEventPending()
 {
-  auto ret = FAMPending( &mFAMCon );
-  assert( ! (ret < 0) );
+    auto ret = FAMPending( &mFAMCon );
+    assert( ! (ret < 0) );
 
-  return ret != 0;
+    return ret != 0;
 }
 
   
 void FileSystemWatcher::checkFAMEvents(int something)
 {
-  //std::cout << __PRETTY_FUNCTION__ << "\n";
+    Set<Path> modified, removed, added;
+    std::lock_guard<std::mutex> lock(mMutex);
   
-  Set<Path> modified, removed, added;
-  std::lock_guard<std::mutex> lock(mMutex);
-  
-  while( isFAMEventPending() ) {
+    while( isFAMEventPending() ) {
     
-    FAMEvent fevent;
-    FAMNextEvent( &mFAMCon, &fevent );
+	FAMEvent fevent;
+	FAMNextEvent( &mFAMCon, &fevent );
 
-    Path reqpath = mWatchedById.value( fevent.fr.reqnum );
+	Path reqpath = mWatchedById.value( fevent.fr.reqnum );
   
-    bool isDir = reqpath.isDir();
-    Path path = reqpath;
-    char *filename = (char *)fevent.filename;
+	bool isDir = reqpath.isDir();
+	Path path = reqpath;
+	char *filename = (char *)fevent.filename;
 
-    if ( Path( filename ).isAbsolute() )
-      path = filename;
-    else if ( isDir )
-      path.append( filename );
+	if ( Path( filename ).isAbsolute() )
+	    path = filename;
+	else if ( isDir )
+	    path.append( filename );
   
-    switch( fevent.code ) {
-    case FAMCreated:
-      std::cout << __PRETTY_FUNCTION__ << " : FAMCreated : "
-		<< path.nullTerminated() << "\n";
-      added.insert( path );
+	switch( fevent.code ) {
+	case FAMCreated:
+	    //std::cout << __PRETTY_FUNCTION__ << " : FAMCreated : "
+	    //	<< path.nullTerminated() << "\n";
+	    added.insert( path );
     
-    case FAMDeleted:
-      std::cout << __PRETTY_FUNCTION__ << " : FAMDeleted : "
-		<< path.nullTerminated() << "\n";
-      added.remove( path );
-      removed.insert( path );
+	case FAMDeleted:
+	    //std::cout << __PRETTY_FUNCTION__ << " : FAMDeleted : "
+	    //	<< path.nullTerminated() << "\n";
+	    added.remove( path );
+	    removed.insert( path );
 
-    case FAMChanged:
-      std::cout << __PRETTY_FUNCTION__ << " : FAMChanged : "
-		<< path.nullTerminated() << "\n";
-      modified.insert( path );
+	case FAMChanged:
+	    //std::cout << __PRETTY_FUNCTION__ << " : FAMChanged : "
+	    // << path.nullTerminated() << "\n";
+	    modified.insert( path );
     
-    default:
-      break;
+	default:
+	    break;
+	}
+
     }
-
-  }
   
-  struct {
-    Signal<std::function<void(const Path&)> > &signal;
-    const Set<Path> &paths;
-  } signals[] = {
-    { mModified, modified },
-    { mRemoved, removed },
-    { mAdded, added }
-  };
-  const unsigned count = sizeof(signals) / sizeof(signals[0]);
-  for (unsigned i=0; i<count; ++i) {
-    for (Set<Path>::const_iterator it = signals[i].paths.begin();
-	 it != signals[i].paths.end(); ++it) {
-      signals[i].signal(*it);
+    struct {
+	Signal<std::function<void(const Path&)> > &signal;
+	const Set<Path> &paths;
+    } signals[] = {
+	{ mModified, modified },
+	{ mRemoved, removed },
+	{ mAdded, added }
+    };
+    const unsigned count = sizeof(signals) / sizeof(signals[0]);
+    for (unsigned i=0; i<count; ++i) {
+	for (Set<Path>::const_iterator it = signals[i].paths.begin();
+	     it != signals[i].paths.end(); ++it) {
+	    signals[i].signal(*it);
+	}
     }
-  }
 
 }
 

@@ -9,6 +9,7 @@
 #include <queue>
 #include <set>
 #include <unordered_set>
+#include <vector>
 #include "Apply.h"
 
 class Event
@@ -136,13 +137,14 @@ public:
     int exec(int timeout = -1);
     void quit(int code = 0);
 
-    bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return execLevel; }
+    bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return !mExecStack.empty(); }
 
     static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
     static EventLoop::SharedPtr eventLoop();
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
 private:
+    void clearTimer(int id);
     bool sendPostedEvents();
     bool sendTimers();
     void cleanup();
@@ -215,11 +217,18 @@ private:
     uint32_t nextTimerId;
 
     bool stop;
-    int exitCode, execLevel;
+    int exitCode;
 
     static EventLoop::WeakPtr mainLoop;
 
     unsigned flgs;
+    struct ExecContext {
+        ExecContext()
+            : quitTimerId(-1)
+        {}
+        int quitTimerId;
+    };
+    std::vector<ExecContext> mExecStack;
 
 private:
     EventLoop(const EventLoop&) = delete;

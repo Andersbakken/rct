@@ -64,7 +64,7 @@ static void signalHandler(int sig, siginfo_t *siginfo, void *context)
 }
 
 EventLoop::EventLoop()
-    : pollFd(-1), nextTimerId(0), stop(false), exitCode(0), execLevel(0), flgs(0)
+    : pollFd(-1), nextTimerId(0), stop(false), exitCode(0), flgs(0)
 {
     std::call_once(mainOnce, [](){
             mainEventPipe = -1;
@@ -75,7 +75,7 @@ EventLoop::EventLoop()
 
 EventLoop::~EventLoop()
 {
-    assert(!execLevel);
+    assert(mExecStack.empty());
     cleanup();
 }
 
@@ -206,19 +206,12 @@ void EventLoop::wakeup()
 
 void EventLoop::quit(int code)
 {
-    if (std::this_thread::get_id() == threadId) {
-        if (execLevel) {
-            stop = true;
-            exitCode = code;
-        }
-        return;
-    }
-
     std::lock_guard<std::mutex> locker(mutex);
-    if (execLevel && !stop) {
+    if (!mExecStack.empty()) {
         stop = true;
         exitCode = code;
-        wakeup();
+        if (std::this_thread::get_id() != threadId)
+            wakeup();
     }
 }
 
@@ -288,6 +281,11 @@ void EventLoop::unregisterTimer(int id)
 {
     // rather slow
     std::lock_guard<std::mutex> locker(mutex);
+    clearTimer(id);
+}
+
+void EventLoop::clearTimer(int id)
+{
     TimerData* t = 0;
     {
         TimerData data;
@@ -530,14 +528,14 @@ void EventLoop::unregisterSocket(int fd)
 
 int EventLoop::exec(int timeoutTime)
 {
+    int quitTimerId = -1;
+    if (timeoutTime != -1)
+        quitTimerId = registerTimer(std::bind(&EventLoop::quit, this, Timeout), timeoutTime, Timer::SingleShot);
     {
         std::lock_guard<std::mutex> locker(mutex);
-        ++execLevel;
-    }
-
-    if (timeoutTime != -1) {
-        // register a timer that will quit the event loop
-        registerTimer(std::bind(&EventLoop::quit, this, Timeout), timeoutTime, Timer::SingleShot);
+        ExecContext ctx;
+        ctx.quitTimerId = quitTimerId;
+        mExecStack.push_back(ctx);
     }
 
     int i, e, mode;
@@ -563,7 +561,9 @@ int EventLoop::exec(int timeoutTime)
             // check if we're stopped
             if (stop) {
                 stop = false;
-                --execLevel;
+                if (mExecStack.back().quitTimerId != -1)
+                    clearTimer(mExecStack.back().quitTimerId);
+                mExecStack.pop_back();
                 return exitCode;
             }
 
@@ -588,7 +588,11 @@ int EventLoop::exec(int timeoutTime)
         if (eventCount < 0) {
             // bad
             std::lock_guard<std::mutex> locker(mutex);
-            execLevel = 0;
+            while (!mExecStack.empty()) {
+                if (mExecStack.back().quitTimerId != -1)
+                    clearTimer(mExecStack.back().quitTimerId);
+                mExecStack.pop_back();
+            }
             return GeneralError;
         } else if (eventCount) {
             std::unique_lock<std::mutex> locker(mutex);
@@ -672,7 +676,11 @@ int EventLoop::exec(int timeoutTime)
                                 // signal caught, we need to shut down
                                 fprintf(stderr, "Caught Ctrl-C\n");
                                 std::lock_guard<std::mutex> locker(mutex);
-                                execLevel = 0;
+                                while (!mExecStack.empty()) {
+                                    if (mExecStack.back().quitTimerId != -1)
+                                        clearTimer(mExecStack.back().quitTimerId);
+                                    mExecStack.pop_back();
+                                }
                                 return Success;
                             }
                         } while (e == 1);
@@ -682,7 +690,11 @@ int EventLoop::exec(int timeoutTime)
                             STRERROR_R(errno, buf, sizeof(buf));
                             fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, buf);
                             std::lock_guard<std::mutex> locker(mutex);
-                            execLevel = 0;
+                            while (!mExecStack.empty()) {
+                                if (mExecStack.back().quitTimerId != -1)
+                                    clearTimer(mExecStack.back().quitTimerId);
+                                mExecStack.pop_back();
+                            }
                             return GeneralError;
                         }
                     } else {

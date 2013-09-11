@@ -1,91 +1,27 @@
 #include "rct/FileSystemWatcher.h"
-#include "rct/Event.h"
-#include "rct/EventReceiver.h"
 #include "rct/EventLoop.h"
-#include "rct/MutexLocker.h"
-#include "rct/WaitCondition.h"
 #include "rct/Log.h"
-#include "rct/Thread.h"
 #include "rct-config.h"
 #include <string.h>
 #include <errno.h>
-#include "rct/CoreFoundation/CoreFoundation.h"
+#include <mutex>
+#include <thread>
+#include <CoreFoundation/CoreFoundation.h>
 
-class WatcherEvent : public Event
+class WatcherData
 {
 public:
-    enum Type { Created = 505, Removed, Modified };
+    WatcherData(FileSystemWatcher* fsw);
 
-    WatcherEvent(Type t, const Set<Path>& p) : Event(t), type(t), paths(p) { }
-
-    Type type;
-    Set<Path> paths;
-};
-
-class WatcherReceiver : public EventReceiver
-{
-public:
-    WatcherReceiver(FileSystemWatcher* w);
-
-protected:
-    virtual void event(const Event* event);
-
-private:
-    FileSystemWatcher* watcher;
-};
-
-WatcherReceiver::WatcherReceiver(FileSystemWatcher* w)
-    : watcher(w)
-{
-}
-
-void WatcherReceiver::event(const Event* event)
-{
-    const WatcherEvent* we = static_cast<const WatcherEvent*>(event);
-    Set<Path>::const_iterator path = we->paths.begin();
-    const Set<Path>::const_iterator end = we->paths.end();
-    while (path != end) {
-        switch(we->type) {
-        case WatcherEvent::Created:
-            watcher->mAdded(*path);
-            break;
-        case WatcherEvent::Removed:
-            watcher->mRemoved(*path);
-            break;
-        case WatcherEvent::Modified:
-            watcher->mModified(*path);
-            break;
-        }
-        ++path;
-    }
-}
-
-class WatcherThread : public Thread
-{
-public:
-    WatcherThread(WatcherReceiver* r);
-
-    void waitForStarted();
-    void stop();
-
-    bool watch(const Path& path);
-    bool unwatch(const Path& path);
     void clear();
+    void watch(const Path& path);
+    bool unwatch(const Path& path);
+    void waitForStarted();
+    Set<Path> watchedPaths() const;
 
-    Set<Path> watchedPaths() const { MutexLocker locker(&mutex); return paths; }
+    mutable std::mutex mutex;
 
-protected:
-    void run();
-
-private:
-    static void perform(void* thread);
-
-private:
-    bool isWatching(const Path& p) const;
-
-private:
-    mutable Mutex mutex;
-    WaitCondition waiter;
+    Set<Path> paths;
 
     enum Flags {
         Start = 0x1,
@@ -93,20 +29,22 @@ private:
         Clear = 0x4
     };
     int flags;
-    WatcherReceiver* receiver;
 
+    FileSystemWatcher* watcher;
     CFRunLoopRef loop;
     CFRunLoopSourceRef source;
     FSEventStreamRef fss;
     FSEventStreamEventId since;
-    Set<Path> paths;
+    std::thread thread;
+    std::condition_variable waiter;
     static void notifyCallback(ConstFSEventStreamRef, void*, size_t, void *,
                                const FSEventStreamEventFlags[],
                                const FSEventStreamEventId[]);
+    static void perform(void* thread);
 };
 
-WatcherThread::WatcherThread(WatcherReceiver* r)
-    : flags(0), receiver(r), fss(0)
+WatcherData::WatcherData(FileSystemWatcher* fsw)
+    : flags(0), watcher(fsw), fss(0)
 {
     // ### is this right?
     since = kFSEventStreamEventIdSinceNow;
@@ -115,24 +53,72 @@ WatcherThread::WatcherThread(WatcherReceiver* r)
     ctx.info = this;
     ctx.perform = perform;
     source = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &ctx);
+
+    thread = std::thread([=]() {
+            {
+                std::lock_guard<std::mutex> locker(mutex);
+                loop = CFRunLoopGetCurrent();
+                CFRunLoopAddSource(loop, source, kCFRunLoopCommonModes);
+                flags |= Start;
+                waiter.notify_one();
+            }
+            CFRunLoopRun();
+        });
 }
 
-void WatcherThread::run()
+void WatcherData::waitForStarted()
 {
-    {
-        MutexLocker locker(&mutex);
-        loop = CFRunLoopGetCurrent();
-        CFRunLoopAddSource(loop, source, kCFRunLoopCommonModes);
-        flags |= Start;
-        waiter.wakeOne();
-    }
-    CFRunLoopRun();
+    std::unique_lock<std::mutex> locker(mutex);
+    if (flags & Start)
+        return;
+    waiter.wait(locker);
 }
 
-void WatcherThread::perform(void* thread)
+void WatcherData::watch(const Path& path)
 {
-    WatcherThread* watcher = static_cast<WatcherThread*>(thread);
-    MutexLocker locker(&watcher->mutex);
+    std::lock_guard<std::mutex> lock(mutex);
+
+    assert(!paths.contains(path));
+
+    paths.insert(path);
+    CFRunLoopSourceSignal(source);
+    CFRunLoopWakeUp(loop);
+}
+
+bool WatcherData::unwatch(const Path& path)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+
+    auto p = paths.find(path);
+    if (p == paths.end())
+        return false;
+
+    paths.erase(p);
+    CFRunLoopSourceSignal(source);
+    CFRunLoopWakeUp(loop);
+    return true;
+}
+
+void WatcherData::clear()
+{
+    std::lock_guard<std::mutex> lock(mutex);
+
+    flags |= Clear;
+    paths.clear();
+    CFRunLoopSourceSignal(source);
+    CFRunLoopWakeUp(loop);
+}
+
+Set<Path> WatcherData::watchedPaths() const
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    return paths;
+}
+
+void WatcherData::perform(void* thread)
+{
+    WatcherData* watcher = static_cast<WatcherData*>(thread);
+    std::unique_lock<std::mutex> locker(watcher->mutex);
     if (watcher->flags & Stop) {
         if (watcher->fss) {
             FSEventStreamStop(watcher->fss);
@@ -162,16 +148,15 @@ void WatcherThread::perform(void* thread)
     FSEventStreamRef newfss = 0;
 
     if (pathSize) {
-        CFStringRef refs[pathSize];
+        List<CFStringRef> refs(pathSize);
         int i = 0;
         Set<Path>::const_iterator path = watcher->paths.begin();
         const Set<Path>::const_iterator end = watcher->paths.end();
         while (path != end) {
-            // CFStringCreateWithCString copies the string data
-            // ### use CFStringCreateWithCStringNoCopy instead?
-            refs[i++] = CFStringCreateWithCString(kCFAllocatorDefault,
-                                                  path->nullTerminated(),
-                                                  kCFStringEncodingUTF8);
+            refs[i++] = CFStringCreateWithCStringNoCopy(kCFAllocatorDefault,
+                                                        path->constData(),
+                                                        kCFStringEncodingUTF8,
+                                                        kCFAllocatorNull);
             ++path;
         }
 
@@ -179,9 +164,12 @@ void WatcherThread::perform(void* thread)
         locker.unlock();
 
         CFArrayRef list = CFArrayCreate(kCFAllocatorDefault,
-                                        reinterpret_cast<const void**>(refs),
+                                        reinterpret_cast<const void**>(&refs[0]),
                                         pathSize,
-                                        0);
+                                        &kCFTypeArrayCallBacks);
+
+        for (int j = 0; j < i; ++j)
+            CFRelease(refs[j]);
 
         FSEventStreamContext ctx = { 0, watcher, 0, 0, 0 };
         newfss = FSEventStreamCreate(kCFAllocatorDefault,
@@ -189,10 +177,12 @@ void WatcherThread::perform(void* thread)
                                      &ctx,
                                      list,
                                      watcher->since,
-                                     .5,
-                                     kFSEventStreamCreateFlagWatchRoot
-                                     | kFSEventStreamCreateFlagIgnoreSelf
-                                     | kFSEventStreamCreateFlagFileEvents);
+                                     .1,
+                                     kFSEventStreamCreateFlagIgnoreSelf
+                                     | kFSEventStreamCreateFlagFileEvents
+                                     );
+
+        CFRelease(list);
     }
 
     if (!newfss)
@@ -209,18 +199,20 @@ void WatcherThread::perform(void* thread)
     FSEventStreamStart(watcher->fss);
 }
 
-void WatcherThread::notifyCallback(ConstFSEventStreamRef streamRef,
-                                   void *clientCallBackInfo,
-                                   size_t numEvents,
-                                   void *eventPaths,
-                                   const FSEventStreamEventFlags eventFlags[],
-                                   const FSEventStreamEventId eventIds[])
+void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
+                                 void *clientCallBackInfo,
+                                 size_t numEvents,
+                                 void *eventPaths,
+                                 const FSEventStreamEventFlags eventFlags[],
+                                 const FSEventStreamEventId eventIds[])
 {
-    WatcherThread* watcher = static_cast<WatcherThread*>(clientCallBackInfo);
-    MutexLocker locker(&watcher->mutex);
+    WatcherData* watcher = static_cast<WatcherData*>(clientCallBackInfo);
+    std::lock_guard<std::mutex> locker(watcher->mutex);
     watcher->since = FSEventStreamGetLatestEventId(streamRef);
     char** paths = reinterpret_cast<char**>(eventPaths);
+
     Set<Path> created, removed, modified;
+
     for (size_t i = 0; i < numEvents; ++i) {
         const FSEventStreamEventFlags flags = eventFlags[i];
         if (flags & kFSEventStreamEventFlagHistoryDone)
@@ -238,93 +230,40 @@ void WatcherThread::notifyCallback(ConstFSEventStreamRef streamRef,
     }
 
     if (!created.empty())
-        watcher->receiver->postEvent(new WatcherEvent(WatcherEvent::Created, created));
+        EventLoop::eventLoop()->callLaterMove(std::bind(&FileSystemWatcher::pathsAdded, watcher->watcher, std::placeholders::_1), std::move(created));
     if (!removed.empty())
-        watcher->receiver->postEvent(new WatcherEvent(WatcherEvent::Removed, removed));
-    if (!modified.empty()) {
-        watcher->receiver->postEvent(new WatcherEvent(WatcherEvent::Modified, modified));
-    }
-}
-
-void WatcherThread::stop()
-{
-    MutexLocker locker(&mutex);
-    flags |= Stop;
-    CFRunLoopSourceSignal(source);
-    CFRunLoopWakeUp(loop);
-}
-
-void WatcherThread::waitForStarted()
-{
-    MutexLocker locker(&mutex);
-    if (flags & Start)
-        return;
-    do {
-        waiter.wait(&mutex);
-    } while (!(flags & Start));
-}
-
-bool WatcherThread::isWatching(const Path& p) const
-{
-    Path path = p, parent;
-    if (!path.endsWith('/'))
-        path += '/';
-    for (;;) {
-        if (paths.contains(path))
-            return true;
-        parent = path.parentDir();
-        if (parent == path || parent.isEmpty())
-            break;
-        path = parent;
-    }
-    return false;
-}
-
-void WatcherThread::clear()
-{
-    MutexLocker locker(&mutex);
-    flags |= Clear;
-    paths.clear();
-    CFRunLoopSourceSignal(source);
-    CFRunLoopWakeUp(loop);
-}
-
-bool WatcherThread::watch(const Path& path)
-{
-    MutexLocker locker(&mutex);
-    if (isWatching(path))
-        return false;
-    paths.insert(path);
-    CFRunLoopSourceSignal(source);
-    CFRunLoopWakeUp(loop);
-    return true;
-}
-
-bool WatcherThread::unwatch(const Path& path)
-{
-    MutexLocker locker(&mutex);
-    if (paths.remove(path)) {
-        CFRunLoopSourceSignal(source);
-        CFRunLoopWakeUp(loop);
-        return true;
-    }
-    return false;
+        EventLoop::eventLoop()->callLater(std::bind(&FileSystemWatcher::pathsRemoved, watcher->watcher, std::placeholders::_1), std::move(removed));
+    if (!modified.empty())
+        EventLoop::eventLoop()->callLater(std::bind(&FileSystemWatcher::pathsModified, watcher->watcher, std::placeholders::_1), std::move(modified));
 }
 
 FileSystemWatcher::FileSystemWatcher()
+    : mWatcher(new WatcherData(this))
 {
-    mReceiver = new WatcherReceiver(this);
-    mWatcher = new WatcherThread(mReceiver);
-    mWatcher->start();
     mWatcher->waitForStarted();
 }
 
 FileSystemWatcher::~FileSystemWatcher()
 {
-    mWatcher->stop();
-    mWatcher->join();
     delete mWatcher;
-    delete mReceiver;
+}
+
+struct FSUserData
+{
+    Set<Path> all, added, modified;
+    WatcherData* watcher;
+};
+
+static inline uint64_t timespecToInt(timespec spec)
+{
+    uint64_t t = spec.tv_sec * 1000;
+    t += spec.tv_nsec / 1000000;
+    return t;
+}
+
+void FileSystemWatcher::clear()
+{
+    mWatcher->clear();
 }
 
 Set<Path> FileSystemWatcher::watchedPaths() const
@@ -332,24 +271,41 @@ Set<Path> FileSystemWatcher::watchedPaths() const
     return mWatcher->watchedPaths();
 }
 
+bool FileSystemWatcher::isWatching(const Path& p) const
+{
+    if (!p.endsWith('/'))
+        return isWatching(p + '/');
+
+    std::lock_guard<std::mutex> lock(mWatcher->mutex);
+    return mWatcher->paths.contains(p);
+}
+
 bool FileSystemWatcher::watch(const Path &p)
 {
     Path path = p;
+    assert(!path.isEmpty());
     const Path::Type type = path.type();
+    uint32_t flags = 0;
     switch (type) {
     case Path::File:
         path = path.parentDir();
-        break;
+        // fall through
     case Path::Directory:
-        if (!path.endsWith('/'))
-            path += '/';
         break;
     default:
         error("FileSystemWatcher::watch() '%s' doesn't not seem to be watchable", path.constData());
         return false;
     }
 
-    return mWatcher->watch(path);
+    if (!path.endsWith('/'))
+        path += '/';
+
+    if (isWatching(path))
+        return false;
+
+    mWatcher->watch(path);
+
+    return true;
 }
 
 bool FileSystemWatcher::unwatch(const Path &p)
@@ -357,17 +313,30 @@ bool FileSystemWatcher::unwatch(const Path &p)
     Path path = p;
     if (path.isFile())
         path = path.parentDir();
-    else if (!path.endsWith('/'))
+
+    if (!path.endsWith('/'))
         path += '/';
-    if (mWatcher->unwatch(path)) {
-        debug("FileSystemWatcher::unwatch(\"%s\")", path.constData());
-        return true;
-    } else {
-        return false;
+
+    return mWatcher->unwatch(path);
+}
+
+void FileSystemWatcher::pathsAdded(const Set<Path>& paths)
+{
+    for (const Path& path : paths) {
+        mAdded(path);
     }
 }
 
-void FileSystemWatcher::clear()
+void FileSystemWatcher::pathsRemoved(const Set<Path>& paths)
 {
-    mWatcher->clear();
+    for (const Path& path : paths) {
+        mRemoved(path);
+    }
+}
+
+void FileSystemWatcher::pathsModified(const Set<Path>& paths)
+{
+    for (const Path& path : paths) {
+        mModified(path);
+    }
 }

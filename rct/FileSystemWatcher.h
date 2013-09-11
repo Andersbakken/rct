@@ -8,9 +8,8 @@
 #include <stdint.h>
 #include <mutex>
 #ifdef HAVE_FSEVENTS
-#include <rct/CoreServices/CoreServices.h>
-class WatcherThread;
-class WatcherReceiver;
+#include <CoreServices/CoreServices.h>
+class WatcherData;
 #elif defined(HAVE_KQUEUE)
 #elif defined(HAVE_INOTIFY)
 #else
@@ -37,9 +36,12 @@ public:
 #endif
 private:
 #ifdef HAVE_FSEVENTS
-    WatcherThread* mWatcher;
-    WatcherReceiver* mReceiver;
-    friend class WatcherReceiver;
+    WatcherData* mWatcher;
+    friend class WatcherData;
+    void pathsAdded(const Set<Path>& paths);
+    void pathsRemoved(const Set<Path>& paths);
+    void pathsModified(const Set<Path>& paths);
+    bool isWatching(const Path& path) const;
 #else
     std::mutex mMutex;
     void notifyReadyRead();

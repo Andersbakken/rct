@@ -18,6 +18,22 @@ check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  exec_program(sw_vers ARGS -productVersion OUTPUT_VARIABLE OSX_VERSION)
+  message("OS X version ${OSX_VERSION}")
+  string(REGEX REPLACE "^([0-9]+)\\.[0-9]+\\..*$" "\\1" OSX_MAJOR ${OSX_VERSION})
+  string(REGEX REPLACE "^[0-9]+\\.([0-9]+)\\..*$" "\\1" OSX_MINOR ${OSX_VERSION})
+  if (${OSX_MAJOR} EQUAL 10 AND ${OSX_MINOR} GREATER 6)
+    set(HAVE_FSEVENTS 1)
+    message("Using FSEvents")
+  elseif (${OSX_MAJOR} GREATER 10)
+    set(HAVE_FSEVENTS 1)
+    message("Using FSEvents")
+  else ()
+    message("Using kqueue")
+  endif ()
+endif ()
+
 check_cxx_source_compiles("
   #include <sys/types.h>
   #include <sys/stat.h>

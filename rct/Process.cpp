@@ -400,9 +400,11 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
                     FD_SET(mStdIn[1], &wfds);
                     max = std::max(max, mStdIn[1]);
                 }
-                const int ret = select(max + 1, &rfds, &wfds, 0, selecttime);
+                int ret;
+                eintrwrap(ret, ::select(max + 1, &rfds, &wfds, 0, selecttime));
                 if (ret == -1) { // ow
-                    mErrorString = "Sync select failed";
+                    mErrorString = "Sync select failed: ";
+                    mErrorString += strerror(errno);
                     return Error;
                 }
                 // check fds and stuff

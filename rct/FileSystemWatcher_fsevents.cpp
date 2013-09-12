@@ -77,6 +77,9 @@ WatcherData::~WatcherData()
         CFRunLoopWakeUp(loop);
     }
     thread.join();
+
+    CFRunLoopSourceInvalidate(source);
+    CFRelease(source);
 }
 
 void WatcherData::waitForStarted()

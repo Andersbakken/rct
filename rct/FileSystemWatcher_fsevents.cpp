@@ -12,6 +12,7 @@ class WatcherData
 {
 public:
     WatcherData(FileSystemWatcher* fsw);
+    ~WatcherData();
 
     void clear();
     void watch(const Path& path);
@@ -64,6 +65,18 @@ WatcherData::WatcherData(FileSystemWatcher* fsw)
             }
             CFRunLoopRun();
         });
+}
+
+WatcherData::~WatcherData()
+{
+    // stop the thread;
+    {
+        std::lock_guard<std::mutex> locker(mutex);
+        flags |= Stop;
+        CFRunLoopSourceSignal(source);
+        CFRunLoopWakeUp(loop);
+    }
+    thread.join();
 }
 
 void WatcherData::waitForStarted()

@@ -290,6 +290,8 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
 
 void SocketClient::socketCallback(int f, int mode)
 {
+    if (fd == -1)
+        return;
     assert(f == fd);
     (void)f;
 

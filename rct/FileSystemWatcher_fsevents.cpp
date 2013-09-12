@@ -265,19 +265,6 @@ FileSystemWatcher::~FileSystemWatcher()
     delete mWatcher;
 }
 
-struct FSUserData
-{
-    Set<Path> all, added, modified;
-    WatcherData* watcher;
-};
-
-static inline uint64_t timespecToInt(timespec spec)
-{
-    uint64_t t = spec.tv_sec * 1000;
-    t += spec.tv_nsec / 1000000;
-    return t;
-}
-
 void FileSystemWatcher::clear()
 {
     mWatcher->clear();

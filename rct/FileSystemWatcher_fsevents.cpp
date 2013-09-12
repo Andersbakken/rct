@@ -220,10 +220,11 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
         if (flags & kFSEventStreamEventFlagItemIsFile) {
             if (flags & kFSEventStreamEventFlagItemCreated) {
                 created.insert(Path(paths[i]));
-            } else if (flags & kFSEventStreamEventFlagItemRemoved) {
+            }
+            if (flags & kFSEventStreamEventFlagItemRemoved) {
                 removed.insert(Path(paths[i]));
-            } else if (flags & (kFSEventStreamEventFlagItemModified
-                                | kFSEventStreamEventFlagItemInodeMetaMod)) {
+            }
+            if (flags & (kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod)) {
                 modified.insert(Path(paths[i]));
             }
         }

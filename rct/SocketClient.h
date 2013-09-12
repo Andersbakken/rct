@@ -26,6 +26,13 @@ public:
     bool isConnected() const { return fd != -1; }
     int socket() const { return fd; }
 
+    enum WriteMode {
+        Synchronous,
+        Asynchronous
+    };
+    void setWriteMode(WriteMode m) { mode = m; }
+    WriteMode writeMode() const { return mode; }
+
     void close();
 
     bool write(const unsigned char* data, unsigned int num);
@@ -45,13 +52,16 @@ public:
 private:
     int fd;
     State socketState;
+    WriteMode mode;
     bool writeWait;
+
     Signal<std::function<void(SocketClient::SharedPtr&)> > signalReadyRead;
     Signal<std::function<void(const SocketClient::SharedPtr&)> >signalConnected, signalDisconnected;
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> > signalError;
     Signal<std::function<void(const SocketClient::SharedPtr&, int)> > signalBytesWritten;
     Buffer readBuffer, writeBuffer;
 
+    int writeData(const unsigned char *data, int size);
     void socketCallback(int, int);
 };
 

@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <rct-config.h>
@@ -18,7 +19,7 @@
     } while (VAR == -1 && errno == EINTR)
 
 SocketClient::SocketClient(Mode mode)
-    : socketState(Disconnected), writeWait(false)
+    : socketState(Disconnected), mode(Asynchronous), writeWait(false)
 {
     fd = ::socket(mode == Tcp ? AF_INET : PF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) {
@@ -179,27 +180,31 @@ bool SocketClient::connect(const std::string& path)
     return true;
 }
 
-// struct Closer
-// {
-//     Closer(FILE *f)
-//         : mF(f)
-//     {
-//     }
-//     ~Closer()
-//     {
-//         if (mF)
-//             fclose(mF);
-//     }
-// private:
-//     FILE *mF;
-// };
+int SocketClient::writeData(const unsigned char *data, int size)
+{
+    int ret;
+    while (true) {
+        eintrwrap(ret, ::write(fd, data, size));
+        if (ret != -1 || (errno != EAGAIN && errno != EWOULDBLOCK) || mode == Asynchronous)
+            break;
+        fd_set e;
+        FD_ZERO(&e);
+        FD_SET(fd, &e);
+        fd_set w;
+        FD_ZERO(&w);
+        FD_SET(fd, &w);
+        eintrwrap(ret, select(fd + 1, 0, &w, &e, 0));
+        if (ret > 0 && FD_ISSET(fd, &e)) {
+            errno = ECONNRESET; // ???
+            ret = -1;
+            break;
+        }
+    }
+    return ret;
+}
 
 bool SocketClient::write(const unsigned char* data, unsigned int size)
 {
-    // char buf[1024];
-    // snprintf(buf, sizeof(buf), "/tmp/rtags-%d.write.log", getpid());
-    // FILE *f = getenv("RTAGS_DUMP") ? fopen(buf, "a") : 0;
-    // Closer closer(f);
     int e;
     bool done = !data;
     unsigned int total = 0;
@@ -210,7 +215,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
         if (!writeBuffer.isEmpty()) {
             while (total < writeBuffer.size()) {
                 assert(writeBuffer.size() > total);
-                eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
+                e = writeData(writeBuffer.data() + total, writeBuffer.size() - total);
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         assert(!writeWait);
@@ -227,9 +232,6 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
                         return false;
                     }
                 }
-                // if (f)
-                //     fwrite(writeBuffer.data() + total, e, 1, f);
-                // fflush(f);
                 signalBytesWritten(socketPtr, e);
                 total += e;
             }
@@ -248,7 +250,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
 
         for (;;) {
             assert(size > total);
-            eintrwrap(e, ::write(fd, data + total, size - total));
+            e = writeData(data + total, size - total);
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     assert(!writeWait);
@@ -264,10 +266,6 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
                     return false;
                 }
             }
-            // if (f) {
-            //     fwrite(data + total, e, 1, f);
-            //     fflush(f);
-            // }
             signalBytesWritten(socketPtr, e);
             total += e;
             assert(total <= size);
@@ -310,11 +308,6 @@ void SocketClient::socketCallback(int f, int mode)
         }
     }
 
-    // char buf[1024];
-    // snprintf(buf, sizeof(buf), "/tmp/rtags-%d.read.log", getpid());
-    // FILE *ff = getenv("RTAGS_DUMP") ? fopen(buf, "a") : 0;
-    // Closer closer(ff);
-
     if (mode & EventLoop::SocketRead) {
         enum { BlockSize = 1024, AllocateAt = 512 };
         int e;
@@ -331,10 +324,6 @@ void SocketClient::socketCallback(int f, int mode)
             }
             eintrwrap(e, ::read(fd, readBuffer.end(), rem));
             if (e == -1) {
-                // if (ff) {
-                //     fprintf(ff, "\nGot error %d:%s\n", errno, strerror(errno));
-                //     fflush(ff);
-                // }
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     break;
                 } else {
@@ -344,10 +333,6 @@ void SocketClient::socketCallback(int f, int mode)
                     return;
                 }
             } else if (e == 0) {
-                // if (ff) {
-                //     fprintf(ff, "\nGot closed\n");
-                //     fflush(ff);
-                // }
                 // socket closed
                 if (total) {
                     signalReadyRead(tcpSocket);
@@ -356,13 +341,8 @@ void SocketClient::socketCallback(int f, int mode)
                 close();
                 return;
             } else {
-                // if (ff) {
-                //     fwrite(readBuffer.end(), e, 1, ff);
-                //     fflush(ff);
-                // }
                 total += e;
                 readBuffer.resize(total);
-                // printf("read %d bytes %d\n", e, total);
             }
         }
         assert(total <= readBuffer.capacity());

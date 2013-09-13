@@ -519,7 +519,7 @@ unsigned int EventLoop::processSocket(int fd, int timeout)
 {
     enum { MaxEvents = 2 };
 
-    int eventCount;
+    int eventCount, e;
     NativeEvent events[MaxEvents];
 #if defined(HAVE_EPOLL)
     int processFd = epoll_create1(0);
@@ -528,7 +528,7 @@ unsigned int EventLoop::processSocket(int fd, int timeout)
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLET|EPOLLRDHUP|EPOLLIN|EPOLLOUT;
     ev.data.fd = fd;
-    int e = epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
+    e = epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
 
     eintrwrap(eventCount, epoll_wait(processFd, events, MaxEvents, timeout));
 #elif defined(HAVE_KQUEUE)

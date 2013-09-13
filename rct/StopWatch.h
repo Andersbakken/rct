@@ -1,5 +1,5 @@
-#ifndef Timer_h
-#define Timer_h
+#ifndef StopWatch_h
+#define StopWatch_h
 
 #include <stdint.h>
 #include <sys/time.h>
@@ -56,3 +56,4 @@ private:
     uint64_t mStart;
 };
 #endif
+

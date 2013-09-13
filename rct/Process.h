@@ -51,7 +51,6 @@ public:
     static List<String> environment();
 
     static Path findCommand(const String& command);
-
 private:
     void finish(int returnCode);
     void processCallback(int fd, int mode);

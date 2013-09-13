@@ -49,7 +49,7 @@ static EventLoop::WeakPtr& localEventLoop()
         VAR = BLOCK;                            \
     } while (VAR == -1 && errno == EINTR)
 
-static void signalHandler(int sig, siginfo_t *siginfo, void *context)
+static void signalHandler(int sig)
 {
     char b = 'q';
     int w;
@@ -130,8 +130,7 @@ void EventLoop::init(unsigned flags)
 
     if (flgs & EnableSigIntHandler) {
         struct sigaction act;
-        act.sa_sigaction = signalHandler;
-        act.sa_flags = SA_SIGINFO;
+        act.sa_handler = signalHandler;
         if (::sigaction(SIGINT, &act, 0) == -1) {
             cleanup();
             return;

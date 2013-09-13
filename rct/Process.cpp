@@ -21,24 +21,21 @@ static std::once_flag sProcessHandler;
 class ProcessThread : public Thread
 {
 public:
-    static void stop();
     static void installProcessHandler();
     static void addPid(pid_t pid, Process* process);
-    static void removePid(pid_t pid);
 
+    enum Signal {
+        Child,
+        Stop
+    };
+    static void wakeup(Signal sig);
 protected:
     void run();
 
 private:
     ProcessThread();
 
-#ifdef HAVE_SIGINFO
-    static void processSignalHandler(int sig, siginfo_t* info, void* /*context*/);
-#else
     static void processSignalHandler(int sig);
-#endif
-    static void sendPid(pid_t pid);
-
 private:
     static ProcessThread* sProcessThread;
     static int sProcessPipe[2];
@@ -59,15 +56,7 @@ ProcessThread::ProcessThread()
     eintrwrap(flg, ::fcntl(sProcessPipe[1], F_GETFL, 0));
     eintrwrap(flg, ::fcntl(sProcessPipe[1], F_SETFL, flg | O_NONBLOCK));
 
-#ifdef HAVE_SIGINFO
-    struct sigaction sa;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_sigaction = ProcessThread::processSignalHandler;
-    sa.sa_flags = SA_RESTART | SA_SIGINFO;
-    ::sigaction(SIGCHLD, &sa, 0);
-#else
     ::signal(SIGCHLD, ProcessThread::processSignalHandler);
-#endif
 }
 
 void ProcessThread::addPid(pid_t pid, Process* process)
@@ -76,39 +65,18 @@ void ProcessThread::addPid(pid_t pid, Process* process)
     sProcesses[pid] = process;
 }
 
-void ProcessThread::removePid(pid_t pid)
-{
-    std::lock_guard<std::mutex> lock(sProcessMutex);
-    sProcesses.erase(pid);
-}
-
-void ProcessThread::stop()
-{
-    const pid_t stopPid = 1; // assume that no user process has a pid of 1
-    sendPid(stopPid);
-}
-
 void ProcessThread::run()
 {
     pid_t pid;
     char* buf = reinterpret_cast<char*>(&pid);
     ssize_t hasread = 0, r;
     for (;;) {
-        //printf("reading pid (%lu remaining)\n", sizeof(pid_t) - hasread);
-        r = ::read(sProcessPipe[0], &buf[hasread], sizeof(pid_t) - hasread);
-        //printf("did read %ld\n", r);
-        if (r >= 0)
-            hasread += r;
-        else {
-            if (errno != EINTR) {
-                error() << "ProcessThread is dying, errno " << errno << " strerror " << strerror(errno);
+        char ch;
+        r = ::read(sProcessPipe[0], &ch, sizeof(char));
+        if (r == 1) {
+            if (ch == 's') {
                 break;
-            }
-        }
-        if (hasread == sizeof(pid_t)) {
-            //printf("got a full pid %d\n", pid);
-            if (pid == 0) { // if our pid is 0 due to siginfo_t having an invalid si_pid then we have a misbehaving kernel.
-                // regardless, we need to go through all children and call a non-blocking waitpid on each of them
+            } else {
                 int ret;
                 pid_t p;
                 std::unique_lock<std::mutex> lock(sProcessMutex);
@@ -136,65 +104,29 @@ void ProcessThread::run()
                         lock.lock();
                     }
                 }
-            } else if (pid == 1) { // stopped
-                break;
-            } else {
-                int ret;
-                //printf("blocking wait pid %d\n", pid);
-                ::waitpid(pid, &ret, 0);
-                //printf("wait complete\n");
-                Process *process = 0;
-                {
-                    std::lock_guard<std::mutex> lock(sProcessMutex);
-                    std::map<pid_t, Process*>::iterator proc = sProcesses.find(pid);
-                    if (proc != sProcesses.end()) {
-                        if (WIFEXITED(ret))
-                            ret = WEXITSTATUS(ret);
-                        else
-                            ret = -1;
-                        process = proc->second;
-                        sProcesses.erase(proc);
-                    }
-                }
-                if (process)
-                    process->finish(ret);
             }
-            hasread = 0;
         }
     }
-    debug() << "ProcessThread dead";
     //printf("process thread died for some reason\n");
 }
 
-void ProcessThread::sendPid(pid_t pid)
+void ProcessThread::wakeup(Signal sig)
 {
-    const char* buf = reinterpret_cast<const char*>(&pid);
-    ssize_t written = 0, w;
+    const char b = sig == Stop ? 's' : 'c';
     //printf("sending pid %d\n", pid);
     do {
-        w = ::write(sProcessPipe[1], &buf[written], sizeof(pid_t) - written);
-        if (w >= 0)
-            written += w;
-    } while ((static_cast<size_t>(written) < sizeof(pid_t))
-             || (w == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)));
+        if (::write(sProcessPipe[1], &b, sizeof(char)) >= 0)
+            break;
+    } while (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK);
     //printf("sent pid %ld\n", written);
 }
 
-#ifdef HAVE_SIGINFO
-void ProcessThread::processSignalHandler(int sig, siginfo_t* info, void*)
-{
-    assert(sig == SIGCHLD);
-    (void)sig;
-    sendPid(info->si_pid);
-}
-#else
 void ProcessThread::processSignalHandler(int sig)
 {
     assert(sig == SIGCHLD);
     (void)sig;
-    sendPid(0);
+    wakeup(Child);
 }
-#endif
 
 void ProcessThread::installProcessHandler()
 {
@@ -216,8 +148,10 @@ Process::Process()
 
 Process::~Process()
 {
-    if (mPid != -1)
-        ProcessThread::removePid(mPid);
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        assert(mPid == -1);
+    }
 
     if (mStdIn[0] != -1) {
         // try to finish off any pending writes

@@ -16,7 +16,6 @@ check_cxx_symbol_exists(kqueue "sys/types.h;sys/event.h" HAVE_KQUEUE)
 check_cxx_symbol_exists(epoll_wait "sys/epoll.h" HAVE_EPOLL)
 check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
-check_cxx_symbol_exists(SA_SIGINFO "signal.h" HAVE_SIGINFO)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   exec_program(sw_vers ARGS -productVersion OUTPUT_VARIABLE OSX_VERSION)

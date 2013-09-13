@@ -6,7 +6,6 @@
 #include "rct-config.h"
 #include <map>
 #include <assert.h>
-#include <pthread.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -17,7 +16,7 @@
 #include <crt_externs.h>
 #endif
 
-static pthread_once_t sProcessHandler = PTHREAD_ONCE_INIT;
+static std::once_flag sProcessHandler;
 
 class ProcessThread : public Thread
 {
@@ -207,7 +206,7 @@ void ProcessThread::installProcessHandler()
 Process::Process()
     : mPid(-1), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0), mMode(Sync)
 {
-    pthread_once(&sProcessHandler, ProcessThread::installProcessHandler);
+    std::call_once(sProcessHandler, ProcessThread::installProcessHandler);
 
     mStdIn[0] = mStdIn[1] = -1;
     mStdOut[0] = mStdOut[1] = -1;

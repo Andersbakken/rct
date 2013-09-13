@@ -33,15 +33,15 @@ public:
     FILE *file;
 };
 
-class StdoutOutput : public LogOutput
+class StderrOutput : public LogOutput
 {
 public:
-    StdoutOutput(int lvl)
+    StderrOutput(int lvl)
         : LogOutput(lvl)
     {}
     virtual void log(const char *msg, int)
     {
-        fprintf(stdout, "%s\n", msg);
+        fprintf(stderr, "%s\n", msg);
     }
 };
 
@@ -191,7 +191,7 @@ bool initLogging(int level, const Path &file, unsigned flags)
     sStart.start();
     sFlags = flags;
     sLevel = level;
-    new StdoutOutput(level);
+    new StderrOutput(level);
     if (!file.isEmpty()) {
         if (!(flags & (Log::Append|Log::DontRotate)) && file.exists()) {
             int i = 0;
@@ -231,6 +231,7 @@ Log::Log(String *out)
     assert(out);
     mData.reset(new Data(out));
 }
+
 Log::Log(int level)
 {
     if (testLog(level))

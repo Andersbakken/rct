@@ -15,6 +15,7 @@
 #if defined(HAVE_EPOLL)
 #  include <sys/epoll.h>
 #elif defined(HAVE_KQUEUE)
+#  include <sys/types.h>
 #  include <sys/event.h>
 #  include <sys/time.h>
 #endif

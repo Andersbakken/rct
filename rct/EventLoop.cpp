@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <pthread.h>
+#include <stdlib.h>
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #  include <mach/mach.h>
 #  include <mach/mach_time.h>

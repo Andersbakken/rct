@@ -180,29 +180,6 @@ bool SocketClient::connect(const std::string& path)
     return true;
 }
 
-int SocketClient::writeData(const unsigned char *data, int size)
-{
-    int ret;
-    while (true) {
-        eintrwrap(ret, ::write(fd, data, size));
-        if (ret != -1 || (errno != EAGAIN && errno != EWOULDBLOCK) || mode == Asynchronous)
-            break;
-        fd_set e;
-        FD_ZERO(&e);
-        FD_SET(fd, &e);
-        fd_set w;
-        FD_ZERO(&w);
-        FD_SET(fd, &w);
-        eintrwrap(ret, select(fd + 1, 0, &w, &e, 0));
-        if (ret > 0 && FD_ISSET(fd, &e)) {
-            errno = ECONNRESET; // ???
-            ret = -1;
-            break;
-        }
-    }
-    return ret;
-}
-
 bool SocketClient::write(const unsigned char* data, unsigned int size)
 {
     int e;
@@ -215,9 +192,24 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
         if (!writeBuffer.isEmpty()) {
             while (total < writeBuffer.size()) {
                 assert(writeBuffer.size() > total);
-                e = writeData(writeBuffer.data() + total, writeBuffer.size() - total);
+                e = ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total);
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        if (mode == Synchronous) {
+                            if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+                                if (total) {
+                                    if (total < writeBuffer.size()) {
+                                        memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
+                                    }
+                                    writeBuffer.resize(writeBuffer.size() - total);
+                                    total = 0;
+                                }
+                                if (loop->processSocket(fd) & EventLoop::SocketWrite)
+                                    break;
+                                if (fd == -1)
+                                    return false;
+                            }
+                        }
                         assert(!writeWait);
                         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                             loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
@@ -235,14 +227,16 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
                 signalBytesWritten(socketPtr, e);
                 total += e;
             }
-            if (total && total < writeBuffer.size()) {
-                memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
+            if (total) {
+                if (total < writeBuffer.size()) {
+                    memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
+                }
+                writeBuffer.resize(writeBuffer.size() - total);
             }
-            writeBuffer.resize(writeBuffer.size() - total);
         }
 
-        if (done) {
-            return true;
+        if (done || fd == -1) {
+            return fd != -1;
         }
         total = 0;
 
@@ -250,9 +244,21 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
 
         for (;;) {
             assert(size > total);
-            e = writeData(data + total, size - total);
+            e = ::write(fd, data + total, size - total);
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    if (mode == Synchronous) {
+                        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+                            // store the rest
+                            const unsigned rem = size - total;
+                            writeBuffer.reserve(writeBuffer.size() + rem);
+                            memcpy(writeBuffer.end(), data + total, rem);
+                            writeBuffer.resize(writeBuffer.size() + rem);
+
+                            const unsigned int foo = loop->processSocket(fd);
+                            return isConnected();
+                        }
+                    }
                     assert(!writeWait);
                     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                         loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
@@ -288,8 +294,6 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
 
 void SocketClient::socketCallback(int f, int mode)
 {
-    if (fd == -1)
-        return;
     assert(f == fd);
     (void)f;
 

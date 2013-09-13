@@ -11,6 +11,13 @@
 #include <unordered_set>
 #include <vector>
 #include "Apply.h"
+#include "rct-config.h"
+#if defined(HAVE_EPOLL)
+#  include <sys/epoll.h>
+#elif defined(HAVE_KQUEUE)
+#  include <sys/event.h>
+#  include <sys/time.h>
+#endif
 
 class Event
 {
@@ -125,29 +132,38 @@ public:
         SocketOneShot = 0x4,
         SocketError = 0x8
     };
-    void registerSocket(int fd, int mode, std::function<void(int, int)>&& func);
-    void updateSocket(int fd, int mode);
+    void registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func);
+    void updateSocket(int fd, unsigned int mode);
     void unregisterSocket(int fd);
+    unsigned int processSocket(int fd, int timeout = -1);
 
     // See Timer.h for the flags
-    int registerTimer(std::function<void(int)>&& func, int timeout, int flags = 0);
+    int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
     void unregisterTimer(int id);
 
-    enum { Success, GeneralError = -1, Timeout = -2 };
-    int exec(int timeout = -1);
-    void quit(int code = 0);
+    enum { Success = 0x100, GeneralError = 0x200, Timeout = 0x400 };
+    unsigned int exec(int timeout = -1);
+    void quit();
 
-    bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return !mExecStack.empty(); }
+    //bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return !mExecStack.empty(); }
 
     static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mainMutex); return mainLoop.lock(); }
     static EventLoop::SharedPtr eventLoop();
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
 private:
+#if defined(HAVE_EPOLL)
+    typedef epoll_event NativeEvent;
+#elif defined(HAVE_KQUEUE)
+    typedef struct kevent NativeEvent;
+#endif
+
     void clearTimer(int id);
     bool sendPostedEvents();
     bool sendTimers();
     void cleanup();
+    unsigned int processSocketEvents(NativeEvent* events, int eventCount);
+    unsigned int fireSocket(int fd, unsigned int mode);
 
     static void error(const char* err);
 
@@ -160,13 +176,13 @@ private:
     int eventPipe[2];
     int pollFd;
 
-    std::map<int, std::pair<int, std::function<void(int, int)> > > sockets;
+    std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > sockets;
 
     class TimerData
     {
     public:
         TimerData() { }
-        TimerData(uint64_t w, int i, int f, int in, std::function<void(int)>&& cb)
+        TimerData(uint64_t w, int i, unsigned int f, int in, std::function<void(int)>&& cb)
             : when(w), id(i), flags(f), interval(in), callback(std::move(cb))
         {
         }
@@ -192,7 +208,8 @@ private:
 
         uint64_t when;
         uint32_t id;
-        int flags, interval;
+        unsigned int flags;
+        int interval;
         std::function<void(int)> callback;
 
     private:
@@ -217,19 +234,11 @@ private:
     uint32_t nextTimerId;
 
     bool stop;
-    int exitCode;
+    bool timeout;
 
     static EventLoop::WeakPtr mainLoop;
 
     unsigned flgs;
-    struct ExecContext {
-        ExecContext()
-            : quitTimerId(-1)
-        {}
-        int quitTimerId;
-    };
-    std::vector<ExecContext> mExecStack;
-
 private:
     EventLoop(const EventLoop&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;

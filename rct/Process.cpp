@@ -23,17 +23,17 @@ class ProcessThread : public Thread
 public:
     static void installProcessHandler();
     static void addPid(pid_t pid, Process* process);
-
-    enum Signal {
-        Child,
-        Stop
-    };
-    static void wakeup(Signal sig);
+    static void shutdown();
 protected:
     void run();
 
 private:
     ProcessThread();
+    enum Signal {
+        Child,
+        Stop
+    };
+    static void wakeup(Signal sig);
 
     static void processSignalHandler(int sig);
 private:
@@ -48,6 +48,15 @@ ProcessThread* ProcessThread::sProcessThread = 0;
 int ProcessThread::sProcessPipe[2];
 std::mutex ProcessThread::sProcessMutex;
 std::map<pid_t, Process*> ProcessThread::sProcesses;
+
+class ProcessThreadKiller
+{
+public:
+    ~ProcessThreadKiller()
+    {
+        ProcessThread::shutdown();
+    }
+} sKiller;
 
 ProcessThread::ProcessThread()
 {
@@ -108,6 +117,17 @@ void ProcessThread::run()
         }
     }
     //printf("process thread died for some reason\n");
+}
+
+void ProcessThread::shutdown()
+{
+    // called from static destructor, can't use mutex
+    if (sProcessThread) {
+        wakeup(Stop);
+        sProcessThread->join();
+        delete sProcessThread;
+        sProcessThread = 0;
+    }
 }
 
 void ProcessThread::wakeup(Signal sig)

@@ -212,7 +212,7 @@ Path Process::findCommand(const String& command)
     return Path();
 }
 
-Process::ExecState Process::startInternal(const String& command, const List<String>& a, const List<String>& environ,
+Process::ExecState Process::startInternal(const Path& command, const List<String>& a, const List<String>& environ,
                                           int timeout, unsigned execFlags)
 {
     mErrorString.clear();
@@ -406,19 +406,19 @@ Process::ExecState Process::startInternal(const String& command, const List<Stri
     return Done;
 }
 
-bool Process::start(const String& command, const List<String>& a, const List<String>& environ)
+bool Process::start(const Path& command, const List<String>& a, const List<String>& environ)
 {
     mMode = Async;
     return startInternal(command, a, environ) == Done;
 }
 
-Process::ExecState Process::exec(const String& command, const List<String>& arguments, int timeout, unsigned flags)
+Process::ExecState Process::exec(const Path& command, const List<String>& arguments, int timeout, unsigned flags)
 {
     mMode = Sync;
     return startInternal(command, arguments, List<String>(), timeout, flags);
 }
 
-Process::ExecState Process::exec(const String& command, const List<String>& a, const List<String>& environ,
+Process::ExecState Process::exec(const Path& command, const List<String>& a, const List<String>& environ,
                                  int timeout, unsigned flags)
 {
     mMode = Sync;

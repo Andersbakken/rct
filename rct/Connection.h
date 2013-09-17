@@ -27,7 +27,7 @@ public:
     int pendingWrite() const;
 
     bool send(const Message *message);
-    bool send(int id, const String& message);
+    bool send(uint8_t id, const String& message);
     bool sendRef(Message&& message) { return send(&message); }
     bool sendDelete(Message* message) { const bool ok = send(message); delete message; return ok; }
     template <int StaticBufSize>

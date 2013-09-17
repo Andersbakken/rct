@@ -12,7 +12,7 @@ public:
     static Message *create(const char *data, int size);
     template<typename T> static void registerMessage()
     {
-        const int id = T::MessageId;
+        const uint8_t id = T::MessageId;
         std::lock_guard<std::mutex> lock(sMutex);
         MessageCreatorBase *&base = sFactory[id];
         if (!base)
@@ -40,7 +40,7 @@ private:
         }
     };
 
-    static Map<int, MessageCreatorBase *> sFactory;
+    static Map<uint8_t, MessageCreatorBase *> sFactory;
     static std::mutex sMutex;
 };
 

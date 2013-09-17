@@ -4,19 +4,19 @@
 #include <assert.h>
 
 std::mutex Messages::sMutex;
-Map<int, Messages::MessageCreatorBase *> Messages::sFactory;
+Map<uint8_t, Messages::MessageCreatorBase *> Messages::sFactory;
 
 Message* Messages::create(const char *data, int size)
 {
-    if (size < static_cast<int>(sizeof(int))) {
-        error("Can't create message from data (%d)", size);
+    if (!size || !data) {
+        error("Can't create message from empty data");
         return 0;
     }
-    Deserializer ds(data, sizeof(int));
-    int id;
+    Deserializer ds(data, sizeof(uint8_t));
+    uint8_t id;
     ds >> id;
-    size -= sizeof(int);
-    data += sizeof(int);
+    size -= sizeof(uint8_t);
+    data += sizeof(uint8_t);
     std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId))
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
@@ -37,7 +37,7 @@ Message* Messages::create(const char *data, int size)
 void Messages::cleanup()
 {
     std::lock_guard<std::mutex> lock(sMutex);
-    for (Map<int, MessageCreatorBase *>::const_iterator it = sFactory.begin(); it != sFactory.end(); ++it)
+    for (Map<uint8_t, MessageCreatorBase *>::const_iterator it = sFactory.begin(); it != sFactory.end(); ++it)
         delete it->second;
     sFactory.clear();
 }

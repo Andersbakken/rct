@@ -46,7 +46,7 @@ bool Connection::connectToServer(const String &name, int timeout)
     return mSocketClient->connect(name);
 }
 
-bool Connection::send(int id, const String &message)
+bool Connection::send(uint8_t id, const String &message)
 {
     if (message.isEmpty())
         return true;

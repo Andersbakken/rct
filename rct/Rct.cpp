@@ -21,18 +21,24 @@ namespace Rct {
 
 bool readFile(const Path& path, String& data)
 {
-    FILE* f = fopen(path.nullTerminated(), "r");
+    FILE *f = fopen(path.nullTerminated(), "r");
     if (!f)
         return false;
+    const bool ret = readFile(f, data);
+    fclose(f);
+    return ret;
+}
+
+bool readFile(FILE *f, String& data)
+{
+    assert(f);
     const int sz = fileSize(f);
     if (!sz) {
         data.clear();
         return true;
     }
     data.resize(sz);
-    const int r = fread(data.data(), sz, 1, f);
-    fclose(f);
-    return (r == 1);
+    return fread(data.data(), sz, 1, f);
 }
 
 bool writeFile(const Path& path, const String& data)

@@ -31,7 +31,8 @@ inline bool addTo(Container &container, const Value &value)
     container += value;
     return container.size() != oldSize;
 }
-bool readFile(const Path& path, String& data);
+bool readFile(const Path& path, String &data);
+bool readFile(FILE *f, String &data);
 bool writeFile(const Path& path, const String& data);
 String filterPreprocessor(const Path &path);
 void removeDirectory(const Path &path);

@@ -31,6 +31,7 @@ public:
     int pendingWrite() const;
 
     bool send(Message&& message);
+    bool send(const Message& message);
 
     template <int StaticBufSize>
     bool write(const char *format, ...)
@@ -82,6 +83,14 @@ private:
 };
 
 inline bool Connection::send(Message&& message)
+{
+    String encoded;
+    Serializer serializer(encoded);
+    message.encode(serializer);
+    return sendData(message.messageId(), encoded);
+}
+
+inline bool Connection::send(const Message& message)
 {
     String encoded;
     Serializer serializer(encoded);

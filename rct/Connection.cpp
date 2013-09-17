@@ -174,5 +174,5 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
 
 void Connection::writeAsync(const String &out)
 {
-    EventLoop::eventLoop()->callLaterMove(std::bind(&Connection::send, this, std::placeholders::_1), ResponseMessage(out));
+    EventLoop::eventLoop()->callLaterMove(std::bind((bool(Connection::*)(Message&&))&Connection::send, this, std::placeholders::_1), ResponseMessage(out));
 }

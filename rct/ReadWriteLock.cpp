@@ -1,4 +1,4 @@
-#include "rct/ReadWriteLock.h"
+#include "ReadWriteLock.h"
 #include <assert.h>
 #include <chrono>
 

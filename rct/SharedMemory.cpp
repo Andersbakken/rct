@@ -1,4 +1,4 @@
-#include "rct/SharedMemory.h"
+#include "SharedMemory.h"
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>

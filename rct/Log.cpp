@@ -1,9 +1,9 @@
-#include "rct/Log.h"
-#include "rct/Path.h"
+#include "Log.h"
+#include "Path.h"
 #include <mutex>
 #include <stdio.h>
 #include <errno.h>
-#include "rct/StopWatch.h"
+#include "StopWatch.h"
 #include <stdarg.h>
 
 static unsigned sFlags = 0;

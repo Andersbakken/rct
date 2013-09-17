@@ -1,6 +1,7 @@
-#include "rct/Messages.h"
-#include "rct/ResponseMessage.h"
-#include "rct/Serializer.h"
+#include "Messages.h"
+#include "ResponseMessage.h"
+#include "FinishMessage.h"
+#include "Serializer.h"
 #include <assert.h>
 
 std::mutex Messages::sMutex;
@@ -18,12 +19,14 @@ Message* Messages::create(const char *data, int size)
     size -= sizeof(uint8_t);
     data += sizeof(uint8_t);
     std::lock_guard<std::mutex> lock(sMutex);
-    if (!sFactory.contains(ResponseMessage::MessageId))
+    if (!sFactory.contains(ResponseMessage::MessageId)) {
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
+        sFactory[FinishMessage::MessageId] = new MessageCreator<FinishMessage>();
+    }
 
     MessageCreatorBase *base = sFactory.value(id);
     if (!base) {
-        error("Can't create message from data id: %d, data: %d bytes", id, size);
+        error("Invalid message id %d, data: %d bytes", id, size);
         return 0;
     }
     Message *message = base->create(data, size);

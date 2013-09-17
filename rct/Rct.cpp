@@ -1,5 +1,5 @@
-#include "rct/Rct.h"
-#include "rct/Log.h"
+#include "Rct.h"
+#include "Log.h"
 #include "rct-config.h"
 #include <sys/types.h>
 #include <sys/time.h>

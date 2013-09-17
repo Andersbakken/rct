@@ -1,8 +1,8 @@
-#include "rct/Process.h"
-#include "rct/Rct.h"
-#include "rct/EventLoop.h"
-#include "rct/Log.h"
-#include "rct/Thread.h"
+#include "Process.h"
+#include "Rct.h"
+#include "EventLoop.h"
+#include "Log.h"
+#include "Thread.h"
 #include "rct-config.h"
 #include <map>
 #include <assert.h>

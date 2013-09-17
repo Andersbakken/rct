@@ -46,7 +46,7 @@ bool Connection::connectToServer(const String &name, int timeout)
     return mSocketClient->connect(name);
 }
 
-bool Connection::send(uint8_t id, const String &message)
+bool Connection::sendData(uint8_t id, const String &message)
 {
     if (!mSocketClient->isConnected()) {
         ::error("Trying to send message to unconnected client (%d)", id);
@@ -174,5 +174,5 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
 
 void Connection::writeAsync(const String &out)
 {
-    EventLoop::eventLoop()->callLaterMove(std::bind(&Connection::sendRef, this, std::placeholders::_1), ResponseMessage(out));
+    EventLoop::eventLoop()->callLaterMove(std::bind(&Connection::send, this, std::placeholders::_1), ResponseMessage(out));
 }

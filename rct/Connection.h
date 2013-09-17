@@ -30,10 +30,8 @@ public:
 
     int pendingWrite() const;
 
-    bool send(const Message *message);
-    bool send(uint8_t id, const String& message);
-    bool sendRef(Message&& message) { return send(&message); }
-    bool sendDelete(Message* message) { const bool ok = send(message); delete message; return ok; }
+    bool send(Message&& message);
+
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {
@@ -43,19 +41,17 @@ public:
         va_start(args, format);
         const String ret = String::format<StaticBufSize>(format, args);
         va_end(args);
-        ResponseMessage msg(ret);
-        return send(&msg);
+        return send(ResponseMessage(ret));
     }
     bool write(const String &out)
     {
         if (mSilent)
             return isConnected();
-        const ResponseMessage msg(out);
-        return send(&msg);
+        return send(ResponseMessage(out));
     }
 
     void writeAsync(const String &out);
-    void finish() { const FinishMessage msg; send(&msg); }
+    void finish() { send(FinishMessage()); }
 
     bool isConnected() const { return mSocketClient->isConnected(); }
 
@@ -67,6 +63,8 @@ public:
     SocketClient::SharedPtr client() const { return mSocketClient; }
 
 private:
+    bool sendData(uint8_t id, const String& message);
+
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
     void onDataAvailable(SocketClient::SharedPtr&);
@@ -83,12 +81,12 @@ private:
     Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished;
 };
 
-inline bool Connection::send(const Message *message)
+inline bool Connection::send(Message&& message)
 {
     String encoded;
     Serializer serializer(encoded);
-    message->encode(serializer);
-    return send(message->messageId(), encoded);
+    message.encode(serializer);
+    return sendData(message.messageId(), encoded);
 }
 
 #endif // CONNECTION_H

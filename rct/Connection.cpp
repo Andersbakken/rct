@@ -9,7 +9,7 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false), mFinished(false)
+    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mSilent(false)
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -19,7 +19,7 @@ Connection::Connection()
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mDone(false), mSilent(false), mFinished(false)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mSilent(false)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -48,43 +48,33 @@ bool Connection::connectToServer(const String &name, int timeout)
 
 bool Connection::send(uint8_t id, const String &message)
 {
-    if (message.isEmpty())
-        return true;
-
     if (!mSocketClient->isConnected()) {
         ::error("Trying to send message to unconnected client (%d)", id);
         return false;
     }
 
-    if (mSilent)
-        return true;
-
     String header, data;
     {
-        if (message.size()) {
+        {
             Serializer strm(data);
             strm << id;
-            strm.write(message.constData(), message.size());
+            if (!message.isEmpty())
+                strm.write(message.constData(), message.size());
         }
-        Serializer strm(header);
-        strm << data.size();
+        {
+            Serializer strm(header);
+            strm << data.size();
+        }
     }
     mPendingWrite += (header.size() + data.size());
-    return mSocketClient->write(header) && mSocketClient->write(data);
+    if (!mSocketClient->write(header))
+        return false;
+    return data.isEmpty() || mSocketClient->write(data);
 }
 
 int Connection::pendingWrite() const
 {
     return mPendingWrite;
-}
-
-void Connection::finish()
-{
-    if (mFinished)
-        return;
-    mFinished = true;
-    mDone = true;
-    onDataWritten(mSocketClient, 0);
 }
 
 static inline unsigned int bufferSize(const LinkedList<Buffer>& buffers)
@@ -155,15 +145,20 @@ void Connection::onDataAvailable(SocketClient::SharedPtr&)
         }
         const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
+        mPendingRead = 0;
         Message *message = Messages::create(buffer, read);
         if (message) {
-            newMessage()(message, this);
+            if (message->messageId() == FinishMessage::MessageId) {
+                mSocketClient->close();
+                mDisconnected(this);
+            } else {
+                newMessage()(message, this);
+            }
             delete message;
         }
         if (buffer != buf)
             delete[] buffer;
 
-        mPendingRead = 0;
         // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);
     }
 }
@@ -172,14 +167,6 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;
-    if (!mPendingWrite) {
-        if (bytes)
-            mSendComplete(this);
-        if (mDone) {
-            mSocketClient->close();
-            mDisconnected(this);
-        }
-    }
 }
 
 void Connection::writeAsync(const String &out)

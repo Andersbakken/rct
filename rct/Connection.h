@@ -9,6 +9,7 @@
 #include <rct/Map.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
+#include <rct/FinishMessage.h>
 
 class ConnectionPrivate;
 class SocketClient;
@@ -33,6 +34,8 @@ public:
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {
+        if (mSilent)
+            return isConnected();
         va_list args;
         va_start(args, format);
         const String ret = String::format<StaticBufSize>(format, args);
@@ -42,12 +45,14 @@ public:
     }
     bool write(const String &out)
     {
-        ResponseMessage msg(out);
+        if (mSilent)
+            return isConnected();
+        const ResponseMessage msg(out);
         return send(&msg);
     }
 
     void writeAsync(const String &out);
-    void finish();
+    void finish() { const FinishMessage msg; send(&msg); }
 
     bool isConnected() const { return mSocketClient->isConnected(); }
 
@@ -55,8 +60,6 @@ public:
     Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
     Signal<std::function<void(Connection*)> > &error() { return mError; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
-    Signal<std::function<void(Connection*)> > &sendComplete() { return mSendComplete; }
-
     SocketClient::SharedPtr client() const { return mSocketClient; }
 
 private:
@@ -70,10 +73,10 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
-    bool mDone, mSilent, mFinished;
+    bool mSilent;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
-    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mSendComplete, mError;
+    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError;
 };
 
 inline bool Connection::send(const Message *message)

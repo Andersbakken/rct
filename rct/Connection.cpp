@@ -9,7 +9,7 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mSilent(false)
+    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mSilent(false), mAutoClose(true)
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -19,7 +19,7 @@ Connection::Connection()
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mSilent(false)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mSilent(false), mAutoClose(true)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -149,8 +149,11 @@ void Connection::onDataAvailable(SocketClient::SharedPtr&)
         Message *message = Messages::create(buffer, read);
         if (message) {
             if (message->messageId() == FinishMessage::MessageId) {
-                mSocketClient->close();
-                mDisconnected(this);
+                mFinished(this);
+                if (mAutoClose) {
+                    mSocketClient->close();
+                    mDisconnected(this);
+                }
             } else {
                 newMessage()(message, this);
             }

@@ -23,9 +23,6 @@ public:
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }
 
-    void setAutoClose(bool autoClose) { mAutoClose = autoClose; }
-    bool isAutoClose() const { return mAutoClose; }
-
     bool connectToServer(const String &name, int timeout);
 
     int pendingWrite() const;
@@ -76,7 +73,7 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
-    bool mSilent, mAutoClose;
+    bool mSilent;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished;

@@ -375,25 +375,24 @@ int EventLoop::exec(int timeoutTime)
 {
     bool exit = false;
     int ret;
-  
-    while (!exit) {
 
-	if ( !eventBase )
-	    return Success;
+    if ( !eventBase )
+      return Success;
     
-	else if ( event_base_got_exit( eventBase ) ) {
+    if (timeoutTime != -1) {
+      // register a timer that will quit the event loop
+      registerTimer( std::bind(&EventLoop::quit, this, Timeout),
+		     timeoutTime,
+		     Timer::SingleShot );
+    } 
+
+    while (!exit) {
+        if ( event_base_got_exit( eventBase ) ) {
 	    exit = true;
 	    continue;
 	}
     
-	else if (timeoutTime != -1) {
-	    // register a timer that will quit the event loop
-	    registerTimer( std::bind(&EventLoop::quit, this, Timeout),
-			   timeoutTime,
-			   Timer::SingleShot );
-	} 
-  
-	ret = event_base_loop( eventBase, EVLOOP_NO_EXIT_ON_EMPTY );
+	ret = event_base_loop( eventBase, 0 );
     }
 
     return ret == 1 ? Success : Timeout ;

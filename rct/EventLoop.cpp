@@ -91,8 +91,9 @@ void EventLoop::init(unsigned flags)
         cleanup();
         return;
     }
+    const int fl = e | O_NONBLOCK;
 
-    eintrwrap(e, ::fcntl(eventPipe[0], F_SETFL, e | O_NONBLOCK));
+    eintrwrap(e, ::fcntl(eventPipe[0], F_SETFL, fl));
     if (e == -1) {
         cleanup();
         return;

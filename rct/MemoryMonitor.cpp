@@ -39,7 +39,7 @@ static void visitLine(FILE* stream, LineVisitor visitor, void* userData)
 
 static bool lineVisitor(char* line, void* userData)
 {
-    int* total = static_cast<int*>(userData);
+    uint64_t* total = static_cast<uint64_t*>(userData);
     if (!strncmp("Private_Clean:", line, 14))
         *total += (atoll(line + 14) * 1024);
     else if (!strncmp("Private_Dirty:", line, 14))
@@ -54,7 +54,7 @@ static inline uint64_t usageLinux()
     if (!file)
         return 0;
 
-    int total = 0;
+    uint64_t total = 0;
     visitLine(file, lineVisitor, &total);
 
     fclose(file);

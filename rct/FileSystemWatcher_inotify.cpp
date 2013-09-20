@@ -1,6 +1,6 @@
-#include "rct/FileSystemWatcher.h"
-#include "rct/EventLoop.h"
-#include "rct/Log.h"
+#include "FileSystemWatcher.h"
+#include "EventLoop.h"
+#include "Log.h"
 #include "rct-config.h"
 #include <sys/inotify.h>
 #include <sys/ioctl.h>

@@ -9,6 +9,7 @@
 #include <rct/Map.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
+#include <rct/FinishMessage.h>
 
 class ConnectionPrivate;
 class SocketClient;
@@ -26,40 +27,42 @@ public:
 
     int pendingWrite() const;
 
-    bool send(const Message *message);
-    bool send(int id, const String& message);
-    bool sendRef(Message&& message) { return send(&message); }
-    bool sendDelete(Message* message) { const bool ok = send(message); delete message; return ok; }
+    bool send(Message&& message);
+    bool send(const Message& message);
+
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {
+        if (mSilent)
+            return isConnected();
         va_list args;
         va_start(args, format);
         const String ret = String::format<StaticBufSize>(format, args);
         va_end(args);
-        ResponseMessage msg(ret);
-        return send(&msg);
+        return send(ResponseMessage(ret));
     }
     bool write(const String &out)
     {
-        ResponseMessage msg(out);
-        return send(&msg);
+        if (mSilent)
+            return isConnected();
+        return send(ResponseMessage(out));
     }
 
     void writeAsync(const String &out);
-    void finish();
+    void finish() { send(FinishMessage()); }
 
     bool isConnected() const { return mSocketClient->isConnected(); }
 
     Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
     Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
     Signal<std::function<void(Connection*)> > &error() { return mError; }
+    Signal<std::function<void(Connection*)> > &finished() { return mFinished; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
-    Signal<std::function<void(Connection*)> > &sendComplete() { return mSendComplete; }
-
     SocketClient::SharedPtr client() const { return mSocketClient; }
 
 private:
+    bool sendData(uint8_t id, const String& message);
+
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
     void onDataAvailable(SocketClient::SharedPtr&);
@@ -70,19 +73,26 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
-
-    bool mDone, mSilent, mFinished;
+    bool mSilent;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
-    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mSendComplete, mError;
+    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished;
 };
 
-inline bool Connection::send(const Message *message)
+inline bool Connection::send(Message&& message)
 {
     String encoded;
     Serializer serializer(encoded);
-    message->encode(serializer);
-    return send(message->messageId(), encoded);
+    message.encode(serializer);
+    return sendData(message.messageId(), encoded);
+}
+
+inline bool Connection::send(const Message& message)
+{
+    String encoded;
+    Serializer serializer(encoded);
+    message.encode(serializer);
+    return sendData(message.messageId(), encoded);
 }
 
 #endif // CONNECTION_H

@@ -1,6 +1,6 @@
-#include "rct/Path.h"
-#include "rct/Log.h"
-#include "rct/Rct.h"
+#include "Path.h"
+#include "Log.h"
+#include "Rct.h"
 #include "rct-config.h"
 #include <stdio.h>
 #include <sys/stat.h>

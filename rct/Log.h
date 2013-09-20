@@ -54,7 +54,7 @@ void error(const char *format, ...);
 void logDirect(int level, const String &out);
 
 bool testLog(int level);
-bool initLogging(int logLevel, const Path &logFile, unsigned flags = 0);
+bool initLogging(int logLevel = Error, const Path &logFile = Path(), unsigned flags = 0);
 void cleanupLogging();
 int logLevel();
 void restartTime();
@@ -84,6 +84,7 @@ public:
     Log operator<<(float number) { return addStringStream(number); }
     Log operator<<(double number) { return addStringStream(number); }
     Log operator<<(long double number) { return addStringStream(number); }
+    Log operator<<(char ch) { return write(&ch, 1); }
     Log operator<<(bool boolean) { return write(boolean ? "true" : "false"); }
     Log operator<<(void *ptr)
     {
@@ -154,7 +155,7 @@ private:
             : outPtr(string), level(-1), spacing(true), disableSpacingOverride(0)
         {}
         Data(int lvl)
-        : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0)
+            : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0)
         {
         }
         ~Data()

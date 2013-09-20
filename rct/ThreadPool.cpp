@@ -1,5 +1,5 @@
-#include "rct/ThreadPool.h"
-#include "rct/Thread.h"
+#include "ThreadPool.h"
+#include "Thread.h"
 #include <algorithm>
 #include <assert.h>
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)

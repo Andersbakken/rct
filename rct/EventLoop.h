@@ -14,12 +14,21 @@
 #include <event2/event.h>
 
 #include "Apply.h"
+#include "rct-config.h"
+#if defined(HAVE_EPOLL)
+#  include <sys/epoll.h>
+#elif defined(HAVE_KQUEUE)
+#  include <sys/types.h>
+#  include <sys/event.h>
+#  include <sys/time.h>
+#endif
 
 class EventLoop;
 
 // TODO: (All?) Needed for Header file ?
 typedef std::function<void(int, int)> EventCallback;
 typedef std::function<void(int)> TimerCallback;
+//typedef std::function<void(void)> TimerCallback;
 
 class Event
 {
@@ -161,15 +170,17 @@ public:
     
     void registerSocket(int fd, int mode, std::function<void(int, int)>&& func);
     void updateSocket(int fd, int mode);
+
     void unregisterSocket(int fd);
+    unsigned int processSocket(int fd, int timeout = -1);
 
     // See Timer.h for the flags
-    int registerTimer(std::function<void(int)>&& func, int timeout, 
+    int registerTimer(TimerCallback&& func, int timeout, 
 		      int flags = 0);
     void unregisterTimer(int id);
 
-    enum { Success, GeneralError = -1, Timeout = -2 };
-    int exec(int timeout = -1);
+    enum { Success = 0x100, GeneralError = 0x200, Timeout = 0x400 };
+    unsigned int exec(int timeout = -1);
     void quit(int code = 0);
 
     // TODO: re-establish the original const function??
@@ -223,7 +234,6 @@ private:
     static EventLoop::WeakPtr mainLoop;
 
     unsigned flgs;
-
 private:
     EventLoop(const EventLoop&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;

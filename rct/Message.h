@@ -5,17 +5,17 @@
 class Message
 {
 public:
-    enum { ResponseId = 1 };
+    enum { ResponseId = 1, FinishMessageId = 2 };
 
-    Message(int id) : mMessageId(id) {}
+    Message(uint8_t id) : mMessageId(id) {}
     virtual ~Message() {}
 
-    int messageId() const { return mMessageId; }
+    uint8_t messageId() const { return mMessageId; }
 
     virtual void encode(Serializer &serializer) const = 0;
     virtual void decode(Deserializer &deserializer) = 0;
 private:
-    int mMessageId;
+    uint8_t mMessageId;
 };
 
 #endif // MESSAGE_H

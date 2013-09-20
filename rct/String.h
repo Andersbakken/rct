@@ -609,7 +609,7 @@ public:
         }
         return ret;
     }
-    template <int StaticBufSize>
+    template <int StaticBufSize = 256>
     static String format(const char *format, ...)
     {
         va_list args;
@@ -619,7 +619,7 @@ public:
         return ret;
     }
 
-    template <int StaticBufSize>
+    template <int StaticBufSize = 256>
     static String format(const char *format, va_list args)
     {
         va_list copy;

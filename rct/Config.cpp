@@ -1,4 +1,4 @@
-#include "rct/Config.h"
+#include "Config.h"
 
 List<Config::Option> Config::sOptions;
 bool Config::parse(int argc, char **argv, const List<String> &rcFiles)

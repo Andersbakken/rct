@@ -1,5 +1,5 @@
-#include "rct/Thread.h"
-#include "rct/EventLoop.h"
+#include "Thread.h"
+#include "EventLoop.h"
 
 Thread::Thread()
     : mAutoDelete(false)

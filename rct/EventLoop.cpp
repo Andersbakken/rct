@@ -1,7 +1,6 @@
 #define HAVE_LIBEVENT2
 #include "EventLoop.h"
 #include "Timer.h"
-#include "rct-config.h"
 #include <algorithm>
 #include <atomic>
 #include <set>
@@ -14,7 +13,9 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <pthread.h>
+
 #if defined(HAVE_EPOLL)
 #  include <sys/epoll.h>
 #elif defined(HAVE_KQUEUE)
@@ -275,7 +276,6 @@ int EventLoop::registerTimer(TimerCallback&& func, int timeout, int flags)
 
 void EventLoop::unregisterTimer(int id)
 {
-    
     std::lock_guard<std::mutex> locker(mutex);
 
     assert( eventBase != nullptr );
@@ -371,7 +371,12 @@ void EventLoop::unregisterSocket(int fd)
     eventCbMap.erase( id );
 }
 
-int EventLoop::exec(int timeoutTime)
+unsigned int EventLoop::processSocket(int fd, int timeout)
+{
+  return EventLoop::SocketWrite;
+}
+
+unsigned int EventLoop::exec(int timeout)
 {
     bool exit = false;
     int ret;
@@ -379,10 +384,10 @@ int EventLoop::exec(int timeoutTime)
     if ( !eventBase )
       return Success;
     
-    if (timeoutTime != -1) {
+    if (timeout != -1) {
       // register a timer that will quit the event loop
       registerTimer( std::bind(&EventLoop::quit, this, Timeout),
-		     timeoutTime,
+		     timeout,
 		     Timer::SingleShot );
     } 
 

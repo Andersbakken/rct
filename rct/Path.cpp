@@ -177,8 +177,10 @@ bool Path::resolve(ResolveMode mode, const Path &cwd)
         char buffer[PATH_MAX + 2];
         if (realpath(constData(), buffer)) {
             if (isDir()) {
-                assert(buffer[strlen(buffer)] != '/');
-                buffer[strlen(buffer)] = '/';
+                const int len = strlen(buffer);
+                assert(buffer[len] != '/');
+                buffer[len] = '/';
+                buffer[len + 1] = '\0';
             }
             String::operator=(buffer);
             return true;

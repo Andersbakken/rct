@@ -48,6 +48,7 @@ bool Connection::connectToServer(const String &name, int timeout)
 
 bool Connection::sendData(uint8_t id, const String &message)
 {
+    // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
     if (!mSocketClient->isConnected()) {
         ::error("Trying to send message to unconnected client (%d)", id);
         return false;
@@ -166,6 +167,10 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;
+    // ::error() << "wrote some bytes" << mPendingWrite << bytes;
+    if (!mPendingWrite) {
+        mSendFinished(this);
+    }
 }
 
 void Connection::writeAsync(const String &out)

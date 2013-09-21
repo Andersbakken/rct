@@ -53,13 +53,13 @@ public:
 
     bool isConnected() const { return mSocketClient->isConnected(); }
 
+    Signal<std::function<void(Connection*)> > &sendFinished() { return mSendFinished; }
     Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
     Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
     Signal<std::function<void(Connection*)> > &error() { return mError; }
     Signal<std::function<void(Connection*)> > &finished() { return mFinished; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
-
 private:
     bool sendData(uint8_t id, const String& message);
 
@@ -76,7 +76,7 @@ private:
     bool mSilent;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
-    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished;
+    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished, mSendFinished;
 };
 
 inline bool Connection::send(Message&& message)

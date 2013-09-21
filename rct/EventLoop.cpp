@@ -21,7 +21,7 @@
 #endif
 
 // this is pretty awful, any better ideas to avoid the unused warning?
-#define STRERROR_R(errno, buf, size) if (strerror_r(errno, buf, size))
+#define STRERROR_R(errno, buf, size) strcpy(buf, "foobar"); if (strerror_r(errno, buf, size))
 
 EventLoop::WeakPtr EventLoop::mainLoop;
 std::mutex EventLoop::mainMutex;
@@ -611,12 +611,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
             if (ev & EPOLLHUP) {
                 // check if our fd is a socket
                 struct stat st;
-                if (fstat(fd, &st) == -1) {
-                    char buf[128];
-                    STRERROR_R(errno, buf, sizeof(buf));
-                    fprintf(stderr, "Couldn't fstat %d (%s)\n", errno, buf);
-                }
-                if (S_ISSOCK(st.st_mode)) {
+                if (fstat(fd, &st) != -1 && S_ISSOCK(st.st_mode)) {
                     mode |= SocketError;
                     fprintf(stderr, "HUP on socket %d, removing\n", fd);
                 } else {

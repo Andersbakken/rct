@@ -163,23 +163,28 @@ bool Path::resolve(ResolveMode mode, const Path &cwd)
             return true;
         }
         return false;
-    } else {
-        if (!cwd.isEmpty() && !isAbsolute()) {
-            Path copy = cwd + '/' + *this;
-            if (copy.resolve(RealPath)) {
-                operator=(copy);
-                return true;
-            }
-        }
+    }
 
-        {
-            char buffer[PATH_MAX + 2];
-            if (realpath(constData(), buffer)) {
-                String::operator=(buffer);
-                return true;
-            }
+    if (!cwd.isEmpty() && !isAbsolute()) {
+        Path copy = cwd + '/' + *this;
+        if (copy.resolve(RealPath)) {
+            operator=(copy);
+            return true;
         }
     }
+
+    {
+        char buffer[PATH_MAX + 2];
+        if (realpath(constData(), buffer)) {
+            if (isDir()) {
+                assert(buffer[strlen(buffer)] != '/');
+                buffer[strlen(buffer)] = '/';
+            }
+            String::operator=(buffer);
+            return true;
+        }
+    }
+
     return false;
 }
 

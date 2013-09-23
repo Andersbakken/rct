@@ -211,6 +211,17 @@ inline Log operator<<(Log stream, const List<T> &list)
     return stream;
 }
 
+template <typename T1, typename T2>
+inline Log operator<<(Log stream, const std::pair<T1, T2> &pair)
+{
+    stream << "pair<";
+    const bool old = stream.setSpacing(false);
+    stream << typeName<T1>() << ", " << typeName<T2>() << ">(";
+    stream << pair.first << ", " << pair.second << ")";
+    stream.setSpacing(old);
+    return stream;
+}
+
 template <typename T>
 inline Log operator<<(Log stream, const Set<T> &list)
 {

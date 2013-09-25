@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <rct/Set.h>
 #include <rct/String.h>
+#include <string>
 
 class Path : public String
 {
@@ -127,5 +128,17 @@ public:
 
     List<Path> files(unsigned filter = All, int max = -1, bool recurse = false) const;
 };
+
+namespace std
+{
+template <> struct hash<Path> : public unary_function<Path, size_t>
+{
+    size_t operator()(const Path& value) const
+    {
+        std::hash<std::string> h;
+        return h(value);
+    }
+};
+}
 
 #endif

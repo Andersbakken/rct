@@ -691,4 +691,17 @@ inline const String operator+(const String &l, const String &r)
     return ret;
 }
 
+namespace std
+{
+template <> struct hash<String> : public unary_function<String, size_t>
+{
+    size_t operator()(const String& value) const
+    {
+        std::hash<std::string> h;
+        return h(value);
+    }
+};
+}
+
+
 #endif

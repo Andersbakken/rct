@@ -4,6 +4,7 @@
 #include <rct/String.h>
 #include <rct/List.h>
 #include <rct/Map.h>
+#include <rct/Hash.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
 #include <assert.h>
@@ -254,6 +255,35 @@ inline Log operator<<(Log stream, const Map<Key, Value> &map)
     stream << typeName<Key>() << ", " << typeName<Value>() << ">(";
     bool first = true;
     for (typename Map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
+        if (first) {
+            stream.disableNextSpacing();
+            first = false;
+        } else {
+            stream << ", ";
+        }
+        const Key &key = it->first;
+        const Value &value = it->second;
+        stream.setSpacing(old);
+        stream << key;
+        old = stream.setSpacing(false);
+        stream << ": ";
+        stream.setSpacing(old);
+        stream << value;
+        old = stream.setSpacing(false);
+    }
+    stream << ")";
+    stream.setSpacing(old);
+    return stream;
+}
+
+template <typename Key, typename Value>
+inline Log operator<<(Log stream, const Hash<Key, Value> &map)
+{
+    stream << "Hash<";
+    bool old = stream.setSpacing(false);
+    stream << typeName<Key>() << ", " << typeName<Value>() << ">(";
+    bool first = true;
+    for (typename Hash<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
         if (first) {
             stream.disableNextSpacing();
             first = false;

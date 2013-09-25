@@ -5,6 +5,7 @@
 #include <rct/List.h>
 #include <rct/Log.h>
 #include <rct/Map.h>
+#include <rct/Hash.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
 #include <rct/Rct.h>
@@ -222,6 +223,17 @@ Serializer &operator<<(Serializer &s, const Map<Key, Value> &map)
     return s;
 }
 
+template <typename Key, typename Value>
+Serializer &operator<<(Serializer &s, const Hash<Key, Value> &map)
+{
+    const uint32_t size = map.size();
+    s << size;
+    for (typename Hash<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
+        s << it->first << it->second;
+    }
+    return s;
+}
+
 template <typename First, typename Second>
 Serializer &operator<<(Serializer &s, const std::pair<First, Second> &pair)
 {
@@ -243,6 +255,23 @@ Serializer &operator<<(Serializer &s, const Set<T> &set)
 
 template <typename Key, typename Value>
 Deserializer &operator>>(Deserializer &s, Map<Key, Value> &map)
+{
+    uint32_t size;
+    s >> size;
+    map.clear();
+    if (size) {
+        Key key;
+        Value value;
+        for (uint32_t i=0; i<size; ++i) {
+            s >> key >> value;
+            map[key] = value;
+        }
+    }
+    return s;
+}
+
+template <typename Key, typename Value>
+Deserializer &operator>>(Deserializer &s, Hash<Key, Value> &map)
 {
     uint32_t size;
     s >> size;

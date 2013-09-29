@@ -26,7 +26,7 @@ Message* Messages::create(const char *data, int size)
 
     MessageCreatorBase *base = sFactory.value(id);
     if (!base) {
-        error("Invalid message id %d, data: %d bytes", id, size);
+        error("Invalid message id %d, data: %d bytes, factory %p", id, size, &sFactory);
         return 0;
     }
     Message *message = base->create(data, size);

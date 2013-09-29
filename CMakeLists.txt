@@ -12,22 +12,6 @@ if ( HAVE_FAM EQUAL 1 )
     )
 endif()
 
-pkg_check_modules( LIBEVENT libevent libevent_pthreads )
-if (LIBEVENT_FOUND)
-  message("Found libevent: ${LIBEVENT_FOUND}")
-  message("${LIBEVENT_CFLAGS} ${LIBEVENT_LDFLAGS}")
-else ()
-  message(FATAL_ERROR "libevent library not found")
-endif()
-
-add_definitions(
-  ${LIBEVENT_CFLAGS}
-)
-
-target_link_libraries(rct
-  ${LIBEVENT_LDFLAGS}
-)
-
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 

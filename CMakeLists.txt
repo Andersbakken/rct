@@ -12,6 +12,8 @@ if ( HAVE_FAM EQUAL 1 )
     )
 endif()
 
+find_package(PkgConfig)
+
 pkg_check_modules( LIBEVENT libevent libevent_pthreads )
 if (LIBEVENT_FOUND)
   message("Found libevent: ${LIBEVENT_FOUND}")

@@ -15,8 +15,9 @@ public:
         const uint8_t id = T::MessageId;
         std::lock_guard<std::mutex> lock(sMutex);
         MessageCreatorBase *&base = sFactory[id];
-        if (!base)
+        if (!base) {
             base = new MessageCreator<T>();
+        }
     }
     static void cleanup();
 private:

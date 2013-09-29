@@ -7,11 +7,15 @@
 #cmakedefine HAVE_MACH_ABSOLUTE_TIME
 #cmakedefine HAVE_INOTIFY
 #cmakedefine HAVE_KQUEUE
-#cmakedefine HAVE_FAM
+#cmakedefine HAVE_CHANGENOTIFICATION
+#cmakedefine HAVE_CYGWIN
 #cmakedefine HAVE_EPOLL
 #cmakedefine HAVE_NOSIGPIPE
 #cmakedefine HAVE_NOSIGNAL
 #cmakedefine HAVE_FSEVENTS
 #cmakedefine HAVE_STATMTIM
+#if !defined(HAVE_EPOLL) && !defined(HAVE_KQUEUE)
+#cmakedefine HAVE_SELECT
+#endif
 
 #endif

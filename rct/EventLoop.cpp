@@ -1,6 +1,5 @@
 #include "EventLoop.h"
 #include "Timer.h"
-#include "rct-config.h"
 #include <algorithm>
 #include <atomic>
 #include <set>
@@ -13,6 +12,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <pthread.h>
 #include <stdlib.h>
 #ifdef HAVE_MACH_ABSOLUTE_TIME
@@ -429,7 +429,6 @@ void EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
 
 void EventLoop::updateSocket(int fd, unsigned int mode)
 {
-    
     std::lock_guard<std::mutex> locker(mutex);
     auto socket = sockets.find(fd);
     if (socket == sockets.end()) {

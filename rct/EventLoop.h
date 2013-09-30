@@ -138,6 +138,7 @@ public:
     void registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func);
     void updateSocket(int fd, unsigned int mode);
     void unregisterSocket(int fd);
+    unsigned int processSocket(int fd, int timeout = -1);
 
     // See Timer.h for the flags
     int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
@@ -249,7 +250,6 @@ private:
     static EventLoop::WeakPtr mainLoop;
 
     unsigned flgs;
-
 private:
     EventLoop(const EventLoop&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;

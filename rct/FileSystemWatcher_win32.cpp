@@ -61,7 +61,7 @@ void WatcherSlice::run()
             break;
         }
         const int idx = ret - WAIT_OBJECT_0;
-        if (ret == changes.size() - 1) {
+        if (idx == changes.size() - 1) {
             // woken up, probably due to stop
             std::lock_guard<std::mutex> locker(mutex);
             if (stopped)

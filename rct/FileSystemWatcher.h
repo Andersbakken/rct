@@ -32,13 +32,13 @@ public:
     Signal<std::function<void(const Path &)> > &added() { return mAdded; }
     Signal<std::function<void(const Path &)> > &modified() { return mModified; }
     void clear();
-#if defined(HAVE_FSEVENTS) or defined(HAVE_CHANGENOTIFICATION)
+#if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
     Set<Path> watchedPaths() const;
 #else
     Set<Path> watchedPaths() const { return mWatchedByPath.keys().toSet(); } // ### slow
 #endif
 private:
-#if defined(HAVE_FSEVENTS) or defined(HAVE_CHANGENOTIFICATION)
+#if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
     WatcherData* mWatcher;
     friend class WatcherData;
     void pathsAdded(const Set<Path>& paths);

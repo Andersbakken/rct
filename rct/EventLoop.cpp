@@ -171,6 +171,8 @@ void EventLoop::cleanup()
         ::close(eventPipe[0]);
     if (eventPipe[1] != -1)
         ::close(eventPipe[1]);
+    if (flgs & MainEventLoop)
+        mainLoop.reset();
 }
 
 EventLoop::SharedPtr EventLoop::eventLoop()

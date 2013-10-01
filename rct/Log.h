@@ -178,6 +178,7 @@ private:
 
 template <typename T> inline String typeName()
 {
+#ifdef __GXX_RTTI
     const char *name = typeid(T).name();
     char *ret = abi::__cxa_demangle(name, 0, 0, 0);
     String ba;
@@ -186,6 +187,9 @@ template <typename T> inline String typeName()
         free(ret);
     }
     return ba;
+#else
+    return String();
+#endif
 }
 
 template <typename T>

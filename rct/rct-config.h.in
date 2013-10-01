@@ -1,5 +1,5 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef RCT_CONFIG_H
+#define RCT_CONFIG_H
 
 #cmakedefine HAVE_BACKTRACE
 #cmakedefine HAVE_CLOCK_MONOTONIC_RAW

@@ -310,6 +310,11 @@ void WatcherData::stop()
         wakeup();
     }
     thread.join();
+
+    for (HANDLE& h : changes) {
+        FindCloseChangeNotification(h);
+    }
+    changes.clear();
 }
 
 FileSystemWatcher::FileSystemWatcher()

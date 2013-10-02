@@ -322,6 +322,7 @@ FileSystemWatcher::FileSystemWatcher()
 FileSystemWatcher::~FileSystemWatcher()
 {
     mWatcher->stop();
+    CloseHandle(mWatcher->wakeupHandle);
     delete mWatcher;
 }
 

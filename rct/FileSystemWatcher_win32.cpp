@@ -263,6 +263,9 @@ void WatcherData::run()
                 for (const std::pair<Path, uint64_t>& mod : data.modified) {
                     if (data.seen.find(mod.first) == send) {
                         removed.insert(mod.first);
+                    } else {
+                        // update to our new time
+                        data.modified[mod.first] = mod.first.lastModifiedMs();
                     }
                 }
 

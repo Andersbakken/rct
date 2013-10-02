@@ -36,6 +36,11 @@ public:
         : mString(ba.mString)
     {}
 
+    String(String &&ba)
+    {
+        std::swap(ba.mString, mString);
+    }
+
     String(const std::string &str)
         : mString(str)
     {}

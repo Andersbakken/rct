@@ -150,15 +150,15 @@ static Path::VisitResult updateDir(const Path& p, void* user)
 void WatcherData::updatePaths()
 {
     // printf("updating paths...\n");
-    for (HANDLE& h : changes) {
-        //printf("closing %d\n", h);
-        FindCloseChangeNotification(h);
-    }
     {
         std::lock_guard<std::mutex> updateLocker(updateMutex);
         handleToPath.clear();
         pathToHandle.clear();
         pathData.clear();
+    }
+    for (HANDLE& h : changes) {
+        //printf("closing %d\n", h);
+        FindCloseChangeNotification(h);
     }
     changes.clear();
 

@@ -10,6 +10,9 @@
 #include <mutex>
 #ifdef HAVE_FSEVENTS
 #include <CoreServices/CoreServices.h>
+#ifdef check
+#undef check
+#endif
 class WatcherData;
 #elif defined(HAVE_CHANGENOTIFICATION)
 class WatcherData;

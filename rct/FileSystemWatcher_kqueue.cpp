@@ -146,7 +146,7 @@ bool FileSystemWatcher::watch(const Path &p)
         flags = NOTE_RENAME|NOTE_DELETE|NOTE_EXTEND|NOTE_WRITE|NOTE_ATTRIB|NOTE_REVOKE;
         break;
     default:
-        error("FileSystemWatcher::watch() '%s' doesn't not seem to be watchable", path.constData());
+        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.constData());
         return false;
     }
 

@@ -297,7 +297,7 @@ bool FileSystemWatcher::watch(const Path &p)
     case Path::Directory:
         break;
     default:
-        error("FileSystemWatcher::watch() '%s' doesn't not seem to be watchable", path.constData());
+        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.constData());
         return false;
     }
 

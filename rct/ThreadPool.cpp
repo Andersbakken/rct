@@ -1,5 +1,6 @@
 #include "ThreadPool.h"
 #include "Thread.h"
+#include "Log.h"
 #include <algorithm>
 #include <assert.h>
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
@@ -10,6 +11,8 @@
 #elif defined (OS_Darwin)
 #   include <sys/param.h>
 #   include <sys/sysctl.h>
+#elif defined (OS_CYGWIN)
+#   include <windows.h>
 #endif
 
 using std::shared_ptr;
@@ -206,6 +209,39 @@ int ThreadPool::idealThreadCount()
             return 1;
     }
     return cores;
+#elif defined(OS_CYGWIN)
+    unsigned int numCores = 0, numThreads = 0;
+    DWORD size = 0;
+    GetLogicalProcessorInformation(0, &size);
+    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+        error() << "GetLogicalProcessorInformation size failed";
+        return 1;
+    }
+    assert(size > 0);
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION procs = new SYSTEM_LOGICAL_PROCESSOR_INFORMATION[size];
+    if (!GetLogicalProcessorInformation(procs, &size)) {
+        delete[] procs;
+        error() << "GetLogicalProcessorInformation procs failed";
+        return 1;
+    }
+
+    const size_t elems = size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+    for (size_t i = 0; i < elems; ++i) {
+        if (procs[i].Relationship == RelationProcessorCore) {
+            ++numCores;
+            if (procs[i].ProcessorCore.Flags == 1) {
+                int mask = 0x1;
+                const size_t bits = 8 * sizeof(ULONG_PTR);
+                for (size_t j = 0; j < bits; ++j, mask <<= 1) {
+                    if (procs[i].ProcessorMask & mask)
+                        ++numThreads;
+                }
+            }
+        }
+    }
+
+    delete[] procs;
+    return std::max(numThreads, numCores);
 #else
 #   warning idealthreadcount not implemented on this platform
     return 1;

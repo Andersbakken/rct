@@ -1,6 +1,7 @@
 #include "ThreadPool.h"
 #include "Thread.h"
 #include "Log.h"
+#include "rct-config.h"
 #include <algorithm>
 #include <assert.h>
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
@@ -11,7 +12,7 @@
 #elif defined (OS_Darwin)
 #   include <sys/param.h>
 #   include <sys/sysctl.h>
-#elif defined (OS_CYGWIN)
+#elif defined (HAVE_PROCESSORINFORMATION)
 #   include <windows.h>
 #endif
 
@@ -209,7 +210,7 @@ int ThreadPool::idealThreadCount()
             return 1;
     }
     return cores;
-#elif defined(OS_CYGWIN)
+#elif defined(HAVE_PROCESSORINFORMATION)
     unsigned int numCores = 0, numThreads = 0;
     DWORD size = 0;
     GetLogicalProcessorInformation(0, &size);

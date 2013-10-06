@@ -8,6 +8,7 @@
 #cmakedefine HAVE_INOTIFY
 #cmakedefine HAVE_KQUEUE
 #cmakedefine HAVE_CHANGENOTIFICATION
+#cmakedefine HAVE_PROCESSORINFORMATION
 #cmakedefine HAVE_CYGWIN
 #cmakedefine HAVE_EPOLL
 #cmakedefine HAVE_NOSIGPIPE

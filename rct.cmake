@@ -17,6 +17,7 @@ check_cxx_symbol_exists(epoll_wait "sys/epoll.h" HAVE_EPOLL)
 check_cxx_symbol_exists(select "sys/select.h" HAVE_SELECT)
 check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
+check_cxx_symbol_exists(GetLogicalProcessorInformation "windows.h" HAVE_PROCESSORINFORMATION)
 
 if (CYGWIN)
   message("Using win32 FileSystemWatcher")

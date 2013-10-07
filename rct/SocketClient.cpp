@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/select.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <rct-config.h>
@@ -19,9 +20,25 @@
     } while (VAR == -1 && errno == EINTR)
 
 SocketClient::SocketClient(Mode mode)
-    : socketState(Disconnected), mode(Asynchronous), writeWait(false)
+    : socketState(Disconnected), socketMode(mode), wMode(Asynchronous), writeWait(false)
 {
-    fd = ::socket(mode == Tcp ? AF_INET : PF_UNIX, SOCK_STREAM, 0);
+    int domain, type;
+    switch (mode) {
+    case Udp:
+        type = SOCK_DGRAM;
+        domain = AF_INET;
+        break;
+    case Tcp:
+        type = SOCK_STREAM;
+        domain = AF_INET;
+        break;
+    case Unix:
+        type = SOCK_STREAM;
+        domain = PF_UNIX;
+        break;
+    }
+
+    fd = ::socket(domain, type, 0);
     if (fd < 0) {
         // bad
         signalError(shared_from_this(), InitializeError);
@@ -86,25 +103,46 @@ void SocketClient::close()
     fd = -1;
 }
 
-bool SocketClient::connect(const std::string& host, uint16_t port)
+class Resolver
 {
-    addrinfo hints, *res, *p;
+public:
+    Resolver();
+    Resolver(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket);
+    ~Resolver();
+
+    void resolve(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket);
+
+    addrinfo* res;
+    sockaddr* addr;
+    size_t size;
+};
+
+Resolver::Resolver()
+    : res(0), addr(0), size(0)
+{
+}
+
+Resolver::Resolver(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket)
+    : res(0), addr(0), size(0)
+{
+    resolve(host, port, socket);
+}
+
+void Resolver::resolve(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket)
+{
+    addrinfo hints, *p;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
     hints.ai_socktype = SOCK_STREAM;
 
-    SocketClient::SharedPtr tcpSocket = shared_from_this();
-
     if (getaddrinfo(host.c_str(), NULL, &hints, &res) != 0) {
         // bad
-        signalError(tcpSocket, DnsError);
-        close();
-        return false;
+        socket->signalError(socket, SocketClient::DnsError);
+        socket->close();
+        return;
     }
 
-    sockaddr* addr = 0;
-    size_t size = 0;
     for (p = res; p; p = p->ai_next) {
         if (p->ai_family == AF_INET) {
             addr = p->ai_addr;
@@ -120,14 +158,29 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
     }
 
     if (!addr) {
-        signalError(tcpSocket, DnsError);
-        close();
+        socket->signalError(socket, SocketClient::DnsError);
+        socket->close();
         freeaddrinfo(res);
-        return false;
+        res = 0;
+        return;
     }
+}
+
+Resolver::~Resolver()
+{
+    if (res)
+        freeaddrinfo(res); // free the linked list
+}
+
+bool SocketClient::connect(const std::string& host, uint16_t port)
+{
+    SocketClient::SharedPtr tcpSocket = shared_from_this();
+    Resolver resolver(host, port, tcpSocket);
+    if (!resolver.addr)
+        return false;
 
     int e;
-    eintrwrap(e, ::connect(fd, addr, size));
+    eintrwrap(e, ::connect(fd, resolver.addr, resolver.size));
     if (e == 0) { // we're done
         socketState = Connected;
 	
@@ -137,7 +190,6 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
             // bad
             signalError(tcpSocket, ConnectError);
             close();
-            freeaddrinfo(res);
             return false;
         }
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
@@ -147,7 +199,6 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
         socketState = Connecting;
     }
 
-    freeaddrinfo(res); // free the linked list
     return true;
 }
 
@@ -182,22 +233,54 @@ bool SocketClient::connect(const std::string& path)
     return true;
 }
 
-bool SocketClient::write(const unsigned char* data, unsigned int size)
+bool SocketClient::bind(uint16_t port)
 {
+    sockaddr_in addr;
+    memset(&addr, '\0', sizeof(sockaddr_in));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(port);
+
+    const int e = ::bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in));
+    if (!e)
+        return true;
+
+    SocketClient::SharedPtr udpSocket = shared_from_this();
+    signalError(udpSocket, BindError);
+    close();
+    return false;
+}
+
+bool SocketClient::writeTo(const std::string& host, uint16_t port, const unsigned char* data, unsigned int size)
+{
+    SocketClient::SharedPtr socketPtr = shared_from_this();
+
+    Resolver resolver;
+    if (port != 0)
+        resolver.resolve(host, port, socketPtr);
+
     int e;
     bool done = !data;
     unsigned int total = 0;
 
-    SocketClient::SharedPtr socketPtr = shared_from_this();
+#ifdef HAVE_NOSIGNAL
+    const int sendFlags = MSG_NOSIGNAL;
+#else
+    const int sendFlags = 0;
+#endif
 
     if (!writeWait) {
         if (!writeBuffer.isEmpty()) {
             while (total < writeBuffer.size()) {
                 assert(writeBuffer.size() > total);
-                eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
+                if (resolver.addr)
+                    eintrwrap(e, ::sendto(fd, writeBuffer.data() + total, writeBuffer.size() - total,
+                                          sendFlags, resolver.addr, resolver.size));
+                else
+                    eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        if (mode == Synchronous) {
+                        if (wMode == Synchronous) {
                             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                                 if (total) {
                                     if (total < writeBuffer.size()) {
@@ -246,10 +329,14 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
 
         for (;;) {
             assert(size > total);
-            eintrwrap(e, ::write(fd, data + total, size - total));
+            if (resolver.addr)
+                eintrwrap(e, ::sendto(fd, data + total, size - total,
+                                      sendFlags, resolver.addr, resolver.size));
+            else
+                eintrwrap(e, ::write(fd, data + total, size - total));
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    if (mode == Synchronous) {
+                    if (wMode == Synchronous) {
                         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                             // store the rest
                             const unsigned rem = size - total;
@@ -294,29 +381,47 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
     return true;
 }
 
+bool SocketClient::write(const unsigned char* data, unsigned int size)
+{
+    return writeTo(std::string(), 0, data, size);
+}
+
+static std::string addrToString(const sockaddr_in& addr)
+{
+    return inet_ntoa(addr.sin_addr);
+}
+
+static uint16_t addrToPort(const sockaddr_in& addr)
+{
+    return ntohs(addr.sin_port);
+}
+
 void SocketClient::socketCallback(int f, int mode)
 {
     assert(f == fd);
     (void)f;
 
-    SocketClient::SharedPtr tcpSocket = shared_from_this();
+    SocketClient::SharedPtr socketPtr = shared_from_this();
 
     if (mode == EventLoop::SocketError) {
-        signalError(tcpSocket, EventLoopError);
+        signalError(socketPtr, EventLoopError);
         close();
         return;
     }
 
     if (writeWait && (mode & EventLoop::SocketWrite)) {
-      
+
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead);
             writeWait = false;
         }
     }
 
+    sockaddr_in fromAddr;
+    socklen_t fromLen = 0;
+
     if (mode & EventLoop::SocketRead) {
-      
+
         enum { BlockSize = 1024, AllocateAt = 512 };
         int e;
 
@@ -330,22 +435,30 @@ void SocketClient::socketCallback(int f, int mode)
                 rem = readBuffer.capacity() - readBuffer.size();
                 // printf("Rem is now %d\n", rem);
             }
-            eintrwrap(e, ::read(fd, readBuffer.end(), rem));
+            if (socketMode == Udp) {
+                fromLen = sizeof(fromAddr);
+                eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, reinterpret_cast<sockaddr*>(&fromAddr), &fromLen));
+            } else {
+                eintrwrap(e, ::read(fd, readBuffer.end(), rem));
+            }
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     break;
                 } else {
                     // bad
-                    signalError(tcpSocket, ReadError);
+                    signalError(socketPtr, ReadError);
                     close();
                     return;
                 }
             } else if (e == 0) {
                 // socket closed
                 if (total) {
-                    signalReadyRead(tcpSocket);
+                    if (!fromLen)
+                        signalReadyRead(socketPtr, std::move(readBuffer));
+                    else
+                        signalReadyReadFrom(socketPtr, addrToString(fromAddr), addrToPort(fromAddr), std::move(readBuffer));
                 }
-                signalDisconnected(tcpSocket);
+                signalDisconnected(socketPtr);
                 close();
                 return;
             } else {
@@ -354,7 +467,10 @@ void SocketClient::socketCallback(int f, int mode)
             }
         }
         assert(total <= readBuffer.capacity());
-        signalReadyRead(tcpSocket);
+        if (!fromLen)
+            signalReadyRead(socketPtr, std::move(readBuffer));
+        else
+            signalReadyReadFrom(socketPtr, addrToString(fromAddr), addrToPort(fromAddr), std::move(readBuffer));
 
         if (writeWait) {
             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
@@ -369,17 +485,17 @@ void SocketClient::socketCallback(int f, int mode)
             int e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
             if (e == -1) {
                 // bad
-                signalError(tcpSocket, ConnectError);
+                signalError(socketPtr, ConnectError);
                 close();
                 return;
             }
             if (!err) {
                 // connected
                 socketState = Connected;
-                signalConnected(tcpSocket);
+                signalConnected(socketPtr);
             } else {
                 // failed to connect
-                signalError(tcpSocket, ConnectError);
+                signalError(socketPtr, ConnectError);
                 close();
                 return;
             }

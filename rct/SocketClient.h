@@ -12,7 +12,7 @@ public:
     typedef std::shared_ptr<SocketClient> SharedPtr;
     typedef std::weak_ptr<SocketClient> WeakPtr;
 
-    enum Mode { Tcp, Unix };
+    enum Mode { Tcp, Udp, Unix };
 
     SocketClient(Mode mode);
     SocketClient(int fd);
@@ -23,6 +23,8 @@ public:
 
     bool connect(const std::string& path); // UNIX
     bool connect(const std::string& host, uint16_t port); // TCP
+    bool bind(uint16_t port); // UDP
+
     bool isConnected() const { return fd != -1; }
     int socket() const { return fd; }
 
@@ -30,32 +32,43 @@ public:
         Synchronous,
         Asynchronous
     };
-    void setWriteMode(WriteMode m) { mode = m; }
-    WriteMode writeMode() const { return mode; }
+    void setWriteMode(WriteMode m) { wMode = m; }
+    WriteMode writeMode() const { return wMode; }
 
     void close();
 
+    // TCP/UNIX
     bool write(const unsigned char* data, unsigned int num);
     bool write(const std::string& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
+
+    // UDP
+    bool writeTo(const std::string& host, uint16_t port, const unsigned char* data, unsigned int num);
+    bool writeTo(const std::string& host, uint16_t port, const std::string& data)
+    {
+        return writeTo(host, port, reinterpret_cast<const unsigned char*>(&data[0]), data.size());
+    }
 
     const Buffer& buffer() const { return readBuffer; }
     Buffer&& takeBuffer() { return std::move(readBuffer); }
 
-    Signal<std::function<void(SocketClient::SharedPtr&)> >& readyRead() { return signalReadyRead; }
+    Signal<std::function<void(SocketClient::SharedPtr&, Buffer&&)> >& readyRead() { return signalReadyRead; }
+    Signal<std::function<void(SocketClient::SharedPtr&, const std::string&, uint16_t, Buffer&&)> >& readyReadFrom() { return signalReadyReadFrom; }
     Signal<std::function<void(const SocketClient::SharedPtr&)> >& connected() { return signalConnected; }
     Signal<std::function<void(const SocketClient::SharedPtr&)> >& disconnected() { return signalDisconnected; }
     Signal<std::function<void(const SocketClient::SharedPtr&, int)> >& bytesWritten() { return signalBytesWritten; }
 
-    enum Error { InitializeError, DnsError, ConnectError, ReadError, WriteError, EventLoopError };
+    enum Error { InitializeError, DnsError, ConnectError, BindError, ReadError, WriteError, EventLoopError };
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> >& error() { return signalError; }
 
 private:
     int fd;
     State socketState;
-    WriteMode mode;
+    Mode socketMode;
+    WriteMode wMode;
     bool writeWait;
 
-    Signal<std::function<void(SocketClient::SharedPtr&)> > signalReadyRead;
+    Signal<std::function<void(SocketClient::SharedPtr&, Buffer&&)> > signalReadyRead;
+    Signal<std::function<void(SocketClient::SharedPtr&, const std::string&, uint16_t, Buffer&&)> > signalReadyReadFrom;
     Signal<std::function<void(const SocketClient::SharedPtr&)> >signalConnected, signalDisconnected;
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> > signalError;
     Signal<std::function<void(const SocketClient::SharedPtr&, int)> > signalBytesWritten;
@@ -63,6 +76,8 @@ private:
 
     int writeData(const unsigned char *data, int size);
     void socketCallback(int, int);
+
+    friend class Resolver;
 };
 
 #endif

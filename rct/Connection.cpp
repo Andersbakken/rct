@@ -13,7 +13,7 @@ Connection::Connection()
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
 }
@@ -23,7 +23,7 @@ Connection::Connection(const SocketClient::SharedPtr &client)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
     EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
@@ -35,7 +35,7 @@ Connection::Connection(const SocketClient::SharedPtr &client)
 void Connection::checkData()
 {
     if (!mSocketClient->buffer().isEmpty())
-        onDataAvailable(mSocketClient);
+        onDataAvailable(mSocketClient, std::forward<Buffer>(mSocketClient->takeBuffer()));
 }
 
 bool Connection::connectToServer(const String &name, int timeout)
@@ -122,7 +122,7 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
     return num;
 }
 
-void Connection::onDataAvailable(SocketClient::SharedPtr&)
+void Connection::onDataAvailable(SocketClient::SharedPtr&, Buffer&& buffer)
 {
     while (true) {
         if (!mSocketClient->buffer().isEmpty())

@@ -541,10 +541,6 @@ void EventLoop::unregisterSocket(int fd)
 unsigned int EventLoop::processSocket(int fd, int timeout)
 {
     int eventCount;
-#if !defined(HAVE_SELECT)
-    int e;
-#endif
-
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     enum { MaxEvents = 2 };
     NativeEvent events[MaxEvents];
@@ -557,11 +553,11 @@ unsigned int EventLoop::processSocket(int fd, int timeout)
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLET|EPOLLRDHUP|EPOLLIN|EPOLLOUT;
     ev.data.fd = fd;
-    e = epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
+    epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
 
     eintrwrap(eventCount, epoll_wait(processFd, events, MaxEvents, timeout));
 #elif defined(HAVE_KQUEUE)
-    int processFd = kqueue();
+    int processFd = kqueue(), e;
 
     const struct { int rf; int kf; } flags[] = {
         { SocketRead, EVFILT_READ },

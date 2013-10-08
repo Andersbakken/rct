@@ -18,7 +18,8 @@ bool Buffer::load(const std::string& filename)
     }
 
     resize(size);
-    assert(bufferSize >= size);
+    assert(size >= 0);
+    assert(bufferSize >= static_cast<unsigned long int>(size));
 
     if (fread(bufferData, 1, size, f) < 1) {
         fclose(f);

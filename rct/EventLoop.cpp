@@ -119,7 +119,9 @@ void EventLoop::init(unsigned flags)
     }
 #endif
 
+#if !defined(HAVE_SELECT)
     NativeEvent ev;
+#endif
 #if defined(HAVE_EPOLL)
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLIN | EPOLLET;
@@ -538,7 +540,10 @@ void EventLoop::unregisterSocket(int fd)
 
 unsigned int EventLoop::processSocket(int fd, int timeout)
 {
-    int eventCount, e;
+    int eventCount;
+#if !defined(HAVE_SELECT)
+    int e;
+#endif
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     enum { MaxEvents = 2 };

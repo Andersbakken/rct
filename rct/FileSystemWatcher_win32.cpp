@@ -18,11 +18,11 @@ public:
     void run();
 
     std::vector<HANDLE> changes;
+    bool stopped;
     std::function<bool(const Path&)> notify;
     std::map<HANDLE, Path> handleToPath;
     std::thread thread;
     std::mutex mutex;
-    bool stopped;
 };
 
 WatcherSlice::WatcherSlice(std::vector<HANDLE>::iterator& begin,
@@ -57,10 +57,10 @@ void WatcherSlice::run()
     for (;;) {
         const DWORD ret = WaitForMultipleObjects(changes.size(), &changes[0], FALSE, INFINITE);
         if (ret == WAIT_FAILED) {
-            fprintf(stderr, "Wait failed in WatcherSlice::run() %d\n", GetLastError());
+            fprintf(stderr, "Wait failed in WatcherSlice::run() %lu\n", GetLastError());
             break;
         }
-        const int idx = ret - WAIT_OBJECT_0;
+        const unsigned int idx = ret - WAIT_OBJECT_0;
         if (idx == changes.size() - 1) {
             // woken up, probably due to stop
             std::lock_guard<std::mutex> locker(mutex);
@@ -177,7 +177,7 @@ void WatcherData::updatePaths()
                                                      FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 #endif
         if (h == INVALID_HANDLE_VALUE) {
-            fprintf(stderr, "Unable to watch: %d\n", GetLastError());
+            fprintf(stderr, "Unable to watch: %lu\n", GetLastError());
         } else {
             changes.push_back(h);
 
@@ -239,7 +239,7 @@ void WatcherData::run()
         }
         const DWORD res = WaitForSingleObject(wakeupHandle, INFINITE);
         if (res == WAIT_FAILED) {
-            fprintf(stderr, "Wait failed in WatcherData::run() %d\n", GetLastError());
+            fprintf(stderr, "Wait failed in WatcherData::run() %lu\n", GetLastError());
             break;
         }
         assert(res - WAIT_OBJECT_0 == 0);
@@ -353,6 +353,7 @@ bool FileSystemWatcher::watch(const Path& p)
     mWatcher->paths.insert(p);
     mWatcher->changed = true;
     mWatcher->wakeup();
+    return true;
 }
 
 bool FileSystemWatcher::unwatch(const Path& p)
@@ -362,6 +363,7 @@ bool FileSystemWatcher::unwatch(const Path& p)
     mWatcher->paths.erase(p);
     mWatcher->changed = true;
     mWatcher->wakeup();
+    return true;
 }
 
 void FileSystemWatcher::pathsAdded(const Set<Path>& paths)

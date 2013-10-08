@@ -140,7 +140,8 @@ void Connection::onDataAvailable(SocketClient::SharedPtr&)
             strm >> mPendingRead;
             available -= 4;
         }
-        if (available < mPendingRead)
+        assert(mPendingRead >= 0);
+        if (available < static_cast<unsigned int>(mPendingRead))
             break;
         char buf[1024];
         char *buffer = buf;

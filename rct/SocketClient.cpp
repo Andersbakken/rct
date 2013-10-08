@@ -257,7 +257,7 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
                             memcpy(writeBuffer.end(), data + total, rem);
                             writeBuffer.resize(writeBuffer.size() + rem);
 
-                            const unsigned int foo = loop->processSocket(fd);
+                            (void)loop->processSocket(fd);
                             return isConnected();
                         }
                     }

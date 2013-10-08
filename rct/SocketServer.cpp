@@ -150,7 +150,6 @@ void SocketServer::socketCallback(int /*fd*/, int mode)
   sockaddr_in client;
   socklen_t size = sizeof(sockaddr_in);
   int e;
-  long count = 0;
 
   if (! ( mode & EventLoop::SocketRead ) )
     return;

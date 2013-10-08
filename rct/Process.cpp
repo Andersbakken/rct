@@ -77,9 +77,7 @@ void ProcessThread::addPid(pid_t pid, Process* process)
 
 void ProcessThread::run()
 {
-    pid_t pid;
-    char* buf = reinterpret_cast<char*>(&pid);
-    ssize_t hasread = 0, r;
+    ssize_t r;
     for (;;) {
         char ch;
         r = ::read(sProcessPipe[0], &ch, sizeof(char));

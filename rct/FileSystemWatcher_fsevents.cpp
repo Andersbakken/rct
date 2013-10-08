@@ -289,7 +289,6 @@ bool FileSystemWatcher::watch(const Path &p)
     Path path = p;
     assert(!path.isEmpty());
     const Path::Type type = path.type();
-    uint32_t flags = 0;
     switch (type) {
     case Path::File:
         path = path.parentDir();

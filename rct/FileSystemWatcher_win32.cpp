@@ -177,7 +177,7 @@ void WatcherData::updatePaths()
                                                      FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 #endif
         if (h == INVALID_HANDLE_VALUE) {
-            fprintf(stderr, "Unable to watch: %lu\n", GetLastError());
+            fprintf(stderr, "Unable to watch: %lu (%s)\n", GetLastError(), path.constData());
         } else {
             changes.push_back(h);
 

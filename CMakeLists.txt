@@ -2,15 +2,11 @@ cmake_minimum_required(VERSION 2.8)
 project(rct)
 include(rct.cmake)
 add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
-add_library(rct STATIC ${RCT_SOURCES})
-#add_library(rct SHARED ${RCT_SOURCES})
-
-if ( HAVE_FAM EQUAL 1 )
-  message( STATUS "Using FAM via Gamin Library..." )
-  target_link_libraries(rct
-    ${GAMIN_LDFLAGS}
-    )
-endif()
+if (CYGWIN)
+  add_library(rct SHARED ${RCT_SOURCES})
+else ()
+  add_library(rct STATIC ${RCT_SOURCES})
+endif ()
 
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)

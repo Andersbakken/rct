@@ -11,7 +11,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_path(COREFOUNDATION_INCLUDE "CoreFoundation/CoreFoundation.h")
 endif ()
 
-target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY})
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+  set(RCT_SYSTEM_LIBRARIES dl)
+endif ()
+
+target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES})
 
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)

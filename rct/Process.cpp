@@ -241,17 +241,13 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
         eintrwrap(err, ::fcntl(closePipe[1], F_SETFD, flg | FD_CLOEXEC));
     } else {
         mErrorString = "Unable to set FD_CLOEXEC";
-        ::close(closePipe[0]);
-        ::close(closePipe[1]);
+        eintrwrap(err, ::close(closePipe[0]));
+        eintrwrap(err, ::close(closePipe[1]));
         return Error;
     }
 #else
 #warning No CLOEXEC, Process might have problematic behavior
 #endif
-    eintrwrap(flg, ::fcntl(closePipe[0], F_GETFL, 0));
-    if (flg != -1) {
-        eintrwrap(flg, ::fcntl(closePipe[0], F_SETFL, flg | O_NONBLOCK));
-    }
 
     eintrwrap(err, ::pipe(mStdIn));
     eintrwrap(err, ::pipe(mStdOut));
@@ -330,14 +326,13 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
         // notify the parent process
         const char c = 'c';
         eintrwrap(err, ::write(closePipe[1], &c, 1));
+        eintrwrap(err, ::close(closePipe[1]));
         ::_exit(1);
         (void)ret;
         //printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, strerror(errno));
     } else {
         delete[] env;
         delete[] args;
-
-        ProcessThread::addPid(mPid, this);
 
         // parent
         eintrwrap(err, ::close(closePipe[1]));
@@ -355,35 +350,31 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
         eintrwrap(flags, fcntl(mStdErr[0], F_GETFL, 0));
         eintrwrap(flags, fcntl(mStdErr[0], F_SETFL, flags | O_NONBLOCK));
 
-        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-            loop->registerSocket(closePipe[0], EventLoop::SocketRead, std::bind(&Process::closeCallback, this, std::placeholders::_1, std::placeholders::_2));
-            // check if we have anything available on the close pipe right now
+        // block until exec is called in the child or until exec fails
+        {
             char c;
             eintrwrap(err, ::read(closePipe[0], &c, 1));
+            (void)c;
 
-            // if neither of these cases are true then the process hasn't fully started yet
-            if (err == -1 && (errno != EAGAIN && errno != EWOULDBLOCK)) {
+            if (err == -1) {
                 // bad
-                loop->unregisterSocket(closePipe[0]);
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Failed to read from closePipe during process start";
-                ProcessThread::removePid(mPid);
                 mPid = -1;
                 return Error;
             } else if (err == 0) {
                 // process has started successfully
-                loop->unregisterSocket(closePipe[0]);
                 eintrwrap(err, ::close(closePipe[0]));
             } else if (err == 1) {
                 // process start failed
-                loop->unregisterSocket(closePipe[0]);
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Process failed to start";
-                ProcessThread::removePid(mPid);
                 mPid = -1;
                 return Error;
             }
         }
+
+        ProcessThread::addPid(mPid, this);
 
         //printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
         if (mMode == Async) {
@@ -545,30 +536,6 @@ String Process::readAllStdErr()
     std::swap(mStdErrBuffer, out);
     mStdErrIndex = 0;
     return out;
-}
-
-void Process::closeCallback(int fd, int /*mode*/)
-{
-    char c;
-    int err;
-    eintrwrap(err, ::read(fd, &c, 1));
-    EventLoop::eventLoop()->unregisterSocket(fd);
-
-    if (err == -1) {
-        // bad
-        mReturn = -1;
-        ProcessThread::removePid(mPid);
-        mPid = -1;
-        mFinished(this);
-    } else if (err == 0) {
-        // process started successfully
-    } else {
-        // process didn't start
-        mReturn = -1;
-        ProcessThread::removePid(mPid);
-        mPid = -1;
-        mFinished(this);
-    }
 }
 
 void Process::processCallback(int fd, int mode)

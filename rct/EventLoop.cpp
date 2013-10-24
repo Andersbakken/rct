@@ -20,8 +20,31 @@
 #  include <mach/mach_time.h>
 #endif
 
-// this is pretty awful, any better ideas to avoid the unused warning?
-#define STRERROR_R(errno, buf, size) if (strerror_r(errno, buf, size))
+struct RctStrError
+{
+    char buf[1024];
+};
+
+static std::once_flag errorOnce;
+
+char* rct_strerror(int errn)
+{
+    static pthread_key_t errorKey;
+    std::call_once(errorOnce, [](){
+            pthread_key_create(&errorKey, 0);
+        });
+    RctStrError* err = static_cast<RctStrError*>(pthread_getspecific(errorKey));
+    if (!err) {
+        err = new RctStrError;
+        pthread_setspecific(errorKey, err);
+    }
+#ifdef _GNU_SOURCE
+    return strerror_r(errn, err->buf, sizeof(err->buf));
+#else
+    strerror_r(errn, err->buf, sizeof(err->buf));
+    return err->buf;
+#endif
+}
 
 EventLoop::WeakPtr EventLoop::mainLoop;
 std::mutex EventLoop::mainMutex;
@@ -424,9 +447,7 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
 #endif
     if (e == -1) {
         if (errno != EEXIST) {
-            char buf[128];
-            STRERROR_R(errno, buf, sizeof(buf));
-            fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n", fd, mode, errno, buf);
+            fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n", fd, mode, errno, rct_strerror(errno));
             return false;
         }
     }
@@ -488,9 +509,7 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
 #endif
     if (e == -1) {
         if (errno != EEXIST && errno != ENOENT) {
-            char buf[128];
-            STRERROR_R(errno, buf, sizeof(buf));
-            fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n", fd, mode, errno, buf);
+            fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n", fd, mode, errno, rct_strerror(errno));
             return false;
         }
     }
@@ -535,9 +554,7 @@ void EventLoop::unregisterSocket(int fd)
 #endif
     if (e == -1) {
         if (errno != ENOENT) {
-            char buf[128];
-            STRERROR_R(errno, buf, sizeof(buf));
-            fprintf(stderr, "Unable to unregister socket %d: %d (%s)\n", fd, errno, buf);
+            fprintf(stderr, "Unable to unregister socket %d: %d (%s)\n", fd, errno, rct_strerror(errno));
         }
     }
 }
@@ -658,16 +675,13 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                 sockets.erase(fd);
             }
             if (ev & EPOLLERR) {
-                char buf[128];
                 int err;
                 socklen_t size = sizeof(err);
                 e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
                 if (e == -1) {
-                    STRERROR_R(errno, buf, sizeof(buf));
-                    fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, buf);
+                    fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, rct_strerror(errno));
                 } else {
-                    STRERROR_R(errno, buf, sizeof(buf));
-                    fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, buf);
+                    fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, rct_strerror(errno));
                 }
                 mode |= SocketError;
             }
@@ -707,11 +721,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                 std::lock_guard<std::mutex> locker(mutex);
                 sockets.erase(fd);
             }
-            {
-                char buf[128];
-                STRERROR_R(errno, buf, sizeof(buf));
-                fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, buf);
-            }
+            fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, rct_strerror(errno));
 
             all |= fireSocket(fd, SocketError);
             continue;
@@ -763,9 +773,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                 } while (e == 1);
                 if (e == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
                     // error
-                    char buf[128];
-                    STRERROR_R(errno, buf, sizeof(buf));
-                    fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, buf);
+                    fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, rct_strerror(errno));
                     return GeneralError;
                 }
             } else {

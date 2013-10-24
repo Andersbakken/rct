@@ -135,8 +135,8 @@ public:
         SocketOneShot = 0x4,
         SocketError = 0x8
     };
-    void registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func);
-    void updateSocket(int fd, unsigned int mode);
+    bool registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func);
+    bool updateSocket(int fd, unsigned int mode);
     void unregisterSocket(int fd);
     unsigned int processSocket(int fd, int timeout = -1);
 

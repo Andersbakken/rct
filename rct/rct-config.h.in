@@ -15,6 +15,7 @@
 #cmakedefine HAVE_NOSIGNAL
 #cmakedefine HAVE_FSEVENTS
 #cmakedefine HAVE_STATMTIM
+#cmakedefine HAVE_CLOEXEC
 #if !defined(HAVE_EPOLL) && !defined(HAVE_KQUEUE)
 #cmakedefine HAVE_SELECT
 #endif

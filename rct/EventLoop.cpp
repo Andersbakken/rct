@@ -382,7 +382,7 @@ inline bool EventLoop::sendTimers()
     return !fired.empty();
 }
 
-void EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func)
+bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func)
 {
     std::lock_guard<std::mutex> locker(mutex);
     sockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, unsigned int)> >(func));
@@ -427,17 +427,19 @@ void EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
             char buf[128];
             STRERROR_R(errno, buf, sizeof(buf));
             fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n", fd, mode, errno, buf);
+            return false;
         }
     }
+    return true;
 }
 
-void EventLoop::updateSocket(int fd, unsigned int mode)
+bool EventLoop::updateSocket(int fd, unsigned int mode)
 {
     std::lock_guard<std::mutex> locker(mutex);
     auto socket = sockets.find(fd);
     if (socket == sockets.end()) {
         fprintf(stderr, "Unable to find socket to update %d\n", fd);
-        return;
+        return false;
     }
 #if defined(HAVE_KQUEUE)
     const int oldMode = socket->second.first;
@@ -489,8 +491,10 @@ void EventLoop::updateSocket(int fd, unsigned int mode)
             char buf[128];
             STRERROR_R(errno, buf, sizeof(buf));
             fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n", fd, mode, errno, buf);
+            return false;
         }
     }
+    return true;
 }
 
 void EventLoop::unregisterSocket(int fd)

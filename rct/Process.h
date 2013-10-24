@@ -54,6 +54,7 @@ public:
 private:
     void finish(int returnCode);
     void processCallback(int fd, int mode);
+    void closeCallback(int fd, int mode);
 
     void closeStdOut();
     void closeStdErr();

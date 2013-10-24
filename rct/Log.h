@@ -315,6 +315,13 @@ inline Log operator<<(Log stream, const String &byteArray)
     return stream;
 }
 
+template <typename T>
+String &operator<<(String &str, const T &t)
+{
+    Log(&str) << t;
+    return str;
+}
+
 static inline Log error()
 {
     return Log(Error);

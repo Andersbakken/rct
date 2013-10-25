@@ -43,13 +43,19 @@ private:
     static int sProcessPipe[2];
 
     static std::mutex sProcessMutex;
-    static std::map<pid_t, Process*> sProcesses;
+
+    struct ProcessData
+    {
+        Process* proc;
+        EventLoop::WeakPtr loop;
+    };
+    static std::map<pid_t, ProcessData> sProcesses;
 };
 
 ProcessThread* ProcessThread::sProcessThread = 0;
 int ProcessThread::sProcessPipe[2];
 std::mutex ProcessThread::sProcessMutex;
-std::map<pid_t, Process*> ProcessThread::sProcesses;
+std::map<pid_t, ProcessThread::ProcessData> ProcessThread::sProcesses;
 
 class ProcessThreadKiller
 {
@@ -75,7 +81,7 @@ ProcessThread::ProcessThread()
 void ProcessThread::addPid(pid_t pid, Process* process)
 {
     std::lock_guard<std::mutex> lock(sProcessMutex);
-    sProcesses[pid] = process;
+    sProcesses[pid] = { process, EventLoop::eventLoop() };
 }
 
 void ProcessThread::removePid(pid_t pid)
@@ -97,8 +103,8 @@ void ProcessThread::run()
                 int ret;
                 pid_t p;
                 std::unique_lock<std::mutex> lock(sProcessMutex);
-                std::map<pid_t, Process*>::iterator proc = sProcesses.begin();
-                const std::map<pid_t, Process*>::const_iterator end = sProcesses.end();
+                std::map<pid_t, ProcessData>::iterator proc = sProcesses.begin();
+                const std::map<pid_t, ProcessData>::const_iterator end = sProcesses.end();
                 while (proc != end) {
                     //printf("testing pid %d\n", proc->first);
                     p = ::waitpid(proc->first, &ret, WNOHANG);
@@ -114,10 +120,15 @@ void ProcessThread::run()
                             ret = WEXITSTATUS(ret);
                         else
                             ret = -1;
-                        Process *process = proc->second;
+                        Process *process = proc->second.proc;
+                        EventLoop::SharedPtr loop = proc->second.loop.lock();
                         sProcesses.erase(proc++);
                         lock.unlock();
-                        process->finish(ret);
+                        if (loop) {
+                            loop->callLater([process, ret]() { process->finish(ret); });
+                        } else {
+                            process->finish(ret);
+                        }
                         lock.lock();
                     }
                 }

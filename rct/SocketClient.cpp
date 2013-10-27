@@ -22,7 +22,7 @@
 SocketClient::SocketClient(Mode mode)
     : socketState(Disconnected), socketMode(mode), wMode(Asynchronous), writeWait(false)
 {
-    int domain, type;
+    int domain = -1, type = -1;
     switch (mode) {
     case Udp:
         type = SOCK_DGRAM;
@@ -183,7 +183,7 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
     eintrwrap(e, ::connect(fd, resolver.addr, resolver.size));
     if (e == 0) { // we're done
         socketState = Connected;
-	
+
         signalConnected(tcpSocket);
     } else {
         if (errno != EINPROGRESS) {
@@ -215,7 +215,7 @@ bool SocketClient::connect(const std::string& path)
     eintrwrap(e, ::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un)));
     if (e == 0) { // we're done
         socketState = Connected;
-	
+
         signalConnected(unixSocket);
     } else {
         if (errno != EINPROGRESS) {

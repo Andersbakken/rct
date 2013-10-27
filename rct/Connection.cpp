@@ -38,15 +38,15 @@ void Connection::checkData()
         onDataAvailable(mSocketClient, std::forward<Buffer>(mSocketClient->takeBuffer()));
 }
 
-bool Connection::connectToServer(const String &name, int timeout)
+#warning need to respect timeout
+bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
-    // ### need to revisit this
-    // if (timeout != -1)
-    //     EventLoop::eventLoop()->registerTimer([=](int) {
-    //             if (mClient->state() == SocketClient::Connecting)
-    //                 mClient->close();
-    //         }, timeout, Timer::SingleShot);
-    return mSocketClient->connect(name);
+    return mSocketClient->connect(socketFile);
+}
+
+bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
+{
+    return mSocketClient->connect(host, port);
 }
 
 bool Connection::sendData(uint8_t id, const String &message)

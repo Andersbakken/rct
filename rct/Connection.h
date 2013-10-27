@@ -23,7 +23,8 @@ public:
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }
 
-    bool connectToServer(const String &name, int timeout);
+    bool connectUnix(const Path &socketFile, int timeout = 0);
+    bool connectTcp(const String &host, uint16_t port, int timeout = 0);
 
     int pendingWrite() const;
 

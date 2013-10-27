@@ -49,8 +49,8 @@ public:
     }
 
     // UDP Multicast
-    void addMembership(const std::string& ip);
-    void dropMembership(const std::string& ip);
+    bool addMembership(const std::string& ip);
+    bool dropMembership(const std::string& ip);
     void setMulticastLoop(bool loop);
 
     const Buffer& buffer() const { return readBuffer; }

@@ -251,22 +251,24 @@ bool SocketClient::bind(uint16_t port)
     return false;
 }
 
-void SocketClient::addMembership(const std::string& ip)
+bool SocketClient::addMembership(const std::string& ip)
 {
     struct ip_mreq mreq;
     if (inet_aton(ip.c_str(), &mreq.imr_multiaddr) == 0)
-        return;
-    mreq.imr_interface.s_addr = INADDR_ANY;
+        return false;
+    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     ::setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+    return true;
 }
 
-void SocketClient::dropMembership(const std::string& ip)
+bool SocketClient::dropMembership(const std::string& ip)
 {
     struct ip_mreq mreq;
     if (inet_aton(ip.c_str(), &mreq.imr_multiaddr) == 0)
-        return;
-    mreq.imr_interface.s_addr = INADDR_ANY;
+        return false;
+    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     ::setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
+    return true;
 }
 
 void SocketClient::setMulticastLoop(bool loop)

@@ -48,6 +48,11 @@ public:
         return writeTo(host, port, reinterpret_cast<const unsigned char*>(&data[0]), data.size());
     }
 
+    // UDP Multicast
+    void addMembership(const std::string& ip);
+    void dropMembership(const std::string& ip);
+    void setMulticastLoop(bool loop);
+
     const Buffer& buffer() const { return readBuffer; }
     Buffer&& takeBuffer() { return std::move(readBuffer); }
 

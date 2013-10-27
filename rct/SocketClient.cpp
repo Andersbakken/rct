@@ -251,6 +251,30 @@ bool SocketClient::bind(uint16_t port)
     return false;
 }
 
+void SocketClient::addMembership(const std::string& ip)
+{
+    struct ip_mreq mreq;
+    if (inet_aton(ip.c_str(), &mreq.imr_multiaddr) == 0)
+        return;
+    mreq.imr_interface.s_addr = INADDR_ANY;
+    ::setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+}
+
+void SocketClient::dropMembership(const std::string& ip)
+{
+    struct ip_mreq mreq;
+    if (inet_aton(ip.c_str(), &mreq.imr_multiaddr) == 0)
+        return;
+    mreq.imr_interface.s_addr = INADDR_ANY;
+    ::setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
+}
+
+void SocketClient::setMulticastLoop(bool loop)
+{
+    const unsigned char ena = loop ? 1 : 0;
+    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, 1);
+}
+
 bool SocketClient::writeTo(const std::string& host, uint16_t port, const unsigned char* data, unsigned int size)
 {
     SocketClient::SharedPtr socketPtr = shared_from_this();

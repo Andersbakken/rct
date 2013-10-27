@@ -142,7 +142,7 @@ SocketClient::SharedPtr SocketServer::nextConnection()
         return 0;
     const int fd = accepted.front();
     accepted.pop();
-    return SocketClient::SharedPtr(new SocketClient(fd));
+    return SocketClient::SharedPtr(new SocketClient(fd, SocketClient::Tcp));
 }
 
 void SocketServer::socketCallback(int /*fd*/, int mode)

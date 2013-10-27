@@ -63,8 +63,8 @@ SocketClient::SocketClient(Mode mode)
     }
 }
 
-SocketClient::SocketClient(int f)
-    : fd(f), socketState(Connected), writeWait(false)
+SocketClient::SocketClient(int f, Mode mode)
+    : fd(f), socketState(Connected), socketMode(mode), writeWait(false)
 {
     assert(fd >= 0);
 #ifdef HAVE_NOSIGPIPE

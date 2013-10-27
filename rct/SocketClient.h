@@ -15,7 +15,7 @@ public:
     enum Mode { Tcp, Udp, Unix };
 
     SocketClient(Mode mode);
-    SocketClient(int fd);
+    SocketClient(int fd, Mode mode);
     ~SocketClient();
 
     enum State { Disconnected, Connecting, Connected };

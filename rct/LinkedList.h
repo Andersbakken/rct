@@ -13,6 +13,8 @@ public:
     bool isEmpty() const { return std::list<T>::empty(); }
 
     int size() const { return std::list<T>::size(); }
+    void append(const T &t) { std::list<T>::push_back(t); }
+    void prepend(const T &t) { std::list<T>::push_front(t); }
 };
 
 #endif

@@ -479,10 +479,12 @@ void SocketClient::socketCallback(int f, int mode)
             } else if (e == 0) {
                 // socket closed
                 if (total) {
-                    if (!fromLen)
+                    if (!fromLen) {
                         signalReadyRead(socketPtr, std::move(readBuffer));
-                    else
+                    } else {
                         signalReadyReadFrom(socketPtr, addrToString(fromAddr), addrToPort(fromAddr), std::move(readBuffer));
+                        readBuffer.clear();
+                    }
                 }
                 signalDisconnected(socketPtr);
                 close();

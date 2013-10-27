@@ -107,21 +107,21 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
     // ### should be able to customize the backlog
     enum { Backlog = 128 };
     if (::listen(fd, Backlog) < 0) {
-      fprintf(stderr, "::listen() failed with errno: %s\n",
-	      strerror( errno ));
-      
+        fprintf(stderr, "::listen() failed with errno: %s\n",
+                strerror( errno ));
+
         serverError(this, ListenError);
         close();
         return false;
     }
 
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-      loop->registerSocket(fd, EventLoop::SocketRead,
-			     //|EventLoop::SocketWrite,
-			   std::bind(&SocketServer::socketCallback,
-				     this,
-				     std::placeholders::_1,
-				     std::placeholders::_2));
+        loop->registerSocket(fd, EventLoop::SocketRead,
+                             //|EventLoop::SocketWrite,
+                             std::bind(&SocketServer::socketCallback,
+                                       this,
+                                       std::placeholders::_1,
+                                       std::placeholders::_2));
         int e;
         eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
         if (e != -1) {
@@ -147,26 +147,26 @@ SocketClient::SharedPtr SocketServer::nextConnection()
 
 void SocketServer::socketCallback(int /*fd*/, int mode)
 {
-  sockaddr_in client;
-  socklen_t size = sizeof(sockaddr_in);
-  int e;
+    sockaddr_in client;
+    socklen_t size = sizeof(sockaddr_in);
+    int e;
 
-  if (! ( mode & EventLoop::SocketRead ) )
-    return;
-  
-  for (;;) {
-    eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
-    if (e == -1) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-	return;
-      }
-      serverError(this, AcceptError);
-      close();
-      return;
+    if (! ( mode & EventLoop::SocketRead ) )
+        return;
+
+    for (;;) {
+        eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
+        if (e == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return;
+            }
+            serverError(this, AcceptError);
+            close();
+            return;
+        }
+
+        //EventLoop::eventLoop()->unregisterSocket( fd );
+        accepted.push(e);
+        serverNewConnection(this);
     }
-
-    //EventLoop::eventLoop()->unregisterSocket( fd );
-    accepted.push(e);
-    serverNewConnection(this);
-  }
 }

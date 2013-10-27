@@ -9,7 +9,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -461,7 +460,7 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
                     const int lasted = Rct::timevalDiff(selecttime, &started);
                     if (lasted >= timeout) {
                         // timeout, we're done
-                        stop(); // attempt to kill
+                        kill(); // attempt to kill
                         return TimedOut;
                     }
                     *selecttime = started;
@@ -670,12 +669,12 @@ void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::funct
         signal(this);
 }
 
-void Process::stop()
+void Process::kill(int sig)
 {
     if (mPid == -1)
         return;
 
-    ::kill(mPid, SIGTERM);
+    ::kill(mPid, sig);
 }
 
 List<String> Process::environment()

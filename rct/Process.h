@@ -5,6 +5,7 @@
 #include <rct/Path.h>
 #include <rct/List.h>
 #include <rct/SignalSlot.h>
+#include <signal.h>
 #include <deque>
 #include <mutex>
 
@@ -42,7 +43,7 @@ public:
     bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return mPid == -1; }
     int returnCode() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn; }
 
-    void stop();
+    void kill(int signal = SIGTERM);
 
     Signal<std::function<void(Process*)> >& readyReadStdOut() { return mReadyReadStdOut; }
     Signal<std::function<void(Process*)> >& readyReadStdErr() { return mReadyReadStdErr; }

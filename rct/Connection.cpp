@@ -1,5 +1,4 @@
 #include "Connection.h"
-#include "SocketClient.h"
 #include "EventLoop.h"
 #include "Serializer.h"
 #include "Messages.h"
@@ -8,8 +7,8 @@
 
 #include "Connection.h"
 
-Connection::Connection()
-    : mSocketClient(new SocketClient(SocketClient::Unix)), mPendingRead(0), mPendingWrite(0), mSilent(false)
+Connection::Connection(SocketClient::Mode mode)
+    : mSocketClient(new SocketClient(mode)), mPendingRead(0), mPendingWrite(0), mSilent(false)
 {
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));

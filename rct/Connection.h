@@ -17,7 +17,7 @@ class Event;
 class Connection
 {
 public:
-    Connection();
+    Connection(SocketClient::Mode mode = SocketClient::Unix);
     Connection(const SocketClient::SharedPtr &client);
 
     void setSilent(bool on) { mSilent = on; }

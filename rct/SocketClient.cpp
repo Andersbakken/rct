@@ -296,7 +296,7 @@ void SocketClient::setMulticastLoop(bool loop)
     ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, 1);
 }
 
-bool SocketClient::peer(std::string& ip, uint16_t& port)
+bool SocketClient::peer(std::string* ip, uint16_t* port)
 {
     if (socketMode == Unix)
         return false;
@@ -304,10 +304,13 @@ bool SocketClient::peer(std::string& ip, uint16_t& port)
     socklen_t size = sizeof(addr);
     if (::getpeername(fd, reinterpret_cast<sockaddr*>(&addr), &size) == -1)
         return false;
-    ip.resize(46);
-    inet_ntop(AF_INET, &addr.sin_addr, &ip[0], ip.size());
-    ip.resize(strlen(ip.c_str()));
-    port = ntohs(addr.sin_port);
+    if (ip) {
+        ip->resize(46);
+        inet_ntop(AF_INET, &addr.sin_addr, &(*ip)[0], ip->size());
+        ip->resize(strlen(ip->c_str()));
+    }
+    if (port)
+        *port = ntohs(addr.sin_port);
     return true;
 }
 

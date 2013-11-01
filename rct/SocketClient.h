@@ -40,7 +40,7 @@ public:
     // TCP/UNIX
     bool write(const unsigned char* data, unsigned int num);
     bool write(const std::string& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
-    bool peer(std::string& ip, uint16_t& port);
+    bool peer(std::string* ip, uint16_t* port = 0);
 
     // UDP
     bool writeTo(const std::string& host, uint16_t port, const unsigned char* data, unsigned int num);

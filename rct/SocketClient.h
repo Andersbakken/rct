@@ -12,7 +12,12 @@ public:
     typedef std::shared_ptr<SocketClient> SharedPtr;
     typedef std::weak_ptr<SocketClient> WeakPtr;
 
-    enum Mode { Tcp, Udp, Unix };
+    enum Mode {
+        Tcp = 0x1,
+        Udp = 0x2,
+        Unix = 0x4,
+        IPv6 = 0x8
+    };
 
     SocketClient(Mode mode);
     SocketClient(int fd, Mode mode);

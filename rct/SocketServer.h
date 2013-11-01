@@ -18,8 +18,10 @@ public:
     SocketServer();
     ~SocketServer();
 
+    enum Mode { IPv4, IPv6 };
+
     void close();
-    bool listen(uint16_t port); // TCP
+    bool listen(uint16_t port, Mode mode = IPv4); // TCP
     bool listen(const std::string& path); // UNIX
 
     SocketClient::SharedPtr nextConnection();
@@ -35,6 +37,7 @@ private:
 
 private:
     int fd;
+    bool isIPv6;
     std::queue<int> accepted;
     Signal<std::function<void(SocketServer*)> > serverNewConnection;
     Signal<std::function<void(SocketServer*, Error)> > serverError;

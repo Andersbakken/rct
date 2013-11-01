@@ -23,17 +23,18 @@ SocketClient::SocketClient(Mode mode)
     : socketState(Disconnected), socketMode(mode), wMode(Asynchronous), writeWait(false)
 {
     int domain = -1, type = -1;
-    switch (mode) {
+    switch (mode & (Udp|Tcp|Unix)) {
     case Udp:
         type = SOCK_DGRAM;
-        domain = AF_INET;
+        domain = (mode & IPv6) ? AF_INET6 : AF_INET;
         break;
     case Tcp:
         type = SOCK_STREAM;
-        domain = AF_INET;
+        domain = (mode & IPv6) ? AF_INET6 : AF_INET;
         break;
     case Unix:
         type = SOCK_STREAM;
+        assert(!(mode & IPv6));
         domain = PF_UNIX;
         break;
     }
@@ -130,19 +131,37 @@ Resolver::Resolver(const std::string& host, uint16_t port, const SocketClient::S
 
 void Resolver::resolve(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket)
 {
-    // first, see if this parses as an IPv4 address
+    // first, see if this parses as an IP address
     {
-        struct in_addr inaddr;
-        if (inet_aton(host.c_str(), &inaddr) == 1) {
-            // yes, use that
-            sockaddr_in* newaddr = new sockaddr_in;
-            memset(newaddr, '\0', sizeof(sockaddr_in));
-            memcpy(&newaddr->sin_addr, &inaddr, sizeof(struct in_addr));
-            newaddr->sin_family = AF_INET;
-            newaddr->sin_port = htons(port);
-            addr = reinterpret_cast<sockaddr*>(newaddr);
-            size = sizeof(sockaddr_in);
-            return;
+        struct in_addr inaddr4;
+        struct in6_addr inaddr6;
+        struct { int af; void* dst; } addrs[2] = {
+            { AF_INET, &inaddr4 },
+            { AF_INET6, &inaddr6 }
+        };
+        for (int i = 0; i < 2; ++i) {
+            if (inet_pton(addrs[i].af, host.c_str(), addrs[i].dst) == 1) {
+                // yes, use that
+                if (addrs[i].af == AF_INET) {
+                    sockaddr_in* newaddr = new sockaddr_in;
+                    memset(newaddr, '\0', sizeof(sockaddr_in));
+                    memcpy(&newaddr->sin_addr, &inaddr4, sizeof(struct in_addr));
+                    newaddr->sin_family = AF_INET;
+                    newaddr->sin_port = htons(port);
+                    addr = reinterpret_cast<sockaddr*>(newaddr);
+                    size = sizeof(sockaddr_in);
+                } else {
+                    assert(addrs[i].af == AF_INET6);
+                    sockaddr_in6* newaddr = new sockaddr_in6;
+                    memset(newaddr, '\0', sizeof(sockaddr_in6));
+                    memcpy(&newaddr->sin6_addr, &inaddr6, sizeof(struct in6_addr));
+                    newaddr->sin6_family = AF_INET6;
+                    newaddr->sin6_port = htons(port);
+                    addr = reinterpret_cast<sockaddr*>(newaddr);
+                    size = sizeof(sockaddr_in6);
+                }
+                return;
+            }
         }
     }
 
@@ -187,8 +206,12 @@ Resolver::~Resolver()
 {
     if (res)
         freeaddrinfo(res); // free the linked list
-    else if (addr)
-        delete reinterpret_cast<sockaddr_in*>(addr);
+    else if (addr) {
+        if (size == sizeof(sockaddr_in))
+            delete reinterpret_cast<sockaddr_in*>(addr);
+        else
+            delete reinterpret_cast<sockaddr_in6*>(addr);
+    }
 }
 
 bool SocketClient::connect(const std::string& host, uint16_t port)
@@ -254,13 +277,27 @@ bool SocketClient::connect(const std::string& path)
 
 bool SocketClient::bind(uint16_t port)
 {
-    sockaddr_in addr;
-    memset(&addr, '\0', sizeof(sockaddr_in));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(port);
+    sockaddr_in addr4;
+    sockaddr_in6 addr6;
+    sockaddr* addr = 0;
+    int size = 0;
+    if (socketMode & IPv6) {
+        addr = reinterpret_cast<sockaddr*>(&addr6);
+        size = sizeof(sockaddr_in6);
+        memset(&addr6, '\0', size);
+        addr6.sin6_family = AF_INET6;
+        addr6.sin6_addr = in6addr_any;
+        addr6.sin6_port = htons(port);
+    } else {
+        addr = reinterpret_cast<sockaddr*>(&addr4);
+        size = sizeof(sockaddr_in);
+        memset(&addr4, '\0', size);
+        addr4.sin_family = AF_INET;
+        addr4.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr4.sin_port = htons(port);
+    }
 
-    const int e = ::bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_in));
+    const int e = ::bind(fd, addr, size);
     if (!e)
         return true;
 
@@ -298,19 +335,32 @@ void SocketClient::setMulticastLoop(bool loop)
 
 bool SocketClient::peer(std::string* ip, uint16_t* port)
 {
-    if (socketMode == Unix)
+    if (socketMode & Unix)
         return false;
-    sockaddr_in addr;
+    sockaddr_storage addr;
     socklen_t size = sizeof(addr);
     if (::getpeername(fd, reinterpret_cast<sockaddr*>(&addr), &size) == -1)
         return false;
-    if (ip) {
-        ip->resize(46);
-        inet_ntop(AF_INET, &addr.sin_addr, &(*ip)[0], ip->size());
-        ip->resize(strlen(ip->c_str()));
+    if (ip)
+        ip->resize(INET6_ADDRSTRLEN);
+    if (addr.ss_family == AF_INET6) {
+        sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&addr);
+        if (ip) {
+            inet_ntop(AF_INET6, &addr6->sin6_addr, &(*ip)[0], ip->size());
+            ip->resize(strlen(ip->c_str()));
+        }
+        if (port)
+            *port = ntohs(addr6->sin6_port);
+    } else {
+        assert(addr.ss_family == AF_INET);
+        sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&addr);
+        if (ip) {
+            inet_ntop(AF_INET, &addr4->sin_addr, &(*ip)[0], ip->size());
+            ip->resize(strlen(ip->c_str()));
+        }
+        if (port)
+            *port = ntohs(addr4->sin_port);
     }
-    if (port)
-        *port = ntohs(addr.sin_port);
     return true;
 }
 
@@ -449,14 +499,25 @@ bool SocketClient::write(const unsigned char* data, unsigned int size)
     return writeTo(std::string(), 0, data, size);
 }
 
-static std::string addrToString(const sockaddr_in& addr)
+static std::string addrToString(const sockaddr* addr, bool IPv6)
 {
-    return inet_ntoa(addr.sin_addr);
+    std::string ip(INET6_ADDRSTRLEN, '\0');
+    if (IPv6) {
+        const sockaddr_in6* addr6 = reinterpret_cast<const sockaddr_in6*>(addr);
+        inet_ntop(AF_INET6, &addr6->sin6_addr, &ip[0], ip.size());
+    } else {
+        const sockaddr_in* addr4 = reinterpret_cast<const sockaddr_in*>(addr);
+        inet_ntop(AF_INET, &addr4->sin_addr, &ip[0], ip.size());
+    }
+    ip.resize(strlen(ip.c_str()));
+    return ip;
 }
 
-static uint16_t addrToPort(const sockaddr_in& addr)
+static uint16_t addrToPort(const sockaddr* addr, bool IPv6)
 {
-    return ntohs(addr.sin_port);
+    if (IPv6)
+        return ntohs(reinterpret_cast<const sockaddr_in6*>(addr)->sin6_port);
+    return ntohs(reinterpret_cast<const sockaddr_in*>(addr)->sin_port);
 }
 
 void SocketClient::socketCallback(int f, int mode)
@@ -480,8 +541,11 @@ void SocketClient::socketCallback(int f, int mode)
         }
     }
 
-    sockaddr_in fromAddr;
+    sockaddr_in fromAddr4;
+    sockaddr_in6 fromAddr6;
+    sockaddr* fromAddr = 0;
     socklen_t fromLen = 0;
+    const bool isIPv6 = socketMode & IPv6;
 
     if (mode & EventLoop::SocketRead) {
 
@@ -498,9 +562,16 @@ void SocketClient::socketCallback(int f, int mode)
                 rem = readBuffer.capacity() - readBuffer.size();
                 // printf("Rem is now %d\n", rem);
             }
-            if (socketMode == Udp) {
-                fromLen = sizeof(fromAddr);
-                eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, reinterpret_cast<sockaddr*>(&fromAddr), &fromLen));
+            if (socketMode & Udp) {
+                if (isIPv6) {
+                    fromLen = sizeof(fromAddr6);
+                    fromAddr = reinterpret_cast<sockaddr*>(&fromAddr6);
+                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, fromAddr, &fromLen));
+                } else {
+                    fromLen = sizeof(fromAddr4);
+                    fromAddr = reinterpret_cast<sockaddr*>(&fromAddr4);
+                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, fromAddr, &fromLen));
+                }
             } else {
                 eintrwrap(e, ::read(fd, readBuffer.end(), rem));
             }
@@ -519,7 +590,7 @@ void SocketClient::socketCallback(int f, int mode)
                     if (!fromLen) {
                         signalReadyRead(socketPtr, std::move(readBuffer));
                     } else {
-                        signalReadyReadFrom(socketPtr, addrToString(fromAddr), addrToPort(fromAddr), std::move(readBuffer));
+                        signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
                         readBuffer.clear();
                     }
                 }
@@ -535,7 +606,7 @@ void SocketClient::socketCallback(int f, int mode)
         if (!fromLen)
             signalReadyRead(socketPtr, std::move(readBuffer));
         else
-            signalReadyReadFrom(socketPtr, addrToString(fromAddr), addrToPort(fromAddr), std::move(readBuffer));
+            signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
 
         if (writeWait) {
             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {

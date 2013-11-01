@@ -19,7 +19,7 @@
     } while (VAR == -1 && errno == EINTR)
 
 SocketServer::SocketServer()
-    : fd(-1)
+    : fd(-1), isIPv6(false)
 {}
 
 SocketServer::~SocketServer()
@@ -37,11 +37,13 @@ void SocketServer::close()
     fd = -1;
 }
 
-bool SocketServer::listen(uint16_t port)
+bool SocketServer::listen(uint16_t port, Mode mode)
 {
     close();
 
-    fd = ::socket(AF_INET, SOCK_STREAM, 0);
+    isIPv6 = (mode & IPv6);
+
+    fd = ::socket(isIPv6 ? AF_INET6 : AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
         // bad
         serverError(this, InitializeError);
@@ -67,14 +69,28 @@ bool SocketServer::listen(uint16_t port)
         return false;
     }
 
-    // ### support IPv6 and specific interfaces
-    sockaddr_in addr;
-    memset(&addr, '\0', sizeof(sockaddr_in));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
+    // ### support specific interfaces
+    sockaddr_in addr4;
+    sockaddr_in6 addr6;
+    sockaddr* addr = 0;
+    size_t size = 0;
+    if (isIPv6) {
+        addr = reinterpret_cast<sockaddr*>(&addr6);
+        size = sizeof(sockaddr_in6);
+        memset(&addr6, '\0', sizeof(sockaddr_in6));
+        addr6.sin6_family = AF_INET6;
+        addr6.sin6_addr = in6addr_any;
+        addr6.sin6_port = htons(port);
+    } else {
+        addr = reinterpret_cast<sockaddr*>(&addr4);
+        size = sizeof(sockaddr_in);
+        memset(&addr4, '\0', sizeof(sockaddr_in));
+        addr4.sin_family = AF_INET;
+        addr4.sin_addr.s_addr = INADDR_ANY;
+        addr4.sin_port = htons(port);
+    }
 
-    return commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+    return commonListen(addr, size);
 }
 
 bool SocketServer::listen(const std::string& path)
@@ -147,15 +163,24 @@ SocketClient::SharedPtr SocketServer::nextConnection()
 
 void SocketServer::socketCallback(int /*fd*/, int mode)
 {
-    sockaddr_in client;
-    socklen_t size = sizeof(sockaddr_in);
+    sockaddr_in client4;
+    sockaddr_in6 client6;
+    sockaddr* client = 0;
+    socklen_t size = 0;
+    if (isIPv6) {
+        size = sizeof(client6);
+        client = reinterpret_cast<sockaddr*>(&client6);
+    } else {
+        size = sizeof(client4);
+        client = reinterpret_cast<sockaddr*>(&client4);
+    }
     int e;
 
     if (! ( mode & EventLoop::SocketRead ) )
         return;
 
     for (;;) {
-        eintrwrap(e, ::accept(fd, reinterpret_cast<sockaddr*>(&client), &size));
+        eintrwrap(e, ::accept(fd, client, &size));
         if (e == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 return;

@@ -101,7 +101,7 @@ public:
 
     T value(int idx, const T &defaultValue = T()) const
     {
-        return idx < size() ? Base::at(idx) : defaultValue;
+        return static_cast<unsigned int>(idx) < Base::size() ? Base::at(idx) : defaultValue;
     }
 
     void chop(int count)

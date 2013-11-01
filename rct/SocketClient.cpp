@@ -130,6 +130,23 @@ Resolver::Resolver(const std::string& host, uint16_t port, const SocketClient::S
 
 void Resolver::resolve(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket)
 {
+    // first, see if this parses as an IPv4 address
+    {
+        struct in_addr inaddr;
+        if (inet_aton(host.c_str(), &inaddr) == 1) {
+            // yes, use that
+            sockaddr_in* newaddr = new sockaddr_in;
+            memset(newaddr, '\0', sizeof(sockaddr_in));
+            memcpy(&newaddr->sin_addr, &inaddr, sizeof(struct in_addr));
+            newaddr->sin_family = AF_INET;
+            newaddr->sin_port = htons(port);
+            addr = reinterpret_cast<sockaddr*>(newaddr);
+            size = sizeof(sockaddr_in);
+            return;
+        }
+    }
+
+    // not an ip address, try to resolve it
     addrinfo hints, *p;
 
     memset(&hints, 0, sizeof hints);
@@ -170,6 +187,8 @@ Resolver::~Resolver()
 {
     if (res)
         freeaddrinfo(res); // free the linked list
+    else if (addr)
+        delete reinterpret_cast<sockaddr_in*>(addr);
 }
 
 bool SocketClient::connect(const std::string& host, uint16_t port)

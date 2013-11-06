@@ -44,11 +44,11 @@ public:
     {
     }
     SignalEvent(Object& o, MoveType, Args&&... a)
-        : obj(o), args(std::move(a...))
+        : obj(o), args(std::move(a) ...)
     {
     }
     SignalEvent(Object&& o, MoveType, Args&&... a)
-        : obj(o), args(std::move(a...))
+        : obj(o), args(std::move(a) ...)
     {
     }
 

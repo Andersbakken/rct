@@ -7,14 +7,9 @@
 
 #include "Connection.h"
 
-Connection::Connection(SocketClient::Mode mode)
-    : mSocketClient(new SocketClient(mode)), mPendingRead(0), mPendingWrite(0), mSilent(false)
+Connection::Connection()
+    : mPendingRead(0), mPendingWrite(0), mSilent(false)
 {
-    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
-    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
@@ -40,12 +35,32 @@ void Connection::checkData()
 #warning need to respect timeout
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
-    return mSocketClient->connect(socketFile);
+    mSocketClient.reset(new SocketClient(SocketClient::Unix));
+    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
+    if (!mSocketClient->connect(socketFile)) {
+        mSocketClient.reset();
+        return false;
+    }
+    return true;
 }
 
 bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
-    return mSocketClient->connect(host, port);
+    mSocketClient.reset(new SocketClient(SocketClient::Tcp));
+    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
+    if (!mSocketClient->connect(host, port)) {
+        mSocketClient.reset();
+        return false;
+    }
+    return true;
 }
 
 bool Connection::sendData(uint8_t id, const String &message)

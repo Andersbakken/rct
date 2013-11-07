@@ -42,7 +42,6 @@ SocketClient::SocketClient(Mode mode)
     fd = ::socket(domain, type, 0);
     if (fd < 0) {
         // bad
-        signalError(shared_from_this(), InitializeError);
         return;
     }
 #ifdef HAVE_NOSIGPIPE
@@ -57,7 +56,6 @@ SocketClient::SocketClient(Mode mode)
         if (e != -1) {
             eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
         } else {
-            signalError(shared_from_this(), InitializeError);
             close();
             return;
         }
@@ -168,7 +166,7 @@ void Resolver::resolve(const std::string& host, uint16_t port, const SocketClien
     // not an ip address, try to resolve it
     addrinfo hints, *p;
 
-    memset(&hints, 0, sizeof hints);
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
     hints.ai_socktype = SOCK_STREAM;
 

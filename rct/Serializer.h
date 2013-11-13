@@ -224,6 +224,17 @@ Serializer &operator<<(Serializer &s, const Map<Key, Value> &map)
 }
 
 template <typename Key, typename Value>
+Serializer &operator<<(Serializer &s, const std::multimap<Key, Value> &map)
+{
+    const uint32_t size = map.size();
+    s << size;
+    for (typename std::multimap<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
+        s << it->first << it->second;
+    }
+    return s;
+}
+
+template <typename Key, typename Value>
 Serializer &operator<<(Serializer &s, const Hash<Key, Value> &map)
 {
     const uint32_t size = map.size();
@@ -265,6 +276,22 @@ Deserializer &operator>>(Deserializer &s, Map<Key, Value> &map)
         for (uint32_t i=0; i<size; ++i) {
             s >> key >> value;
             map[key] = value;
+        }
+    }
+    return s;
+}
+
+template <typename Key, typename Value>
+Deserializer &operator>>(Deserializer &s, std::multimap<Key, Value> &map)
+{
+    uint32_t size;
+    s >> size;
+    map.clear();
+    if (size) {
+        std::pair<Key, Value> pair;
+        for (uint32_t i=0; i<size; ++i) {
+            s >> pair.first >> pair.second;
+            map.insert(pair);
         }
     }
     return s;

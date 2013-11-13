@@ -114,6 +114,16 @@ public:
         return std::unordered_map<Key, Value>::size();
     }
 
+    typename std::unordered_map<Key, Value>::const_iterator constBegin() const
+    {
+        return std::unordered_map<Key, Value>::begin();
+    }
+
+    typename std::unordered_map<Key, Value>::const_iterator constEnd() const
+    {
+        return std::unordered_map<Key, Value>::begin();
+    }
+
     List<Key> keys() const
     {
         List<Key> keys;

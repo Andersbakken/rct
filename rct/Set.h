@@ -159,6 +159,16 @@ public:
     {
         return std::set<T>::size();
     }
+
+    typename std::set<T>::const_iterator constBegin() const
+    {
+        return std::set<T>::begin();
+    }
+
+    typename std::set<T>::const_iterator constEnd() const
+    {
+        return std::set<T>::begin();
+    }
 };
 
 template <typename T>

@@ -194,6 +194,59 @@ public:
         return ret;
     }
 
+    template <typename K>
+    int compare(const List<K> &other) const
+    {
+        const int me = size();
+        const int him = other.size();
+        if (me < him) {
+            return -1;
+        } else if (me > him) {
+            return 1;
+        }
+        typename List<K>::const_iterator bit = other.begin();
+        for (typename List<T>::const_iterator it = Base::begin(); it != Base::end(); ++it) {
+            const int cmp = it->compare(*bit);
+            if (cmp)
+                return cmp;
+            ++bit;
+        }
+        return 0;
+    }
+
+    typename std::vector<T>::const_iterator constBegin() const
+    {
+        return std::vector<T>::begin();
+    }
+
+    typename std::vector<T>::const_iterator constEnd() const
+    {
+        return std::vector<T>::begin();
+    }
+
+    template <typename K>
+    bool operator==(const List<K> &other) const
+    {
+        return !compare(other);
+    }
+
+    template <typename K>
+    bool operator!=(const List<K> &other) const
+    {
+        return compare(other);
+    }
+
+    template <typename K>
+    bool operator<(const List<K> &other) const
+    {
+        return compare(other) < 0;
+    }
+
+    template <typename K>
+    bool operator>(const List<K> &other) const
+    {
+        return compare(other) > 0;
+    }
 
     List<T> &operator+=(const T &t)
     {

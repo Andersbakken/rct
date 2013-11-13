@@ -114,6 +114,16 @@ public:
         return std::map<Key, Value>::size();
     }
 
+    typename std::map<Key, Value>::const_iterator constBegin() const
+    {
+        return std::map<Key, Value>::begin();
+    }
+
+    typename std::map<Key, Value>::const_iterator constEnd() const
+    {
+        return std::map<Key, Value>::begin();
+    }
+
     List<Key> keys() const
     {
         List<Key> keys;

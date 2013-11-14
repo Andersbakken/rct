@@ -5,6 +5,7 @@
 #include <errno.h>
 #include "StopWatch.h"
 #include <stdarg.h>
+#include <syslog.h>
 
 static unsigned sFlags = 0;
 static StopWatch sStart;
@@ -45,6 +46,23 @@ public:
     }
 };
 
+class SyslogOutput : public LogOutput
+{
+public:
+    SyslogOutput(const char* ident, int lvl)
+        : LogOutput(lvl)
+    {
+        ::openlog(ident, LOG_CONS | LOG_NOWAIT, LOG_USER);
+    }
+    virtual ~SyslogOutput()
+    {
+        ::closelog();
+    }
+    virtual void log(const char *msg, int)
+    {
+        ::syslog(LOG_NOTICE, "%s", msg);
+    }
+};
 
 void restartTime()
 {
@@ -186,12 +204,15 @@ int logLevel()
     return sLevel;
 }
 
-bool initLogging(int level, const Path &file, unsigned flags)
+bool initLogging(const char* ident, int mode, int level, const Path &file, unsigned flags)
 {
     sStart.start();
     sFlags = flags;
     sLevel = level;
-    new StderrOutput(level);
+    if (mode & LogStderr)
+        new StderrOutput(level);
+    if (mode & LogSyslog)
+        new SyslogOutput(ident, level);
     if (!file.isEmpty()) {
         if (!(flags & (Log::Append|Log::DontRotate)) && file.exists()) {
             int i = 0;

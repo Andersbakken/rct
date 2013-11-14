@@ -55,7 +55,8 @@ void error(const char *format, ...);
 void logDirect(int level, const String &out);
 
 bool testLog(int level);
-bool initLogging(int logLevel = Error, const Path &logFile = Path(), unsigned flags = 0);
+enum { LogStderr = 0x1, LogSyslog = 0x2 };
+bool initLogging(const char* ident, int mode = LogStderr, int logLevel = Error, const Path &logFile = Path(), unsigned flags = 0);
 void cleanupLogging();
 int logLevel();
 void restartTime();

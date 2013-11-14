@@ -121,7 +121,7 @@ public:
 
     typename std::unordered_map<Key, Value>::const_iterator constEnd() const
     {
-        return std::unordered_map<Key, Value>::begin();
+        return std::unordered_map<Key, Value>::end();
     }
 
     List<Key> keys() const

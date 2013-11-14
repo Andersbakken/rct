@@ -221,7 +221,7 @@ public:
 
     typename std::vector<T>::const_iterator constEnd() const
     {
-        return std::vector<T>::begin();
+        return std::vector<T>::end();
     }
 
     template <typename K>

@@ -167,7 +167,7 @@ public:
 
     typename std::set<T>::const_iterator constEnd() const
     {
-        return std::set<T>::begin();
+        return std::set<T>::end();
     }
 };
 

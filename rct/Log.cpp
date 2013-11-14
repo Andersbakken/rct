@@ -52,7 +52,7 @@ public:
     SyslogOutput(const char* ident, int lvl)
         : LogOutput(lvl)
     {
-        ::openlog(ident, LOG_CONS | LOG_NOWAIT, LOG_USER);
+        ::openlog(ident, LOG_CONS | LOG_NOWAIT | LOG_PID, LOG_USER);
     }
     virtual ~SyslogOutput()
     {

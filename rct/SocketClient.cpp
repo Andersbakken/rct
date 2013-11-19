@@ -328,7 +328,12 @@ bool SocketClient::dropMembership(const std::string& ip)
 void SocketClient::setMulticastLoop(bool loop)
 {
     const unsigned char ena = loop ? 1 : 0;
-    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, 1);
+    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, sizeof(ena));
+}
+
+void SocketClient::setMulticastTTL(unsigned char ttl)
+{
+    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 }
 
 bool SocketClient::peer(std::string* ip, uint16_t* port)

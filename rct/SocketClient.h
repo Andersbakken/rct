@@ -58,6 +58,7 @@ public:
     bool addMembership(const std::string& ip);
     bool dropMembership(const std::string& ip);
     void setMulticastLoop(bool loop);
+    void setMulticastTTL(unsigned char ttl);
 
     const Buffer& buffer() const { return readBuffer; }
     Buffer&& takeBuffer() { return std::move(readBuffer); }

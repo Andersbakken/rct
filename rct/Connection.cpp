@@ -35,7 +35,7 @@ void Connection::checkData()
 #warning need to respect timeout
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
-    mSocketClient.reset(new SocketClient(SocketClient::Unix));
+    mSocketClient.reset(new SocketClient);
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
@@ -50,7 +50,7 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
 
 bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
-    mSocketClient.reset(new SocketClient(SocketClient::Tcp));
+    mSocketClient.reset(new SocketClient);
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
@@ -136,7 +136,7 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
     return num;
 }
 
-void Connection::onDataAvailable(SocketClient::SharedPtr&, Buffer&& buffer)
+void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer)
 {
     while (true) {
         if (!mSocketClient->buffer().isEmpty())

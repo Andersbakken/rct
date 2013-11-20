@@ -19,51 +19,13 @@
         VAR = BLOCK;                            \
     } while (VAR == -1 && errno == EINTR)
 
-SocketClient::SocketClient(Mode mode)
-    : socketState(Disconnected), socketMode(mode), wMode(Asynchronous), writeWait(false)
+SocketClient::SocketClient()
+    : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None), wMode(Asynchronous), writeWait(false)
 {
-    int domain = -1, type = -1;
-    switch (mode & (Udp|Tcp|Unix)) {
-    case Udp:
-        type = SOCK_DGRAM;
-        domain = (mode & IPv6) ? AF_INET6 : AF_INET;
-        break;
-    case Tcp:
-        type = SOCK_STREAM;
-        domain = (mode & IPv6) ? AF_INET6 : AF_INET;
-        break;
-    case Unix:
-        type = SOCK_STREAM;
-        assert(!(mode & IPv6));
-        domain = PF_UNIX;
-        break;
-    }
-
-    fd = ::socket(domain, type, 0);
-    if (fd < 0) {
-        // bad
-        return;
-    }
-#ifdef HAVE_NOSIGPIPE
-    int flags = 1;
-    ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
-#endif
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-        loop->registerSocket(fd, EventLoop::SocketRead,
-                             std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
-        int e;
-        eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
-        if (e != -1) {
-            eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
-        } else {
-            close();
-            return;
-        }
-    }
 }
 
-SocketClient::SocketClient(int f, Mode mode)
-    : fd(f), socketState(Connected), socketMode(mode), writeWait(false)
+SocketClient::SocketClient(int f, unsigned int mode)
+    : fd(f), socketPort(0), socketState(Connected), socketMode(mode), writeWait(false)
 {
     assert(fd >= 0);
 #ifdef HAVE_NOSIGPIPE
@@ -99,6 +61,8 @@ void SocketClient::close()
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
         loop->unregisterSocket(fd);
     ::close(fd);
+    socketPort = 0;
+    address.clear();
     fd = -1;
 }
 
@@ -106,10 +70,10 @@ class Resolver
 {
 public:
     Resolver();
-    Resolver(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket);
+    Resolver(const String& host, uint16_t port, const SocketClient::SharedPtr& socket);
     ~Resolver();
 
-    void resolve(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket);
+    void resolve(const String& host, uint16_t port, const SocketClient::SharedPtr& socket);
 
     addrinfo* res;
     sockaddr* addr;
@@ -121,13 +85,13 @@ Resolver::Resolver()
 {
 }
 
-Resolver::Resolver(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket)
+Resolver::Resolver(const String& host, uint16_t port, const SocketClient::SharedPtr& socket)
     : res(0), addr(0), size(0)
 {
     resolve(host, port, socket);
 }
 
-void Resolver::resolve(const std::string& host, uint16_t port, const SocketClient::SharedPtr& socket)
+void Resolver::resolve(const String& host, uint16_t port, const SocketClient::SharedPtr& socket)
 {
     // first, see if this parses as an IP address
     {
@@ -138,7 +102,7 @@ void Resolver::resolve(const std::string& host, uint16_t port, const SocketClien
             { AF_INET6, &inaddr6 }
         };
         for (int i = 0; i < 2; ++i) {
-            if (inet_pton(addrs[i].af, host.c_str(), addrs[i].dst) == 1) {
+            if (inet_pton(addrs[i].af, host.constData(), addrs[i].dst) == 1) {
                 // yes, use that
                 if (addrs[i].af == AF_INET) {
                     sockaddr_in* newaddr = new sockaddr_in;
@@ -170,7 +134,7 @@ void Resolver::resolve(const std::string& host, uint16_t port, const SocketClien
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(host.c_str(), NULL, &hints, &res) != 0) {
+    if (getaddrinfo(host.constData(), NULL, &hints, &res) != 0) {
         // bad
         socket->signalError(socket, SocketClient::DnsError);
         socket->close();
@@ -212,15 +176,24 @@ Resolver::~Resolver()
     }
 }
 
-bool SocketClient::connect(const std::string& host, uint16_t port)
+bool SocketClient::connect(const String& host, uint16_t port)
 {
     SocketClient::SharedPtr tcpSocket = shared_from_this();
     Resolver resolver(host, port, tcpSocket);
     if (!resolver.addr)
         return false;
 
+    unsigned int mode = Tcp;
+    if (resolver.size == sizeof(sockaddr_in6))
+        mode |= IPv6;
+
+    if (!init(mode))
+        return false;
+
     int e;
     eintrwrap(e, ::connect(fd, resolver.addr, resolver.size));
+    socketPort = port;
+    address = host;
     if (e == 0) { // we're done
         socketState = Connected;
 
@@ -242,17 +215,21 @@ bool SocketClient::connect(const std::string& host, uint16_t port)
     return true;
 }
 
-bool SocketClient::connect(const std::string& path)
+bool SocketClient::connect(const String& path)
 {
+    if (!init(Unix))
+        return false;
+
     sockaddr_un addr;
     memset(&addr, '\0', sizeof(sockaddr_un));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path));
+    strncpy(addr.sun_path, path.constData(), sizeof(addr.sun_path));
 
     SocketClient::SharedPtr unixSocket = shared_from_this();
 
     int e;
     eintrwrap(e, ::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un)));
+    address = path;
     if (e == 0) { // we're done
         socketState = Connected;
 
@@ -275,6 +252,8 @@ bool SocketClient::connect(const std::string& path)
 
 bool SocketClient::bind(uint16_t port)
 {
+    if (!init(Udp))
+        return false;
     sockaddr_in addr4;
     sockaddr_in6 addr6;
     sockaddr* addr = 0;
@@ -296,8 +275,10 @@ bool SocketClient::bind(uint16_t port)
     }
 
     const int e = ::bind(fd, addr, size);
-    if (!e)
+    if (!e) {
+        socketPort = port;
         return true;
+    }
 
     SocketClient::SharedPtr udpSocket = shared_from_this();
     signalError(udpSocket, BindError);
@@ -305,20 +286,20 @@ bool SocketClient::bind(uint16_t port)
     return false;
 }
 
-bool SocketClient::addMembership(const std::string& ip)
+bool SocketClient::addMembership(const String& ip)
 {
     struct ip_mreq mreq;
-    if (inet_aton(ip.c_str(), &mreq.imr_multiaddr) == 0)
+    if (inet_aton(ip.constData(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     ::setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
     return true;
 }
 
-bool SocketClient::dropMembership(const std::string& ip)
+bool SocketClient::dropMembership(const String& ip)
 {
     struct ip_mreq mreq;
-    if (inet_aton(ip.c_str(), &mreq.imr_multiaddr) == 0)
+    if (inet_aton(ip.constData(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     ::setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
@@ -336,7 +317,7 @@ void SocketClient::setMulticastTTL(unsigned char ttl)
     ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 }
 
-bool SocketClient::peer(std::string* ip, uint16_t* port)
+bool SocketClient::peer(String* ip, uint16_t* port)
 {
     if (socketMode & Unix)
         return false;
@@ -350,7 +331,7 @@ bool SocketClient::peer(std::string* ip, uint16_t* port)
         sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&addr);
         if (ip) {
             inet_ntop(AF_INET6, &addr6->sin6_addr, &(*ip)[0], ip->size());
-            ip->resize(strlen(ip->c_str()));
+            ip->resize(strlen(ip->constData()));
         }
         if (port)
             *port = ntohs(addr6->sin6_port);
@@ -359,7 +340,7 @@ bool SocketClient::peer(std::string* ip, uint16_t* port)
         sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&addr);
         if (ip) {
             inet_ntop(AF_INET, &addr4->sin_addr, &(*ip)[0], ip->size());
-            ip->resize(strlen(ip->c_str()));
+            ip->resize(strlen(ip->constData()));
         }
         if (port)
             *port = ntohs(addr4->sin_port);
@@ -367,7 +348,7 @@ bool SocketClient::peer(std::string* ip, uint16_t* port)
     return true;
 }
 
-bool SocketClient::writeTo(const std::string& host, uint16_t port, const unsigned char* data, unsigned int size)
+bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int size)
 {
     SocketClient::SharedPtr socketPtr = shared_from_this();
 
@@ -499,12 +480,12 @@ bool SocketClient::writeTo(const std::string& host, uint16_t port, const unsigne
 
 bool SocketClient::write(const unsigned char* data, unsigned int size)
 {
-    return writeTo(std::string(), 0, data, size);
+    return writeTo(String(), 0, data, size);
 }
 
-static std::string addrToString(const sockaddr* addr, bool IPv6)
+static String addrToString(const sockaddr* addr, bool IPv6)
 {
-    std::string ip(INET6_ADDRSTRLEN, '\0');
+    String ip(INET6_ADDRSTRLEN, '\0');
     if (IPv6) {
         const sockaddr_in6* addr6 = reinterpret_cast<const sockaddr_in6*>(addr);
         inet_ntop(AF_INET6, &addr6->sin6_addr, &ip[0], ip.size());
@@ -512,7 +493,7 @@ static std::string addrToString(const sockaddr* addr, bool IPv6)
         const sockaddr_in* addr4 = reinterpret_cast<const sockaddr_in*>(addr);
         inet_ntop(AF_INET, &addr4->sin_addr, &ip[0], ip.size());
     }
-    ip.resize(strlen(ip.c_str()));
+    ip.resize(strlen(ip.constData()));
     return ip;
 }
 
@@ -641,4 +622,46 @@ void SocketClient::socketCallback(int f, int mode)
         }
         write(0, 0);
     }
+}
+bool SocketClient::init(unsigned int mode)
+{
+    int domain = -1, type = -1;
+    switch (mode & (Udp|Tcp|Unix)) {
+    case Udp:
+        type = SOCK_DGRAM;
+        domain = (mode & IPv6) ? AF_INET6 : AF_INET;
+        break;
+    case Tcp:
+        type = SOCK_STREAM;
+        domain = (mode & IPv6) ? AF_INET6 : AF_INET;
+        break;
+    case Unix:
+        type = SOCK_STREAM;
+        assert(!(mode & IPv6));
+        domain = PF_UNIX;
+        break;
+    }
+
+    fd = ::socket(domain, type, 0);
+    if (fd < 0) {
+        // bad
+        return false;
+    }
+#ifdef HAVE_NOSIGPIPE
+    int flags = 1;
+    ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
+#endif
+    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        loop->registerSocket(fd, EventLoop::SocketRead,
+                             std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+        int e;
+        eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
+        if (e != -1) {
+            eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
+        } else {
+            close();
+            return false;
+        }
+    }
+    return true;
 }

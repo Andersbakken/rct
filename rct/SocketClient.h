@@ -51,7 +51,23 @@ public:
     // TCP/UNIX
     bool write(const unsigned char* data, unsigned int num);
     bool write(const String& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
-    bool peer(String* ip, uint16_t* port = 0);
+    bool peer(String* ip, uint16_t* port = 0) const;
+    String peer() const
+    {
+        String ip;
+        if (peer(&ip))
+            return ip;
+        return String();
+    }
+    String peerName() const
+    {
+        String ip;
+        uint16_t port;
+        if (peer(&ip, &port)) {
+            return String::format<64>("%s:%h", ip.constData(), port);
+        }
+        return String();
+    }
 
     // UDP
     bool writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int num);

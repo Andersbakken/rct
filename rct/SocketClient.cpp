@@ -317,7 +317,7 @@ void SocketClient::setMulticastTTL(unsigned char ttl)
     ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 }
 
-bool SocketClient::peer(String* ip, uint16_t* port)
+bool SocketClient::peer(String* ip, uint16_t* port) const
 {
     if (socketMode & Unix)
         return false;

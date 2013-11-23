@@ -64,7 +64,7 @@ public:
         String ip;
         uint16_t port;
         if (peer(&ip, &port)) {
-            return String::format<64>("%s:%h", ip.constData(), port);
+            return String::format<64>("%s:%u", ip.constData(), port);
         }
         return String();
     }

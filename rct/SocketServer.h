@@ -22,7 +22,7 @@ public:
 
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
-    bool listen(const std::string& path); // UNIX
+    bool listen(const String &path); // UNIX
 
     SocketClient::SharedPtr nextConnection();
 

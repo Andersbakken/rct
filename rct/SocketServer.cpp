@@ -93,7 +93,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
     return commonListen(addr, size);
 }
 
-bool SocketServer::listen(const std::string& path)
+bool SocketServer::listen(const String& path)
 {
     close();
 
@@ -107,7 +107,7 @@ bool SocketServer::listen(const std::string& path)
     sockaddr_un addr;
     memset(&addr, '\0', sizeof(sockaddr_un));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path));
+    strncpy(addr.sun_path, path.constData(), sizeof(addr.sun_path));
 
     return commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un));
 }

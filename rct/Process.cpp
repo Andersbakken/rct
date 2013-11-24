@@ -642,7 +642,7 @@ void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::funct
             break;
         } else {
             //printf("Process::handleOutput in loop %d\n", fd);
-            //printf("data: '%s'\n", std::string(buf, r).c_str());
+            //printf("data: '%s'\n", String(buf, r).constData());
             int sz = buffer.size();
             if (sz + r > MaxSize) {
                 if (sz + r - index > MaxSize) {

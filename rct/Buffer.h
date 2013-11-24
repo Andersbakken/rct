@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include <string>
+#include <rct/String.h>
 
 class Buffer
 {
@@ -84,7 +84,7 @@ public:
     unsigned char* end() { return bufferData + bufferSize; }
     const unsigned char* data() const { return bufferData; }
 
-    bool load(const std::string& filename);
+    bool load(const String& filename);
 
 private:
     unsigned char* bufferData;

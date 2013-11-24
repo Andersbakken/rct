@@ -1,11 +1,11 @@
 #include "Buffer.h"
 #include <stdio.h>
 
-bool Buffer::load(const std::string& filename)
+bool Buffer::load(const String& filename)
 {
     clear();
 
-    FILE* f = fopen(filename.c_str(), "r");
+    FILE* f = fopen(filename.constData(), "r");
     if (!f)
         return false;
 

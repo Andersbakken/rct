@@ -10,7 +10,8 @@ public:
     Thread();
     virtual ~Thread();
 
-    void start();
+    enum Priority { Idle, Normal };
+    void start(Priority priority = Normal);
     bool join();
 
     void setAutoDelete(bool on)

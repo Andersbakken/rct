@@ -2,6 +2,7 @@
 #define ThreadPool_h
 
 #include "List.h"
+#include "Thread.h"
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -12,7 +13,7 @@ class ThreadPoolThread;
 class ThreadPool
 {
 public:
-    ThreadPool(int concurrentJobs);
+    ThreadPool(int concurrentJobs, Thread::Priority priority = Thread::Normal);
     ~ThreadPool();
 
     void setConcurrentJobs(int concurrentJobs);
@@ -57,6 +58,7 @@ private:
 
 private:
     int mConcurrentJobs;
+    Thread::Priority mPriority;
     std::mutex mMutex;
     std::condition_variable mCond;
     std::deque<std::shared_ptr<Job> > mJobs;

@@ -93,7 +93,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
     return commonListen(addr, size);
 }
 
-bool SocketServer::listen(const String& path)
+bool SocketServer::listen(const Path &p)
 {
     close();
 
@@ -107,9 +107,13 @@ bool SocketServer::listen(const String& path)
     sockaddr_un addr;
     memset(&addr, '\0', sizeof(sockaddr_un));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path.constData(), sizeof(addr.sun_path));
+    strncpy(addr.sun_path, p.constData(), sizeof(addr.sun_path));
 
-    return commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un));
+    if (commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un))) {
+        path = p;
+        return true;
+    }
+    return false;
 }
 
 bool SocketServer::commonListen(sockaddr* addr, size_t size)
@@ -158,7 +162,7 @@ SocketClient::SharedPtr SocketServer::nextConnection()
         return 0;
     const int fd = accepted.front();
     accepted.pop();
-    return SocketClient::SharedPtr(new SocketClient(fd, SocketClient::Tcp));
+    return SocketClient::SharedPtr(new SocketClient(fd, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));
 }
 
 void SocketServer::socketCallback(int /*fd*/, int mode)

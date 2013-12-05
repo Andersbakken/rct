@@ -4,7 +4,7 @@
 #include "SignalSlot.h"
 #include "SocketClient.h"
 #include <memory>
-#include <string>
+#include <rct/Path.h>
 #include <queue>
 
 struct sockaddr;
@@ -22,7 +22,7 @@ public:
 
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
-    bool listen(const String &path); // UNIX
+    bool listen(const Path &path); // UNIX
 
     SocketClient::SharedPtr nextConnection();
 
@@ -38,6 +38,7 @@ private:
 private:
     int fd;
     bool isIPv6;
+    Path path;
     std::queue<int> accepted;
     Signal<std::function<void(SocketServer*)> > serverNewConnection;
     Signal<std::function<void(SocketServer*, Error)> > serverError;

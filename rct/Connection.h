@@ -52,6 +52,8 @@ public:
     void writeAsync(const String &out);
     void finish() { send(FinishMessage()); }
 
+    void close() { assert(mSocketClient); mSocketClient->close(); }
+
     bool isConnected() const { return mSocketClient->isConnected(); }
 
     Signal<std::function<void(Connection*)> > &sendFinished() { return mSendFinished; }

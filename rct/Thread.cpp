@@ -1,6 +1,7 @@
 #include "Thread.h"
 #include "EventLoop.h"
 #include "Log.h"
+#include "rct-config.h"
 
 Thread::Thread()
     : mAutoDelete(false)
@@ -19,10 +20,12 @@ void Thread::start(Priority priority)
                 EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, this));
         });
     if (priority == Idle) {
+#ifdef HAVE_SCHEDIDLE
         sched_param param = { 0 };
         if (pthread_setschedparam(mThread.native_handle(), SCHED_IDLE, &param) == -1) {
             error() << "pthread_setschedparam failed";
         }
+#endif
     }
 }
 

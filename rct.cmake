@@ -19,6 +19,7 @@ check_cxx_symbol_exists(FD_CLOEXEC "fcntl.h" HAVE_CLOEXEC)
 check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(GetLogicalProcessorInformation "windows.h" HAVE_PROCESSORINFORMATION)
+check_cxx_symbol_exists(SCHED_IDLE "pthread.h" HAVE_SCHEDIDLE)
 
 if (CYGWIN)
   message("Using win32 FileSystemWatcher")

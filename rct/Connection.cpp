@@ -71,23 +71,14 @@ bool Connection::sendData(uint8_t id, const String &message)
         return false;
     }
 
-    String header, data;
-    {
-        {
-            Serializer strm(data);
-            strm << id;
-            if (!message.isEmpty())
-                strm.write(message.constData(), message.size());
-        }
-        {
-            Serializer strm(header);
-            strm << data.size();
-        }
-    }
-    mPendingWrite += (header.size() + data.size());
-    if (!mSocketClient->write(header))
-        return false;
-    return data.isEmpty() || mSocketClient->write(data);
+    String data;
+    Serializer s(data);
+    s << static_cast<uint32_t>(data.size()) << static_cast<int8_t>(Messages::Version) << id;
+    if (!message.isEmpty())
+        s.write(message.constData(), message.size());
+    *reinterpret_cast<uint32_t*>(&data[0]) = data.size() - sizeof(uint32_t);
+    mPendingWrite += data.size();
+    return mSocketClient->write(data);
 }
 
 int Connection::pendingWrite() const

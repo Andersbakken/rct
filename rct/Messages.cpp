@@ -13,11 +13,19 @@ Message* Messages::create(const char *data, int size)
         error("Can't create message from empty data");
         return 0;
     }
-    Deserializer ds(data, sizeof(uint8_t));
+    Deserializer ds(data, sizeof(uint8_t) + sizeof(int8_t));
+    int8_t version;
+    ds >> version;
+    if (version != Version) {
+        error("Invalid message version. Got %d, expected %d", version, Version);
+        return 0;
+    }
+    size -= sizeof(version);
+    data += sizeof(version);
     uint8_t id;
     ds >> id;
-    size -= sizeof(uint8_t);
-    data += sizeof(uint8_t);
+    size -= sizeof(id);
+    data += sizeof(id);
     std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId)) {
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();

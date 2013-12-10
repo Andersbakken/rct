@@ -9,6 +9,7 @@ class Message;
 class Messages
 {
 public:
+    enum { Version = -1 };
     static Message *create(const char *data, int size);
     template<typename T> static void registerMessage()
     {

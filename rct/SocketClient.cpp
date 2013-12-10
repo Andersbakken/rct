@@ -663,5 +663,7 @@ bool SocketClient::init(unsigned int mode)
             return false;
         }
     }
+
+    socketMode = mode;
     return true;
 }

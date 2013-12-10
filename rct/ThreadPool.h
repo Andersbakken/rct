@@ -53,13 +53,14 @@ public:
     static int idealThreadCount();
     static ThreadPool* instance();
 
+    int busyThreads() const;
 private:
     static bool jobLessThan(const std::shared_ptr<Job> &l, const std::shared_ptr<Job> &r);
 
 private:
     int mConcurrentJobs;
     Thread::Priority mPriority;
-    std::mutex mMutex;
+    mutable std::mutex mMutex;
     std::condition_variable mCond;
     std::deque<std::shared_ptr<Job> > mJobs;
     List<ThreadPoolThread*> mThreads;

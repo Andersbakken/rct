@@ -266,3 +266,9 @@ void ThreadPool::clearBackLog()
     std::lock_guard<std::mutex> lock(mMutex);
     mJobs.clear();
 }
+
+int ThreadPool::busyThreads() const
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mBusyThreads;
+}

@@ -5,7 +5,7 @@
 class Message
 {
 public:
-    enum { ResponseId = 1, FinishMessageId = 2 };
+    enum { ResponseId = 1, FinishMessageId = 2, ConnectMessageId = 3 };
 
     Message(uint8_t id) : mMessageId(id) {}
     virtual ~Message() {}

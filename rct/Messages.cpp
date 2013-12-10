@@ -1,6 +1,7 @@
 #include "Messages.h"
 #include "ResponseMessage.h"
 #include "FinishMessage.h"
+#include "ConnectMessage.h"
 #include "Serializer.h"
 #include <assert.h>
 
@@ -30,6 +31,7 @@ Message* Messages::create(const char *data, int size)
     if (!sFactory.contains(ResponseMessage::MessageId)) {
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
         sFactory[FinishMessage::MessageId] = new MessageCreator<FinishMessage>();
+        sFactory[ConnectMessage::MessageId] = new MessageCreator<ConnectMessage>();
     }
 
     MessageCreatorBase *base = sFactory.value(id);

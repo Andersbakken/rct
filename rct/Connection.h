@@ -9,6 +9,7 @@
 #include <rct/Map.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
+#include <rct/ConnectMessage.h>
 #include <rct/FinishMessage.h>
 
 class ConnectionPrivate;
@@ -54,7 +55,7 @@ public:
 
     void close() { assert(mSocketClient); mSocketClient->close(); }
 
-    bool isConnected() const { return mSocketClient->isConnected(); }
+    bool isConnected() const { return mIsConnected; }
 
     Signal<std::function<void(Connection*)> > &sendFinished() { return mSendFinished; }
     Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
@@ -71,13 +72,13 @@ private:
     void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);
     void onDataWritten(const SocketClient::SharedPtr&, int);
     void onSocketError(const SocketClient::SharedPtr&, SocketClient::Error) { mDisconnected(this); }
-    void checkData();
+    void initConnection();
 
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
 
-    bool mSilent;
+    bool mSilent, mIsConnected;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished, mSendFinished;

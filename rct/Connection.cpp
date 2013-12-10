@@ -8,33 +8,38 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mPendingRead(0), mPendingWrite(0), mSilent(false)
+    : mPendingRead(0), mPendingWrite(0), mSilent(false), mIsConnected(false)
 {
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mSilent(false)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mSilent(false), mIsConnected(true)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
-    EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
-    // mCheckDataTimer =
-    //   EventLoop::eventLoop()->
-    //   registerTimer([&](int){ this->checkData(); }, 1, Timer::SingleShot);
+    EventLoop::eventLoop()->callLater(std::bind(&Connection::initConnection, this));
 }
 
-void Connection::checkData()
+void Connection::initConnection()
 {
     if (!mSocketClient->buffer().isEmpty())
         onDataAvailable(mSocketClient, std::forward<Buffer>(mSocketClient->takeBuffer()));
+    send(ConnectMessage());
 }
 
-#warning need to respect timeout
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
+    if (timeout > 0) {
+        EventLoop::eventLoop()->registerTimer([&](int) {
+                if (!isConnected()) {
+                    mSocketClient.reset();
+                    mDisconnected(this);
+                }
+        }, timeout, Timer::SingleShot);
+    }
     mSocketClient.reset(new SocketClient);
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -50,6 +55,14 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
 
 bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
+    if (timeout > 0) {
+        EventLoop::eventLoop()->registerTimer([&](int) {
+                if (!isConnected()) {
+                    mSocketClient.reset();
+                    mDisconnected(this);
+                }
+        }, timeout, Timer::SingleShot);
+    }
     mSocketClient.reset(new SocketClient);
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -160,6 +173,8 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer
         if (message) {
             if (message->messageId() == FinishMessage::MessageId) {
                 mFinished(this);
+            } else if (message->messageId() == ConnectMessage::MessageId) {
+                mIsConnected = true;
             } else {
                 newMessage()(message, this);
             }

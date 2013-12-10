@@ -12,6 +12,7 @@ static StopWatch sStart;
 static Set<LogOutput*> sOutputs;
 static std::mutex sOutputsMutex;
 static int sLevel = 0;
+static const bool sTimedLogs = getenv("RTAGS_LOG_TIME");
 
 class FileOutput : public LogOutput
 {
@@ -28,7 +29,11 @@ public:
 
     virtual void log(const char *msg, int)
     {
-        fprintf(file, "%s\n", msg);
+        if (sTimedLogs) {
+            fprintf(file, "%s %s\n", String::formatTime(time(0), String::Time).constData(), msg);
+        } else {
+            fprintf(file, "%s\n", msg);
+        }
         fflush(file);
     }
     FILE *file;
@@ -42,7 +47,11 @@ public:
     {}
     virtual void log(const char *msg, int)
     {
-        fprintf(stderr, "%s\n", msg);
+        if (sTimedLogs) {
+            fprintf(stderr, "%s %s\n", String::formatTime(time(0), String::Time).constData(), msg);
+        } else {
+            fprintf(stderr, "%s\n", msg);
+        }
     }
 };
 

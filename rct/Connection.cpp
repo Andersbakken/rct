@@ -34,7 +34,7 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
     if (timeout > 0) {
         EventLoop::eventLoop()->registerTimer([&](int) {
-                if (!isConnected()) {
+                if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(this);
                 }
@@ -57,7 +57,7 @@ bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
     if (timeout > 0) {
         EventLoop::eventLoop()->registerTimer([&](int) {
-                if (!isConnected()) {
+                if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(this);
                 }

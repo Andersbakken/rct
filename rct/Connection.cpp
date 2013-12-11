@@ -8,12 +8,12 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mPendingRead(0), mPendingWrite(0), mSilent(false), mIsConnected(false)
+    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false), mIsConnected(false)
 {
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mSilent(false), mIsConnected(true)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false), mIsConnected(true)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -21,6 +21,13 @@ Connection::Connection(const SocketClient::SharedPtr &client)
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
     EventLoop::eventLoop()->callLater(std::bind(&Connection::initConnection, this));
+}
+
+Connection::~Connection()
+{
+    if (mTimeoutTimer) {
+        EventLoop::eventLoop()->unregisterTimer(mTimeoutTimer);
+    }
 }
 
 void Connection::initConnection()
@@ -33,11 +40,12 @@ void Connection::initConnection()
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
     if (timeout > 0) {
-        EventLoop::eventLoop()->registerTimer([&](int) {
+        mTimeoutTimer = EventLoop::eventLoop()->registerTimer([&](int) {
                 if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(this);
                 }
+                mTimeoutTimer = 0;
         }, timeout, Timer::SingleShot);
     }
     mSocketClient.reset(new SocketClient);
@@ -56,11 +64,12 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
 bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
     if (timeout > 0) {
-        EventLoop::eventLoop()->registerTimer([&](int) {
+        mTimeoutTimer = EventLoop::eventLoop()->registerTimer([&](int) {
                 if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(this);
                 }
+                mTimeoutTimer = 0;
         }, timeout, Timer::SingleShot);
     }
     mSocketClient.reset(new SocketClient);

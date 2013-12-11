@@ -20,6 +20,7 @@ class Connection
 public:
     Connection();
     Connection(const SocketClient::SharedPtr &client);
+    ~Connection();
 
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }
@@ -77,6 +78,7 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
+    int mTimeoutTimer;
 
     bool mSilent, mIsConnected;
 

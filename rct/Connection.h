@@ -80,7 +80,7 @@ private:
     int mPendingRead, mPendingWrite;
     int mTimeoutTimer;
 
-    bool mSilent, mIsConnected;
+    bool mSilent, mIsConnected, mWarned;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished, mSendFinished;

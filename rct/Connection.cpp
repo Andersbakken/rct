@@ -8,12 +8,13 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false), mIsConnected(false)
+    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false), mIsConnected(false), mWarned(false)
 {
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false), mIsConnected(true)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false),
+      mIsConnected(true), mWarned(false)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -89,7 +90,10 @@ bool Connection::sendData(uint8_t id, const String &message)
 {
     // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
     if (!mSocketClient->isConnected()) {
-        ::error("Trying to send message to unconnected client (%d)", id);
+        if (!mWarned) {
+            mWarned = true;
+            ::error("Trying to send message to unconnected client (%d)", id);
+        }
         return false;
     }
 

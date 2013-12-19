@@ -272,3 +272,9 @@ int ThreadPool::busyThreads() const
     std::lock_guard<std::mutex> lock(mMutex);
     return mBusyThreads;
 }
+
+int ThreadPool::backlockSize() const
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mJobs.size();
+}

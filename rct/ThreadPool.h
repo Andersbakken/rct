@@ -18,6 +18,7 @@ public:
 
     void setConcurrentJobs(int concurrentJobs);
     void clearBackLog();
+    int backlockSize() const;
 
     class Job
     {

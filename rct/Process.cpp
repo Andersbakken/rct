@@ -461,6 +461,7 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
                     if (lasted >= timeout) {
                         // timeout, we're done
                         kill(); // attempt to kill
+                        mErrorString = "Timed out";
                         return TimedOut;
                     }
                     *selecttime = started;

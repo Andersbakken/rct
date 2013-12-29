@@ -2,8 +2,8 @@
 #define AES256CBC_H
 
 #include <rct/String.h>
-#include <openssl/evp.h>
-#include <openssl/aes.h>
+
+class AES256CBCPrivate;
 
 class AES256CBC
 {
@@ -15,8 +15,7 @@ public:
     String decrypt(const String& data);
 
 private:
-    bool inited;
-    EVP_CIPHER_CTX ectx, dctx;
+    AES256CBCPrivate* priv;
 };
 
 #endif

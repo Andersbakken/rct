@@ -57,6 +57,7 @@ endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})
 set(RCT_SOURCES
+  ${CMAKE_CURRENT_LIST_DIR}/rct/AES256CBC.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
@@ -72,6 +73,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SharedMemory.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Thread.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp

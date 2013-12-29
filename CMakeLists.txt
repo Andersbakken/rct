@@ -14,6 +14,7 @@ endif ()
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
   set(RCT_SYSTEM_LIBRARIES dl)
 endif ()
+list(APPEND RCT_SYSTEM_LIBRARIES crypto)
 
 target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES})
 
@@ -43,6 +44,7 @@ endif ()
 
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
+        rct/AES256CBC.h
         rct/Apply.h
         rct/Buffer.h
         rct/Connection.h
@@ -70,6 +72,7 @@ install(FILES
         rct/Semaphore.h
         rct/Serializer.h
         rct/Set.h
+        rct/SHA256.h
         rct/SharedMemory.h
         rct/SignalSlot.h
         rct/Size.h

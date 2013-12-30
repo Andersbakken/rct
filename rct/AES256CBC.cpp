@@ -15,9 +15,9 @@ public:
     ~AES256CBCPrivate();
 
     bool inited;
+    unsigned char iv[32];
 #ifdef OS_Darwin
     CCCryptorRef ectx, dctx;
-    unsigned char iv[32];
 #else
     EVP_CIPHER_CTX ectx, dctx;
 #endif

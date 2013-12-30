@@ -1,4 +1,5 @@
 #include "AES256CBC.h"
+#include "SHA256.h"
 #include <rct/Log.h>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
@@ -21,19 +22,36 @@ AES256CBCPrivate::~AES256CBCPrivate()
     EVP_CIPHER_CTX_cleanup(&dctx);
 }
 
+static void deriveKey(const String& key, unsigned char* outkey,
+                      unsigned char* outiv, int rounds,
+                      const unsigned char* salt = 0)
+{
+    String preHash = key, currentHash, hash;
+    if (salt) // we're assuming that salt is at least 8 bytes
+        preHash += String(reinterpret_cast<const char*>(salt), 8);
+    currentHash = SHA256::hash(preHash, SHA256::Raw);
+    for (int i = 1; i < rounds; ++i)
+        currentHash = SHA256::hash(currentHash, SHA256::Raw);
+    hash += currentHash;
+    while (hash.size() < 64) { // 32 byte key and 32 byte iv
+        preHash = currentHash + key;
+        if (salt)
+            preHash += String(reinterpret_cast<const char*>(salt), 8);
+        currentHash = SHA256::hash(preHash, SHA256::Raw);
+        for (int i = 1; i < rounds; ++i)
+            currentHash = SHA256::hash(currentHash, SHA256::Raw);
+        hash += currentHash;
+    }
+    memcpy(outkey, hash.constData(), 32);
+    memcpy(outiv, hash.constData() + 32, 32);
+}
+
 AES256CBC::AES256CBC(const String& key, const unsigned char* salt)
     : priv(new AES256CBCPrivate)
 {
     unsigned char outkey[32], outiv[32];
 
-    const int ret = EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha1(), salt,
-                                   reinterpret_cast<const unsigned char*>(key.constData()),
-                                   key.size(), 5, outkey, outiv);
-    if (ret != 32) {
-        error("Key size is %d bits - should be 256 bits", ret);
-        return;
-    }
-
+    deriveKey(key, outkey, outiv, 100);
     EVP_CIPHER_CTX_init(&priv->ectx);
     EVP_EncryptInit_ex(&priv->ectx, EVP_aes_256_cbc(), NULL, outkey, outiv);
     EVP_CIPHER_CTX_init(&priv->dctx);

@@ -95,6 +95,7 @@ String AES256CBC::encrypt(const String& data)
     String out(data.size() + kCCBlockSizeAES128, '\0');
     CCCryptorUpdate(priv->ectx, data.constData(), data.size(), out.data(), out.size(), &flen);
     CCCryptorFinal(priv->ectx, out.data(), flen, &flen);
+    CCCryptorReset(priv->ectx, priv->iv);
     out.resize(flen);
 #else
     int elen = data.size() + AES_BLOCK_SIZE, flen;
@@ -117,6 +118,7 @@ String AES256CBC::decrypt(const String& data)
     String out(data.size() + kCCBlockSizeAES128, '\0');
     CCCryptorUpdate(priv->dctx, data.constData(), data.size(), out.data(), out.size(), &flen);
     CCCryptorFinal(priv->dctx, out.data(), flen, &flen);
+    CCCryptorReset(priv->dctx, priv->iv);
     out.resize(flen);
 #else
     int dlen = data.size(), flen;

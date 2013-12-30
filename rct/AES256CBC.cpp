@@ -1,8 +1,12 @@
 #include "AES256CBC.h"
 #include "SHA256.h"
 #include <rct/Log.h>
+#ifdef OS_Darwin
+#include <CommonCrypto/CommonCryptor.h>
+#else
 #include <openssl/evp.h>
 #include <openssl/aes.h>
+#endif
 
 class AES256CBCPrivate
 {
@@ -11,15 +15,25 @@ public:
     ~AES256CBCPrivate();
 
     bool inited;
+#ifdef OS_Darwin
+    CCCryptorRef ectx, dctx;
+    unsigned char iv[32];
+#else
     EVP_CIPHER_CTX ectx, dctx;
+#endif
 };
 
 AES256CBCPrivate::~AES256CBCPrivate()
 {
     if (!inited)
         return;
+#ifdef OS_Darwin
+    CCCryptorRelease(ectx);
+    CCCryptorRelease(dctx);
+#else
     EVP_CIPHER_CTX_cleanup(&ectx);
     EVP_CIPHER_CTX_cleanup(&dctx);
+#endif
 }
 
 static void deriveKey(const String& key, unsigned char* outkey,
@@ -49,13 +63,20 @@ static void deriveKey(const String& key, unsigned char* outkey,
 AES256CBC::AES256CBC(const String& key, const unsigned char* salt)
     : priv(new AES256CBCPrivate)
 {
-    unsigned char outkey[32], outiv[32];
+    unsigned char outkey[32];
 
-    deriveKey(key, outkey, outiv, 100);
+    deriveKey(key, outkey, priv->iv, 100);
+#ifdef OS_Darwin
+    CCCryptorCreate(kCCEncrypt, kCCAlgorithmAES128, kCCOptionPKCS7Padding,
+                    outkey, kCCKeySizeAES256, priv->iv, &priv->ectx);
+    CCCryptorCreate(kCCDecrypt, kCCAlgorithmAES128, kCCOptionPKCS7Padding,
+                    outkey, kCCKeySizeAES256, priv->iv, &priv->dctx);
+#else
     EVP_CIPHER_CTX_init(&priv->ectx);
-    EVP_EncryptInit_ex(&priv->ectx, EVP_aes_256_cbc(), NULL, outkey, outiv);
+    EVP_EncryptInit_ex(&priv->ectx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
     EVP_CIPHER_CTX_init(&priv->dctx);
-    EVP_DecryptInit_ex(&priv->dctx, EVP_aes_256_cbc(), NULL, outkey, outiv);
+    EVP_DecryptInit_ex(&priv->dctx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
+#endif
 
     priv->inited = true;
 }
@@ -69,6 +90,13 @@ String AES256CBC::encrypt(const String& data)
 {
     if (!priv->inited)
         return String();
+#ifdef OS_Darwin
+    size_t flen;
+    String out(data.size() + kCCBlockSizeAES128, '\0');
+    CCCryptorUpdate(priv->ectx, data.constData(), data.size(), out.data(), out.size(), &flen);
+    CCCryptorFinal(priv->ectx, out.data(), flen, &flen);
+    out.resize(flen);
+#else
     int elen = data.size() + AES_BLOCK_SIZE, flen;
     String out(elen, '\0');
     EVP_EncryptInit_ex(&priv->ectx, NULL, NULL, NULL, NULL);
@@ -76,6 +104,7 @@ String AES256CBC::encrypt(const String& data)
                       reinterpret_cast<const unsigned char*>(data.constData()), data.size());
     EVP_EncryptFinal_ex(&priv->ectx, reinterpret_cast<unsigned char*>(out.data()) + elen, &flen);
     out.resize(elen + flen);
+#endif
     return out;
 }
 
@@ -83,6 +112,13 @@ String AES256CBC::decrypt(const String& data)
 {
     if (!priv->inited)
         return String();
+#ifdef OS_Darwin
+    size_t flen;
+    String out(data.size() + kCCBlockSizeAES128, '\0');
+    CCCryptorUpdate(priv->dctx, data.constData(), data.size(), out.data(), out.size(), &flen);
+    CCCryptorFinal(priv->dctx, out.data(), flen, &flen);
+    out.resize(flen);
+#else
     int dlen = data.size(), flen;
     String out(dlen + AES_BLOCK_SIZE, '\0');
     EVP_DecryptInit_ex(&priv->dctx, NULL, NULL, NULL, NULL);
@@ -90,5 +126,6 @@ String AES256CBC::decrypt(const String& data)
                       reinterpret_cast<const unsigned char*>(data.constData()), data.size());
     EVP_DecryptFinal_ex(&priv->dctx, reinterpret_cast<unsigned char*>(out.data()) + dlen, &flen);
     out.resize(dlen + flen);
+#endif
     return out;
 }

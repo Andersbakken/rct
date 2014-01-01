@@ -61,7 +61,7 @@ public:
         return it == end ? -1 : (it - beg);
     }
 
-    int lasIndexOf(const T &t, int from = -1) const
+    int lastIndexOf(const T &t, int from = -1) const
     {
         const int s = size();
         if (from < 0) {

@@ -79,6 +79,15 @@ public:
         return -1;
     }
 
+    bool remove(const T& t)
+    {
+        typename Base::iterator it = std::find(Base::begin(), Base::end(), t);
+        if (it == Base::end())
+            return false;
+        Base::erase(it);
+        return true;
+    }
+
     void removeAt(int idx)
     {
         Base::erase(Base::begin() + idx);

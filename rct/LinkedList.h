@@ -14,7 +14,9 @@ public:
 
     int size() const { return std::list<T>::size(); }
     void append(const T &t) { std::list<T>::push_back(t); }
+    void append(T &&t) { std::list<T>::push_back(std::move(t)); }
     void prepend(const T &t) { std::list<T>::push_front(t); }
+    void prepend(T &&t) { std::list<T>::push_front(std::move(t)); }
 
     T &first() { return std::list<T>::front(); }
     const T &first() const { return std::list<T>::front(); }

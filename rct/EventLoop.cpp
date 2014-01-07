@@ -19,6 +19,21 @@
 #  include <mach/mach.h>
 #  include <mach/mach_time.h>
 #endif
+#if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
+#  include "Rct.h"
+#  include "StopWatch.h"
+#  include "Log.h"
+#define CALLBACK(op)                                                \
+    do {                                                            \
+        StopWatch sw;                                               \
+        op;                                                         \
+        if (sw.elapsed() >= RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD)  \
+            ::error() << "callback took" << sw.elapsed()            \
+                      << "ms\n" << Rct::backtrace();                \
+    } while (0)
+#else
+#define CALLBACK(op) op
+#endif
 
 struct RctStrError
 {
@@ -66,11 +81,6 @@ static EventLoop::WeakPtr& localEventLoop()
     }
     return *ptr;
 }
-
-#define eintrwrap(VAR, BLOCK)                   \
-    do {                                        \
-        VAR = BLOCK;                            \
-    } while (VAR == -1 && errno == EINTR)
 
 static void signalHandler(int sig)
 {
@@ -374,7 +384,7 @@ inline bool EventLoop::sendTimers()
 
             // fire
             locker.unlock();
-            func(currentId);
+            CALLBACK(func(currentId));
             locker.lock();
         } else {
             // silly std::set/multiset doesn't have a way of forcing a resort.
@@ -398,7 +408,7 @@ inline bool EventLoop::sendTimers()
 
             // fire
             locker.unlock();
-            cb(currentId);
+            CALLBACK(cb(currentId));
             locker.lock();
         }
     }
@@ -637,7 +647,7 @@ unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
     if (socket != sockets.end()) {
         const auto callback = socket->second.second;
         locker.unlock();
-        callback(fd, mode);
+        CALLBACK(callback(fd, mode));
         return mode;
     }
     return 0;

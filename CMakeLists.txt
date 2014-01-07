@@ -3,6 +3,10 @@ project(rct)
 include(rct.cmake)
 add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 add_library(rct SHARED ${RCT_SOURCES})
+if (RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD)
+  add_definitions("-DRCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD=${RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD}")
+endif ()
+
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_library(CORESERVICES_LIBRARY CoreServices)

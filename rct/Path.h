@@ -103,7 +103,7 @@ public:
         MakeAbsolute
     };
     Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0) const;
-    bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path());
+    bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *changed = 0);
     int canonicalize();
     Path canonicalized() const;
     static Path canonicalized(const Path &path);

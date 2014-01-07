@@ -152,13 +152,17 @@ Path Path::resolved(ResolveMode mode, const Path &cwd, bool *ok) const
     return ret;
 }
 
-bool Path::resolve(ResolveMode mode, const Path &cwd)
+bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 {
+    if (changed)
+        *changed = false;
     if (mode == MakeAbsolute) {
         if (isAbsolute())
             return true;
         const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd) + *this;
         if (copy.exists()) {
+            if (changed)
+                *changed = true;
             operator=(copy);
             return true;
         }
@@ -167,7 +171,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd)
 
     if (!cwd.isEmpty() && !isAbsolute()) {
         Path copy = cwd + '/' + *this;
-        if (copy.resolve(RealPath)) {
+        if (copy.resolve(RealPath, Path(), changed)) {
             operator=(copy);
             return true;
         }
@@ -182,6 +186,8 @@ bool Path::resolve(ResolveMode mode, const Path &cwd)
                 buffer[len] = '/';
                 buffer[len + 1] = '\0';
             }
+            if (changed && strcmp(buffer, constData()))
+                *changed = true;
             String::operator=(buffer);
             return true;
         }

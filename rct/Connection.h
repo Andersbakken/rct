@@ -74,13 +74,7 @@ private:
     void onDataWritten(const SocketClient::SharedPtr&, int);
     void onSocketError(const SocketClient::SharedPtr&, SocketClient::Error error)
     {
-        switch (error) {
-        case SocketClient::ReadError:
-        case SocketClient::WriteError:
-            break;
-        default:
-            ::error() << "Socket error" << error;
-        }
+        ::warning() << "Socket error" << error;
         mDisconnected(this);
     }
     void initConnection();

@@ -91,7 +91,15 @@ public:
     Signal<std::function<void(const SocketClient::SharedPtr&)> >& disconnected() { return signalDisconnected; }
     Signal<std::function<void(const SocketClient::SharedPtr&, int)> >& bytesWritten() { return signalBytesWritten; }
 
-    enum Error { InitializeError, DnsError, ConnectError, BindError, ReadError, WriteError, EventLoopError };
+    enum Error {
+        InitializeError,
+        DnsError,
+        ConnectError,
+        BindError,
+        ReadError,
+        WriteError,
+        EventLoopError
+    };
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> >& error() { return signalError; }
 
 private:

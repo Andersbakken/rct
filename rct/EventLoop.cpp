@@ -1,5 +1,6 @@
 #include "EventLoop.h"
 #include "Timer.h"
+#include "Rct.h"
 #include <algorithm>
 #include <atomic>
 #include <set>
@@ -20,7 +21,6 @@
 #  include <mach/mach_time.h>
 #endif
 #if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
-#  include "Rct.h"
 #  include "StopWatch.h"
 #  include "Log.h"
 #define CALLBACK(op)                                                \

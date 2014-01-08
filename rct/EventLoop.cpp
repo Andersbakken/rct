@@ -183,8 +183,10 @@ void EventLoop::init(unsigned flags)
 
     std::shared_ptr<EventLoop> that = shared_from_this();
     localEventLoop() = that;
-    if (flags & MainEventLoop)
+    if (flags & MainEventLoop) {
+        std::lock_guard<std::mutex> locker(mainMutex);
         mainLoop = that;
+    }
 }
 
 void EventLoop::cleanup()

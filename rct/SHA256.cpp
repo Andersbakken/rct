@@ -32,6 +32,8 @@ SHA256::~SHA256()
 
 void SHA256::update(const char *data, unsigned int size)
 {
+    if (!size)
+        return;
     if (priv->finalized)
         priv->finalized = false;
     SHA256_Update(&priv->ctx, data, size);
@@ -39,6 +41,8 @@ void SHA256::update(const char *data, unsigned int size)
 
 void SHA256::update(const String &data)
 {
+    if (data.isEmpty())
+        return;
     if (priv->finalized)
         priv->finalized = false;
     SHA256_Update(&priv->ctx, data.constData(), data.size());

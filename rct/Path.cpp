@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <fts.h>
 
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const
@@ -325,6 +326,45 @@ bool Path::mkdir(MkDirMode mkdirMode, mode_t permissions) const
 bool Path::rm(const Path &file)
 {
     return !unlink(file.constData());
+}
+
+static inline Path::Type ftsType(uint16_t type)
+{
+    if (type & FTS_F)
+        return Path::File;
+    if (type & FTS_DP) // omitting FTS_D on purpose here
+        return Path::Directory;
+    return Path::Invalid;
+}
+
+bool Path::rmdir(const Path& dir)
+{
+    if (!dir.isDir())
+        return false;
+    // hva slags drittapi er dette?
+    char* const dirs[2] = { const_cast<char*>(dir.constData()), 0 };
+    FTS* fdir = fts_open(dirs, FTS_NOCHDIR, 0);
+    if (!fdir)
+        return false;
+    FTSENT *node;
+    while ((node = fts_read(fdir))) {
+        if (node->fts_level > 0 && node->fts_name[0] == '.') {
+            fts_set(fdir, node, FTS_SKIP);
+        } else {
+            switch (ftsType(node->fts_info)) {
+            case File:
+                unlink(node->fts_path);
+                break;
+            case Directory:
+                ::rmdir(node->fts_path);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    fts_close(fdir);
+    return true;
 }
 
 static void visitorWrapper(Path path, Path::VisitCallback callback, Set<Path> &seen, void *userData)

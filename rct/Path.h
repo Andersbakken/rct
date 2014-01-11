@@ -80,6 +80,7 @@ public:
     bool mkdir(MkDirMode mode = Single,
                mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) const;
     static bool rm(const Path &file);
+    static bool rmdir(const Path& dir);
     static Path home();
 
     inline Path ensureTrailingSlash() const

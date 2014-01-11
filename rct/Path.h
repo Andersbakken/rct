@@ -77,6 +77,8 @@ public:
     static bool mkdir(const Path &path,
                       MkDirMode mode = Single,
                       mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
+    bool mkdir(MkDirMode mode = Single,
+               mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) const;
     static bool rm(const Path &file);
     static Path home();
 
@@ -116,6 +118,14 @@ public:
     static Path pwd();
     int readAll(char *&, int max = -1) const;
     String readAll(int max = -1) const;
+
+    enum WriteMode {
+        Overwrite,
+        Append
+    };
+    bool write(const String& data, WriteMode mode = Overwrite) const;
+    static bool write(const Path& path, const String& data, WriteMode mode = Overwrite);
+
     Path toTilde() const;
 
     enum VisitResult {

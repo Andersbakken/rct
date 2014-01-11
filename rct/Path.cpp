@@ -317,6 +317,11 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
     return true;
 }
 
+bool Path::mkdir(MkDirMode mkdirMode, mode_t permissions) const
+{
+    return Path::mkdir(*this, mkdirMode, permissions);
+}
+
 bool Path::rm(const Path &file)
 {
     return !unlink(file.constData());
@@ -442,6 +447,21 @@ String Path::readAll(int max) const
     }
     fclose(f);
     return buf;
+}
+
+bool Path::write(const Path& path, const String& data, WriteMode mode)
+{
+    FILE* f = fopen(path.constData(), mode == Overwrite ? "w" : "a");
+    if (!f)
+        return false;
+    const int ret = fwrite(data.constData(), sizeof(char), data.size(), f);
+    fclose(f);
+    return ret == data.size();
+}
+
+bool Path::write(const String& data, WriteMode mode) const
+{
+    return Path::write(*this, data, mode);
 }
 
 Path Path::home()

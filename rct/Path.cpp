@@ -330,7 +330,7 @@ bool Path::rm(const Path &file)
 
 static inline Path::Type ftsType(uint16_t type)
 {
-    if (type & FTS_F)
+    if (type & (FTS_F|FTS_SL|FTS_SLNONE))
         return Path::File;
     if (type & FTS_DP) // omitting FTS_D on purpose here
         return Path::Directory;

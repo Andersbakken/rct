@@ -511,6 +511,11 @@ public:
         return mString;
     }
 
+    const std::string& ref() const
+    {
+        return mString;
+    }
+
     List<String> split(char ch) const
     {
         List<String> ret;

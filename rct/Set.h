@@ -8,23 +8,24 @@ template <typename T>
 class Set : public std::set<T>
 {
 public:
+    typedef std::set<T> Base;
     Set() {}
 
     bool contains(const T &t) const
     {
-        return std::set<T>::find(t) != std::set<T>::end();
+        return Base::find(t) != Base::end();
     }
 
     bool isEmpty() const
     {
-        return !std::set<T>::size();
+        return !Base::size();
     }
 
     bool remove(const T &t)
     {
-        typename std::set<T>::iterator it = std::set<T>::find(t);
-        if (it != std::set<T>::end()) {
-            std::set<T>::erase(it);
+        typename Base::iterator it = Base::find(t);
+        if (it != Base::end()) {
+            Base::erase(it);
             return true;
         }
         return false;
@@ -32,9 +33,9 @@ public:
     List<T> toList() const
     {
         List<T> ret(size());
-        typename std::set<T>::const_iterator it = std::set<T>::begin();
+        typename Base::const_iterator it = Base::begin();
         int i = 0;
-        while (it != std::set<T>::end()) {
+        while (it != Base::end()) {
             ret[i++] = *it;
             ++it;
         }
@@ -43,7 +44,7 @@ public:
 
     bool insert(const T &t)
     {
-        return std::set<T>::insert(t).second;
+        return Base::insert(t).second;
     }
 
     Set<T> &unite(const Set<T> &other, int *count = 0)
@@ -53,7 +54,7 @@ public:
             *this = other;
             c = other.size();
         } else {
-            typename std::set<T>::const_iterator it = other.begin();
+            typename Base::const_iterator it = other.begin();
             while (it != other.end()) {
                 if (insert(*it))
                     ++c;
@@ -67,8 +68,8 @@ public:
 
     bool intersects(const Set<T>& other) const
     {
-        typename std::set<T>::const_iterator it = other.begin();
-        const typename std::set<T>::const_iterator end = other.end();
+        typename Base::const_iterator it = other.begin();
+        const typename Base::const_iterator end = other.end();
         while (it != end) {
             if (contains(*it))
                 return true;
@@ -80,8 +81,8 @@ public:
     Set<T> intersected(const Set<T>& other)
     {
         Set<T> ret;
-        typename std::set<T>::const_iterator it = other.begin();
-        const typename std::set<T>::const_iterator end = other.end();
+        typename Base::const_iterator it = other.begin();
+        const typename Base::const_iterator end = other.end();
         while (it != end) {
             if (contains(*it))
                 ret.insert(*it);
@@ -108,9 +109,9 @@ public:
     {
         int c = 0;
         if (!isEmpty()) {
-            typename std::set<T>::const_iterator it = other.begin();
+            typename Base::const_iterator it = other.begin();
             while (it != other.end()) {
-                c += std::set<T>::erase(*it);
+                c += Base::erase(*it);
                 ++it;
             }
         }
@@ -157,17 +158,61 @@ public:
 
     int size() const
     {
-        return std::set<T>::size();
+        return Base::size();
     }
 
-    typename std::set<T>::const_iterator constBegin() const
+    typename Base::const_iterator constBegin() const
     {
-        return std::set<T>::begin();
+        return Base::begin();
     }
 
-    typename std::set<T>::const_iterator constEnd() const
+    typename Base::const_iterator constEnd() const
     {
-        return std::set<T>::end();
+        return Base::end();
+    }
+
+    template <typename K>
+    int compare(const Set<K> &other) const
+    {
+        const int me = size();
+        const int him = other.size();
+        if (me < him) {
+            return -1;
+        } else if (me > him) {
+            return 1;
+        }
+        typename Set<K>::const_iterator bit = other.begin();
+        for (typename Set<T>::const_iterator it = Base::begin(); it != Base::end(); ++it) {
+            const int cmp = it->compare(*bit);
+            if (cmp)
+                return cmp;
+            ++bit;
+        }
+        return 0;
+    }
+
+    template <typename K>
+    bool operator==(const Set<K> &other) const
+    {
+        return !compare(other);
+    }
+
+    template <typename K>
+    bool operator!=(const Set<K> &other) const
+    {
+        return compare(other);
+    }
+
+    template <typename K>
+    bool operator<(const Set<K> &other) const
+    {
+        return compare(other) < 0;
+    }
+
+    template <typename K>
+    bool operator>(const Set<K> &other) const
+    {
+        return compare(other) > 0;
     }
 };
 

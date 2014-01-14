@@ -20,6 +20,7 @@ public:
     Signal<std::function<void(Timer*)> >& timeout() { return signalTimeout; }
 
     bool isRunning() const { return timerId; }
+    int id() const { return timerId; }
 
 private:
     void timerFired(int id);

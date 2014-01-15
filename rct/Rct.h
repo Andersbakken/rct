@@ -34,7 +34,6 @@ inline bool addTo(Container &container, const Value &value)
 bool readFile(const Path& path, String &data);
 bool readFile(FILE *f, String &data);
 bool writeFile(const Path& path, const String& data);
-String filterPreprocessor(const Path &path);
 void removeDirectory(const Path &path);
 String unescape(String command);
 void findExecutablePath(const char *argv0);

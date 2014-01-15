@@ -205,12 +205,27 @@ const char * Path::fileName(int *len) const
     return constData() + idx;
 }
 
-const char * Path::extension() const
+const char * Path::extension(int *len) const
 {
-    const int dot = lastIndexOf('.');
-    if (dot == -1 || dot + 1 == size())
-        return 0;
-    return constData() + dot + 1;
+    const int s = size();
+    int dot = s - 1;
+    const char *data = constData();
+    while (dot >= 0) {
+        switch (data[dot]) {
+        case '.':
+            if (len)
+                *len = s - (dot + 1);
+            return data + dot + 1;
+        case '/':
+            break;
+        default:
+            break;
+        }
+        --dot;
+    }
+    if (len)
+        *len = 0;
+    return 0;
 }
 
 bool Path::isSource(const char *ext)

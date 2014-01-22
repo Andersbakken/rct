@@ -239,7 +239,7 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
         return Error;
     }
     List<String> arguments = a;
-    int err, flg;
+    int err;
 
     int closePipe[2];
     eintrwrap(err, ::pipe(closePipe));

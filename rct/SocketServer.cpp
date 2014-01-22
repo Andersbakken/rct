@@ -68,6 +68,9 @@ bool SocketServer::listen(uint16_t port, Mode mode)
         close();
         return false;
     }
+#ifdef HAVE_CLOEXEC
+    SocketClient::setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
+#endif
 
     // ### support specific interfaces
     sockaddr_in addr4;
@@ -103,6 +106,9 @@ bool SocketServer::listen(const Path &p)
         serverError(this, InitializeError);
         return false;
     }
+#ifdef HAVE_CLOEXEC
+    SocketClient::setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
+#endif
 
     sockaddr_un addr;
     memset(&addr, '\0', sizeof(sockaddr_un));
@@ -142,11 +148,7 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
                                        this,
                                        std::placeholders::_1,
                                        std::placeholders::_2));
-        int e;
-        eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
-        if (e != -1) {
-            eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
-        } else {
+        if (!SocketClient::setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
             serverError(this, InitializeError);
             close();
             return false;

@@ -32,15 +32,14 @@ SocketClient::SocketClient(int f, unsigned int mode)
     int flags = 1;
     ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
 #endif
+#ifdef HAVE_CLOEXEC
+    setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
+#endif
 
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
-        int e;
-        eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
-        if (e != -1) {
-            eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
-        } else {
+        if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
             signalError(shared_from_this(), InitializeError);
             close();
             return;
@@ -623,6 +622,7 @@ void SocketClient::socketCallback(int f, int mode)
         write(0, 0);
     }
 }
+
 bool SocketClient::init(unsigned int mode)
 {
     int domain = -1, type = -1;
@@ -651,14 +651,13 @@ bool SocketClient::init(unsigned int mode)
     int flags = 1;
     ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
 #endif
+#ifdef HAVE_CLOEXEC
+    setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
+#endif
     if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
-        int e;
-        eintrwrap(e, ::fcntl(fd, F_GETFL, 0));
-        if (e != -1) {
-            eintrwrap(e, ::fcntl(fd, F_SETFL, e | O_NONBLOCK));
-        } else {
+        if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
             close();
             return false;
         }
@@ -666,4 +665,18 @@ bool SocketClient::init(unsigned int mode)
 
     socketMode = mode;
     return true;
+}
+
+bool SocketClient::setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode)
+{
+    int flg = 0, e;
+    if (mode == FlagAppend) {
+        eintrwrap(e, ::fcntl(fd, getcmd, 0));
+        if (e == -1)
+            return false;
+        flg = e;
+    }
+    flg |= flag;
+    eintrwrap(e, ::fcntl(fd, setcmd, flg));
+    return e != -1;
 }

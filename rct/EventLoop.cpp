@@ -1,4 +1,5 @@
 #include "EventLoop.h"
+#include "SocketClient.h"
 #include "Timer.h"
 #include "Rct.h"
 #include <algorithm>
@@ -123,15 +124,7 @@ void EventLoop::init(unsigned flags)
         cleanup();
         return;
     }
-    eintrwrap(e, ::fcntl(eventPipe[0], F_GETFL, 0));
-    if (e == -1) {
-        cleanup();
-        return;
-    }
-    const int fl = e | O_NONBLOCK;
-
-    eintrwrap(e, ::fcntl(eventPipe[0], F_SETFL, fl));
-    if (e == -1) {
+    if (!SocketClient::setFlags(eventPipe[0], O_NONBLOCK, F_GETFL, F_SETFL)) {
         cleanup();
         return;
     }

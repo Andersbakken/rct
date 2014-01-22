@@ -3,6 +3,7 @@
 #include "Rct.h"
 #include "EventLoop.h"
 #include "Log.h"
+#include "SocketClient.h"
 #include "StopWatch.h"
 #include "Thread.h"
 #include <map>
@@ -67,14 +68,11 @@ public:
 
 ProcessThread::ProcessThread()
 {
+    ::signal(SIGCHLD, ProcessThread::processSignalHandler);
+
     int flg;
     eintrwrap(flg, ::pipe(sProcessPipe));
-    eintrwrap(flg, ::fcntl(sProcessPipe[1], F_GETFL, 0));
-    if (flg != -1) {
-        eintrwrap(flg, ::fcntl(sProcessPipe[1], F_SETFL, flg | O_NONBLOCK));
-    }
-
-    ::signal(SIGCHLD, ProcessThread::processSignalHandler);
+    SocketClient::setFlags(sProcessPipe[1], O_NONBLOCK, F_GETFL, F_SETFL);
 }
 
 void ProcessThread::addPid(pid_t pid, Process* process)
@@ -246,10 +244,7 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
     int closePipe[2];
     eintrwrap(err, ::pipe(closePipe));
 #ifdef HAVE_CLOEXEC
-    eintrwrap(flg, ::fcntl(closePipe[1], F_GETFD, 0));
-    if (flg != -1) {
-        eintrwrap(err, ::fcntl(closePipe[1], F_SETFD, flg | FD_CLOEXEC));
-    } else {
+    if (!SocketClient::setFlags(closePipe[1], FD_CLOEXEC, F_GETFD, F_SETFD)) {
         mErrorString = "Unable to set FD_CLOEXEC";
         eintrwrap(err, ::close(closePipe[0]));
         eintrwrap(err, ::close(closePipe[1]));

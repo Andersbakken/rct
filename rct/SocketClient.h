@@ -102,6 +102,9 @@ public:
     };
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> >& error() { return signalError; }
 
+    enum FlagMode { FlagAppend, FlagOverwrite };
+    static bool setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode = FlagAppend);
+
 private:
     bool init(unsigned int mode);
 

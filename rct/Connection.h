@@ -51,7 +51,6 @@ public:
         return send(ResponseMessage(out));
     }
 
-    void writeAsync(const String &out);
     void finish() { send(FinishMessage()); }
 
     void close() { assert(mSocketClient); mSocketClient->close(); }

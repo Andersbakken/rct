@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <limits.h>
 #include <sys/fcntl.h>
 #ifdef OS_Darwin
 # include <mach-o/dyld.h>
@@ -15,6 +17,10 @@
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #include <mach/mach.h>
 #include <mach/mach_time.h>
+#endif
+
+#if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
+#define HOST_NAME_MAX _POSIX_HOST_NAME_MAX
 #endif
 
 namespace Rct {
@@ -364,6 +370,15 @@ uint64_t currentTimeMs()
     gettimeofday(&time, NULL);
     return (time.tv_sec * static_cast<uint64_t>(1000)) + (time.tv_usec / static_cast<uint64_t>(1000));
 }
+
+String hostName()
+{
+    String host(HOST_NAME_MAX, '\0');
+    ::gethostname(host.data(), HOST_NAME_MAX);
+    host.resize(strlen(host.constData()));
+    return host;
+}
+
 } // namespace Rct
 
 #ifdef RCT_DEBUG_MUTEX

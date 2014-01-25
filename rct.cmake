@@ -118,7 +118,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-  set(RCT_SYSTEM_LIBRARIES dl pthread)
+  set(RCT_SYSTEM_LIBRARIES dl pthread rt)
 endif ()
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   list(APPEND RCT_SYSTEM_LIBRARIES crypto pthread)

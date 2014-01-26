@@ -316,35 +316,43 @@ void SocketClient::setMulticastTTL(unsigned char ttl)
     ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 }
 
-bool SocketClient::peer(String* ip, uint16_t* port) const
+typedef int (*GetNameFunc)(int, sockaddr*, socklen_t*);
+static inline String getNameHelper(int fd, GetNameFunc func, uint16_t* port)
 {
-    if (socketMode & Unix)
-        return false;
     sockaddr_storage addr;
     socklen_t size = sizeof(addr);
-    if (::getpeername(fd, reinterpret_cast<sockaddr*>(&addr), &size) == -1)
-        return false;
-    if (ip)
-        ip->resize(INET6_ADDRSTRLEN);
+    if (func(fd, reinterpret_cast<sockaddr*>(&addr), &size) == -1)
+        return String();
+    String name(INET6_ADDRSTRLEN, '\0');
     if (addr.ss_family == AF_INET6) {
         sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&addr);
-        if (ip) {
-            inet_ntop(AF_INET6, &addr6->sin6_addr, &(*ip)[0], ip->size());
-            ip->resize(strlen(ip->constData()));
-        }
+        inet_ntop(AF_INET6, &addr6->sin6_addr, name.data(), name.size());
+        name.resize(strlen(name.constData()));
         if (port)
             *port = ntohs(addr6->sin6_port);
     } else {
         assert(addr.ss_family == AF_INET);
         sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&addr);
-        if (ip) {
-            inet_ntop(AF_INET, &addr4->sin_addr, &(*ip)[0], ip->size());
-            ip->resize(strlen(ip->constData()));
-        }
+        inet_ntop(AF_INET, &addr4->sin_addr, name.data(), name.size());
+        name.resize(strlen(name.constData()));
         if (port)
             *port = ntohs(addr4->sin_port);
     }
-    return true;
+    return name;
+}
+
+String SocketClient::peerName(uint16_t* port) const
+{
+    if (socketMode & Unix)
+        return String();
+    return getNameHelper(fd, ::getpeername, port);
+}
+
+String SocketClient::sockName(uint16_t* port) const
+{
+    if (socketMode & Unix)
+        return String();
+    return getNameHelper(fd, ::getsockname, port);
 }
 
 bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int size)

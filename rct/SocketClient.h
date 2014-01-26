@@ -51,20 +51,24 @@ public:
     // TCP/UNIX
     bool write(const unsigned char* data, unsigned int num);
     bool write(const String& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
-    bool peer(String* ip, uint16_t* port = 0) const;
-    String peer() const
+
+    String peerName(uint16_t* port = 0) const;
+    String peerString() const
     {
-        String ip;
-        if (peer(&ip))
-            return ip;
+        uint16_t port;
+        const String name = peerName(&port);
+        if (!name.isEmpty()) {
+            return String::format<64>("%s:%u", name.constData(), port);
+        }
         return String();
     }
-    String peerName() const
+    String sockName(uint16_t* port = 0) const;
+    String sockString() const
     {
-        String ip;
         uint16_t port;
-        if (peer(&ip, &port)) {
-            return String::format<64>("%s:%u", ip.constData(), port);
+        const String name = sockName(&port);
+        if (!name.isEmpty()) {
+            return String::format<64>("%s:%u", name.constData(), port);
         }
         return String();
     }

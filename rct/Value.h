@@ -44,10 +44,19 @@ public:
     inline void *toPointer() const;
     inline Map<String, Value> toMap() const;
     inline List<Value> toList() const;
+    Map<String, Value>::const_iterator begin() const;
+    Map<String, Value>::const_iterator end() const;
+    inline int count() const;
+    inline const Value &at(int idx) const;
+    const Value &operator[](int idx) const;
+    Value &operator[](int idx);
+    const Value &operator[](const String &key) const;
+    Value &operator[](const String &key);
     inline Value child(int idx, const Value &defaultValue = Value()) const;
+    template <typename T> inline T child(int idx, const T &defaultValue = T()) const;
     inline Value child(const String &key, const Value &defaultValue = Value()) const;
+    template <typename T> inline T child(const String &name, const T &defaultValue = T()) const;
     template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
-    template <typename T> inline T child(const String &name, bool *ok = 0, const T &defaultValue = T()) const;
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
     static Value fromJSON(const String &json, bool *ok = 0);
@@ -248,9 +257,79 @@ inline Value Value::child(int idx, const Value &defaultValue) const
 {
     return mType == Type_List ? listPtr()->value(idx, defaultValue) : defaultValue;
 }
+
+template <typename T>
+inline T Value::child(int idx, const T &defaultValue) const
+{
+    return child(idx, defaultValue).convert<T>();
+}
+
 inline Value Value::child(const String &key, const Value &defaultValue) const
 {
     return mType == Type_Map ? mapPtr()->value(key, defaultValue) : defaultValue;
+}
+
+template <typename T>
+inline T Value::child(const String &key, const T &defaultValue) const
+{
+    return child(key, defaultValue).convert<T>();
+}
+
+inline Map<String, Value>::const_iterator Value::begin() const
+{
+    if (mType != Type_Map)
+        return end();
+    return mapPtr()->begin();
+}
+inline Map<String, Value>::const_iterator Value::end() const
+{
+    if (mType != Type_Map) {
+        const static Map<String, Value> hack;
+        return hack.end();
+    }
+    return mapPtr()->end();
+}
+
+inline int Value::count() const
+{
+    switch (mType) {
+    case Type_Map:
+        return mapPtr()->size();
+    case Type_List:
+        return listPtr()->size();
+    default:
+        break;
+    }
+    return 0;
+}
+
+inline const Value &Value::at(int idx) const
+{
+    return operator[](idx);
+}
+
+inline const Value &Value::operator[](int idx) const
+{
+    assert(mType == Type_List);
+    return (*listPtr())[idx];
+}
+
+inline Value &Value::operator[](int idx)
+{
+    assert(mType == Type_List);
+    return (*listPtr())[idx];
+}
+
+inline const Value &Value::operator[](const String &key) const
+{
+    assert(mType == Type_Map);
+    return (*mapPtr())[key];
+}
+
+inline Value &Value::operator[](const String &key)
+{
+    assert(mType == Type_Map);
+    return (*mapPtr())[key];
 }
 
 inline Log operator<<(Log log, const Value &value)

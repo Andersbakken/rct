@@ -48,6 +48,8 @@ public:
     Map<String, Value>::const_iterator end() const;
     inline int count() const;
     inline const Value &at(int idx) const;
+    template <typename T> T operator[](int idx) const;
+    template <typename T> T operator[](const String &key) const;
     const Value &operator[](int idx) const;
     Value &operator[](int idx);
     const Value &operator[](const String &key) const;
@@ -261,7 +263,7 @@ inline Value Value::child(int idx, const Value &defaultValue) const
 template <typename T>
 inline T Value::child(int idx, const T &defaultValue) const
 {
-    return child(idx, defaultValue).convert<T>();
+    return child(idx, Value(defaultValue)).convert<T>();
 }
 
 inline Value Value::child(const String &key, const Value &defaultValue) const
@@ -272,7 +274,7 @@ inline Value Value::child(const String &key, const Value &defaultValue) const
 template <typename T>
 inline T Value::child(const String &key, const T &defaultValue) const
 {
-    return child(key, defaultValue).convert<T>();
+    return child(key, Value(defaultValue)).convert<T>();
 }
 
 inline Map<String, Value>::const_iterator Value::begin() const
@@ -330,6 +332,19 @@ inline Value &Value::operator[](const String &key)
 {
     assert(mType == Type_Map);
     return (*mapPtr())[key];
+}
+template <typename T>
+inline T Value::operator[](int idx) const
+{
+    assert(mType == Type_List);
+    return (*listPtr())[idx].convert<T>();
+}
+
+template <typename T>
+inline T Value::operator[](const String &key) const
+{
+    assert(mType == Type_Map);
+    return (*mapPtr())[key].convert<T>();
 }
 
 inline Log operator<<(Log log, const Value &value)

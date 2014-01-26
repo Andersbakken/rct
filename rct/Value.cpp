@@ -86,3 +86,40 @@ Value Value::fromJSON(const String &json, bool *ok)
     cJSON_Delete(obj);
     return ret;
 }
+
+cJSON *Value::toCJSON(const Value &value)
+{
+    switch (value.type()) {
+    case Value::Type_Boolean: return value.toBool() ? cJSON_CreateTrue() : cJSON_CreateFalse();
+    case Value::Type_Integer: return cJSON_CreateNumber(value.toInteger());
+    case Value::Type_Double: return cJSON_CreateNumber(value.toDouble());
+    case Value::Type_String: return cJSON_CreateString(value.toString().constData());
+    case Value::Type_List: {
+        cJSON *array = cJSON_CreateArray();
+        for (auto v : *value.listPtr())
+            cJSON_AddItemToArray(array, toCJSON(v));
+        return array; }
+    case Value::Type_Map: {
+        cJSON *object = cJSON_CreateObject();
+        for (auto v : *value.mapPtr())
+            cJSON_AddItemToObject(object, v.first.constData(), v.second.toCJSON(v.second));
+        return object; }
+    case Value::Type_Invalid:
+        break;
+    case Value::Type_Pointer: {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "0x%p", value.toPointer());
+        break; }
+    }
+    return cJSON_CreateNull();
+}
+
+String Value::toJSON(bool pretty) const
+{
+    cJSON *json = toCJSON(*this);
+    char *formatted = (pretty ? cJSON_Print(json) : cJSON_PrintUnformatted(json));
+    cJSON_Delete(json);
+    const String ret = formatted;
+    free(formatted);
+    return ret;
+}

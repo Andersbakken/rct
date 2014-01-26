@@ -8,6 +8,7 @@
 #include <rct/List.h>
 #include <math.h>
 
+struct cJSON;
 class Value
 {
 public:
@@ -43,11 +44,16 @@ public:
     inline void *toPointer() const;
     inline Map<String, Value> toMap() const;
     inline List<Value> toList() const;
+    inline Value child(int idx, const Value &defaultValue = Value()) const;
+    inline Value child(const String &key, const Value &defaultValue = Value()) const;
     template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
+    template <typename T> inline T child(const String &name, bool *ok = 0, const T &defaultValue = T()) const;
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
     static Value fromJSON(const String &json, bool *ok = 0);
+    String toJSON(bool pretty = false) const;
 private:
+    static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);
     String *stringPtr() { return reinterpret_cast<String*>(mData.stringBuf); }
     const String *stringPtr() const { return reinterpret_cast<const String*>(mData.stringBuf); }
@@ -238,6 +244,14 @@ inline String Value::toString() const { return convert<String>(0); }
 inline void *Value::toPointer() const { return convert<void*>(0); }
 inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
 inline List<Value> Value::toList() const { return convert<List<Value> >(0); }
+inline Value Value::child(int idx, const Value &defaultValue) const
+{
+    return mType == Type_List ? listPtr()->value(idx, defaultValue) : defaultValue;
+}
+inline Value Value::child(const String &key, const Value &defaultValue) const
+{
+    return mType == Type_Map ? mapPtr()->value(key, defaultValue) : defaultValue;
+}
 
 inline Log operator<<(Log log, const Value &value)
 {

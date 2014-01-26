@@ -8,3 +8,7 @@
 /rct-config.h
 /librct.so
 /librct.dylib
+/.ninja_log
+/CMakeCache.txt
+/build.ninja
+/rules.ninja

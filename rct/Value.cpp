@@ -55,7 +55,7 @@ static Value fromCJSON(const cJSON *object)
             return Value(object->valueint);
         return Value(object->valuedouble);
     case cJSON_String:
-        return Value(object->valuestring);
+        return Value(String(object->valuestring));
     case cJSON_Array: {
         List<Value> values;
         for (const cJSON *child = object->child; child; child = child->next) {

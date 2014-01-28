@@ -61,7 +61,8 @@ public:
     template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
-    static Value fromJSON(const String &json, bool *ok = 0);
+    static Value fromJSON(const String &json, bool *ok = 0) { return fromJSON(json.constData(), ok); }
+    static Value fromJSON(const char *json, bool *ok = 0);
     String toJSON(bool pretty = false) const;
 private:
     static cJSON *toCJSON(const Value &value);

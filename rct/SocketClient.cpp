@@ -273,7 +273,15 @@ bool SocketClient::bind(uint16_t port)
         addr4.sin_port = htons(port);
     }
 
-    const int e = ::bind(fd, addr, size);
+    int e = 1;
+    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &e, sizeof(int));
+    if (e == -1) {
+        SocketClient::SharedPtr udpSocket = shared_from_this();
+        signalError(udpSocket, BindError);
+        close();
+        return false;
+    }
+    e = ::bind(fd, addr, size);
     if (!e) {
         socketPort = port;
         return true;

@@ -44,6 +44,10 @@ uint64_t monoMs();
 uint64_t currentTimeMs();
 String hostName();
 
+enum LookupMode { IPv4, IPv6 };
+String addrLookup(const String& addr, LookupMode mode = IPv4);
+String nameLookup(const String& name, LookupMode mode = IPv4);
+
 inline bool timevalGreaterEqualThan(const timeval* a, const timeval* b)
 {
     return (a->tv_sec > b->tv_sec

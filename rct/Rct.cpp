@@ -1,16 +1,18 @@
 #include "Rct.h"
 #include "Log.h"
 #include "rct-config.h"
-#include <sys/types.h>
 #include <sys/time.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <limits.h>
 #include <sys/fcntl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 #ifdef OS_Darwin
 # include <mach-o/dyld.h>
 #elif OS_FreeBSD
-# include <sys/types.h>
 # include <sys/sysctl.h>
 #endif
 
@@ -377,6 +379,68 @@ String hostName()
     ::gethostname(host.data(), HOST_NAME_MAX);
     host.resize(strlen(host.constData()));
     return host;
+}
+
+String addrLookup(const String& addr, LookupMode mode)
+{
+    sockaddr_storage sockaddr;
+    size_t sz;
+    if (mode == IPv6) {
+        sockaddr_in6* sockaddr6 = reinterpret_cast<sockaddr_in6*>(&sockaddr);
+        if (inet_pton(AF_INET6, addr.constData(), &sockaddr6->sin6_addr) != 1) {
+            return String();
+        }
+        sockaddr.ss_family = AF_INET6;
+        sz = sizeof(sockaddr_in6);
+    } else {
+        sockaddr_in* sockaddr4 = reinterpret_cast<sockaddr_in*>(&sockaddr);
+        if (inet_pton(AF_INET, addr.constData(), &sockaddr4->sin_addr) != 1) {
+            return String();
+        }
+        sockaddr.ss_family = AF_INET;
+        sz = sizeof(sockaddr_in);
+    }
+    String out(NI_MAXHOST, '\0');
+    const struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&sockaddr);
+    const int ret = getnameinfo(sa, sz, out.data(), NI_MAXHOST, 0, 0, 0);
+    if (ret) {
+        // bad
+        return String();
+    }
+    out.resize(strlen(out.constData()));
+    return out;
+}
+
+String nameLookup(const String& name, LookupMode mode)
+{
+    String out(INET6_ADDRSTRLEN, '\0');
+    addrinfo hints, *p, *res;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = (mode == IPv6) ? AF_INET6 : AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if (getaddrinfo(name.constData(), NULL, &hints, &res) != 0) {
+        // bad
+        return String();
+    }
+
+    for (p = res; p; p = p->ai_next) {
+        if (mode == IPv4 && p->ai_family == AF_INET) {
+            sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(p->ai_addr);
+            inet_ntop(AF_INET, &addr->sin_addr, out.data(), out.size());
+            out.resize(strlen(out.constData()));
+            break;
+        } else if (mode == IPv6 && p->ai_family == AF_INET6) {
+            sockaddr_in6* addr = reinterpret_cast<sockaddr_in6*>(p->ai_addr);
+            inet_ntop(AF_INET6, &addr->sin6_addr, out.data(), out.size());
+            out.resize(strlen(out.constData()));
+            break;
+        }
+    }
+
+    freeaddrinfo(res);
+    return out;
 }
 
 } // namespace Rct

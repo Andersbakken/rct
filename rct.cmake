@@ -56,15 +56,15 @@ if (NOT DEFINED RCT_INCLUDE_DIR)
    set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")
 endif ()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/..)
+find_package(ZLIB REQUIRED)
+
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/.. ${ZLIB_INCLUDE_DIRS})
 set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/AES256CBC.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/SocketClient.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/SocketServer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Messages.cpp
@@ -73,9 +73,12 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SharedMemory.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SocketClient.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/SocketServer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/String.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Thread.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
@@ -110,7 +113,6 @@ if (RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD)
   add_definitions("-DRCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD=${RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD}")
 endif ()
 
-
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_library(CORESERVICES_LIBRARY CoreServices)
   find_path(CORESERVICES_INCLUDE "CoreServices/CoreServices.h")
@@ -125,7 +127,7 @@ if (NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   list(APPEND RCT_SYSTEM_LIBRARIES crypto pthread)
 endif()
 
-target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES})
+target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES} ${ZLIB_LIBRARIES})
 
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)

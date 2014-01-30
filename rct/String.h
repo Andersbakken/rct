@@ -340,6 +340,9 @@ public:
         mString.append(ba);
     }
 
+    String compress() const;
+    String uncompress() const;
+
     void append(const char *str, int len = -1)
     {
         if (len == -1)

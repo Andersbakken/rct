@@ -384,6 +384,7 @@ String hostName()
 String addrLookup(const String& addr, LookupMode mode)
 {
     sockaddr_storage sockaddr;
+    memset(&sockaddr, 0, sizeof(sockaddr_storage));
     size_t sz;
     if (mode == IPv6) {
         sockaddr_in6* sockaddr6 = reinterpret_cast<sockaddr_in6*>(&sockaddr);

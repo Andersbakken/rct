@@ -1,4 +1,5 @@
 #include "SocketClient.h"
+#include "Rct.h"
 #include "EventLoop.h"
 #include <assert.h>
 #include <unistd.h>

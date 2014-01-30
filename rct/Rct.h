@@ -92,6 +92,6 @@ inline int timevalDiff(timeval* a, timeval* b)
 #define eintrwrap(VAR, BLOCK)                   \
     do {                                        \
         VAR = BLOCK;                            \
-    } while (VAR == -1 && errno == EINTR);
+    } while (VAR == -1 && errno == EINTR)
 
 #endif

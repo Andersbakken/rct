@@ -402,8 +402,7 @@ String addrLookup(const String& addr, LookupMode mode)
     }
     String out(NI_MAXHOST, '\0');
     const struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&sockaddr);
-    const int ret = getnameinfo(sa, sz, out.data(), NI_MAXHOST, 0, 0, 0);
-    if (ret) {
+    if (getnameinfo(sa, sz, out.data(), NI_MAXHOST, 0, 0, 0) != 0) {
         // bad
         return String();
     }
@@ -425,21 +424,27 @@ String nameLookup(const String& name, LookupMode mode)
         return String();
     }
 
+    bool found = false;
     for (p = res; p; p = p->ai_next) {
         if (mode == IPv4 && p->ai_family == AF_INET) {
             sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(p->ai_addr);
             inet_ntop(AF_INET, &addr->sin_addr, out.data(), out.size());
             out.resize(strlen(out.constData()));
+            found = true;
             break;
         } else if (mode == IPv6 && p->ai_family == AF_INET6) {
             sockaddr_in6* addr = reinterpret_cast<sockaddr_in6*>(p->ai_addr);
             inet_ntop(AF_INET6, &addr->sin6_addr, out.data(), out.size());
             out.resize(strlen(out.constData()));
+            found = true;
             break;
         }
     }
 
     freeaddrinfo(res);
+
+    if (!found)
+        return String();
     return out;
 }
 

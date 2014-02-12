@@ -10,7 +10,7 @@ Thread::Thread()
 Thread::~Thread()
 {
     if (mRunning)
-        pthread_exit(mThread);
+        pthread_cancel(mThread);
 }
 
 void* Thread::localStart(void* arg)
@@ -41,9 +41,8 @@ void Thread::start(Priority priority, size_t stackSize)
     if (priority == Idle) {
 #ifdef HAVE_SCHEDIDLE
         initAttr(&pattr, &attr);
-        sched_param param = { 0 };
-        if (pthread_attr_setschedparam(pattr, SCHED_IDLE, &param) != 0) {
-            error() << "pthread_attr_setschedparam failed";
+        if (pthread_attr_setschedpolicy(pattr, SCHED_IDLE) != 0) {
+            error() << "pthread_attr_setschedpolicy failed";
         }
 #endif
     }

@@ -1,7 +1,8 @@
 #ifndef THREAD_H
 #define THREAD_H
 
-#include <thread>
+#include "EventLoop.h"
+#include <pthread.h>
 #include <mutex>
 
 class Thread
@@ -11,7 +12,7 @@ public:
     virtual ~Thread();
 
     enum Priority { Idle, Normal };
-    void start(Priority priority = Normal);
+    void start(Priority priority = Normal, size_t stackSize = 0);
     bool join();
 
     void setAutoDelete(bool on)
@@ -26,7 +27,7 @@ public:
         return mAutoDelete;
     }
 
-    std::thread::id self() const { return mThread.get_id(); }
+    pthread_t self() const { return mThread; }
 
 protected:
     virtual void run() = 0;
@@ -34,10 +35,14 @@ protected:
 private:
     void finish();
 
+    static void* localStart(void* arg);
+
 private:
     bool mAutoDelete;
     mutable std::mutex mMutex;
-    std::thread mThread;
+    pthread_t mThread;
+    bool mRunning;
+    EventLoop::WeakPtr mLoop;
 };
 
 #endif

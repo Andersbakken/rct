@@ -1,37 +1,68 @@
 #include "Thread.h"
-#include "EventLoop.h"
 #include "Log.h"
 #include "rct-config.h"
 
 Thread::Thread()
-    : mAutoDelete(false)
+    : mAutoDelete(false), mRunning(false), mLoop(EventLoop::eventLoop())
 {
 }
 
 Thread::~Thread()
 {
+    if (mRunning)
+        pthread_exit(mThread);
 }
 
-void Thread::start(Priority priority)
+void* Thread::localStart(void* arg)
 {
-    mThread = std::thread([=]() {
-            run();
-            if (isAutoDelete())
-                EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, this));
-        });
+    Thread* t = static_cast<Thread*>(arg);
+    t->run();
+    if (t->isAutoDelete()) {
+        if (EventLoop::SharedPtr loop = t->mLoop.lock())
+            loop->callLater(std::bind(&Thread::finish, t));
+        else
+            EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, t));
+    }
+    return 0;
+}
+
+static inline void initAttr(pthread_attr_t** pattr, pthread_attr_t* attr)
+{
+    if (!*pattr) {
+        *pattr = attr;
+        pthread_attr_init(attr);
+    }
+}
+
+void Thread::start(Priority priority, size_t stackSize)
+{
+    pthread_attr_t attr;
+    pthread_attr_t* pattr = 0;
     if (priority == Idle) {
 #ifdef HAVE_SCHEDIDLE
+        initAttr(&pattr, &attr);
         sched_param param = { 0 };
-        if (pthread_setschedparam(mThread.native_handle(), SCHED_IDLE, &param) == -1) {
-            error() << "pthread_setschedparam failed";
+        if (pthread_attr_setschedparam(pattr, SCHED_IDLE, &param) != 0) {
+            error() << "pthread_attr_setschedparam failed";
         }
 #endif
+    }
+    if (stackSize > 0) {
+        initAttr(&pattr, &attr);
+        if (pthread_attr_setstacksize(pattr, stackSize) != 0) {
+            error() << "pthread_attr_setstacksize failed";
+        }
+    }
+    mRunning = true;
+    if (pthread_create(&mThread, pattr, localStart, this) != 0) {
+        error() << "pthread_create failed";
     }
 }
 
 bool Thread::join()
 {
-    mThread.join();
+    pthread_join(mThread, 0);
+    mRunning = false;
     return true;
 }
 

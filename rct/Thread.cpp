@@ -61,9 +61,11 @@ void Thread::start(Priority priority, size_t stackSize)
 
 bool Thread::join()
 {
-    pthread_join(mThread, 0);
+    if (!mRunning)
+        return false;
+    const bool ok = pthread_join(mThread, 0) == 0;
     mRunning = false;
-    return true;
+    return ok;
 }
 
 void Thread::finish()

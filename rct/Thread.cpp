@@ -57,6 +57,9 @@ void Thread::start(Priority priority, size_t stackSize)
     if (pthread_create(&mThread, pattr, localStart, this) != 0) {
         error() << "pthread_create failed";
     }
+    if (pattr) {
+        pthread_attr_destroy(pattr);
+    }
 }
 
 bool Thread::join()

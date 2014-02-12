@@ -94,14 +94,15 @@ void ThreadPoolThread::run()
     }
 }
 
-ThreadPool::ThreadPool(int concurrentJobs, Thread::Priority priority)
-    : mConcurrentJobs(concurrentJobs), mPriority(priority), mBusyThreads(0)
+ThreadPool::ThreadPool(int concurrentJobs, Thread::Priority priority, size_t threadStackSize)
+    : mConcurrentJobs(concurrentJobs), mBusyThreads(0),
+      mPriority(priority), mThreadStackSize(threadStackSize)
 {
     if (!sInstance)
         sInstance = this;
     for (int i = 0; i < mConcurrentJobs; ++i) {
         mThreads.push_back(new ThreadPoolThread(this));
-        mThreads.back()->start(mPriority);
+        mThreads.back()->start(mPriority, mThreadStackSize);
     }
 }
 
@@ -129,7 +130,7 @@ void ThreadPool::setConcurrentJobs(int concurrentJobs)
         std::lock_guard<std::mutex> lock(mMutex);
         for (int i = mConcurrentJobs; i < concurrentJobs; ++i) {
             mThreads.push_back(new ThreadPoolThread(this));
-            mThreads.back()->start(mPriority);
+            mThreads.back()->start(mPriority, mThreadStackSize);
         }
         mConcurrentJobs = concurrentJobs;
     } else {
@@ -157,7 +158,7 @@ void ThreadPool::start(const std::shared_ptr<Job> &job, int priority)
     job->mPriority = priority;
     if (priority == Guaranteed) {
         ThreadPoolThread *t = new ThreadPoolThread(job);
-        t->start(mPriority);
+        t->start(mPriority, mThreadStackSize);
         return;
     }
 

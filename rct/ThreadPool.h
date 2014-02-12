@@ -13,7 +13,9 @@ class ThreadPoolThread;
 class ThreadPool
 {
 public:
-    ThreadPool(int concurrentJobs, Thread::Priority priority = Thread::Normal);
+    ThreadPool(int concurrentJobs,
+               Thread::Priority priority = Thread::Normal,
+               size_t stackSize = 0);
     ~ThreadPool();
 
     void setConcurrentJobs(int concurrentJobs);
@@ -60,12 +62,13 @@ private:
 
 private:
     int mConcurrentJobs;
-    Thread::Priority mPriority;
     mutable std::mutex mMutex;
     std::condition_variable mCond;
     std::deque<std::shared_ptr<Job> > mJobs;
     List<ThreadPoolThread*> mThreads;
     int mBusyThreads;
+    const Thread::Priority mPriority;
+    const size_t mThreadStackSize;
 
     static ThreadPool* sInstance;
 

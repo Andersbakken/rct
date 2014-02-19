@@ -78,6 +78,7 @@ void restartTime()
     sStart.restart();
 }
 
+#if 0
 static inline String prettyTimeSinceStarted()
 {
     uint64_t elapsed = sStart.elapsed();
@@ -96,6 +97,7 @@ static inline String prettyTimeSinceStarted()
     snprintf(buf, sizeof(buf), "%02d:%02d:%02d:%03d: ", values[0], values[1], values[2], values[3]);
     return buf;
 }
+#endif
 
 static void log(int level, const char *format, va_list v)
 {

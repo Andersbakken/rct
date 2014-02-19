@@ -277,7 +277,7 @@ Deserializer &operator>>(Deserializer &s, Map<Key, Value> &map)
         Value value;
         for (uint32_t i=0; i<size; ++i) {
             s >> key >> value;
-            map[key] = value;
+            map[key] = std::move(value);
         }
     }
     return s;

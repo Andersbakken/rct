@@ -190,14 +190,6 @@ void error(const char *format, ...)
     va_end(v);
 }
 
-static inline void removeOutputs()
-{
-    std::lock_guard<std::mutex> lock(sOutputsMutex);
-    for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it)
-        delete *it;
-    sOutputs.clear();
-}
-
 bool testLog(int level)
 {
     std::lock_guard<std::mutex> lock(sOutputsMutex);

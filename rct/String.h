@@ -37,8 +37,8 @@ public:
     {}
 
     String(String &&ba)
+        : mString(std::move(ba.mString))
     {
-        std::swap(ba.mString, mString);
     }
 
     String(const std::string &str)

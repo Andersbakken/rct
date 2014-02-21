@@ -14,6 +14,7 @@
 # include <mach-o/dyld.h>
 #elif OS_FreeBSD
 # include <sys/sysctl.h>
+# include <netinet/in.h>
 #endif
 
 #ifdef HAVE_MACH_ABSOLUTE_TIME

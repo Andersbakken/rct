@@ -594,6 +594,7 @@ void SocketClient::socketCallback(int f, int mode)
                 close();
                 return;
             } else if (fromLen) {
+                readBuffer.resize(e);
                 signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
                 readBuffer.clear();
             } else {

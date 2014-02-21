@@ -382,22 +382,28 @@ String hostName()
     return host;
 }
 
-String addrLookup(const String& addr, LookupMode mode)
+String addrLookup(const String& addr, LookupMode mode, bool *ok)
 {
     sockaddr_storage sockaddr;
     memset(&sockaddr, 0, sizeof(sockaddr_storage));
     size_t sz;
+    if (mode == Auto)
+        mode = addr.contains(':') ? IPv6 : IPv4;
     if (mode == IPv6) {
         sockaddr_in6* sockaddr6 = reinterpret_cast<sockaddr_in6*>(&sockaddr);
         if (inet_pton(AF_INET6, addr.constData(), &sockaddr6->sin6_addr) != 1) {
-            return String();
+            if (ok)
+                *ok = false;
+            return addr;
         }
         sockaddr.ss_family = AF_INET6;
         sz = sizeof(sockaddr_in6);
     } else {
         sockaddr_in* sockaddr4 = reinterpret_cast<sockaddr_in*>(&sockaddr);
         if (inet_pton(AF_INET, addr.constData(), &sockaddr4->sin_addr) != 1) {
-            return String();
+            if (ok)
+                *ok = false;
+            return addr;
         }
         sockaddr.ss_family = AF_INET;
         sz = sizeof(sockaddr_in);
@@ -405,15 +411,21 @@ String addrLookup(const String& addr, LookupMode mode)
     String out(NI_MAXHOST, '\0');
     const struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&sockaddr);
     if (getnameinfo(sa, sz, out.data(), NI_MAXHOST, 0, 0, 0) != 0) {
+        if (ok)
+            *ok = false;
         // bad
-        return String();
+        return addr;
     }
     out.resize(strlen(out.constData()));
+    if (ok)
+        *ok = true;
+
     return out;
 }
 
-String nameLookup(const String& name, LookupMode mode)
+String nameLookup(const String& name, LookupMode mode, bool *ok)
 {
+    assert(mode == Auto);
     String out(INET6_ADDRSTRLEN, '\0');
     addrinfo hints, *p, *res;
 
@@ -422,8 +434,10 @@ String nameLookup(const String& name, LookupMode mode)
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo(name.constData(), NULL, &hints, &res) != 0) {
+        if (ok)
+            *ok = false;
         // bad
-        return String();
+        return name;
     }
 
     bool found = false;
@@ -445,8 +459,14 @@ String nameLookup(const String& name, LookupMode mode)
 
     freeaddrinfo(res);
 
-    if (!found)
-        return String();
+    if (!found) {
+        if (ok)
+            *ok = false;
+        return name;
+    }
+    if (ok)
+        *ok = true;
+
     return out;
 }
 

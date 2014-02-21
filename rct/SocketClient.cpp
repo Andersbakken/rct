@@ -587,16 +587,15 @@ void SocketClient::socketCallback(int f, int mode)
             } else if (e == 0) {
                 // socket closed
                 if (total) {
-                    if (!fromLen) {
+                    if (!fromLen)
                         signalReadyRead(socketPtr, std::move(readBuffer));
-                    } else {
-                        signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
-                        readBuffer.clear();
-                    }
                 }
                 signalDisconnected(socketPtr);
                 close();
                 return;
+            } else if (fromLen) {
+                signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
+                readBuffer.clear();
             } else {
                 total += e;
                 readBuffer.resize(total);
@@ -605,8 +604,6 @@ void SocketClient::socketCallback(int f, int mode)
         assert(total <= readBuffer.capacity());
         if (!fromLen)
             signalReadyRead(socketPtr, std::move(readBuffer));
-        else
-            signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
 
         if (writeWait) {
             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {

@@ -74,23 +74,15 @@ bool writeFile(const Path& path, const String& data)
 
 int readLine(FILE *f, char *buf, int max)
 {
-    assert(!buf == (max == -1));
-    if (max == -1)
-        max = INT_MAX;
-    for (int i=0; i<max; ++i) {
-        const int ch = fgetc(f);
-        switch (ch) {
-        case EOF:
-            if (!i)
-                i = -1;
-            // fall through
-        case '\n':
-            if (buf)
-                *buf = '\0';
-            return i;
-        }
-        if (buf)
-            *buf++ = *reinterpret_cast<const char*>(&ch);
+    char bufbuf[16384];
+    if (!buf)
+        max = sizeof(bufbuf);
+    char *ret = fgets(buf ? buf : bufbuf, max, f);
+    if (ret) {
+        const int len = strlen(ret);
+        if (len)
+            ret[len - 1] = '\0';
+        return len;
     }
     return -1;
 }

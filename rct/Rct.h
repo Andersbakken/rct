@@ -44,6 +44,67 @@ uint64_t monoMs();
 uint64_t currentTimeMs();
 String hostName();
 
+template <typename Node>
+void insertLinkedListNode(Node *node, Node *&first, Node *&last, Node *after = 0)
+{
+    assert(node);
+    if (after) {
+        assert(first);
+        assert(last);
+        node->next = after->next;
+        if (after->next) {
+            after->next->prev = node;
+        } else {
+            assert(last == after);
+            last = node;
+        }
+        after->next = node;
+        node->prev = after;
+    } else if (!first) {
+        first = last = node;
+    } else {
+        node->next = first;
+        assert(first);
+        first->prev = node;
+        first = node;
+    }
+}
+
+template <typename Node>
+void removeLinkedListNode(Node *node, Node *&first, Node *&last)
+{
+    assert(node);
+    if (node == first) {
+        if (node == last) {
+            first = last = 0;
+        } else {
+            first = node->next;
+            first->prev = 0;
+        }
+    } else if (node == last) {
+        assert(node->prev);
+        node->prev->next = 0;
+        last = node->prev;
+    } else {
+        assert(node->prev);
+        assert(node->next);
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+    }
+
+    node->next = node->prev = 0; // ### ???
+}
+
+template <typename Node>
+void deleteLinkedListNodes(Node *node)
+{
+    while (node) {
+        Node *tmp = node;
+        node = node->next;
+        delete tmp;
+    }
+}
+
 enum LookupMode { Auto, IPv4, IPv6 };
 String addrLookup(const String& addr, LookupMode mode = Auto, bool *ok = 0);
 String nameLookup(const String& name, LookupMode mode = IPv4, bool *ok = 0);

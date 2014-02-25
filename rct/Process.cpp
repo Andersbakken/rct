@@ -172,7 +172,7 @@ void ProcessThread::installProcessHandler()
 }
 
 Process::Process()
-    : mPid(-1), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0), mMode(Sync)
+    : mPid(-1), mKilled(false), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0), mMode(Sync)
 {
     std::call_once(sProcessHandler, ProcessThread::installProcessHandler);
 
@@ -186,7 +186,7 @@ Process::~Process()
 {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        assert(mPid == -1);
+        assert(mPid == -1 || mKilled);
     }
 
     if (mStdIn[0] != -1) {
@@ -667,9 +667,10 @@ void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::funct
 
 void Process::kill(int sig)
 {
-    if (mPid == -1)
+    if (mPid == -1 && !mKilled)
         return;
 
+    mKilled = true;
     ::kill(mPid, sig);
 }
 

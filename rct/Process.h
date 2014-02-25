@@ -74,6 +74,7 @@ private:
 
     mutable std::mutex mMutex;
     pid_t mPid;
+    bool mKilled;
     int mReturn;
 
     std::deque<String> mStdInBuffer;

@@ -150,7 +150,7 @@ check_cxx_source_compiles("
   }" HAVE_CXX11)
 
 if (NOT HAVE_CXX11)
-  message(FATAL_ERROR "C++11 support not detected. rct requires a modern compiler, GCC >= 4.7 or Clang >= 3.2 should suffice")
+  message(FATAL_ERROR "C++11 support not detected. rct requires a modern compiler, GCC >= 4.8 or Clang >= 3.2 should suffice")
 endif ()
 
 install(FILES

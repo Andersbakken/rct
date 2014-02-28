@@ -113,6 +113,7 @@ MessageQueue::MessageQueue(int key, CreateFlag flag)
     owner = ((flg & IPC_CREAT) == IPC_CREAT);
     thread = std::make_shared<MessageThread>(queue, this);
     thread->init(thread);
+    thread->start();
 }
 
 MessageQueue::MessageQueue(const Path& path, CreateFlag flag)
@@ -127,6 +128,7 @@ MessageQueue::MessageQueue(const Path& path, CreateFlag flag)
     owner = ((flg & IPC_CREAT) == IPC_CREAT);
     thread = std::make_shared<MessageThread>(queue, this);
     thread->init(thread);
+    thread->start();
 }
 
 MessageQueue::~MessageQueue()

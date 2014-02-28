@@ -74,6 +74,7 @@ public:
     Log &operator=(const Log &other);
 #ifdef OS_Darwin
     Log operator<<(long number) { return addStringStream(number); }
+    Log operator<<(size_t number) { return addStringStream(number); }
 #endif
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }

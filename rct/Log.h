@@ -102,8 +102,8 @@ public:
             if (len == -1)
                 len = strlen(data);
             assert(len >= 0);
-            String &str = mData->outPtr ? *mData->outPtr : mData->out;
             if (len) {
+                String &str = mData->outPtr ? *mData->outPtr : mData->out;
                 const int outLength = str.size();
                 if (mData->disableSpacingOverride) {
                     --mData->disableSpacingOverride;

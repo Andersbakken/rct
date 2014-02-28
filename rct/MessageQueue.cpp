@@ -1,6 +1,7 @@
 #include "MessageQueue.h"
 #include "Thread.h"
 #include "EventLoop.h"
+#include "Log.h"
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
@@ -61,11 +62,13 @@ void MessageThread::run()
         }
         sz = msgrcv(queueId, &msgbuf, sizeof(msgbuf.mtext), 0, 0);
         if (sz == -1) {
-            if (errno == EINTR)
+            if (errno == EINTR) {
                 continue;
-            else if (errno == EIDRM) {
+            } else if (errno == EIDRM) {
                 queueId = -1;
                 return;
+            } else if (errno == E2BIG) {
+                error() << "Data too big in MessageQueue";
             }
         } else {
             assert(sz > 0);

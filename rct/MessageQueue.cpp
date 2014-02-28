@@ -48,6 +48,7 @@ void MessageThread::stop()
 
 void MessageThread::run()
 {
+    assert(queueId != -1);
     struct {
         long mtype;
         char mtext[4096];
@@ -145,6 +146,8 @@ MessageQueue::~MessageQueue()
 
 bool MessageQueue::send(const char* data, size_t size)
 {
+    if (queue == -1)
+        return false;
     struct {
         long mtype;
         const char* data;

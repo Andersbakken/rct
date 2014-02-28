@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <mutex>
 
-class MessageThread : public Thread
+class MessageThread : public Thread, public std::enable_shared_from_this<MessageThread>
 {
 public:
     MessageThread(int q, MessageQueue* mq)
@@ -20,17 +20,15 @@ public:
     {
     }
 
-    void init(const std::shared_ptr<MessageThread>& thr) { thread = thr; }
     void stop();
 
 protected:
-    void run();
+    virtual void run();
 
 private:
     static void notifyDataAvailable(const Buffer& buf, const std::weak_ptr<MessageThread>& thread);
 
 private:
-    std::weak_ptr<MessageThread> thread;
     int queueId;
     MessageQueue* queue;
     std::mutex mutex;
@@ -48,6 +46,7 @@ void MessageThread::stop()
 
 void MessageThread::run()
 {
+    std::weak_ptr<MessageThread> thread = shared_from_this();
     assert(queueId != -1);
     struct {
         long mtype;
@@ -113,7 +112,6 @@ MessageQueue::MessageQueue(int key, CreateFlag flag)
     queue = msgget(key, flg);
     owner = ((flg & IPC_CREAT) == IPC_CREAT);
     thread = std::make_shared<MessageThread>(queue, this);
-    thread->init(thread);
     thread->start();
 }
 
@@ -128,7 +126,6 @@ MessageQueue::MessageQueue(const Path& path, CreateFlag flag)
     queue = msgget(key, flg);
     owner = ((flg & IPC_CREAT) == IPC_CREAT);
     thread = std::make_shared<MessageThread>(queue, this);
-    thread->init(thread);
     thread->start();
 }
 

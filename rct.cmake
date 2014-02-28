@@ -67,6 +67,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/MessageQueue.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Messages.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Path.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Plugin.cpp
@@ -169,6 +170,7 @@ install(FILES
         rct/SocketServer.h
         rct/MemoryMonitor.h
         rct/Message.h
+        rct/MessageQueue.h
         rct/Messages.h
         rct/Path.h
         rct/Plugin.h

@@ -1,0 +1,166 @@
+#include "MessageQueue.h"
+#include "Thread.h"
+#include "EventLoop.h"
+#include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <assert.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <pthread.h>
+#include <mutex>
+
+class MessageThread : public Thread
+{
+public:
+    MessageThread(int q, MessageQueue* mq)
+        : queueId(q), queue(mq), stopped(false), loop(EventLoop::eventLoop())
+    {
+    }
+
+    void init(const std::shared_ptr<MessageThread>& thr) { thread = thr; }
+    void stop();
+
+protected:
+    void run();
+
+private:
+    static void notifyDataAvailable(const Buffer& buf, const std::weak_ptr<MessageThread>& thread);
+
+private:
+    std::weak_ptr<MessageThread> thread;
+    int queueId;
+    MessageQueue* queue;
+    std::mutex mutex;
+    bool stopped;
+    EventLoop::WeakPtr loop;
+};
+
+void MessageThread::stop()
+{
+    // Ugly!
+    std::unique_lock<std::mutex> locker(mutex);
+    stopped = true;
+    kill(getpid(), SIGUSR2);
+}
+
+void MessageThread::run()
+{
+    struct {
+        long mtype;
+        char mtext[4096];
+    } msgbuf;
+
+    ssize_t sz;
+    for (;;) {
+        {
+            std::unique_lock<std::mutex> locker(mutex);
+            if (stopped)
+                break;
+        }
+        sz = msgrcv(queueId, &msgbuf, sizeof(msgbuf.mtext), 0, 0);
+        if (sz == -1) {
+            if (errno == EINTR)
+                continue;
+            else if (errno == EIDRM) {
+                queueId = -1;
+                return;
+            }
+        } else {
+            assert(sz > 0);
+            Buffer buf;
+            buf.resize(sz);
+            memcpy(buf.data(), msgbuf.mtext, sz);
+
+            if (EventLoop::SharedPtr l = loop.lock()) {
+                std::weak_ptr<MessageThread> thr = thread;
+                l->callLaterMove(std::bind(MessageThread::notifyDataAvailable, std::placeholders::_1, std::placeholders::_2), std::move(buf), std::move(thr));
+            }
+        }
+    }
+}
+
+void MessageThread::notifyDataAvailable(const Buffer& buf, const std::weak_ptr<MessageThread>& thread)
+{
+    if (std::shared_ptr<MessageThread> thr = thread.lock()) {
+        thr->queue->signalDataAvailable(buf);
+    }
+}
+
+#define PROJID 3947
+
+static pthread_once_t msgInitOnce = PTHREAD_ONCE_INIT;
+
+static void msgSigHandler(int)
+{
+    // do nothing
+}
+
+static void msgInit()
+{
+    signal(SIGUSR2, msgSigHandler);
+}
+
+MessageQueue::MessageQueue(int key, CreateFlag flag)
+{
+    pthread_once(&msgInitOnce, msgInit);
+    const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;
+    queue = msgget(key, flg);
+    owner = ((flg & IPC_CREAT) == IPC_CREAT);
+    thread = std::make_shared<MessageThread>(queue, this);
+    thread->init(thread);
+}
+
+MessageQueue::MessageQueue(const Path& path, CreateFlag flag)
+    : queue(-1), owner(false)
+{
+    pthread_once(&msgInitOnce, msgInit);
+    const key_t key = ftok(path.nullTerminated(), PROJID);
+    if (key == -1)
+        return;
+    const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;
+    queue = msgget(key, flg);
+    owner = ((flg & IPC_CREAT) == IPC_CREAT);
+    thread = std::make_shared<MessageThread>(queue, this);
+    thread->init(thread);
+}
+
+MessageQueue::~MessageQueue()
+{
+    if (thread) {
+        thread->stop();
+        thread->join();
+        thread.reset();
+    }
+    if (queue != -1 && owner) {
+        msgctl(queue, IPC_RMID, 0);
+    }
+}
+
+bool MessageQueue::send(const char* data, size_t size)
+{
+    struct {
+        long mtype;
+        const char* data;
+    } msgbuf = { 1, data };
+    int ret;
+    for (;;) {
+        ret = msgsnd(queue, &msgbuf, size, 0);
+        if (ret == -1) {
+            if (errno == EINTR)
+                continue;
+            if (errno == EIDRM) {
+                if (thread) {
+                    thread->stop();
+                    thread->join();
+                    thread.reset();
+                }
+                queue = -1;
+            }
+            return false;
+        }
+        break;
+    }
+    return true;
+}

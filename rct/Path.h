@@ -120,6 +120,15 @@ public:
     int readAll(char *&, int max = -1) const;
     String readAll(int max = -1) const;
 
+    bool touch() const
+    {
+        if (FILE *f = fopen(constData(), "a")) {
+            fclose(f);
+            return true;
+        }
+        return false;
+    }
+
     enum WriteMode {
         Overwrite,
         Append

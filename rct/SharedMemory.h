@@ -2,6 +2,7 @@
 #define SHAREDMEMORY_H
 
 #include <rct/Path.h>
+#include <sys/types.h>
 
 class SharedMemory
 {
@@ -9,7 +10,7 @@ public:
     enum CreateFlag { None, Create };
     enum AttachFlag { Read = 0x0, Write = 0x1, ReadWrite = Write };
 
-    SharedMemory(int key, unsigned int size, CreateFlag = None);
+    SharedMemory(key_t key, unsigned int size, CreateFlag = None);
     SharedMemory(const Path& filename, unsigned int size, CreateFlag = None);
     ~SharedMemory();
 
@@ -17,11 +18,19 @@ public:
     void detach();
 
     bool isValid() const { return mShm != -1; }
+    key_t key() const { return mKey; }
+    void *address() const { return mAddr; }
+    unsigned int size() const { return mSize; }
 
+    void cleanup();
 private:
+    bool init(key_t key, unsigned int size, CreateFlag flag);
+
     int mShm;
     bool mOwner;
     void* mAddr;
+    key_t mKey;
+    unsigned int mSize;
 };
 
 #endif

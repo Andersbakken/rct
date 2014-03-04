@@ -96,12 +96,12 @@ cJSON *Value::toCJSON(const Value &value)
     case Value::Type_String: return cJSON_CreateString(value.toString().constData());
     case Value::Type_List: {
         cJSON *array = cJSON_CreateArray();
-        for (auto v : *value.listPtr())
+        for (const auto &v : *value.listPtr())
             cJSON_AddItemToArray(array, toCJSON(v));
         return array; }
     case Value::Type_Map: {
         cJSON *object = cJSON_CreateObject();
-        for (auto v : *value.mapPtr())
+        for (const auto &v : *value.mapPtr())
             cJSON_AddItemToObject(object, v.first.constData(), v.second.toCJSON(v.second));
         return object; }
     case Value::Type_Invalid:

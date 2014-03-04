@@ -64,8 +64,8 @@ public:
     Signal<std::function<void(Connection*)> > &finished() { return mFinished; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
+    bool send(uint8_t messageId, const String& message);
 private:
-    bool sendData(uint8_t id, const String& message);
 
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
@@ -94,7 +94,7 @@ inline bool Connection::send(Message&& message)
     String encoded;
     Serializer serializer(encoded);
     message.encode(serializer);
-    return sendData(message.messageId(), encoded);
+    return send(message.messageId(), encoded);
 }
 
 inline bool Connection::send(const Message& message)
@@ -102,7 +102,7 @@ inline bool Connection::send(const Message& message)
     String encoded;
     Serializer serializer(encoded);
     message.encode(serializer);
-    return sendData(message.messageId(), encoded);
+    return send(message.messageId(), encoded);
 }
 
 #endif // CONNECTION_H

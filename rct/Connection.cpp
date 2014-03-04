@@ -86,25 +86,23 @@ bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
     return true;
 }
 
-bool Connection::sendData(uint8_t id, const String &message)
+bool Connection::send(uint8_t messageId, const String &message)
 {
     // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
     if (!mSocketClient->isConnected()) {
         if (!mWarned) {
             mWarned = true;
-            ::error("Trying to send message to unconnected client (%d)", id);
+            ::error("Trying to send message to unconnected client (%d)", messageId);
         }
         return false;
     }
 
-    String data;
-    Serializer s(data);
-    s << static_cast<uint32_t>(data.size()) << static_cast<int8_t>(Messages::Version) << id;
-    if (!message.isEmpty())
-        s.write(message.constData(), message.size());
-    *reinterpret_cast<uint32_t*>(&data[0]) = data.size() - sizeof(uint32_t);
-    mPendingWrite += data.size();
-    return mSocketClient->write(data);
+    String header;
+    Serializer s(header);
+    s << static_cast<uint32_t>(sizeof(uint8_t) + sizeof(uint8_t) + message.size())
+      << static_cast<int8_t>(Messages::Version) << messageId;
+    mPendingWrite += header.size() + message.size();
+    return mSocketClient->write(header) && (message.isEmpty() || mSocketClient->write(message));
 }
 
 int Connection::pendingWrite() const

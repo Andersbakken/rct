@@ -24,6 +24,10 @@ public:
     {
         assert(f);
     }
+    bool write(const String &string)
+    {
+        return write(string.constData(), string.size());
+    }
     bool write(const char *data, int len)
     {
         static const bool dump = getenv("RCT_SERIALIZER_DUMP");

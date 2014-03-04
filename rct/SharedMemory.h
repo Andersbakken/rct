@@ -10,8 +10,8 @@ public:
     enum CreateFlag { None, Create };
     enum AttachFlag { Read = 0x0, Write = 0x1, ReadWrite = Write };
 
-    SharedMemory(key_t key, unsigned int size, CreateFlag = None);
-    SharedMemory(const Path& filename, unsigned int size, CreateFlag = None);
+    SharedMemory(key_t key, int size, CreateFlag = None);
+    SharedMemory(const Path& filename, int size, CreateFlag = None);
     ~SharedMemory();
 
     void* attach(AttachFlag flag, void* address = 0);
@@ -20,17 +20,17 @@ public:
     bool isValid() const { return mShm != -1; }
     key_t key() const { return mKey; }
     void *address() const { return mAddr; }
-    unsigned int size() const { return mSize; }
+    int size() const { return mSize; }
 
     void cleanup();
 private:
-    bool init(key_t key, unsigned int size, CreateFlag flag);
+    bool init(key_t key, int size, CreateFlag flag);
 
     int mShm;
     bool mOwner;
     void* mAddr;
     key_t mKey;
-    unsigned int mSize;
+    int mSize;
 };
 
 #endif

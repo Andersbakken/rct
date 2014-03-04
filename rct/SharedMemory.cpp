@@ -7,19 +7,19 @@
 
 #define PROJID 3946
 
-SharedMemory::SharedMemory(key_t key, unsigned int size, CreateFlag flag)
+SharedMemory::SharedMemory(key_t key, int size, CreateFlag flag)
     : mShm(-1), mOwner(false), mAddr(0), mKey(-1), mSize(0)
 {
     init(key, size, flag);
 }
 
-SharedMemory::SharedMemory(const Path& filename, unsigned int size, CreateFlag flag)
+SharedMemory::SharedMemory(const Path& filename, int size, CreateFlag flag)
     : mShm(-1), mOwner(false), mAddr(0), mKey(-1), mSize(0)
 {
     init(ftok(filename.nullTerminated(), PROJID), size, flag);
 }
 
-bool SharedMemory::init(key_t key, unsigned int size, CreateFlag flag)
+bool SharedMemory::init(key_t key, int size, CreateFlag flag)
 {
     if (key == -1)
         return false;

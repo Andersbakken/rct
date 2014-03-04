@@ -15,28 +15,35 @@
 class Serializer
 {
 public:
-    Serializer(String &out, const char *key = "")
-        : mOut(&out), mOutFile(0), mKey(key)
+    Serializer(String &out)
+        : mError(false), mOutData(0), mOutString(&out), mOutFile(0), mPos(0), mMax(INT_MAX)
     {}
 
-    Serializer(FILE *f, const char *key = "")
-        : mOut(0), mOutFile(f), mKey(key)
+    Serializer(FILE *f)
+        : mError(false), mOutData(0), mOutString(0), mOutFile(f), mPos(0), mMax(INT_MAX)
     {
         assert(f);
     }
+    Serializer(char *outData, int max)
+        : mError(false), mOutData(outData), mOutString(0), mOutFile(0), mPos(0), mMax(max)
+    {}
     bool write(const String &string)
     {
         return write(string.constData(), string.size());
     }
     bool write(const char *data, int len)
     {
-        static const bool dump = getenv("RCT_SERIALIZER_DUMP");
-        if (dump) {
-            printf("Writing %d bytes for %s\n", len, mKey);
-        }
         assert(len > 0);
-        if (mOut) {
-            mOut->append(data, len);
+        if (mOutData) {
+            if (mPos + len < mMax) {
+                memcpy(mOutData + mPos, data, len);
+                mPos += len;
+            } else {
+                mError = true;
+            }
+            return mError;
+        } else if (mOutString) {
+            mOutString->append(data, len);
             return true;
         } else {
             assert(mOutFile);
@@ -44,16 +51,30 @@ public:
             return (ret == static_cast<size_t>(len));
         }
     }
-    const String *string() const { return mOut; }
-    String *string()  { return mOut; }
+    const String *string() const { return mOutString; }
+    String *string() { return mOutString; }
+    char *outData() const { return mOutData; }
     const FILE *file() const { return mOutFile; }
     FILE *file() { return mOutFile; }
 
-    int pos() const { return mOut ? mOut->size() : static_cast<int>(ftell(mOutFile)); }
+    int pos() const
+    {
+        if (mOutData) {
+            return mPos;
+        } else if (mOutString) {
+            return mOutString->size();
+        } else {
+            assert(mOutFile);
+            return static_cast<int>(ftell(mOutFile));
+        }
+    }
+    bool hasError() const { return mError; }
 private:
-    String *mOut;
+    bool mError;
+    char *mOutData;
+    String *mOutString;
     FILE *mOutFile;
-    const char *mKey;
+    int mPos, mMax;
 };
 
 class Deserializer
@@ -98,6 +119,9 @@ public:
         }
         if (len) {
             if (mData) {
+                if (mPos + len > mLength) {
+                    error() << "About to die" << mPos << len << mLength;
+                }
                 assert(mPos + len <= mLength);
                 memcpy(target, mData + mPos, len);
                 mPos += len;

@@ -7,43 +7,48 @@
 
 #define PROJID 3946
 
-SharedMemory::SharedMemory(key_t key, int size, CreateFlag flag)
+SharedMemory::SharedMemory(key_t key, int size, CreateMode mode)
     : mShm(-1), mOwner(false), mAddr(0), mKey(-1), mSize(0)
 {
-    init(key, size, flag);
+    init(key, size, mode);
 }
 
-SharedMemory::SharedMemory(const Path& filename, int size, CreateFlag flag)
+SharedMemory::SharedMemory(const Path& filename, int size, CreateMode mode)
     : mShm(-1), mOwner(false), mAddr(0), mKey(-1), mSize(0)
 {
-    init(ftok(filename.nullTerminated(), PROJID), size, flag);
+    init(ftok(filename.nullTerminated(), PROJID), size, mode);
 }
 
-bool SharedMemory::init(key_t key, int size, CreateFlag flag)
+bool SharedMemory::init(key_t key, int size, CreateMode mode)
 {
     if (key == -1)
         return false;
 
-    mShm = shmget(key, size, (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0);
+    mShm = shmget(key, size, (mode == None ? 0 : (IPC_CREAT | IPC_EXCL)));
+    if (mShm == -1 && mode == Recreate) {
+        mShm = shmget(key, size, 0);
+        if (mShm != -1) {
+            shmctl(mShm, IPC_RMID, 0);
+            mShm = shmget(key, size, IPC_CREAT | IPC_EXCL);
+        }
+    }
     if (mShm == -1)
         return false;
 
-    if (flag == Create) {
+    if (mode != None) {
         shmid_ds ds;
         memset(&ds, 0, sizeof(ds));
         ds.shm_perm.uid = getuid();
         ds.shm_perm.mode = 0600 | SHM_DEST;
         const int ret = shmctl(mShm, IPC_SET, &ds);
         if (ret == -1) {
-            error() << strerror(errno) << errno;
-            if (flag == Create)
-                shmctl(mShm, IPC_RMID, 0);
+            shmctl(mShm, IPC_RMID, 0);
             mShm = -1;
             return false;
         }
     }
     mKey = key;
-    mOwner = (flag == Create);
+    mOwner = (mode != None);
     mSize = size;
 
     return true;

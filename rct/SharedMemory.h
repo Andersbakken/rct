@@ -7,11 +7,11 @@
 class SharedMemory
 {
 public:
-    enum CreateFlag { None, Create };
+    enum CreateMode { None, Create, Recreate };
     enum AttachFlag { Read = 0x0, Write = 0x1, ReadWrite = Write };
 
-    SharedMemory(key_t key, int size, CreateFlag = None);
-    SharedMemory(const Path& filename, int size, CreateFlag = None);
+    SharedMemory(key_t key, int size, CreateMode = None);
+    SharedMemory(const Path& filename, int size, CreateMode = None);
     ~SharedMemory();
 
     void* attach(AttachFlag flag, void* address = 0);
@@ -24,7 +24,7 @@ public:
 
     void cleanup();
 private:
-    bool init(key_t key, int size, CreateFlag flag);
+    bool init(key_t key, int size, CreateMode mode);
 
     int mShm;
     bool mOwner;

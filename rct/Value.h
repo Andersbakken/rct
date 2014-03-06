@@ -21,8 +21,12 @@ public:
     inline Value(const Value &other) : mType(Type_Invalid) { copy(other); }
     inline Value(const Map<String, Value> &map) : mType(Type_Map) { new (mData.mapBuf) Map<String, Value>(map); }
     inline Value(const List<Value> &list) : mType(Type_List) { new (mData.listBuf) List<Value>(list); }
-    inline Value &operator=(const Value &other) { clear(); copy(other); return *this; }
+    Value(Value &&other);
     ~Value() { clear(); }
+
+    inline Value &operator=(const Value &other) { clear(); copy(other); return *this; }
+    Value & operator=(Value&& other);
+
     inline bool isNull() const { return mType == Type_Invalid; }
     inline bool isValid() const { return mType != Type_Invalid; }
     enum Type {
@@ -85,6 +89,21 @@ private:
         void *pointer;
     } mData;
 };
+
+inline Value::Value(Value &&other)
+    : mType(Type_Invalid)
+{
+    copy(other);
+    memset(&other.mData, '\0', sizeof(mData));
+}
+
+inline Value &Value::operator=(Value &&other)
+{
+    clear();
+    copy(other);
+    memset(&other.mData, '\0', sizeof(mData));
+    return *this;
+}
 
 const char *Value::typeToString(Type type)
 {

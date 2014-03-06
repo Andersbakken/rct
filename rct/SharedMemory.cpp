@@ -39,7 +39,10 @@ bool SharedMemory::init(key_t key, int size, CreateMode mode)
         shmid_ds ds;
         memset(&ds, 0, sizeof(ds));
         ds.shm_perm.uid = getuid();
-        ds.shm_perm.mode = 0600 | SHM_DEST;
+        ds.shm_perm.mode = 0600;
+#ifndef OS_Darwin
+        ds.shm_perm.mode |= SHM_DEST;
+#endif
         const int ret = shmctl(mShm, IPC_SET, &ds);
         if (ret == -1) {
             shmctl(mShm, IPC_RMID, 0);

@@ -50,6 +50,8 @@ public:
     inline List<Value> toList() const;
     Map<String, Value>::const_iterator begin() const;
     Map<String, Value>::const_iterator end() const;
+    List<Value>::const_iterator listBegin() const;
+    List<Value>::const_iterator listEnd() const;
     inline int count() const;
     inline const Value &at(int idx) const;
     template <typename T> T operator[](int idx) const;
@@ -58,10 +60,10 @@ public:
     Value &operator[](int idx);
     const Value &operator[](const String &key) const;
     Value &operator[](const String &key);
-    inline Value child(int idx, const Value &defaultValue = Value()) const;
-    template <typename T> inline T child(int idx, const T &defaultValue = T()) const;
-    inline Value child(const String &key, const Value &defaultValue = Value()) const;
-    template <typename T> inline T child(const String &name, const T &defaultValue = T()) const;
+    inline Value value(int idx, const Value &defaultValue = Value()) const;
+    template <typename T> inline T value(int idx, const T &defaultValue = T()) const;
+    inline Value value(const String &key, const Value &defaultValue = Value()) const;
+    template <typename T> inline T value(const String &name, const T &defaultValue = T()) const;
     template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
@@ -275,26 +277,26 @@ inline String Value::toString() const { return convert<String>(0); }
 inline void *Value::toPointer() const { return convert<void*>(0); }
 inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
 inline List<Value> Value::toList() const { return convert<List<Value> >(0); }
-inline Value Value::child(int idx, const Value &defaultValue) const
+inline Value Value::value(int idx, const Value &defaultValue) const
 {
     return mType == Type_List ? listPtr()->value(idx, defaultValue) : defaultValue;
 }
 
 template <typename T>
-inline T Value::child(int idx, const T &defaultValue) const
+inline T Value::value(int idx, const T &defaultValue) const
 {
-    return child(idx, Value(defaultValue)).convert<T>();
+    return value(idx, Value(defaultValue)).convert<T>();
 }
 
-inline Value Value::child(const String &key, const Value &defaultValue) const
+inline Value Value::value(const String &key, const Value &defaultValue) const
 {
     return mType == Type_Map ? mapPtr()->value(key, defaultValue) : defaultValue;
 }
 
 template <typename T>
-inline T Value::child(const String &key, const T &defaultValue) const
+inline T Value::value(const String &key, const T &defaultValue) const
 {
-    return child(key, Value(defaultValue)).convert<T>();
+    return value(key, Value(defaultValue)).convert<T>();
 }
 
 inline Map<String, Value>::const_iterator Value::begin() const
@@ -310,6 +312,21 @@ inline Map<String, Value>::const_iterator Value::end() const
         return hack.end();
     }
     return mapPtr()->end();
+}
+
+inline List<Value>::const_iterator Value::listBegin() const
+{
+    if (mType != Type_List)
+        return listEnd();
+    return listPtr()->begin();
+}
+inline List<Value>::const_iterator Value::listEnd() const
+{
+    if (mType != Type_List) {
+        const static List<Value> hack;
+        return hack.end();
+    }
+    return listPtr()->end();
 }
 
 inline int Value::count() const

@@ -338,7 +338,12 @@ inline const Value &Value::operator[](int idx) const
 
 inline Value &Value::operator[](int idx)
 {
-    assert(mType == Type_List);
+    if (mType == Type_Invalid) {
+        new (mData.listBuf) List<Value>;
+        mType = Type_List;
+    } else {
+        assert(mType == Type_List);
+    }
     return (*listPtr())[idx];
 }
 
@@ -350,7 +355,12 @@ inline const Value &Value::operator[](const String &key) const
 
 inline Value &Value::operator[](const String &key)
 {
-    assert(mType == Type_Map);
+    if (mType == Type_Invalid) {
+        new (mData.mapBuf) Map<String, Value>;
+        mType = Type_Map;
+    } else {
+        assert(mType == Type_Map);
+    }
     return (*mapPtr())[key];
 }
 template <typename T>

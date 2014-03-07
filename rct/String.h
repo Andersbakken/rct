@@ -28,6 +28,12 @@ public:
             mString = std::string(data, len);
         }
     }
+    String(const char *start, const char *end)
+    {
+        if (start) {
+            mString = std::string(start, end);
+        }
+    }
     String(int len, char fillChar)
         : mString(len, fillChar)
     {}
@@ -101,6 +107,27 @@ public:
     bool contains(char ch, CaseSensitivity cs = CaseSensitive) const
     {
         return indexOf(ch, 0, cs) != -1;
+    }
+
+    int chomp(const String &chars)
+    {
+        int idx = size() - 1;
+        while (idx > 0) {
+            if (chars.contains(at(idx - 1))) {
+                --idx;
+            } else {
+                break;
+            }
+        }
+        const int ret = size() - idx;
+        if (ret)
+            resize(idx);
+        return ret;
+    }
+
+    int chomp(char ch)
+    {
+        return chomp(String(&ch, 1));
     }
 
     int lastIndexOf(const String &ba, int from = -1, CaseSensitivity cs = CaseSensitive) const

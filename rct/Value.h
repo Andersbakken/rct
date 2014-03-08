@@ -97,6 +97,7 @@ inline Value::Value(Value &&other)
 {
     copy(other);
     memset(&other.mData, '\0', sizeof(mData));
+    other.mType = Type_Invalid;
 }
 
 inline Value &Value::operator=(Value &&other)
@@ -104,6 +105,7 @@ inline Value &Value::operator=(Value &&other)
     clear();
     copy(other);
     memset(&other.mData, '\0', sizeof(mData));
+    other.mType = Type_Invalid;
     return *this;
 }
 

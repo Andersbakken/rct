@@ -35,7 +35,9 @@ public:
     String errorString() const { std::lock_guard<std::mutex> lock(mMutex); return mErrorString; }
 
     void write(const String& data);
-    void closeStdIn();
+
+    enum CloseStdInFlag { CloseNormal, CloseForce };
+    void closeStdIn(CloseStdInFlag flag = CloseNormal);
 
     String readAllStdOut();
     String readAllStdErr();
@@ -52,6 +54,7 @@ public:
     static List<String> environment();
 
     static Path findCommand(const String& command);
+
 private:
     void finish(int returnCode);
     void processCallback(int fd, int mode);
@@ -80,6 +83,7 @@ private:
     std::deque<String> mStdInBuffer;
     String mStdOutBuffer, mStdErrBuffer;
     int mStdInIndex, mStdOutIndex, mStdErrIndex;
+    bool mWantStdInClosed;
 
     Path mCwd;
 

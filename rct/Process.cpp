@@ -172,7 +172,8 @@ void ProcessThread::installProcessHandler()
 }
 
 Process::Process()
-    : mPid(-1), mKilled(false), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0), mMode(Sync)
+    : mPid(-1), mKilled(false), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0),
+      mWantStdInClosed(false), mMode(Sync)
 {
     std::call_once(sProcessHandler, ProcessThread::installProcessHandler);
 
@@ -194,7 +195,7 @@ Process::~Process()
         handleInput(mStdIn[1]);
     }
 
-    closeStdIn();
+    closeStdIn(CloseForce);
     closeStdOut();
     closeStdErr();
 
@@ -396,8 +397,10 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
                 selecttime = &now;
                 Rct::timevalAdd(selecttime, timeout);
             }
-            if (!(execFlags & NoCloseStdIn))
-                closeStdIn();
+            if (!(execFlags & NoCloseStdIn)) {
+                closeStdIn(CloseForce);
+                mWantStdInClosed = false;
+            }
             for (;;) {
                 // set up all the select crap
                 fd_set rfds, wfds;
@@ -495,15 +498,20 @@ void Process::write(const String& data)
     }
 }
 
-void Process::closeStdIn()
+void Process::closeStdIn(CloseStdInFlag flag)
 {
     if (mStdIn[1] == -1)
         return;
 
-    EventLoop::eventLoop()->unregisterSocket(mStdIn[1]);
-    int err;
-    eintrwrap(err, ::close(mStdIn[1]));
-    mStdIn[1] = -1;
+    if (flag == CloseForce || mStdInBuffer.empty()) {
+        EventLoop::eventLoop()->unregisterSocket(mStdIn[1]);
+        int err;
+        eintrwrap(err, ::close(mStdIn[1]));
+        mStdIn[1] = -1;
+        mWantStdInClosed = false;
+    } else {
+        mWantStdInClosed = true;
+    }
 }
 
 void Process::closeStdOut()
@@ -566,7 +574,8 @@ void Process::finish(int returnCode)
         mReturn = returnCode;
 
         mStdInBuffer.clear();
-        closeStdIn();
+        closeStdIn(CloseForce);
+        mWantStdInClosed = false;
 
         if (mMode == Async) {
             // try to read all remaining data on stdout and stderr
@@ -614,6 +623,13 @@ void Process::handleInput(int fd)
             break;
         } else if (w == want) {
             mStdInBuffer.pop_front();
+            if (mStdInBuffer.empty() && mWantStdInClosed) {
+                EventLoop::eventLoop()->unregisterSocket(mStdIn[1]);
+                int err;
+                eintrwrap(err, ::close(mStdIn[1]));
+                mStdIn[1] = -1;
+                mWantStdInClosed = false;
+            }
             mStdInIndex = 0;
         } else
             mStdInIndex += w;

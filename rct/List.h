@@ -26,6 +26,11 @@ public:
         }
     }
 
+    List(typename Base::const_iterator first, typename Base::const_iterator last)
+        : Base(first, last)
+    {
+    }
+
     bool contains(const T &t) const
     {
         return std::find(Base::begin(), Base::end(), t) != Base::end();

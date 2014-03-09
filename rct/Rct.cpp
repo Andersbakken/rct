@@ -79,9 +79,10 @@ int readLine(FILE *f, char *buf, int max)
         max = sizeof(bufbuf);
     char *ret = fgets(buf ? buf : bufbuf, max, f);
     if (ret) {
-        const int len = strlen(ret);
-        if (len)
-            ret[len - 1] = '\0';
+        int len = strlen(ret);
+        if (len && ret[len - 1] == '\n') {
+            ret[--len] = '\0';
+        }
         return len;
     }
     return -1;

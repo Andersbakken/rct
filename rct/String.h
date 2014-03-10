@@ -119,7 +119,7 @@ public:
                 break;
             }
         }
-        const int ret = size() - idx;
+        const int ret = size() - idx - 1;
         if (ret)
             resize(idx);
         return ret;

@@ -17,12 +17,15 @@ public:
         Tcp = 0x1,
         Udp = 0x2,
         Unix = 0x4,
-        IPv6 = 0x8
+        IPv6 = 0x8,
+        Blocking = 0x10
     };
 
-    SocketClient();
+    SocketClient(unsigned int mode = 0);
     SocketClient(int fd, unsigned int mode);
     ~SocketClient();
+
+    int takeFD() { const int f = fd; fd = -1; return f; }
 
     enum State { Disconnected, Connecting, Connected };
     State state() const { return socketState; }
@@ -119,6 +122,7 @@ private:
     WriteMode wMode;
     bool writeWait;
     String address;
+    bool blocking;
 
     Signal<std::function<void(const SocketClient::SharedPtr&, Buffer&&)> > signalReadyRead;
     Signal<std::function<void(const SocketClient::SharedPtr&, const String&, uint16_t, Buffer&&)> > signalReadyReadFrom;

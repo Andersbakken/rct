@@ -20,9 +20,10 @@
         VAR = BLOCK;                            \
     } while (VAR == -1 && errno == EINTR)
 
-SocketClient::SocketClient()
+SocketClient::SocketClient(unsigned int mode)
     : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None), wMode(Asynchronous), writeWait(false)
 {
+    blocking = (mode & Blocking);
 }
 
 SocketClient::SocketClient(int f, unsigned int mode)
@@ -36,14 +37,17 @@ SocketClient::SocketClient(int f, unsigned int mode)
 #ifdef HAVE_CLOEXEC
     setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
+    blocking = (mode & Blocking);
 
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-        loop->registerSocket(fd, EventLoop::SocketRead,
-                             std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
-        if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
-            signalError(shared_from_this(), InitializeError);
-            close();
-            return;
+    if (!blocking) {
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+            loop->registerSocket(fd, EventLoop::SocketRead,
+                                 std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+            if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
+                signalError(shared_from_this(), InitializeError);
+                close();
+                return;
+            }
         }
     }
 }
@@ -58,8 +62,10 @@ void SocketClient::close()
     if (fd == -1)
         return;
     socketState = Disconnected;
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
-        loop->unregisterSocket(fd);
+    if (!blocking) {
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
+            loop->unregisterSocket(fd);
+    }
     ::close(fd);
     socketPort = 0;
     address.clear();
@@ -669,12 +675,14 @@ bool SocketClient::init(unsigned int mode)
 #ifdef HAVE_CLOEXEC
     setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-        loop->registerSocket(fd, EventLoop::SocketRead,
-                             std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
-        if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
-            close();
-            return false;
+    if (!blocking) {
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+            loop->registerSocket(fd, EventLoop::SocketRead,
+                                 std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+            if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
+                close();
+                return false;
+            }
         }
     }
 

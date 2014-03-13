@@ -195,6 +195,8 @@ void error(const char *format, ...)
 bool testLog(int level)
 {
     std::lock_guard<std::mutex> lock(sOutputsMutex);
+    if (sOutputs.isEmpty())
+        return true;
     for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
         if ((*it)->testLog(level))
             return true;

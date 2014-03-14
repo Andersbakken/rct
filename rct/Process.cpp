@@ -190,7 +190,7 @@ Process::~Process()
         assert(mPid == -1 || mKilled);
     }
 
-    if (mStdIn[0] != -1) {
+    if (mStdIn[0] != -1 && EventLoop::eventLoop()) {
         // try to finish off any pending writes
         handleInput(mStdIn[1]);
     }
@@ -519,7 +519,8 @@ void Process::closeStdOut()
     if (mStdOut[0] == -1)
         return;
 
-    EventLoop::eventLoop()->unregisterSocket(mStdOut[0]);
+    if (EventLoop::SharedPtr eventLoop = EventLoop::eventLoop())
+        eventLoop->unregisterSocket(mStdOut[0]);
     int err;
     eintrwrap(err, ::close(mStdOut[0]));
     mStdOut[0] = -1;
@@ -530,7 +531,8 @@ void Process::closeStdErr()
     if (mStdErr[0] == -1)
         return;
 
-    EventLoop::eventLoop()->unregisterSocket(mStdErr[0]);
+    if (EventLoop::SharedPtr eventLoop = EventLoop::eventLoop())
+        eventLoop->unregisterSocket(mStdErr[0]);
     int err;
     eintrwrap(err, ::close(mStdErr[0]));
     mStdErr[0] = -1;

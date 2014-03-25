@@ -45,7 +45,6 @@ public:
 
     bool isSameFile(const Path &other) const
     {
-        // ### could stat and use inode number on linux, maybe something similar on mac
         return Path::resolved(*this).String::operator==(Path::resolved(other));
     }
 

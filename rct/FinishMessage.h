@@ -9,13 +9,17 @@ class FinishMessage : public Message
 public:
     enum { MessageId = FinishMessageId };
 
-    FinishMessage()
-        : Message(MessageId)
+    FinishMessage(int status = 0)
+        : Message(MessageId), mStatus(status)
     {
     }
 
-    void encode(Serializer &) const {}
-    void decode(Deserializer &) {}
+    int status() const { return mStatus; }
+
+    void encode(Serializer &s) const { s << mStatus; }
+    void decode(Deserializer &d) { d >> mStatus; }
+private:
+    int mStatus;
 };
 
 #endif

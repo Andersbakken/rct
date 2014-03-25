@@ -8,13 +8,13 @@
 #include "Connection.h"
 
 Connection::Connection()
-    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false), mIsConnected(false), mWarned(false)
+    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0), mSilent(false), mIsConnected(false), mWarned(false)
 {
 }
 
 Connection::Connection(const SocketClient::SharedPtr &client)
-    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mSilent(false),
-      mIsConnected(true), mWarned(false)
+    : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0),
+      mSilent(false), mIsConnected(true), mWarned(false)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -183,7 +183,8 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer
         Message *message = Messages::create(buffer, read);
         if (message) {
             if (message->messageId() == FinishMessage::MessageId) {
-                mFinished(this);
+                mFinishStatus = static_cast<const FinishMessage*>(message)->status();
+                mFinished(this, mFinishStatus);
             } else if (message->messageId() == ConnectMessage::MessageId) {
                 mIsConnected = true;
             } else {

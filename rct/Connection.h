@@ -51,7 +51,8 @@ public:
         return send(ResponseMessage(out));
     }
 
-    void finish() { send(FinishMessage()); }
+    void finish(int status = 0) { send(FinishMessage(status)); }
+    int finishStatus() const { return mFinishStatus; }
 
     void close() { assert(mSocketClient); mSocketClient->close(); }
 
@@ -61,7 +62,7 @@ public:
     Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
     Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
     Signal<std::function<void(Connection*)> > &error() { return mError; }
-    Signal<std::function<void(Connection*)> > &finished() { return mFinished; }
+    Signal<std::function<void(Connection*, int)> > &finished() { return mFinished; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
     bool send(uint8_t messageId, const String& message);
@@ -81,12 +82,14 @@ private:
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
     int mPendingRead, mPendingWrite;
-    int mTimeoutTimer;
+    int mTimeoutTimer, mFinishStatus;
 
     bool mSilent, mIsConnected, mWarned;
 
     Signal<std::function<void(Message*, Connection*)> > mNewMessage;
-    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mFinished, mSendFinished;
+    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mSendFinished;
+    Signal<std::function<void(Connection*, int)> > mFinished;
+
 };
 
 inline bool Connection::send(Message&& message)

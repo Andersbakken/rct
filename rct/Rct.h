@@ -44,8 +44,10 @@ uint64_t monoMs();
 uint64_t currentTimeMs();
 String hostName();
 
+namespace LinkedList
+{
 template <typename Node>
-void insertLinkedListNode(Node *node, Node *&first, Node *&last, Node *after = 0)
+void insert(Node *node, Node *&first, Node *&last, Node *after = 0)
 {
     assert(node);
     if (after) {
@@ -71,7 +73,7 @@ void insertLinkedListNode(Node *node, Node *&first, Node *&last, Node *after = 0
 }
 
 template <typename Node>
-void removeLinkedListNode(Node *node, Node *&first, Node *&last)
+void remove(Node *node, Node *&first, Node *&last)
 {
     assert(node);
     if (node == first) {
@@ -96,13 +98,38 @@ void removeLinkedListNode(Node *node, Node *&first, Node *&last)
 }
 
 template <typename Node>
-void deleteLinkedListNodes(Node *node)
+void deleteAll(Node *node)
 {
     while (node) {
         Node *tmp = node;
         node = node->next;
         delete tmp;
     }
+}
+
+template <typename Node>
+void moveToEnd(Node *node, Node *&first, Node *&last)
+{
+    assert(node);
+    assert(first);
+    assert(last);
+    if (node != last) {
+        remove(node, first, last);
+        insert(node, first, last, last);
+    }
+}
+
+template <typename Node>
+void moveToFront(Node *node, Node *&first, Node *&last)
+{
+    assert(node);
+    assert(first);
+    assert(last);
+    if (node != first) {
+        remove(node, first, last);
+        insert(node, first, last);
+    }
+}
 }
 
 enum LookupMode { Auto, IPv4, IPv6 };

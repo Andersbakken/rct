@@ -17,6 +17,7 @@
 #cmakedefine HAVE_STATMTIM
 #cmakedefine HAVE_CLOEXEC
 #cmakedefine HAVE_SCHEDIDLE
+#cmakedefine HAVE_SHMDEST
 #if !defined(HAVE_EPOLL) && !defined(HAVE_KQUEUE)
 #cmakedefine HAVE_SELECT
 #endif

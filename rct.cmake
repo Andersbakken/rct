@@ -21,6 +21,7 @@ check_cxx_symbol_exists(SO_NOSIGPIPE "sys/types.h;sys/socket.h" HAVE_NOSIGPIPE)
 check_cxx_symbol_exists(MSG_NOSIGNAL "sys/types.h;sys/socket.h" HAVE_NOSIGNAL)
 check_cxx_symbol_exists(GetLogicalProcessorInformation "windows.h" HAVE_PROCESSORINFORMATION)
 check_cxx_symbol_exists(SCHED_IDLE "pthread.h" HAVE_SCHEDIDLE)
+check_cxx_symbol_exists(SHM_DEST "sys/types.h;sys/ipc.h;sys/shm.h" HAVE_SHMDEST)
 
 if (CYGWIN)
   message("Using win32 FileSystemWatcher")

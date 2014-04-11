@@ -1,5 +1,6 @@
 #include "SharedMemory.h"
 #include "Log.h"
+#include <rct-config.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <assert.h>
@@ -40,7 +41,7 @@ bool SharedMemory::init(key_t key, int size, CreateMode mode)
         memset(&ds, 0, sizeof(ds));
         ds.shm_perm.uid = getuid();
         ds.shm_perm.mode = 0600;
-#if !defined(OS_Darwin) && !defined(OS_FreeBSD)
+#ifdef HAVE_SHMDEST
         ds.shm_perm.mode |= SHM_DEST;
 #endif
         const int ret = shmctl(mShm, IPC_SET, &ds);

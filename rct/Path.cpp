@@ -230,7 +230,7 @@ const char * Path::extension(int *len) const
 
 bool Path::isSource(const char *ext)
 {
-    const char *sources[] = { "c", "cc", "cpp", "cxx", "moc", 0 };
+    const char *sources[] = { "c", "cc", "cpp", "cxx", "moc", "mm", "m", 0 };
     for (int i=0; sources[i]; ++i) {
         if (!strcasecmp(ext, sources[i]))
             return true;

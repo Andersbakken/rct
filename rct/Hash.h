@@ -3,12 +3,29 @@
 
 #include <unordered_map>
 #include <rct/List.h>
+#include <rct/rct-config.h>
 
 template <typename Key, typename Value>
 class Hash : public std::unordered_map<Key, Value>
 {
 public:
-    Hash() {}
+    Hash() : std::unordered_map<Key, Value>() {}
+#ifndef HAVE_UNORDERED_MAP_MOVE_CONSTRUCTOR_WORKS
+    Hash(Hash<Key, Value> &&other)
+        : std::unordered_map<Key, Value>(std::forward<Hash<Key, Value> >(other))
+    {
+        other.std::unordered_map<Key, Value>::operator=(Hash<Key, Value>());
+    }
+
+    Hash(const Hash<Key, Value> &other) = default;
+    Hash<Key, Value> &operator=(const Hash<Key, Value> &other) = default;
+    Hash<Key, Value> &operator=(Hash<Key, Value> &&other)
+    {
+        std::unordered_map<Key, Value>::operator=(std::forward<Hash<Key, Value> >(other));
+        other.std::unordered_map<Key, Value>::operator=(Hash<Key, Value>());
+        return *this;
+    }
+#endif
 
     bool contains(const Key &t) const
     {

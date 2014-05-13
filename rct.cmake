@@ -5,6 +5,7 @@ add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 include(CheckSymbolExists)
 include(CheckCXXSymbolExists)
 include(CheckCXXSourceCompiles)
+include(CheckCXXSourceRuns)
 
 include(${CMAKE_CURRENT_LIST_DIR}/compiler.cmake)
 
@@ -149,11 +150,25 @@ check_cxx_source_compiles("
       std::unique_lock<std::mutex> lock(mtx);
       std::tuple<int, std::string> tpl(5, std::string(\"foo\"));
       applyMove(std::bind(callTest, std::placeholders::_1, std::placeholders::_2), tpl);
+      return 0;
   }" HAVE_CXX11)
 
 if (NOT HAVE_CXX11)
   message(FATAL_ERROR "C++11 support not detected. rct requires a modern compiler, GCC >= 4.8 or Clang >= 3.2 should suffice")
 endif ()
+
+
+check_cxx_source_runs("
+  #include <unordered_map>
+
+  int main(int, char **)
+  {
+      std::unordered_map<int, int> a;
+      a.emplace(1, 1);
+      std::unordered_map<int, int> b = std::move(a);
+      a.emplace(1, 1);
+      return 0;
+  }" HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR)
 
 install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h

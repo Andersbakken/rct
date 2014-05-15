@@ -116,13 +116,14 @@ void Config::parse(int argc, char **argv, const List<String> &rcFiles)
                 List<Value> vals;
                 vals << val;
                 while (optind < args.size() && a[optind][0] != '-' && (!opt->listCount || vals.size() < opt->listCount)) {
-                    vals << createValue(opt->type, a[optind++], &ok);
+                    vals << createValue(opt->type, a[optind], &ok);
                     if (!ok) {
                         error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s",
                                                     a[optind], Value::typeToString(opt->type),
                                                     opt->name);
                         goto done;
                     }
+                    ++optind;
                 }
                 opt->value = vals;
                 if (opt->listCount && vals.size() != opt->listCount) {

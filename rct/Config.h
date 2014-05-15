@@ -11,17 +11,31 @@
 class Config
 {
 public:
-    static bool parse(int argc, char **argv, const List<String> &rcFiles = List<String>());
-    template <typename T> static void registerOption(const char *name, const String &description, const char shortOpt = '\0', const T &defaultValue = T())
+    static void parse(int argc, char **argv, const List<String> &rcFiles = List<String>());
+
+    template<typename T, int listCount = 0>
+    static void registerOption(const char *name, const String &description, const char shortOpt = '\0',
+                               const List<T> &defaultValue = List<T>())
     {
         const Value def = Value::create(defaultValue);
-        const Option option = { name, shortOpt, description, def, Value() };
+        const Value::Type type = Value::create(T()).type();
+        const Option option = { name, shortOpt, description, def, Value(), type, 0, listCount };
         sOptions.append(option);
     }
 
+
+    template <typename T>
+    static void registerOption(const char *name, const String &description, const char shortOpt = '\0', const T &defaultValue = T())
+    {
+        const Value def = Value::create(defaultValue);
+        const Option option = { name, shortOpt, description, def, Value(), def.type(), 0, 0 };
+        sOptions.append(option);
+    }
+
+    template <typename T>
     static void registerOption(const char *name, const String &description, const char shortOpt = '\0')
     {
-        const Option option = { name, shortOpt, description, Value(false), Value() };
+        const Option option = { name, shortOpt, description, Value(false), Value(), Value::create(T()).type(), 0, 0 };
         sOptions.append(option);
     }
 
@@ -49,17 +63,19 @@ public:
     template <typename T> static T value(const char *name, bool *ok = 0)
     {
         const Option *opt = findOption(name);
-        if (ok)
-            *ok = false;
         if (opt) {
             if (opt->value.isNull()) {
-                return opt->defaultValue.convert<T>(ok);
+                T ret;
+                convert(opt->defaultValue, ret, ok);
+                return ret;
             } else {
-                if (ok)
-                    *ok = true;
-                return opt->value.convert<T>();
+                T ret;
+                convert(opt->value, ret, ok);
+                return ret;
             }
         }
+        if (ok)
+            *ok = false;
         return T();
     }
     static void showHelp(FILE *f);
@@ -67,6 +83,52 @@ public:
     static bool allowsFreeArguments() { return sAllowsFreeArgs; }
     static List<Value> freeArgs() { return sFreeArgs; }
 private:
+    template <class T> struct is_list { static const int value = 0; };
+    template <class T> struct is_list<List<T> > { static const int value = 1; };
+
+    template <class T> class ListType {
+    private:
+        template <class U>
+        struct ident
+        {
+            typedef U type;
+        };
+
+        template <class C>
+        static ident<C> test(List<C>);
+
+        static ident<void> test(...);
+
+        typedef decltype(test(T())) list_type;
+    public:
+        typedef typename list_type::type type;
+    };
+
+    template <typename T>
+    static void convert(const Value &value, T &t, bool *ok = 0, typename std::enable_if<is_list<T>::value, T>::type * = 0)
+    {
+        typedef typename ListType<T>::type K;
+        List<Value> values = value.convert<List<Value> >();
+        t.reserve(values.size());
+        for (const Value &val : values) {
+            bool o;
+            const K k = val.convert<K>(&o);
+            if (!o) {
+                t.clear();
+                if (ok)
+                    *ok = false;
+                return;
+            }
+            t.append(k);
+        }
+        if (ok)
+            *ok = true;
+    }
+    template <typename T>
+    static void convert(const Value &value, T &t, bool *ok = 0, typename std::enable_if<!is_list<T>::value, T>::type * = 0)
+    {
+        t = value.convert<T>(ok);
+    }
     Config();
     ~Config();
     struct Option {
@@ -75,7 +137,8 @@ private:
         String description;
         Value defaultValue;
         Value value;
-        int count;
+        Value::Type type;
+        int count, listCount;
     };
     static List<Option> sOptions;
     static bool sAllowsFreeArgs;

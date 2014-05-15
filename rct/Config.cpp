@@ -4,8 +4,14 @@ List<Config::Option> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;
 List<Value> Config::sFreeArgs;
 
-bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
+static inline Value createValue(Value::Type type, const char *val, bool *ok)
 {
+    return Value::create(val).convert(type, ok);
+}
+
+void Config::parse(int argc, char **argv, const List<String> &rcFiles)
+{
+    String error;
     Rct::findExecutablePath(argv[0]);
     List<String> args;
     for (int i=0; i<rcFiles.size(); ++i) {
@@ -94,24 +100,44 @@ bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
         ++opt->count;
         if (optarg) {
             Value val;
+            const char *arg = optarg;
             if (optarg[0] == '=' && strcmp(a[optind - 1], optarg)) {
-                val = String(optarg + 1);
-            } else {
-                val = String(optarg);
+                ++arg;
+            }
+            val = createValue(opt->type, arg, &ok);
+            if (!ok) {
+                error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s",
+                                            arg, Value::typeToString(opt->type),
+                                            opt->name);
+                goto done;
             }
 
             if (opt->defaultValue.type() == Value::Type_List) {
                 List<Value> vals;
                 vals << val;
-                while (optind + 1 < args.size() && a[optind + 1][0] != '-') {
-                    vals << a[++optind];
+                while (optind < args.size() && a[optind][0] != '-' && (!opt->listCount || vals.size() < opt->listCount)) {
+                    vals << createValue(opt->type, a[optind++], &ok);
+                    if (!ok) {
+                        error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s",
+                                                    a[optind], Value::typeToString(opt->type),
+                                                    opt->name);
+                        goto done;
+                    }
                 }
                 opt->value = vals;
+                if (opt->listCount && vals.size() != opt->listCount) {
+                    ok = false;
+                    error = String::format<128>("Too few values specified for %s. Wanted %d, got %d",
+                                                opt->name, opt->listCount, vals.size());
+
+                    goto done;
+                }
             } else {
                 opt->value = val;
             }
-        } else { // must be a toggle arg
+        } else {
             assert(opt->defaultValue.type() == Value::Type_Boolean);
+            // must be a toggle arg
             opt->value = Value(!opt->defaultValue.toBool());
         }
     }
@@ -131,7 +157,11 @@ done:
     delete[] options;
     delete[] a;
 
-    return ok;
+    if (!ok) {
+        if (!error.isEmpty())
+            fprintf(stderr, "%s\n", error.constData());
+        exit(1);
+    }
 }
 
 void Config::showHelp(FILE *f)

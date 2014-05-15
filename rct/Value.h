@@ -71,6 +71,7 @@ public:
     inline Value value(const String &key, const Value &defaultValue = Value()) const;
     template <typename T> inline T value(const String &name, const T &defaultValue = T()) const;
     template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
+    inline Value convert(Type type, bool *ok) const;
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
     static Value fromJSON(const String &json, bool *ok = 0) { return fromJSON(json.constData(), ok); }
@@ -130,7 +131,6 @@ const char *Value::typeToString(Type type)
     return "";
 }
 
-
 template <> inline int Value::convert<int>(bool *ok) const
 {
     if (ok)
@@ -139,7 +139,12 @@ template <> inline int Value::convert<int>(bool *ok) const
     case Type_Integer: return mData.integer;
     case Type_Double: return static_cast<int>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
-    case Type_String: return atoi(stringPtr()->constData());
+    case Type_String: {
+        char *end;
+        const int ret = strtol(stringPtr()->constData(), &end, 10);
+        if (!*end)
+            return ret;
+        break; }
     case Type_Invalid: break;
     case Type_Pointer: break;
     case Type_List: break;
@@ -181,7 +186,12 @@ template <> inline bool Value::convert<bool>(bool *ok) const
     case Type_Pointer: return mData.pointer;
     case Type_String: {
         const String str = toString();
-        return (str == "true" || str == "1"); }
+        if (str == "true" || str == "1") {
+            return true;
+        } else if (str == "false" || str == "0") {
+            return false;
+        }
+        break; }
     case Type_Invalid: break;
     case Type_List: break;
     case Type_Map: break;
@@ -202,7 +212,12 @@ template <> inline double Value::convert<double>(bool *ok) const
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
     case Type_Boolean: return mData.boolean;
-    case Type_String: return strtod(stringPtr()->constData(), 0);
+    case Type_String: {
+        char *end;
+        const double ret = strtod(stringPtr()->constData(), &end);
+        if (!*end)
+            return ret;
+        break; }
     case Type_Pointer: break;
     case Type_Invalid: break;
     case Type_List: break;
@@ -277,6 +292,22 @@ template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *
     return Map<String, Value>();
 }
 
+inline Value Value::convert(Type type, bool *ok) const
+{
+    switch (type) {
+    case Type_Integer: return convert<int>(ok);
+    case Type_Double: return convert<double>(ok);
+    case Type_Boolean: return convert<bool>(ok);
+    case Type_String: return convert<String>(ok);
+    case Type_Invalid: if (ok) *ok = true; return Value();
+    case Type_Pointer: return convert<void*>(ok);
+    case Type_List: return convert<List<Value> >(ok);
+    case Type_Map: return convert<Map<String, Value> >(ok);
+    }
+    if (ok)
+        *ok = false;
+    return Value();
+}
 
 inline bool Value::toBool() const { return convert<bool>(0); }
 inline int Value::toInteger() const { return convert<int>(0); }

@@ -609,6 +609,12 @@ public:
         return String(buf, w);
     }
 
+    static String number(int8_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
+    static String number(uint8_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
+    static String number(int16_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
+    static String number(uint16_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
+    static String number(int32_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
+    static String number(uint32_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
     static String number(int64_t num, int base = 10)
     {
         const char *format = 0;
@@ -627,6 +633,38 @@ public:
             assert(0);
             return String();
         }
+        char buf[32];
+        const int w = ::snprintf(buf, sizeof(buf), format, num);
+        return String(buf, w);
+    }
+
+    static String number(uint64_t num, int base = 10)
+    {
+        const char *format = 0;
+        switch (base) {
+        case 10: format = "%llu"; break;
+        case 16: format = "0x%llx"; break;
+        case 8: format = "%llo"; break;
+        case 1: {
+            String ret;
+            while (num) {
+                ret.append(num & 1 ? '1' : '0');
+                num >>= 1;
+            }
+            return ret; }
+        default:
+            assert(0);
+            return String();
+        }
+        char buf[32];
+        const int w = ::snprintf(buf, sizeof(buf), format, num);
+        return String(buf, w);
+    }
+
+    static String number(double num, int prec = 2)
+    {
+        char format[32];
+        snprintf(format, sizeof(format), "%%.%df", prec);
         char buf[32];
         const int w = ::snprintf(buf, sizeof(buf), format, num);
         return String(buf, w);

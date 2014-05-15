@@ -1,6 +1,9 @@
 #include "Config.h"
 
 List<Config::Option> Config::sOptions;
+bool Config::sAllowsFreeArgs = false;
+List<Value> Config::sFreeArgs;
+
 bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
 {
     Rct::findExecutablePath(argv[0]);
@@ -90,10 +93,22 @@ bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
         }
         ++opt->count;
         if (optarg) {
+            Value val;
             if (optarg[0] == '=' && strcmp(a[optind - 1], optarg)) {
-                opt->value = String(optarg + 1);
+                val = String(optarg + 1);
             } else {
-                opt->value = String(optarg);
+                val = String(optarg);
+            }
+
+            if (opt->defaultValue.type() == Value::Type_List) {
+                List<Value> vals;
+                vals << val;
+                while (optind + 1 < args.size() && a[optind + 1][0] != '-') {
+                    vals << a[++optind];
+                }
+                opt->value = vals;
+            } else {
+                opt->value = val;
             }
         } else { // must be a toggle arg
             assert(opt->defaultValue.type() == Value::Type_Boolean);
@@ -102,6 +117,13 @@ bool Config::parse(int argc, char **argv, const List<String> &rcFiles)
     }
 
 done:
+    while (optind < args.size()) {
+        sFreeArgs << a[optind++];
+    }
+    if (!sAllowsFreeArgs && !sFreeArgs.isEmpty()) {
+        ok = false;
+    }
+
     for (int i=0; i<args.size(); ++i) {
         free(a[i]);
     }

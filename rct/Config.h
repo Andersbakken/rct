@@ -25,7 +25,6 @@ public:
         sOptions.append(option);
     }
 
-
     static bool isEnabled(const char *name, int *count = 0) // ### should return an int count of enabled-ness
     {
         const Option *opt = findOption(name);
@@ -64,6 +63,9 @@ public:
         return T();
     }
     static void showHelp(FILE *f);
+    static void setAllowsFreeArguments(bool on) { sAllowsFreeArgs = on; }
+    static bool allowsFreeArguments() { return sAllowsFreeArgs; }
+    static List<Value> freeArgs() { return sFreeArgs; }
 private:
     Config();
     ~Config();
@@ -76,6 +78,8 @@ private:
         int count;
     };
     static List<Option> sOptions;
+    static bool sAllowsFreeArgs;
+    static List<Value> sFreeArgs;
     static const Option *findOption(const char *name)
     {
         assert(name);

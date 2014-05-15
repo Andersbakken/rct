@@ -18,6 +18,12 @@ public:
     inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     inline Value(void *ptr) : mType(Type_Pointer) { mData.pointer = ptr; }
     inline Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
+    inline Value(const char *str, int len = -1) : mType(Type_String)
+    {
+        if (len == -1)
+            len = strlen(str);
+        new (mData.stringBuf) String(str, len);
+    }
     inline Value(const Value &other) : mType(Type_Invalid) { copy(other); }
     inline Value(const Map<String, Value> &map) : mType(Type_Map) { new (mData.mapBuf) Map<String, Value>(map); }
     inline Value(const List<Value> &list) : mType(Type_List) { new (mData.listBuf) List<Value>(list); }

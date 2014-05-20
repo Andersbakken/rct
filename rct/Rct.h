@@ -179,6 +179,40 @@ inline int timevalDiff(timeval* a, timeval* b)
     return ams - bms;
 }
 
+static inline bool wildCmp(const char *wild, const char *string, String::CaseSensitivity cs = String::CaseSensitive)
+{
+    // Written by Jack Handy - Found here: http://www.codeproject.com/Articles/1088/Wildcard-string-compare-globbing
+    const char *cp = 0, *mp = 0;
+
+    while (*string && *wild != '*') {
+        if (*wild != '?' && *wild != *string && (cs == String::CaseSensitive || tolower(*wild) != tolower(*string))) {
+            return false;
+        }
+        wild++;
+        string++;
+    }
+
+    while (*string) {
+        if (*wild == '*') {
+            if (!*++wild) {
+                return true;
+            }
+            mp = wild;
+            cp = string+1;
+        } else if (*wild == '?' || *wild == *string || (cs == String::CaseInsensitive && tolower(*wild) == tolower(*string))) {
+            wild++;
+            string++;
+        } else {
+            wild = mp;
+            string = cp++;
+        }
+    }
+
+    while (*wild == '*') {
+        wild++;
+    }
+    return !*wild;
+}
 }
 
 #define eintrwrap(VAR, BLOCK)                   \

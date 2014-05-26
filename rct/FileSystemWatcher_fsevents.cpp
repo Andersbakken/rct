@@ -85,9 +85,9 @@ WatcherData::~WatcherData()
 void WatcherData::waitForStarted()
 {
     std::unique_lock<std::mutex> locker(mutex);
-    if (flags & Start)
-        return;
-    waiter.wait(locker);
+    while (!(flags & Start)) {
+        waiter.wait(locker);
+    }
 }
 
 void WatcherData::watch(const Path& path)

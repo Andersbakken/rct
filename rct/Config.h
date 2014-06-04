@@ -14,8 +14,8 @@ public:
     static void parse(int argc, char **argv, const List<String> &rcFiles = List<String>());
 
     template<typename T, int listCount = 0>
-    static void registerOption(const char *name, const String &description, const char shortOpt = '\0',
-                               const List<T> &defaultValue = List<T>())
+    static void registerListOption(const char *name, const String &description, const char shortOpt = '\0',
+                                   const List<T> &defaultValue = List<T>())
     {
         const Value def = Value::create(defaultValue);
         const Value::Type type = Value::create(T()).type();
@@ -29,13 +29,6 @@ public:
     {
         const Value def = Value::create(defaultValue);
         const Option option = { name, shortOpt, description, def, Value(), def.type(), 0, 0 };
-        sOptions.append(option);
-    }
-
-    template <typename T>
-    static void registerOption(const char *name, const String &description, const char shortOpt = '\0')
-    {
-        const Option option = { name, shortOpt, description, Value(false), Value(), Value::create(T()).type(), 0, 0 };
         sOptions.append(option);
     }
 

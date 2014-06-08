@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 #include <rct/List.h>
-#include <rct/rct-config.h>
+#include "rct-config.h"
 
 template <typename Key, typename Value>
 class Hash : public std::unordered_map<Key, Value>

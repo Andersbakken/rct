@@ -429,6 +429,7 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
     ev.data.fd = fd;
     e = epoll_ctl(pollFd, EPOLL_CTL_ADD, fd, &ev);
 #elif defined(HAVE_KQUEUE)
+    e = 0;
     const struct { int rf; int kf; } flags[] = {
         { SocketRead, EVFILT_READ },
         { SocketWrite, EVFILT_WRITE },
@@ -486,6 +487,7 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
     ev.data.fd = fd;
     e = epoll_ctl(pollFd, EPOLL_CTL_MOD, fd, &ev);
 #elif defined(HAVE_KQUEUE)
+    e = 0;
     const struct { int rf; int kf; } flags[] = {
         { SocketRead, EVFILT_READ },
         { SocketWrite, EVFILT_WRITE },
@@ -538,6 +540,7 @@ void EventLoop::unregisterSocket(int fd)
     memset(&ev, 0, sizeof(ev));
     e = epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &ev);
 #elif defined(HAVE_KQUEUE)
+    e = 0;
     const struct { int rf; int kf; } flags[] = {
         { SocketRead, EVFILT_READ },
         { SocketWrite, EVFILT_WRITE },

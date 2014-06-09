@@ -160,7 +160,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     if (mode == MakeAbsolute) {
         if (isAbsolute())
             return true;
-        const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd) + *this;
+        const Path copy = (cwd.isEmpty() ? Path::pwd() : (cwd.endsWith('/') ? cwd : (cwd + '/')) + *this);
         if (copy.exists()) {
             if (changed)
                 *changed = true;

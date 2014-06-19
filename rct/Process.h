@@ -55,6 +55,7 @@ public:
 
     static Path findCommand(const String& command);
 
+    pid_t pid() const { return mPid; }
 private:
     void finish(int returnCode);
     void processCallback(int fd, int mode);
@@ -77,7 +78,7 @@ private:
 
     mutable std::mutex mMutex;
     pid_t mPid;
-    bool mKilled;
+    enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
     int mReturn;
 
     std::deque<String> mStdInBuffer;

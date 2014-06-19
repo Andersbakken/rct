@@ -113,10 +113,11 @@ void ProcessThread::run()
                         break;
                     default:
                         //printf("successfully waited for pid (got %d)\n", p);
-                        if (WIFEXITED(ret))
+                        if (WIFEXITED(ret)) {
                             ret = WEXITSTATUS(ret);
-                        else
-                            ret = -1;
+                        } else {
+                            ret = Process::ReturnCrashed;
+                        }
                         Process *process = proc->second.proc;
                         EventLoop::SharedPtr loop = proc->second.loop.lock();
                         sProcesses.erase(proc++);
@@ -172,7 +173,7 @@ void ProcessThread::installProcessHandler()
 }
 
 Process::Process()
-    : mPid(-1), mKilled(false), mReturn(0), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0),
+    : mPid(-1), mReturn(ReturnUnset), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0),
       mWantStdInClosed(false), mMode(Sync)
 {
     std::call_once(sProcessHandler, ProcessThread::installProcessHandler);
@@ -187,7 +188,7 @@ Process::~Process()
 {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        assert(mPid == -1 || mKilled);
+        assert(mFinished || mKilled);
     }
 
     if (mStdIn[0] != -1 && EventLoop::eventLoop()) {
@@ -435,7 +436,6 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
                     // we're done
                     {
                         std::lock_guard<std::mutex> lock(mMutex);
-                        assert(mPid == -1);
                         assert(mSync[1] == -1);
 
                         // try to read all remaining data on stdout and stderr
@@ -572,7 +572,6 @@ void Process::finish(int returnCode)
 {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        mPid = -1;
         mReturn = returnCode;
 
         mStdInBuffer.clear();
@@ -685,10 +684,10 @@ void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::funct
 
 void Process::kill(int sig)
 {
-    if (mPid == -1 && !mKilled)
+    if (mReturn != ReturnUnset)
         return;
 
-    mKilled = true;
+    mReturn = ReturnKilled;
     ::kill(mPid, sig);
 }
 

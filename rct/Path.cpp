@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <fts.h>
+#include <wordexp.h>
 
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const
@@ -157,6 +158,13 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 {
     if (changed)
         *changed = false;
+    if (startsWith('~')) {
+        wordexp_t exp_result;
+        wordexp(constData(), &exp_result, 0);
+        operator=(exp_result.we_wordv[0]);
+        wordfree(&exp_result);
+
+    }
     if (mode == MakeAbsolute) {
         if (isAbsolute())
             return true;

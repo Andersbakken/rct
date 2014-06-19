@@ -11,6 +11,12 @@
 
 namespace Rct {
 
+template <typename T, size_t N>
+constexpr size_t countof(T(&)[N])
+{
+    return N;
+}
+
 enum { Max_USec = 1000000 };
 
 String shortOptions(const option *longOptions);

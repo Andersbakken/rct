@@ -188,7 +188,7 @@ Process::~Process()
 {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        assert(mFinished || mKilled);
+        assert(mReturn != ReturnUnset || mPid == -1);
     }
 
     if (mStdIn[0] != -1 && EventLoop::eventLoop()) {

@@ -166,7 +166,10 @@ void EventLoop::init(unsigned flags)
     }
 
     if (flgs & EnableSigIntHandler) {
+        assert(mainEventPipe == -1);
+        mainEventPipe = eventPipe[1];
         struct sigaction act;
+        memset (&act, '\0', sizeof(act));
         act.sa_handler = signalHandler;
         if (::sigaction(SIGINT, &act, 0) == -1) {
             cleanup();
@@ -203,6 +206,10 @@ void EventLoop::cleanup()
         ::close(eventPipe[1]);
     if (flgs & MainEventLoop)
         mainLoop.reset();
+    if (flgs & EnableSigIntHandler) {
+        assert(mainEventPipe >= 0);
+        mainEventPipe = -1;
+    }
 }
 
 EventLoop::SharedPtr EventLoop::eventLoop()

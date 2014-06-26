@@ -105,7 +105,7 @@ public:
 
     void removeFirst()
     {
-        Base::pop_front();
+        Base::erase(Base::begin());
     }
 
     int size() const

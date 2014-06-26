@@ -561,7 +561,6 @@ public:
         return ret;
     }
 
-
     uint64_t toULongLong(bool *ok = 0, int base = 10) const
     {
         errno = 0;
@@ -576,6 +575,24 @@ public:
         errno = 0;
         char *end = 0;
         const int64_t ret = ::strtoll(constData(), &end, base);
+        if (ok)
+            *ok = !errno && !*end;
+        return ret;
+    }
+    uint32_t toULong(bool *ok = 0, int base = 10) const
+    {
+        errno = 0;
+        char *end = 0;
+        const uint32_t ret = ::strtoul(constData(), &end, base);
+        if (ok)
+            *ok = !errno && !*end;
+        return ret;
+    }
+    int32_t toLong(bool *ok = 0, int base = 10) const
+    {
+        errno = 0;
+        char *end = 0;
+        const int32_t ret = ::strtol(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;

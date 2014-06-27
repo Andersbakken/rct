@@ -14,6 +14,8 @@ class Value
 public:
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
+    inline Value(int64_t i) : mType(Type_Integer) { mData.int64 = i; }
+    inline Value(uint64_t i) : mType(Type_Integer) { mData.uint64 = i; }
     inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
     inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     inline Value(void *ptr) : mType(Type_Pointer) { mData.pointer = ptr; }
@@ -49,6 +51,8 @@ public:
     inline Type type() const { return mType; }
     inline bool toBool() const;
     inline int toInteger() const;
+    inline int64_t toInt64() const;
+    inline uint64_t toUInt64() const;
     inline double toDouble() const;
     inline String toString() const;
     inline void *toPointer() const;
@@ -90,6 +94,8 @@ private:
     Type mType;
     union {
         int integer;
+        int64_t int64;
+        uint64_t uint64;
         double dbl;
         bool boolean;
         char stringBuf[sizeof(String)];
@@ -142,6 +148,54 @@ template <> inline int Value::convert<int>(bool *ok) const
     case Type_String: {
         char *end;
         const int ret = strtol(stringPtr()->constData(), &end, 10);
+        if (!*end)
+            return ret;
+        break; }
+    case Type_Invalid: break;
+    case Type_Pointer: break;
+    case Type_List: break;
+    case Type_Map: break;
+    }
+    if (ok)
+        *ok = false;
+    return 0;
+}
+
+template <> inline int64_t Value::convert<int64_t>(bool *ok) const
+{
+    if (ok)
+        *ok = true;
+    switch (mType) {
+    case Type_Integer: return mData.int64;
+    case Type_Double: return static_cast<int64_t>(round(mData.dbl));
+    case Type_Boolean: return mData.boolean;
+    case Type_String: {
+        char *end;
+        const int64_t ret = strtoll(stringPtr()->constData(), &end, 10);
+        if (!*end)
+            return ret;
+        break; }
+    case Type_Invalid: break;
+    case Type_Pointer: break;
+    case Type_List: break;
+    case Type_Map: break;
+    }
+    if (ok)
+        *ok = false;
+    return 0;
+}
+
+template <> inline uint64_t Value::convert<uint64_t>(bool *ok) const
+{
+    if (ok)
+        *ok = true;
+    switch (mType) {
+    case Type_Integer: return mData.uint64;
+    case Type_Double: return static_cast<uint64_t>(round(mData.dbl));
+    case Type_Boolean: return mData.boolean;
+    case Type_String: {
+        char *end;
+        const uint64_t ret = strtoull(stringPtr()->constData(), &end, 10);
         if (!*end)
             return ret;
         break; }
@@ -311,6 +365,8 @@ inline Value Value::convert(Type type, bool *ok) const
 
 inline bool Value::toBool() const { return convert<bool>(0); }
 inline int Value::toInteger() const { return convert<int>(0); }
+inline int64_t Value::toInt64() const { return convert<int64_t>(0); }
+inline uint64_t Value::toUInt64() const { return convert<uint64_t>(0); }
 inline double Value::toDouble() const { return convert<double>(0); }
 inline String Value::toString() const { return convert<String>(0); }
 inline void *Value::toPointer() const { return convert<void*>(0); }

@@ -15,6 +15,9 @@ public:
 
     static ScriptEngine *instance() { return sInstance; }
 
+    bool checkSyntax(const String &source, const Path &path = Path(), String *error = 0) const;
+    Value evaluate(const String &source, const Path &path, String *error);
+
     void throwError(const String &error);
 
     class Object

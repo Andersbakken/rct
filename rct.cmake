@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 project(rct)
 add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/")
+
 include(CheckSymbolExists)
 include(CheckCXXSymbolExists)
 include(CheckCXXSourceCompiles)
@@ -98,6 +100,16 @@ elseif (HAVE_CHANGENOTIFICATION EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_win32.cpp)
 endif ()
 
+
+if (RCT_BUILD_SCRIPTENGINE)
+  find_package(V8)
+  if (V8_FOUND EQUAL 1)
+    message("Building ScriptEngine")
+    set(RCT_SOURCES ${RCT_SOURCES} ${CMAKE_CURRENT_LIST_DIR}/rct/ScriptEngine.cpp)
+    include_directories(${V8_INCLUDE})
+  endif()
+endif()
+
 configure_file(${CMAKE_CURRENT_LIST_DIR}/rct/rct-config.h.in ${RCT_INCLUDE_DIR}/rct-config.h.gen)
 if (EXISTS "${RCT_INCLUDE_DIR}/rct-config.h")
   file(READ "${RCT_INCLUDE_DIR}/rct-config.h" cfif_output)
@@ -130,7 +142,7 @@ if (NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   list(APPEND RCT_SYSTEM_LIBRARIES crypto pthread)
 endif()
 
-target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES} ${ZLIB_LIBRARIES} ${V8_LIBS})
 
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)

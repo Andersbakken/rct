@@ -2,6 +2,10 @@
 #include <v8.h>
 #include <rct/EventLoop.h>
 
+static String toString(v8::Handle<v8::Value> value);
+static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value);
+static Value fromV8(v8::Handle<v8::Value> value);
+
 struct ScriptEnginePrivate
 {
     v8::Persistent<v8::Context> context;
@@ -26,10 +30,18 @@ public:
         v8::Persistent<v8::Value> ext;
         ScriptEngine::Object::Function func;
     };
+    struct PropertyData
+    {
+        ScriptEngine::Object::Getter getter;
+        ScriptEngine::Object::Setter setter;
+    };
+    enum { Getter = 0x1, Setter = 0x2 };
+    void initProperty(const String& name, PropertyData& data, unsigned int mode);
 
     ScriptEnginePrivate* engine;
     v8::Persistent<v8::Object> object;
     Hash<String, FunctionData> functions;
+    Hash<String, PropertyData> properties;
     Hash<String, std::shared_ptr<ScriptEngine::Object> > children;
     bool shouldDelete;
 
@@ -49,16 +61,102 @@ static void ObjectWeak(const v8::WeakCallbackData<v8::Object, ObjectPrivate>& da
     delete static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
 }
 
+static void StringWeak(const v8::WeakCallbackData<v8::Value, String>& data)
+{
+    delete data.GetParameter();
+}
+
 void ObjectPrivate::init(ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o)
 {
     engine = e;
     object.Reset(e->isolate, o);
     object.SetWeak(this, ObjectWeak);
+    object.MarkIndependent();
 }
 
-static String toString(v8::Handle<v8::Value> value);
-static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value);
-static Value fromV8(v8::Handle<v8::Value> value);
+static inline std::shared_ptr<ScriptEngine::Object> objectFromHolder(const v8::Local<v8::Object>& holder)
+{
+    // first see if we're the global object
+    {
+        ScriptEngine* engine = ScriptEngine::instance();
+        auto global = engine->globalObject();
+        ObjectPrivate* priv = ObjectPrivate::objectPrivate(global.get());
+        if (priv->object == holder) {
+            return global;
+        }
+    }
+    // no, see if we can get it via the first internal field
+    v8::Handle<v8::Value> val = holder->GetInternalField(0);
+    if (val.IsEmpty() || !val->IsExternal()) {
+        return std::shared_ptr<ScriptEngine::Object>();
+    }
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(val);
+    auto ptr = static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
+    return ptr->lock();
+}
+
+static void GetterCallback(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    std::shared_ptr<ScriptEngine::Object> obj = objectFromHolder(info.Holder());
+    if (!obj)
+        return;
+
+    ObjectPrivate* priv = ObjectPrivate::objectPrivate(obj.get());
+    const String prop = toString(property);
+    auto it = priv->properties.find(prop);
+    if (it == priv->properties.end())
+        return;
+
+    info.GetReturnValue().Set(toV8(iso, it->second.getter()));
+}
+
+static void SetterCallback(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    std::shared_ptr<ScriptEngine::Object> obj = objectFromHolder(info.Holder());
+    if (!obj)
+        return;
+
+    ObjectPrivate* priv = ObjectPrivate::objectPrivate(obj.get());
+    const String prop = toString(property);
+    auto it = priv->properties.find(prop);
+    if (it == priv->properties.end())
+        return;
+
+    it->second.setter(fromV8(value));
+}
+
+void ObjectPrivate::initProperty(const String& name, PropertyData& data, unsigned int mode)
+{
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, object);
+    v8::Local<v8::ObjectTemplate> userTempl = v8::ObjectTemplate::New(iso);
+    userTempl->SetInternalFieldCount(1);
+    v8::Local<v8::Object> user = userTempl->NewInstance();
+    String* stringPtr = new String(name);
+    user->SetInternalField(0, v8::External::New(iso, stringPtr));
+    assert(mode & Getter);
+    if (mode & Setter) {
+        obj->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
+                         GetterCallback,
+                         SetterCallback,
+                         user);
+    } else {
+        obj->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
+                         GetterCallback,
+                         0,
+                         user);
+    }
+}
 
 ScriptEngine *ScriptEngine::sInstance = 0;
 ScriptEngine::ScriptEngine()
@@ -193,29 +291,9 @@ static void FunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
     v8::Local<v8::Object> user = v8::Local<v8::Object>::Cast(info.Data());
     String* name = static_cast<String*>(v8::Handle<v8::External>::Cast(user->GetInternalField(0))->Value());
 
-    std::shared_ptr<ScriptEngine::Object> obj;
-    // first see if we're the global object
-    {
-        ScriptEngine* engine = ScriptEngine::instance();
-        auto global = engine->globalObject();
-        ObjectPrivate* priv = ObjectPrivate::objectPrivate(global.get());
-        if (priv->object == info.Holder()) {
-            obj = global;
-        }
-    }
-    if (!obj) {
-        // no, see if we can get it via the first internal field
-        v8::Handle<v8::Value> val = info.Holder()->GetInternalField(0);
-        if (val.IsEmpty() || !val->IsExternal()) {
-            return;
-        }
-        v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(val);
-        auto ptr = static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
-        obj = ptr->lock();
-        if (!obj) {
-            return;
-        }
-    }
+    std::shared_ptr<ScriptEngine::Object> obj = objectFromHolder(info.Holder());
+    if (!obj)
+        return;
 
     ObjectPrivate* priv = ObjectPrivate::objectPrivate(obj.get());
     auto func = priv->functions.find(*name);
@@ -232,11 +310,6 @@ static void FunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
     }
     const Value val = func->second.func(args);
     info.GetReturnValue().Set(toV8(iso, val));
-}
-
-static void FunctionWeak(const v8::WeakCallbackData<v8::Value, String>& data)
-{
-    delete data.GetParameter();
 }
 
 void ScriptEngine::Object::registerFunction(const String &name, Function &&func)
@@ -257,18 +330,24 @@ void ScriptEngine::Object::registerFunction(const String &name, Function &&func)
 
     ObjectPrivate::FunctionData& data = mPrivate->functions[name];
     data.ext.Reset(iso, user);
-    data.ext.SetWeak(stringPtr, FunctionWeak);
+    data.ext.SetWeak(stringPtr, StringWeak);
+    data.ext.MarkIndependent();
     data.func = std::move(func);
 }
 
 void ScriptEngine::Object::registerProperty(const String &name, Getter &&get)
 {
-
+    ObjectPrivate::PropertyData& data = mPrivate->properties[name];
+    data.getter = std::move(get);
+    mPrivate->initProperty(name, data, ObjectPrivate::Getter);
 }
 
 void ScriptEngine::Object::registerProperty(const String &name, Getter &&get, Setter &&set)
 {
-
+    ObjectPrivate::PropertyData& data = mPrivate->properties[name];
+    data.getter = std::move(get);
+    data.setter = std::move(set);
+    mPrivate->initProperty(name, data, ObjectPrivate::Getter|ObjectPrivate::Setter);
 }
 
 std::shared_ptr<ScriptEngine::Object> ScriptEngine::Object::child(const String &name)

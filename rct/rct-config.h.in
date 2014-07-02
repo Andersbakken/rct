@@ -18,6 +18,7 @@
 #cmakedefine HAVE_CLOEXEC
 #cmakedefine HAVE_SCHEDIDLE
 #cmakedefine HAVE_SHMDEST
+#cmakedefine HAVE_SCRIPTENGINE
 #cmakedefine HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR
 #if !defined(HAVE_EPOLL) && !defined(HAVE_KQUEUE)
 #cmakedefine HAVE_SELECT

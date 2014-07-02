@@ -1,6 +1,9 @@
 #ifndef ScriptEngine_h
 #define ScriptEngine_h
 
+#include "rct-config.h"
+
+#ifdef HAVE_SCRIPTENGINE
 #include <rct/String.h>
 #include <rct/Value.h>
 #include <rct/Hash.h>
@@ -48,5 +51,5 @@ private:
     ScriptEnginePrivate *mPrivate;
     std::shared_ptr<Object> mGlobalObject;
 };
-
-#endif
+#endif // HAVE_SCRIPTENGINE
+#endif // ScriptEngine_h

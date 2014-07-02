@@ -1,4 +1,6 @@
 #include "ScriptEngine.h"
+
+#ifdef HAVE_SCRIPTENGINE
 #include <v8.h>
 #include <rct/EventLoop.h>
 
@@ -473,3 +475,4 @@ static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value)
     v8::EscapableHandleScope handleScope(isolate);
     return handleScope.Escape(toV8_helper(isolate, value));
 }
+#endif // HAVE_SCRIPTENGINE

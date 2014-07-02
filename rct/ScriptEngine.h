@@ -39,6 +39,10 @@ public:
         void registerProperty(const String &name, Getter &&get, Setter &&set);
 
         std::shared_ptr<Object> child(const String &name);
+
+        // callAsConstructor
+        // handleUnknownProperty
+        // deleteHandler
     private:
         Object();
 

@@ -23,7 +23,11 @@ public:
     Value call(const String &function, String *error = 0);
     Value call(const String &function, std::initializer_list<Value> arguments, String *error = 0);
 
-    void throwException(const Value& exception);
+    template <typename RetVal = Value>
+    RetVal throwException(const Value& exception) {
+        throwExceptionInternal(exception);
+        return RetVal();
+    }
 
     class Object : public std::enable_shared_from_this<Object>
     {
@@ -57,6 +61,7 @@ public:
 
     std::shared_ptr<Object> globalObject() const { return mGlobalObject; }
 private:
+    void throwExceptionInternal(const Value &exception);
     static ScriptEngine *sInstance;
     ScriptEnginePrivate *mPrivate;
     std::shared_ptr<Object> mGlobalObject;

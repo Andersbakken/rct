@@ -299,7 +299,7 @@ Value ScriptEngine::evaluate(const String &source, const Path &path, String *err
     return fromV8(val);
 }
 
-void ScriptEngine::throwException(const Value& exception)
+void ScriptEngine::throwExceptionInternal(const Value& exception)
 {
     v8::Isolate* iso = mPrivate->isolate;
     const v8::Isolate::Scope isolateScope(iso);

@@ -12,14 +12,27 @@ struct cJSON;
 class Value
 {
 public:
+    struct Custom;
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
     inline Value(int64_t i) : mType(Type_Integer) { mData.int64 = i; }
     inline Value(uint64_t i) : mType(Type_Integer) { mData.uint64 = i; }
     inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
     inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
-    inline Value(void *ptr) : mType(Type_Pointer) { mData.pointer = ptr; }
+    inline Value(const std::shared_ptr<Custom> &custom) : mType(Type_Custom) { new (mData.customBuf) std::shared_ptr<Custom>(custom); }
     inline Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
+
+    struct Custom : std::enable_shared_from_this<Custom>
+    {
+        Custom(int t)
+            : type(t)
+        {}
+
+        virtual ~Custom() {}
+        virtual String toString() { return String(); }
+
+        const int type;
+    };
     inline Value(const char *str, int len = -1) : mType(Type_String)
     {
         if (len == -1)
@@ -43,7 +56,7 @@ public:
         Type_Integer,
         Type_Double,
         Type_String,
-        Type_Pointer,
+        Type_Custom,
         Type_Map,
         Type_List
     };
@@ -55,7 +68,7 @@ public:
     inline uint64_t toUInt64() const;
     inline double toDouble() const;
     inline String toString() const;
-    inline void *toPointer() const;
+    inline std::shared_ptr<Custom> toCustom() const;
     inline Map<String, Value> toMap() const;
     inline List<Value> toList() const;
     Map<String, Value>::const_iterator begin() const;
@@ -90,6 +103,8 @@ private:
     const Map<String, Value> *mapPtr() const { return reinterpret_cast<const Map<String, Value>*>(mData.mapBuf); }
     List<Value> *listPtr() { return reinterpret_cast<List<Value>*>(mData.listBuf); }
     const List<Value> *listPtr() const { return reinterpret_cast<const List<Value>*>(mData.listBuf); }
+    std::shared_ptr<Custom> *customPtr() { return reinterpret_cast<std::shared_ptr<Custom>*>(mData.customBuf); }
+    const std::shared_ptr<Custom> *customPtr() const { return reinterpret_cast<const std::shared_ptr<Custom>*>(mData.customBuf); }
 
     Type mType;
     union {
@@ -101,7 +116,7 @@ private:
         char stringBuf[sizeof(String)];
         char mapBuf[sizeof(Map<String, Value>)];
         char listBuf[sizeof(List<Value>)];
-        void *pointer;
+        char customBuf[sizeof(std::shared_ptr<Custom>)];
     } mData;
 };
 
@@ -130,7 +145,7 @@ const char *Value::typeToString(Type type)
     case Type_Integer: return "integer";
     case Type_Double: return "double";
     case Type_String: return "string";
-    case Type_Pointer: return "pointer";
+    case Type_Custom: return "custom";
     case Type_Map: return "list";
     case Type_List: return "map";
     }
@@ -152,7 +167,7 @@ template <> inline int Value::convert<int>(bool *ok) const
             return ret;
         break; }
     case Type_Invalid: break;
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
     }
@@ -176,7 +191,7 @@ template <> inline int64_t Value::convert<int64_t>(bool *ok) const
             return ret;
         break; }
     case Type_Invalid: break;
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
     }
@@ -200,7 +215,7 @@ template <> inline uint64_t Value::convert<uint64_t>(bool *ok) const
             return ret;
         break; }
     case Type_Invalid: break;
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
     }
@@ -209,7 +224,7 @@ template <> inline uint64_t Value::convert<uint64_t>(bool *ok) const
     return 0;
 }
 
-template <> inline void* Value::convert<void*>(bool *ok) const
+template <> inline std::shared_ptr<Value::Custom> Value::convert<std::shared_ptr<Value::Custom> >(bool *ok) const
 {
     if (ok)
         *ok = true;
@@ -219,13 +234,13 @@ template <> inline void* Value::convert<void*>(bool *ok) const
     case Type_Boolean: break;
     case Type_String: break;
     case Type_Invalid: break;
-    case Type_Pointer: return mData.pointer;
+    case Type_Custom: return *customPtr();
     case Type_List: break;
     case Type_Map: break;
     }
     if (ok)
         *ok = false;
-    return 0;
+    return std::shared_ptr<Custom>();
 }
 
 template <> inline bool Value::convert<bool>(bool *ok) const
@@ -237,7 +252,6 @@ template <> inline bool Value::convert<bool>(bool *ok) const
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
     case Type_Boolean: return mData.boolean;
-    case Type_Pointer: return mData.pointer;
     case Type_String: {
         const String str = toString();
         if (str == "true" || str == "1") {
@@ -246,6 +260,7 @@ template <> inline bool Value::convert<bool>(bool *ok) const
             return false;
         }
         break; }
+    case Type_Custom:
     case Type_Invalid: break;
     case Type_List: break;
     case Type_Map: break;
@@ -272,7 +287,7 @@ template <> inline double Value::convert<double>(bool *ok) const
         if (!*end)
             return ret;
         break; }
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_Invalid: break;
     case Type_List: break;
     case Type_Map: break;
@@ -294,7 +309,7 @@ template <> inline String Value::convert<String>(bool *ok) const
     case Type_Boolean: return mData.boolean ? "true" : "false";
     case Type_String: return *stringPtr();
     case Type_Invalid: break;
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
     }
@@ -315,7 +330,7 @@ template <> inline List<Value> Value::convert<List<Value> >(bool *ok) const
     case Type_Boolean: break;
     case Type_String: break;
     case Type_Invalid: break;
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_List: return *listPtr();
     case Type_Map: break;
     }
@@ -336,7 +351,7 @@ template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *
     case Type_Boolean: break;
     case Type_String: break;
     case Type_Invalid: break;
-    case Type_Pointer: break;
+    case Type_Custom: break;
     case Type_List: break;
     case Type_Map: return *mapPtr();
     }
@@ -354,7 +369,7 @@ inline Value Value::convert(Type type, bool *ok) const
     case Type_Boolean: return convert<bool>(ok);
     case Type_String: return convert<String>(ok);
     case Type_Invalid: if (ok) *ok = true; return Value();
-    case Type_Pointer: return convert<void*>(ok);
+    case Type_Custom: return convert<std::shared_ptr<Custom> >(ok);
     case Type_List: return convert<List<Value> >(ok);
     case Type_Map: return convert<Map<String, Value> >(ok);
     }
@@ -369,7 +384,7 @@ inline int64_t Value::toInt64() const { return convert<int64_t>(0); }
 inline uint64_t Value::toUInt64() const { return convert<uint64_t>(0); }
 inline double Value::toDouble() const { return convert<double>(0); }
 inline String Value::toString() const { return convert<String>(0); }
-inline void *Value::toPointer() const { return convert<void*>(0); }
+inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(0); }
 inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
 inline List<Value> Value::toList() const { return convert<List<Value> >(0); }
 inline Value Value::value(int idx, const Value &defaultValue) const
@@ -500,7 +515,14 @@ inline Log operator<<(Log log, const Value &value)
         case Value::Type_Boolean: l << value.toBool(); break;
         case Value::Type_String: l << value.toString(); break;
         case Value::Type_Invalid: l << "(invalid)"; break;
-        case Value::Type_Pointer: l << value.toPointer(); break;
+        case Value::Type_Custom: {
+            const std::shared_ptr<Value::Custom> custom = value.toCustom();
+            if (custom) {
+                l << custom->toString();
+            } else {
+                l << "Custom(0)";
+            }
+            break; }
         case Value::Type_List: l << value.toList(); break;
         case Value::Type_Map: l << value.toMap(); break;
         }
@@ -520,7 +542,7 @@ inline Serializer& operator<<(Serializer& serializer, const Value& value)
     case Value::Type_String: serializer << value.toString(); break;
     case Value::Type_Map: serializer << value.toMap(); break;
     case Value::Type_List: serializer << value.toList(); break;
-    case Value::Type_Pointer: error() << "Trying to serialize pointer"; break;
+    case Value::Type_Custom: error() << "Trying to serialize pointer"; break;
     case Value::Type_Invalid: break;
     }
     return serializer;
@@ -538,7 +560,7 @@ inline Deserializer& operator>>(Deserializer& deserializer, Value& value)
     case Value::Type_String: { String v; deserializer >> v; value = v; break; }
     case Value::Type_Map: { Map<String, Value> v; deserializer >> v; value = v; break; }
     case Value::Type_List: { List<Value> v; deserializer >> v; value = v; break; }
-    case Value::Type_Pointer: value.clear(); error() << "Trying to deserialize pointer"; break;
+    case Value::Type_Custom: value.clear(); error() << "Trying to deserialize pointer"; break;
     case Value::Type_Invalid: value.clear(); break;
     }
     return deserializer;

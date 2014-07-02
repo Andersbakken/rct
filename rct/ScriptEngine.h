@@ -20,8 +20,8 @@ public:
     static ScriptEngine *instance() { return sInstance; }
 
     Value evaluate(const String &source, const Path &path = String(), String *error = 0);
-    Value call(const String &function);
-    Value call(const String &function, std::initializer_list<Value> arguments);
+    Value call(const String &function, String *error = 0);
+    Value call(const String &function, std::initializer_list<Value> arguments, String *error = 0);
 
     void throwException(const Value& exception);
 

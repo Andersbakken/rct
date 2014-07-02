@@ -212,7 +212,7 @@ static inline v8::Handle<v8::Value> findFunction(v8::Isolate* isolate, const v8:
     return val;
 }
 
-Value ScriptEngine::call(const String &function)
+Value ScriptEngine::call(const String &function, String* error)
 {
     const v8::Isolate::Scope isolateScope(mPrivate->isolate);
     v8::HandleScope handleScope(mPrivate->isolate);
@@ -230,15 +230,19 @@ Value ScriptEngine::call(const String &function)
     v8::TryCatch tryCatch;
     val = func->Call(that, 0, 0);
     if (tryCatch.HasCaught()) {
-        v8::Handle<v8::Message> message = tryCatch.Message();
-        v8::String::Utf8Value msg(message->Get());
-        error() << "Exception from call:" << function << *msg;
+        if (error) {
+            v8::Handle<v8::Message> message = tryCatch.Message();
+            v8::String::Utf8Value msg(message->Get());
+            v8::String::Utf8Value script(message->GetScriptResourceName());
+            *error = String::format<128>("%s:%d:%d: Call error: %s {%d-%d}", *script, message->GetLineNumber(),
+                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
+        }
         return Value();
     }
     return fromV8(val);
 }
 
-Value ScriptEngine::call(const String &function, std::initializer_list<Value> arguments)
+Value ScriptEngine::call(const String &function, std::initializer_list<Value> arguments, String* error)
 {
     const v8::Isolate::Scope isolateScope(mPrivate->isolate);
     v8::HandleScope handleScope(mPrivate->isolate);
@@ -266,9 +270,13 @@ Value ScriptEngine::call(const String &function, std::initializer_list<Value> ar
     v8::TryCatch tryCatch;
     val = func->Call(that, sz, &v8args.first());
     if (tryCatch.HasCaught()) {
-        v8::Handle<v8::Message> message = tryCatch.Message();
-        v8::String::Utf8Value msg(message->Get());
-        error() << "Exception from call:" << function << *msg;
+        if (error) {
+            v8::Handle<v8::Message> message = tryCatch.Message();
+            v8::String::Utf8Value msg(message->Get());
+            v8::String::Utf8Value script(message->GetScriptResourceName());
+            *error = String::format<128>("%s:%d:%d: Call error: %s {%d-%d}", *script, message->GetLineNumber(),
+                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
+        }
         return Value();
     }
     return fromV8(val);
@@ -288,12 +296,22 @@ Value ScriptEngine::evaluate(const String &source, const Path &path, String *err
         if (error) {
             v8::Handle<v8::Message> message = tryCatch.Message();
             v8::String::Utf8Value msg(message->Get());
-            *error = String::format<128>("%s:%d:%d: esprima error: %s {%d-%d}\n", path.constData(), message->GetLineNumber(),
+            *error = String::format<128>("%s:%d:%d: Compile error: %s {%d-%d}", path.constData(), message->GetLineNumber(),
                                          message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
         }
         return Value();
     }
-    return fromV8(script->Run());
+    v8::Handle<v8::Value> val = script->Run();
+    if (tryCatch.HasCaught()) {
+        if (error) {
+            v8::Handle<v8::Message> message = tryCatch.Message();
+            v8::String::Utf8Value msg(message->Get());
+            *error = String::format<128>("%s:%d:%d: Evaluate error: %s {%d-%d}", path.constData(), message->GetLineNumber(),
+                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
+        }
+        return Value();
+    }
+    return fromV8(val);
 }
 
 void ScriptEngine::throwException(const Value& exception)

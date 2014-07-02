@@ -22,28 +22,6 @@ if (V8_INCLUDE AND V8_LIBS)
   include(CheckCXXSourceCompiles)
   set(CMAKE_REQUIRED_LIBRARIES ${V8_LIBS} pthread)
   set(CMAKE_REQUIRED_INCLUDES ${V8_INCLUDE})
-
-  check_cxx_source_compiles("
-    #include <v8.h>
-
-    int main()
-    {
-        v8::Persistent<v8::Context> ctx;
-        ctx.Dispose(0);
-        return 0;
-     }"
-     V8_DISPOSE_HAS_ISOLATE)
-  check_cxx_source_compiles("
-    #define V8_USE_UNSAFE_HANDLES
-    #include <v8.h>
-
-    int main()
-    {
-        v8::Handle<v8::ObjectTemplate> globalObjectTemplate = v8::ObjectTemplate::New();
-        v8::Handle<v8::Context> ctx = v8::Context::New(0, 0, globalObjectTemplate);
-        return 0;
-     }"
-     V8_NEW_CONTEXT_TAKES_ISOLATE)
  else ()
    set(V8_FOUND 0)
  endif ()

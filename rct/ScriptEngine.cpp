@@ -227,7 +227,15 @@ Value ScriptEngine::call(const String &function)
     assert(!that.IsEmpty() && that->IsObject());
     v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(val);
 
-    return fromV8(func->Call(that, 0, 0));
+    v8::TryCatch tryCatch;
+    val = func->Call(that, 0, 0);
+    if (tryCatch.HasCaught()) {
+        v8::Handle<v8::Message> message = tryCatch.Message();
+        v8::String::Utf8Value msg(message->Get());
+        error() << "Exception from call:" << function << *msg;
+        return Value();
+    }
+    return fromV8(val);
 }
 
 Value ScriptEngine::call(const String &function, std::initializer_list<Value> arguments)
@@ -255,7 +263,15 @@ Value ScriptEngine::call(const String &function, std::initializer_list<Value> ar
         ++arg;
     }
 
-    return fromV8(func->Call(that, sz, &v8args.first()));
+    v8::TryCatch tryCatch;
+    val = func->Call(that, sz, &v8args.first());
+    if (tryCatch.HasCaught()) {
+        v8::Handle<v8::Message> message = tryCatch.Message();
+        v8::String::Utf8Value msg(message->Get());
+        error() << "Exception from call:" << function << *msg;
+        return Value();
+    }
+    return fromV8(val);
 }
 
 Value ScriptEngine::evaluate(const String &source, const Path &path, String *error)
@@ -278,6 +294,15 @@ Value ScriptEngine::evaluate(const String &source, const Path &path, String *err
         return Value();
     }
     return fromV8(script->Run());
+}
+
+void ScriptEngine::throwException(const Value& exception)
+{
+    v8::Isolate* iso = mPrivate->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Handle<v8::Value> v8ex = toV8(iso, exception);
+    iso->ThrowException(v8ex);
 }
 
 ScriptEngine::Object::Object()

@@ -23,6 +23,8 @@ public:
     Value call(const String &function);
     Value call(const String &function, std::initializer_list<Value> arguments);
 
+    void throwException(const Value& exception);
+
     class Object : public std::enable_shared_from_this<Object>
     {
     public:

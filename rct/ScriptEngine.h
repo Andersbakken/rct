@@ -20,7 +20,7 @@ public:
     Value call(const String &function);
     Value call(const String &function, std::initializer_list<Value> arguments);
 
-    class Object
+    class Object : public std::enable_shared_from_this<Object>
     {
     public:
         ~Object();

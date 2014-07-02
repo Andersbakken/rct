@@ -52,13 +52,24 @@ public:
     }
 };
 
+struct ObjectData
+{
+    String name;
+    std::weak_ptr<ScriptEngine::Object> weak, parent;
+};
+
 static void ObjectWeak(const v8::WeakCallbackData<v8::Object, ObjectPrivate>& data)
 {
     if (!data.GetParameter()->shouldDelete)
         return;
     assert(data.GetValue()->GetInternalField(0)->IsExternal());
     v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(data.GetValue()->GetInternalField(0));
-    delete static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
+    ObjectData* objData = static_cast<ObjectData*>(ext->Value());
+    if (auto p = objData->parent.lock()) {
+        ObjectPrivate* priv = ObjectPrivate::objectPrivate(p.get());
+        priv->children.erase(objData->name);
+    }
+    delete objData;
 }
 
 static void StringWeak(const v8::WeakCallbackData<v8::Value, String>& data)
@@ -91,8 +102,8 @@ static inline std::shared_ptr<ScriptEngine::Object> objectFromHolder(const v8::L
         return std::shared_ptr<ScriptEngine::Object>();
     }
     v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(val);
-    auto ptr = static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
-    return ptr->lock();
+    auto data = static_cast<ObjectData*>(ext->Value());
+    return data->weak.lock();
 }
 
 static void GetterCallback(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -367,7 +378,8 @@ std::shared_ptr<ScriptEngine::Object> ScriptEngine::Object::child(const String &
         v8::Handle<v8::Object> subobj = v8::Handle<v8::Object>::Cast(sub);
         std::shared_ptr<Object> ch(new ScriptEngine::Object);
         mPrivate->children[name] = ch;
-        subobj->SetInternalField(0, v8::External::New(iso, new std::weak_ptr<Object>(ch)));
+        ObjectData* data = new ObjectData({ name, ch, shared_from_this() });
+        subobj->SetInternalField(0, v8::External::New(iso, data));
         ch->mPrivate->init(mPrivate->engine, subobj);
         return ch;
     }

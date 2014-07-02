@@ -5,12 +5,59 @@
 struct ScriptEnginePrivate
 {
     v8::Persistent<v8::Context> context;
-    // v8::Persistent<v8::Function> mParse;
     v8::Isolate *isolate;
 };
 
+class ObjectPrivate
+{
+public:
+    ObjectPrivate()
+        : shouldDelete(true)
+    {
+    }
+    ~ObjectPrivate()
+    {
+    }
+
+    void init(ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o);
+
+    struct FunctionData
+    {
+        v8::Persistent<v8::Value> ext;
+        ScriptEngine::Object::Function func;
+    };
+
+    ScriptEnginePrivate* engine;
+    v8::Persistent<v8::Object> object;
+    Hash<String, FunctionData> functions;
+    Hash<String, std::shared_ptr<ScriptEngine::Object> > children;
+    bool shouldDelete;
+
+    // awful
+    static ObjectPrivate* objectPrivate(ScriptEngine::Object* obj)
+    {
+        return obj->mPrivate;
+    }
+};
+
+static void ObjectWeak(const v8::WeakCallbackData<v8::Object, ObjectPrivate>& data)
+{
+    if (!data.GetParameter()->shouldDelete)
+        return;
+    assert(data.GetValue()->GetInternalField(0)->IsExternal());
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(data.GetValue()->GetInternalField(0));
+    delete static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
+}
+
+void ObjectPrivate::init(ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o)
+{
+    engine = e;
+    object.Reset(e->isolate, o);
+    object.SetWeak(this, ObjectWeak);
+}
+
 static String toString(v8::Handle<v8::Value> value);
-static v8::Handle<v8::Value> toV8(const Value& value);
+static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value);
 static Value fromV8(v8::Handle<v8::Value> value);
 
 ScriptEngine *ScriptEngine::sInstance = 0;
@@ -22,56 +69,98 @@ ScriptEngine::ScriptEngine()
 
     mPrivate->isolate = v8::Isolate::New();
     const v8::Isolate::Scope isolateScope(mPrivate->isolate);
-    v8::HandleScope handleScope;
+    v8::HandleScope handleScope(mPrivate->isolate);
     v8::Handle<v8::ObjectTemplate> globalObjectTemplate = v8::ObjectTemplate::New();
-    // globalObjectTemplate->Set(v8::String::New("log"), v8::FunctionTemplate::New(log));
 
-#ifdef V8_NEW_CONTEXT_TAKES_ISOLATE
     v8::Handle<v8::Context> ctx = v8::Context::New(mPrivate->isolate, 0, globalObjectTemplate);
+    // bind the "global" object to itself
+    {
+        v8::Context::Scope contextScope(ctx);
+        v8::Local<v8::Object> global = ctx->Global();
+        global->Set(v8::String::NewFromUtf8(mPrivate->isolate, "global"), global);
+
+        mGlobalObject.reset(new Object);
+        mGlobalObject->mPrivate->init(mPrivate, global);
+        mGlobalObject->mPrivate->shouldDelete = false;
+    }
     mPrivate->context.Reset(mPrivate->isolate, ctx);
-#else
-    mPrivate->context = v8::Context::New(0, globalObjectTemplate);
-#endif
-    // v8::Context::Scope scope(mPrivate->context);
-    // assert(!mPrivate->context.IsEmpty());
-
-    // const String esprimaSrcString = Path(ESPRIMA_JS).readAll();
-    // v8::Handle<v8::String> esprimaSrc = v8::String::New(esprimaSrcString.constData(), esprimaSrcString.size());
-
-    // v8::TryCatch tryCatch;
-    // v8::Handle<v8::Script> script = v8::Script::Compile(esprimaSrc);
-    // if (tryCatch.HasCaught() || script.IsEmpty() || !tryCatch.Message().IsEmpty()) {
-    //     v8::Handle<v8::Message> message = tryCatch.Message();
-    //     v8::String::Utf8Value msg(message->Get());
-    //     printf("%s:%d:%d: esprima error: %s {%d-%d}\n", ESPRIMA_JS, message->GetLineNumber(),
-    //            message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
-    //     return false;
-    // }
-    // script->Run();
-
-    // v8::Handle<v8::Object> global = mPrivate->context->Global();
-    // mParse = getPersistent<v8::Function>(global, "indexFile");
-
-    // return !mParse.IsEmpty() && mParse->IsFunction();
 }
 
 ScriptEngine::~ScriptEngine()
 {
     assert(sInstance == this);
     sInstance = 0;
-    delete mGlobalObject;
 }
 
-bool ScriptEngine::checkSyntax(const String &source, const Path &path, String *error) const
+static inline v8::Handle<v8::Value> findFunction(v8::Isolate* isolate, const v8::Local<v8::Context>& ctx,
+                                                 const String& function, v8::Handle<v8::Value>* that)
 {
+    // find the function object
+    v8::Handle<v8::Value> val = ctx->Global();
+    List<String> list = function.split('.');
+    for (const String& f : list) {
+        if (val.IsEmpty() || !val->IsObject())
+            return v8::Handle<v8::Value>();
+        if (that)
+            *that = val;
+        val = v8::Handle<v8::Object>::Cast(val)->Get(v8::String::NewFromUtf8(isolate, f.constData()));
+    }
+    return val;
+}
 
+Value ScriptEngine::call(const String &function)
+{
+    const v8::Isolate::Scope isolateScope(mPrivate->isolate);
+    v8::HandleScope handleScope(mPrivate->isolate);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(mPrivate->isolate, mPrivate->context);
+    v8::Context::Scope contextScope(ctx);
+
+    // find the function object
+    v8::Handle<v8::Value> that, val;
+    val = findFunction(mPrivate->isolate, ctx, function, &that);
+    if (val.IsEmpty() || !val->IsFunction())
+        return Value();
+    assert(!that.IsEmpty() && that->IsObject());
+    v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(val);
+
+    return fromV8(func->Call(that, 0, 0));
+}
+
+Value ScriptEngine::call(const String &function, std::initializer_list<Value> arguments)
+{
+    const v8::Isolate::Scope isolateScope(mPrivate->isolate);
+    v8::HandleScope handleScope(mPrivate->isolate);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(mPrivate->isolate, mPrivate->context);
+    v8::Context::Scope contextScope(ctx);
+
+    // find the function object
+    v8::Handle<v8::Value> that, val;
+    val = findFunction(mPrivate->isolate, ctx, function, &that);
+    if (val.IsEmpty() || !val->IsFunction())
+        return Value();
+    assert(!that.IsEmpty() && that->IsObject());
+    v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(val);
+
+    const auto sz = arguments.size();
+    List<v8::Handle<v8::Value> > v8args;
+    v8args.reserve(sz);
+    const Value* arg = arguments.begin();
+    const Value* end = arguments.end();
+    while (arg != end) {
+        v8args.append(toV8(mPrivate->isolate, *arg));
+        ++arg;
+    }
+
+    return fromV8(func->Call(that, sz, &v8args.first()));
 }
 
 Value ScriptEngine::evaluate(const String &source, const Path &path, String *error)
 {
     const v8::Isolate::Scope isolateScope(mPrivate->isolate);
-    v8::HandleScope handleScope;
-    v8::Handle<v8::String> src = v8::String::New(source.constData(), source.size());
+    v8::HandleScope handleScope(mPrivate->isolate);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(mPrivate->isolate, mPrivate->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Handle<v8::String> src = v8::String::NewFromUtf8(mPrivate->isolate, source.constData(), v8::String::kNormalString, source.size());
 
     v8::TryCatch tryCatch;
     v8::Handle<v8::Script> script = v8::Script::Compile(src);
@@ -84,70 +173,8 @@ Value ScriptEngine::evaluate(const String &source, const Path &path, String *err
         }
         return Value();
     }
-    script->Run();
+    return fromV8(script->Run());
 }
-
-
-void ScriptEngine::throwError(const String &error)
-{
-}
-
-class ObjectPrivate
-{
-public:
-    ObjectPrivate()
-    {
-    }
-    ~ObjectPrivate()
-    {
-        for (const auto &it : mMembers)
-            delete it.second;
-    }
-    struct Member {
-        enum Type {
-            Type_Property,
-            Type_PropertyReadOnly,
-            Type_Function,
-            Type_Child
-        } type;
-        ScriptEngine::Object::Function function;
-        struct {
-            ScriptEngine::Object::Setter setter;
-            ScriptEngine::Object::Getter getter;
-        } property;
-        ScriptEngine::Object *child;
-
-        Member(ScriptEngine::Object *c)
-            : type(Type_Child), child(c)
-        {
-        }
-
-        Member(ScriptEngine::Object::Getter &&getter)
-            : type(Type_PropertyReadOnly), child(0)
-        {
-            property.getter = std::move(getter);
-        }
-
-        Member(ScriptEngine::Object::Getter &&getter, ScriptEngine::Object::Setter &&setter)
-            : type(Type_Property), child(0)
-        {
-            property.getter = std::move(getter);
-            property.setter = std::move(setter);
-        }
-
-        Member(ScriptEngine::Object::Function &&func)
-            : type(Type_Function), function(std::move(func)), child(0)
-        {
-        }
-
-        ~Member()
-        {
-            delete child;
-        }
-    };
-
-    Hash<String, Member*> mMembers;
-};
 
 ScriptEngine::Object::Object()
     : mPrivate(new ObjectPrivate)
@@ -159,38 +186,79 @@ ScriptEngine::Object::~Object()
     delete mPrivate;
 }
 
-// static JSBool jsCallback(JSContext *context, unsigned argc, JS::Value *vp)
-// {
-//     JS::CallArgs callArgs = JS::CallArgsFromVp(argc, vp);
-//     JSObject &callee = callArgs.callee();
-//     ObjectPrivate::Member *member = static_cast<ObjectPrivate::Member*>(JS_GetPrivate(&callee));
-//     if (!member) {
-//         JS_ReportError(context, "Invalid function called");
-//         return false;
-//     }
-//     assert(member);
-//     const int length = callArgs.length();
-//     List<Value> args(length);
-//     for (int i=0; i<length; ++i)
-//         args[i] = toRct(context, &callArgs[i]);
-//     const Value retVal = member->function(args);
-//     callArgs.rval().set(fromRct(context, retVal));
-//     return true;
-// }
+static void FunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Object> user = v8::Local<v8::Object>::Cast(info.Data());
+    String* name = static_cast<String*>(v8::Handle<v8::External>::Cast(user->GetInternalField(0))->Value());
+
+    std::shared_ptr<ScriptEngine::Object> obj;
+    // first see if we're the global object
+    {
+        ScriptEngine* engine = ScriptEngine::instance();
+        auto global = engine->globalObject();
+        ObjectPrivate* priv = ObjectPrivate::objectPrivate(global.get());
+        if (priv->object == info.Holder()) {
+            obj = global;
+        }
+    }
+    if (!obj) {
+        // no, see if we can get it via the first internal field
+        v8::Handle<v8::Value> val = info.Holder()->GetInternalField(0);
+        if (val.IsEmpty() || !val->IsExternal()) {
+            return;
+        }
+        v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(val);
+        auto ptr = static_cast<std::weak_ptr<ScriptEngine::Object>*>(ext->Value());
+        obj = ptr->lock();
+        if (!obj) {
+            return;
+        }
+    }
+
+    ObjectPrivate* priv = ObjectPrivate::objectPrivate(obj.get());
+    auto func = priv->functions.find(*name);
+    if (func == priv->functions.end()) {
+        return;
+    }
+    List<Value> args;
+    const auto len = info.Length();
+    if (len > 0) {
+        args.reserve(len);
+        for (auto i = 0; i < len; ++i) {
+            args.append(fromV8(info[i]));
+        }
+    }
+    const Value val = func->second.func(args);
+    info.GetReturnValue().Set(toV8(iso, val));
+}
+
+static void FunctionWeak(const v8::WeakCallbackData<v8::Value, String>& data)
+{
+    delete data.GetParameter();
+}
 
 void ScriptEngine::Object::registerFunction(const String &name, Function &&func)
 {
-    // ObjectPrivate::Member *&member = mPrivate->mMembers[name];
-    // assert(!member);
-    // JSContext *context = ScriptEngine::instance()->context();
-    // JSFunction *jsFunc = JS_DefineFunction(context, mPrivate->mObject, name.constData(), jsCallback, 0, JSPROP_ENUMERATE);
-    // if (jsFunc) {
-    //     JSObject *obj = JS_GetFunctionObject(jsFunc);
-    //     if (obj) {
-    //         member = new ObjectPrivate::Member(std::move(func));
-    //         JS_SetPrivate(obj, member);
-    //     }
-    // }
+    v8::Isolate* iso = mPrivate->engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, mPrivate->engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, mPrivate->object);
+    v8::Local<v8::ObjectTemplate> userTempl = v8::ObjectTemplate::New(iso);
+    userTempl->SetInternalFieldCount(1);
+    v8::Local<v8::Object> user = userTempl->NewInstance();
+    String* stringPtr = new String(name);
+    user->SetInternalField(0, v8::External::New(iso, stringPtr));
+    obj->Set(v8::String::NewFromUtf8(iso, name.constData()),
+             v8::Function::New(iso, FunctionCallback, user));
+
+    ObjectPrivate::FunctionData& data = mPrivate->functions[name];
+    data.ext.Reset(iso, user);
+    data.ext.SetWeak(stringPtr, FunctionWeak);
+    data.func = std::move(func);
 }
 
 void ScriptEngine::Object::registerProperty(const String &name, Getter &&get)
@@ -203,14 +271,35 @@ void ScriptEngine::Object::registerProperty(const String &name, Getter &&get, Se
 
 }
 
-ScriptEngine::Object *ScriptEngine::Object::child(const String &name)
+std::shared_ptr<ScriptEngine::Object> ScriptEngine::Object::child(const String &name)
 {
-    ObjectPrivate::Member *&data = mPrivate->mMembers[name];
-    if (!data) {
-        data = new ObjectPrivate::Member(new Object);
+    auto ch = mPrivate->children.find(name);
+    if (ch != mPrivate->children.end())
+        return ch->second;
+
+    v8::Isolate* iso = mPrivate->engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, mPrivate->engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, mPrivate->object);
+    v8::Handle<v8::Value> sub = obj->Get(v8::String::NewFromUtf8(iso, name.constData()));
+    if (sub.IsEmpty() || sub->IsUndefined()) {
+        v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(iso);
+        templ->SetInternalFieldCount(1);
+        sub = templ->NewInstance();
+        //sub = v8::Object::New(iso);
+        obj->Set(v8::String::NewFromUtf8(iso, name.constData()), sub);
     }
-    assert(data->type == ObjectPrivate::Member::Type_Child);
-    return data->child;
+    if (sub->IsObject()) {
+        v8::Handle<v8::Object> subobj = v8::Handle<v8::Object>::Cast(sub);
+        std::shared_ptr<Object> ch(new ScriptEngine::Object);
+        mPrivate->children[name] = ch;
+        subobj->SetInternalField(0, v8::External::New(iso, new std::weak_ptr<Object>(ch)));
+        ch->mPrivate->init(mPrivate->engine, subobj);
+        return ch;
+    }
+    return std::shared_ptr<ScriptEngine::Object>();
 }
 
 
@@ -241,6 +330,7 @@ static Value fromV8(v8::Handle<v8::Value> value)
             const v8::Handle<v8::Value> key = properties->Get(i);
             result[toString(key)] = fromV8(object->Get(key));
         }
+        return result;
     } else if (value->IsInt32()) {
         return value->IntegerValue();
     } else if (value->IsNumber()) {
@@ -253,48 +343,49 @@ static Value fromV8(v8::Handle<v8::Value> value)
     return Value();
 }
 
-static inline v8::Handle<v8::Value> toV8_helper(const Value &value)
+static inline v8::Local<v8::Value> toV8_helper(v8::Isolate* isolate, const Value &value)
 {
-    v8::Handle<v8::Value> result;
+    v8::EscapableHandleScope handleScope(isolate);
+    v8::Local<v8::Value> result;
     switch (value.type()) {
     case Value::Type_String:
-        result = v8::String::New(value.toString().constData());
+        result = v8::String::NewFromUtf8(isolate, value.toString().constData());
         break;
     case Value::Type_List: {
         const int sz = value.count();
-        v8::Handle<v8::Array> array = v8::Array::New(sz);
+        v8::Handle<v8::Array> array = v8::Array::New(isolate, sz);
         auto it = value.listBegin();
         for (int i=0; i<sz; ++i) {
-            array->Set(i, toV8_helper(*it));
+            array->Set(i, toV8_helper(isolate, *it));
             ++it;
         }
         result = array;
         break; }
     case Value::Type_Map: {
-        v8::Handle<v8::Object> object = v8::Object::New();
+        v8::Handle<v8::Object> object = v8::Object::New(isolate);
         const auto end = value.end();
         for (auto it = value.begin(); it != end; ++it)
-            object->Set(v8::String::New(it->first.constData()), toV8_helper(it->second));
+            object->Set(v8::String::NewFromUtf8(isolate, it->first.constData()), toV8_helper(isolate, it->second));
         result = object;
         break; }
     case Value::Type_Integer:
-        result = v8::Integer::New(value.toInt64());
+        result = v8::Int32::New(isolate, value.toInt64());
         break;
     case Value::Type_Double:
-        result = v8::Number::New(value.toDouble());
+        result = v8::Number::New(isolate, value.toDouble());
         break;
     case Value::Type_Boolean:
-        result = v8::Boolean::New(value.toBool());
+        result = v8::Boolean::New(isolate, value.toBool());
         break;
     default:
-        result = v8::Undefined();
+        result = v8::Undefined(isolate);
         break;
     }
-    return result;
+    return handleScope.Escape(result);
 }
 
-static v8::Handle<v8::Value> toV8(const Value& value)
+static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value)
 {
-    // ContextHolder holder;
-    // return holder.handleScope().Close(convertFromValue_helper(value));
+    v8::EscapableHandleScope handleScope(isolate);
+    return handleScope.Escape(toV8_helper(isolate, value));
 }

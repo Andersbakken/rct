@@ -4,6 +4,7 @@
 #include <rct/String.h>
 #include <rct/Value.h>
 #include <rct/Hash.h>
+#include <memory>
 
 class ObjectPrivate;
 struct ScriptEnginePrivate;
@@ -15,10 +16,9 @@ public:
 
     static ScriptEngine *instance() { return sInstance; }
 
-    bool checkSyntax(const String &source, const Path &path = Path(), String *error = 0) const;
-    Value evaluate(const String &source, const Path &path, String *error);
-
-    void throwError(const String &error);
+    Value evaluate(const String &source, const Path &path = String(), String *error = 0);
+    Value call(const String &function);
+    Value call(const String &function, std::initializer_list<Value> arguments);
 
     class Object
     {
@@ -33,19 +33,20 @@ public:
         void registerProperty(const String &name, Getter &&get);
         void registerProperty(const String &name, Getter &&get, Setter &&set);
 
-        Object *child(const String &name);
+        std::shared_ptr<Object> child(const String &name);
     private:
         Object();
 
         ObjectPrivate *mPrivate;
         friend class ScriptEngine;
+        friend class ObjectPrivate;
     };
 
-    Object *globalObject() const { return mGlobalObject; }
+    std::shared_ptr<Object> globalObject() const { return mGlobalObject; }
 private:
     static ScriptEngine *sInstance;
     ScriptEnginePrivate *mPrivate;
-    Object *mGlobalObject;
+    std::shared_ptr<Object> mGlobalObject;
 };
 
 #endif

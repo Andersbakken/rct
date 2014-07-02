@@ -139,22 +139,15 @@ void ObjectPrivate::initProperty(const String& name, PropertyData& data, unsigne
     v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
     v8::Context::Scope contextScope(ctx);
     v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, object);
-    v8::Local<v8::ObjectTemplate> userTempl = v8::ObjectTemplate::New(iso);
-    userTempl->SetInternalFieldCount(1);
-    v8::Local<v8::Object> user = userTempl->NewInstance();
-    String* stringPtr = new String(name);
-    user->SetInternalField(0, v8::External::New(iso, stringPtr));
     assert(mode & Getter);
     if (mode & Setter) {
         obj->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
                          GetterCallback,
-                         SetterCallback,
-                         user);
+                         SetterCallback);
     } else {
         obj->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
                          GetterCallback,
-                         0,
-                         user);
+                         0);
     }
 }
 

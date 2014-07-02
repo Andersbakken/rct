@@ -505,7 +505,7 @@ inline Log operator<<(Log log, const Value &value)
         case Value::Type_Map: l << value.toMap(); break;
         }
     }
-    log << String::format<128>("Variant(%s: %s)", Value::typeToString(value.type()),
+    log << String::format<128>("Value(%s: %s)", Value::typeToString(value.type()),
                                str.constData());
     return log;
 }

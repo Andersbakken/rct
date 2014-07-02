@@ -1,6 +1,5 @@
 #include "ScriptEngine.h"
 
-#ifdef HAVE_SCRIPTENGINE
 #include <v8.h>
 #include <rct/EventLoop.h>
 
@@ -196,6 +195,22 @@ ScriptEngine::~ScriptEngine()
     sInstance = 0;
 }
 
+static inline bool catchError(v8::TryCatch &tryCatch, const char *header, String *error)
+{
+    if (!tryCatch.HasCaught())
+        return false;
+
+    if (error) {
+        v8::Handle<v8::Message> message = tryCatch.Message();
+        v8::String::Utf8Value msg(message->Get());
+        v8::String::Utf8Value script(message->GetScriptResourceName());
+        *error = String::format<128>("%s:%d:%d: %s: %s {%d-%d}", *script, message->GetLineNumber(),
+                                     message->GetStartColumn(), header, *msg, message->GetStartPosition(),
+                                     message->GetEndPosition());
+    }
+    return true;
+}
+
 static inline v8::Handle<v8::Value> findFunction(v8::Isolate* isolate, const v8::Local<v8::Context>& ctx,
                                                  const String& function, v8::Handle<v8::Value>* that)
 {
@@ -229,16 +244,8 @@ Value ScriptEngine::call(const String &function, String* error)
 
     v8::TryCatch tryCatch;
     val = func->Call(that, 0, 0);
-    if (tryCatch.HasCaught()) {
-        if (error) {
-            v8::Handle<v8::Message> message = tryCatch.Message();
-            v8::String::Utf8Value msg(message->Get());
-            v8::String::Utf8Value script(message->GetScriptResourceName());
-            *error = String::format<128>("%s:%d:%d: Call error: %s {%d-%d}", *script, message->GetLineNumber(),
-                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
-        }
+    if (catchError(tryCatch, "Call error", error))
         return Value();
-    }
     return fromV8(val);
 }
 
@@ -269,16 +276,8 @@ Value ScriptEngine::call(const String &function, std::initializer_list<Value> ar
 
     v8::TryCatch tryCatch;
     val = func->Call(that, sz, &v8args.first());
-    if (tryCatch.HasCaught()) {
-        if (error) {
-            v8::Handle<v8::Message> message = tryCatch.Message();
-            v8::String::Utf8Value msg(message->Get());
-            v8::String::Utf8Value script(message->GetScriptResourceName());
-            *error = String::format<128>("%s:%d:%d: Call error: %s {%d-%d}", *script, message->GetLineNumber(),
-                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
-        }
+    if (catchError(tryCatch, "Call error", error))
         return Value();
-    }
     return fromV8(val);
 }
 
@@ -292,25 +291,11 @@ Value ScriptEngine::evaluate(const String &source, const Path &path, String *err
 
     v8::TryCatch tryCatch;
     v8::Handle<v8::Script> script = v8::Script::Compile(src);
-    if (tryCatch.HasCaught() || script.IsEmpty() || !tryCatch.Message().IsEmpty()) {
-        if (error) {
-            v8::Handle<v8::Message> message = tryCatch.Message();
-            v8::String::Utf8Value msg(message->Get());
-            *error = String::format<128>("%s:%d:%d: Compile error: %s {%d-%d}", path.constData(), message->GetLineNumber(),
-                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
-        }
+    if (catchError(tryCatch, "Compile error", error) || script.IsEmpty())
         return Value();
-    }
     v8::Handle<v8::Value> val = script->Run();
-    if (tryCatch.HasCaught()) {
-        if (error) {
-            v8::Handle<v8::Message> message = tryCatch.Message();
-            v8::String::Utf8Value msg(message->Get());
-            *error = String::format<128>("%s:%d:%d: Evaluate error: %s {%d-%d}", path.constData(), message->GetLineNumber(),
-                                         message->GetStartColumn(), *msg, message->GetStartPosition(), message->GetEndPosition());
-        }
+    if (catchError(tryCatch, "Evaluate error", error))
         return Value();
-    }
     return fromV8(val);
 }
 
@@ -431,6 +416,87 @@ std::shared_ptr<ScriptEngine::Object> ScriptEngine::Object::child(const String &
     return std::shared_ptr<ScriptEngine::Object>();
 }
 
+Value ScriptEngine::Object::property(const String &propertyName, String *error)
+{
+    v8::Isolate* iso = mPrivate->engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, mPrivate->engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, mPrivate->object);
+    if (obj.IsEmpty()) {
+        if (error)
+            *error = String::format<128>("Can't find object for property %s", propertyName.constData());
+        return Value();
+    }
+
+    v8::TryCatch tryCatch;
+    v8::Handle<v8::Value> prop = obj->Get(v8::String::NewFromUtf8(iso, propertyName.constData()));
+    if (catchError(tryCatch, "Property", error))
+        return Value();
+    return fromV8(prop);
+}
+
+void ScriptEngine::Object::setProperty(const String &propertyName, const Value &value, String *error)
+{
+    v8::Isolate* iso = mPrivate->engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, mPrivate->engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, mPrivate->object);
+    if (obj.IsEmpty()) {
+        if (error)
+            *error = String::format<128>("Can't find object for setProperty %s", propertyName.constData());
+        return;
+    }
+
+    v8::TryCatch tryCatch;
+    obj->Set(v8::String::NewFromUtf8(iso, propertyName.constData()), toV8(iso, value));
+    catchError(tryCatch, "Set property", error);
+}
+
+Value ScriptEngine::Object::call(const String &functionName, std::initializer_list<Value> arguments, String *error)
+{
+    v8::Isolate* iso = mPrivate->engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, mPrivate->engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, mPrivate->object);
+    if (obj.IsEmpty()) {
+        if (error)
+            *error = String::format<128>("Can't find object for call %s", functionName.constData());
+        return Value();
+    }
+
+    v8::TryCatch tryCatch;
+    v8::Handle<v8::Value> val = obj->Get(v8::String::NewFromUtf8(iso, functionName.constData()));
+    if (catchError(tryCatch, "call", error))
+        return Value();
+    if (!val->IsFunction()) {
+        if (error)
+            *error = String::format<128>("%s is not a function", functionName.constData());
+        return Value();
+    }
+
+    v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(val);
+
+    const auto sz = arguments.size();
+    List<v8::Handle<v8::Value> > v8args;
+    v8args.reserve(sz);
+    const Value* arg = arguments.begin();
+    const Value* end = arguments.end();
+    while (arg != end) {
+        v8args.append(toV8(iso, *arg));
+        ++arg;
+    }
+
+    val = func->Call(obj, sz, &v8args.first());
+    if (catchError(tryCatch, "Call error", error))
+        return Value();
+    return fromV8(val);
+}
 
 static String toString(v8::Handle<v8::Value> value)
 {
@@ -518,4 +584,3 @@ static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value)
     v8::EscapableHandleScope handleScope(isolate);
     return handleScope.Escape(toV8_helper(isolate, value));
 }
-#endif // HAVE_SCRIPTENGINE

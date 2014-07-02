@@ -40,6 +40,10 @@ public:
 
         std::shared_ptr<Object> child(const String &name);
 
+        Value property(const String &propertyName, String *error = 0);
+        void setProperty(const String &propertyName, const Value &value, String *error = 0);
+        Value call(const String &name, std::initializer_list<Value> arguments, String *error = 0);
+
         // callAsConstructor
         // handleUnknownProperty
         // deleteHandler

@@ -23,7 +23,7 @@ class ProcessThread : public Thread
 {
 public:
     static void installProcessHandler();
-    static void addPid(pid_t pid, Process* process);
+    static void addPid(pid_t pid, Process* process, bool async);
     static void removePid(pid_t pid);
     static void shutdown();
 protected:
@@ -75,10 +75,10 @@ ProcessThread::ProcessThread()
     SocketClient::setFlags(sProcessPipe[1], O_NONBLOCK, F_GETFL, F_SETFL);
 }
 
-void ProcessThread::addPid(pid_t pid, Process* process)
+void ProcessThread::addPid(pid_t pid, Process* process, bool async)
 {
     std::lock_guard<std::mutex> lock(sProcessMutex);
-    sProcesses[pid] = { process, EventLoop::eventLoop() };
+    sProcesses[pid] = { process, async ? EventLoop::eventLoop() : EventLoop::SharedPtr() };
 }
 
 void ProcessThread::removePid(pid_t pid)
@@ -381,7 +381,7 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
             }
         }
 
-        ProcessThread::addPid(mPid, this);
+        ProcessThread::addPid(mPid, this, (mMode == Async));
 
         //printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
         if (mMode == Async) {

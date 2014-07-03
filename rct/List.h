@@ -26,6 +26,10 @@ public:
         }
     }
 
+    List(std::initializer_list<T> list)
+        : Base(list)
+    {}
+
     List(typename Base::const_iterator first, typename Base::const_iterator last)
         : Base(first, last)
     {

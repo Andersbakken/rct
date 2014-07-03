@@ -38,15 +38,21 @@ public:
         typedef std::function<Value ()> Getter;
         typedef std::function<void (const Value &)> Setter;
 
-        void registerFunction(const String &name, Function &&func);
+        std::shared_ptr<Object> registerFunction(const String &name, Function &&func);
         void registerProperty(const String &name, Getter &&get);
         void registerProperty(const String &name, Getter &&get, Setter &&set);
 
         std::shared_ptr<Object> child(const String &name);
+        bool isFunction() const;
 
         Value property(const String &propertyName, String *error = 0);
         void setProperty(const String &propertyName, const Value &value, String *error = 0);
-        Value call(const String &name, std::initializer_list<Value> arguments, String *error = 0);
+        Value call(std::initializer_list<Value> arguments,
+                   const std::shared_ptr<Object> &thisObject = std::shared_ptr<Object>(),
+                   String *error = 0);
+
+        void setExtraData(const Value &value);
+        const Value &extraData() const;
 
         // callAsConstructor
         // handleUnknownProperty
@@ -59,12 +65,15 @@ public:
         friend class ObjectPrivate;
     };
 
+    std::shared_ptr<Object> toObject(const Value &value) const;
     std::shared_ptr<Object> globalObject() const { return mGlobalObject; }
 private:
     void throwExceptionInternal(const Value &exception);
     static ScriptEngine *sInstance;
     ScriptEnginePrivate *mPrivate;
     std::shared_ptr<Object> mGlobalObject;
+
+    friend struct ScriptEnginePrivate;
 };
 #endif // HAVE_SCRIPTENGINE
 #endif // ScriptEngine_h

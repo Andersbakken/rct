@@ -13,6 +13,9 @@ void Value::clear()
     case Type_List:
         listPtr()->~List<Value>();
         break;
+    case Type_Custom:
+        customPtr()->~shared_ptr<Custom>();
+        break;
     default:
         break;
     }
@@ -33,6 +36,9 @@ void Value::copy(const Value &other)
         break;
     case Type_List:
         new (mData.listBuf) List<Value>(*other.listPtr());
+        break;
+    case Type_Custom:
+        new (mData.customBuf) std::shared_ptr<Custom>(*other.customPtr());
         break;
     default:
         memcpy(&mData, &other.mData, sizeof(mData));

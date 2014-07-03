@@ -47,7 +47,7 @@ public:
 
         Value property(const String &propertyName, String *error = 0);
         void setProperty(const String &propertyName, const Value &value, String *error = 0);
-        Value call(std::initializer_list<Value> arguments,
+        Value call(std::initializer_list<Value> arguments = std::initializer_list<Value>(),
                    const std::shared_ptr<Object> &thisObject = std::shared_ptr<Object>(),
                    String *error = 0);
 

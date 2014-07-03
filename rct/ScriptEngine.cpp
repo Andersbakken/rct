@@ -429,9 +429,10 @@ Value ScriptEngine::evaluate(const String &source, const Path &path, String *err
     v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(mPrivate->isolate, mPrivate->context);
     v8::Context::Scope contextScope(ctx);
     v8::Handle<v8::String> src = v8::String::NewFromUtf8(mPrivate->isolate, source.constData(), v8::String::kNormalString, source.size());
+    v8::Handle<v8::String> fn = v8::String::NewFromUtf8(mPrivate->isolate, path.constData());
 
     v8::TryCatch tryCatch;
-    v8::Handle<v8::Script> script = v8::Script::Compile(src);
+    v8::Handle<v8::Script> script = v8::Script::Compile(src, fn);
     if (catchError(tryCatch, "Compile error", error) || script.IsEmpty())
         return Value();
     v8::Handle<v8::Value> val = script->Run();

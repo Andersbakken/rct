@@ -31,9 +31,11 @@ public:
         return RetVal();
     }
 
-    typedef std::function<Value (const List<Value> &)> Function;
-    typedef std::function<Value ()> Getter;
-    typedef std::function<void (const Value &)> Setter;
+    class Object;
+
+    typedef std::function<Value (const std::shared_ptr<Object>& obj, const List<Value> &)> Function;
+    typedef std::function<Value (const std::shared_ptr<Object>& obj)> Getter;
+    typedef std::function<void (const std::shared_ptr<Object>& obj, const Value &)> Setter;
 
     class Object : public std::enable_shared_from_this<Object>
     {
@@ -56,8 +58,10 @@ public:
                    const SharedPtr &thisObject = SharedPtr(),
                    String *error = 0);
 
-        void setExtraData(const Value &value);
-        const Value &extraData() const;
+        template<typename T>
+        void setExtraData(const T& t);
+        template<typename T>
+        T extraData() const;
 
         // callAsConstructor
         // handleUnknownProperty
@@ -70,6 +74,29 @@ public:
         ObjectPrivate *mPrivate;
         friend class ScriptEngine;
         friend class ObjectPrivate;
+
+        class ExtraDataBase
+        {
+        public:
+            virtual ~ExtraDataBase() { };
+        };
+
+        template<typename T>
+        class ExtraData : public ExtraDataBase
+        {
+        public:
+            ExtraData(const T& ot)
+                : t(new T(ot))
+            {
+            }
+            ~ExtraData()
+            {
+                delete t;
+            }
+            T* t;
+        };
+
+        ExtraDataBase* mData;
     };
 
     class Class : public std::enable_shared_from_this<Class>
@@ -110,6 +137,21 @@ private:
 
     friend struct ScriptEnginePrivate;
 };
+
+template<typename T>
+inline void ScriptEngine::Object::setExtraData(const T& t)
+{
+    delete mData;
+    mData = new ExtraData<T>(t);
+}
+
+template<typename T>
+T ScriptEngine::Object::extraData() const
+{
+    if (!mData)
+        return T();
+    return *(static_cast<ExtraData<T>*>(mData)->t);
+}
 
 #endif // HAVE_SCRIPTENGINE
 #endif // ScriptEngine_h

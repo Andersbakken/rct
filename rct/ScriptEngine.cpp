@@ -66,7 +66,6 @@ public:
     v8::Persistent<v8::Object> object;
     Hash<String, PropertyData> properties;
     Hash<String, ScriptEngine::Object::SharedPtr > children;
-    Value extraData;
     ScriptEngine::Class::SharedPtr creator;
 
     // awful
@@ -111,7 +110,7 @@ static void functionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
             args.append(fromV8(iso, info[i]));
         }
     }
-    const Value val = priv->func(args);
+    const Value val = priv->func(obj, args);
     info.GetReturnValue().Set(toV8(iso, val));
 }
 
@@ -265,7 +264,7 @@ static void GetterCallback(v8::Local<v8::String> property, const v8::PropertyCal
     if (it == priv->properties.end())
         return;
 
-    info.GetReturnValue().Set(toV8(iso, it->second.getter()));
+    info.GetReturnValue().Set(toV8(iso, it->second.getter(obj)));
 }
 
 static void SetterCallback(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
@@ -283,7 +282,7 @@ static void SetterCallback(v8::Local<v8::String> property, v8::Local<v8::Value> 
     if (it == priv->properties.end())
         return;
 
-    it->second.setter(fromV8(iso, value));
+    it->second.setter(obj, fromV8(iso, value));
 }
 
 void ObjectPrivate::initProperty(const String& name, PropertyData& data, unsigned int mode)
@@ -453,13 +452,14 @@ void ScriptEngine::throwExceptionInternal(const Value& exception)
 }
 
 ScriptEngine::Object::Object()
-    : mPrivate(new ObjectPrivate)
+    : mPrivate(new ObjectPrivate), mData(0)
 {
 }
 
 ScriptEngine::Object::~Object()
 {
     delete mPrivate;
+    delete mData;
 }
 
 ScriptEngine::Object::SharedPtr ScriptEngine::Object::registerFunction(const String &name, Function &&func)
@@ -540,7 +540,7 @@ Value ScriptEngine::Object::call(std::initializer_list<Value> arguments,
 {
     assert(mPrivate->customType == CustomType_Function || mPrivate->customType == CustomType_AdoptedFunction);
     if (mPrivate->customType == CustomType_Function) {
-        return mPrivate->func(arguments);
+        return mPrivate->func(shared_from_this(), arguments);
     }
 
     v8::Isolate* iso = mPrivate->engine->isolate;
@@ -573,16 +573,6 @@ Value ScriptEngine::Object::call(std::initializer_list<Value> arguments,
     if (catchError(tryCatch, "Call error", error))
         return Value();
     return fromV8(iso, val);
-}
-
-void ScriptEngine::Object::setExtraData(const Value &value)
-{
-    mPrivate->extraData = value;
-}
-
-const Value &ScriptEngine::Object::extraData() const
-{
-    return mPrivate->extraData;
 }
 
 Value ScriptEngine::fromObject(const Object::SharedPtr& object)
@@ -759,7 +749,7 @@ static void ClassGetterCallback(v8::Local<v8::String> property, const v8::Proper
     if (it == priv->properties.end())
         return;
 
-    info.GetReturnValue().Set(toV8(iso, it->second.getter()));
+    info.GetReturnValue().Set(toV8(iso, it->second.getter(obj)));
 }
 
 static void ClassFunctionPropertyCallback(v8::Local<v8::String> function, const v8::PropertyCallbackInfo<v8::Value>& info)
@@ -802,7 +792,7 @@ static void ClassSetterCallback(v8::Local<v8::String> property, v8::Local<v8::Va
     if (it == priv->properties.end())
         return;
 
-    it->second.setter(fromV8(iso, value));
+    it->second.setter(obj, fromV8(iso, value));
 }
 
 void ClassPrivate::initProperty(const String& name, PropertyData& data, unsigned int mode)
@@ -850,6 +840,10 @@ static void ClassFunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& inf
     v8::Isolate* iso = info.GetIsolate();
     v8::HandleScope handleScope(iso);
 
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
+    if (!obj)
+        return;
+
     v8::Local<v8::Object> data = v8::Local<v8::Object>::Cast(info.Data());
     ClassPrivate* priv = static_cast<ClassPrivate*>(v8::Local<v8::External>::Cast(data->GetInternalField(0))->Value());
     const String name = toString(v8::Local<v8::String>::Cast(data->GetInternalField(1)));
@@ -866,7 +860,7 @@ static void ClassFunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& inf
             args.append(fromV8(iso, info[i]));
         }
     }
-    const Value val = it->second.function(args);
+    const Value val = it->second.function(obj, args);
     info.GetReturnValue().Set(toV8(iso, val));
 }
 

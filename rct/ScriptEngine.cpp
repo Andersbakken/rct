@@ -12,13 +12,14 @@ enum CustomType {
     CustomType_Global,
     CustomType_Object,
     CustomType_Function,
-    CustomType_AdoptedFunction
+    CustomType_AdoptedFunction,
+    CustomType_ClassObject
 };
 
 struct ScriptEngineCustom : public Value::Custom
 {
     ScriptEngineCustom(int type, v8::Isolate *isolate, const v8::Handle<v8::Object> &obj,
-                       const std::shared_ptr<ScriptEngine::Object> &shared)
+                       const ScriptEngine::Object::SharedPtr &shared)
         : Value::Custom(type), scriptObject(shared)
     {
         assert(shared);
@@ -26,7 +27,7 @@ struct ScriptEngineCustom : public Value::Custom
     }
 
     v8::Persistent<v8::Object> object;
-    std::shared_ptr<ScriptEngine::Object> scriptObject;
+    ScriptEngine::Object::SharedPtr scriptObject;
 };
 
 struct ScriptEnginePrivate
@@ -52,10 +53,10 @@ public:
 
     struct PropertyData
     {
-        ScriptEngine::Object::Getter getter;
-        ScriptEngine::Object::Setter setter;
+        ScriptEngine::Getter getter;
+        ScriptEngine::Setter setter;
     };
-    ScriptEngine::Object::Function func;
+    ScriptEngine::Function func;
     std::function<Value(v8::Handle<v8::Object>, const List<Value> &)> nativeFunc;
     enum { Getter = 0x1, Setter = 0x2 };
     void initProperty(const String& name, PropertyData& data, unsigned int mode);
@@ -64,8 +65,9 @@ public:
     ScriptEnginePrivate* engine;
     v8::Persistent<v8::Object> object;
     Hash<String, PropertyData> properties;
-    Hash<String, std::shared_ptr<ScriptEngine::Object> > children;
+    Hash<String, ScriptEngine::Object::SharedPtr > children;
     Value extraData;
+    ScriptEngine::Class::SharedPtr creator;
 
     // awful
     static ObjectPrivate* objectPrivate(ScriptEngine::Object* obj)
@@ -73,9 +75,9 @@ public:
         return obj->mPrivate;
     }
 
-    static std::shared_ptr<ScriptEngine::Object> makeObject()
+    static ScriptEngine::Object::SharedPtr makeObject()
     {
-        return std::shared_ptr<ScriptEngine::Object>(new ScriptEngine::Object);
+        return ScriptEngine::Object::SharedPtr(new ScriptEngine::Object);
     }
 };
 
@@ -85,7 +87,7 @@ struct ObjectData
     std::weak_ptr<ScriptEngine::Object> weak, parent;
 };
 
-static inline std::shared_ptr<ScriptEngine::Object> objectFromV8Object(const v8::Local<v8::Object>& holder);
+static inline ScriptEngine::Object::SharedPtr objectFromV8Object(const v8::Local<v8::Object>& holder);
 static void functionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
     v8::Isolate* iso = info.GetIsolate();
@@ -94,7 +96,7 @@ static void functionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
     ObjectData *data = static_cast<ObjectData*>(v8::Handle<v8::External>::Cast(user->GetInternalField(0))->Value());
     assert(data);
 
-    std::shared_ptr<ScriptEngine::Object> obj = data->weak.lock();
+    ScriptEngine::Object::SharedPtr obj = data->weak.lock();
     assert(obj);
     ObjectPrivate* priv = ObjectPrivate::objectPrivate(obj.get());
     assert(priv);
@@ -113,7 +115,7 @@ static void functionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
     info.GetReturnValue().Set(toV8(iso, val));
 }
 
-static inline std::shared_ptr<ScriptEngine::Object> createObject(const std::shared_ptr<ScriptEngine::Object> &parent, CustomType type, const String &name)
+static inline ScriptEngine::Object::SharedPtr createObject(const ScriptEngine::Object::SharedPtr &parent, CustomType type, const String &name)
 {
     assert(type == CustomType_Object || type == CustomType_Function);
     ObjectPrivate *parentPrivate = ObjectPrivate::objectPrivate(parent.get());
@@ -127,7 +129,7 @@ static inline std::shared_ptr<ScriptEngine::Object> createObject(const std::shar
 
     v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(iso);
     templ->SetInternalFieldCount(1);
-    std::shared_ptr<ScriptEngine::Object> o = ObjectPrivate::makeObject();
+    ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
 
     ObjectData* data = new ObjectData({ name, o, parent });
     v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, parentPrivate->object);
@@ -151,7 +153,7 @@ static inline std::shared_ptr<ScriptEngine::Object> createObject(const std::shar
     return o;
 }
 
-static inline std::shared_ptr<ScriptEngine::Object> adoptFunction(v8::Handle<v8::Function> func)
+static inline ScriptEngine::Object::SharedPtr adoptFunction(v8::Handle<v8::Function> func)
 {
     ScriptEnginePrivate *engine = ScriptEnginePrivate::get(ScriptEngine::instance());
     assert(!func.IsEmpty());
@@ -161,14 +163,14 @@ static inline std::shared_ptr<ScriptEngine::Object> adoptFunction(v8::Handle<v8:
     v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
     v8::Context::Scope contextScope(ctx);
 
-    std::shared_ptr<ScriptEngine::Object> o = ObjectPrivate::makeObject();
+    ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
     std::weak_ptr<ScriptEngine::Object> weak = o;
 
     ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
 
     priv->init(CustomType_AdoptedFunction, engine, func);
     priv->nativeFunc = [weak](v8::Handle<v8::Object> that, const List<Value> &arguments) -> Value {
-        std::shared_ptr<ScriptEngine::Object> obj = weak.lock();
+        ScriptEngine::Object::SharedPtr obj = weak.lock();
         if (!obj)
             return Value();
         ObjectPrivate *priv = ObjectPrivate::objectPrivate(obj.get());
@@ -227,7 +229,7 @@ void ObjectPrivate::init(CustomType type, ScriptEnginePrivate* e, const v8::Hand
     object.MarkIndependent();
 }
 
-static inline std::shared_ptr<ScriptEngine::Object> objectFromV8Object(const v8::Local<v8::Object>& holder)
+static inline ScriptEngine::Object::SharedPtr objectFromV8Object(const v8::Local<v8::Object>& holder)
 {
     // first see if we're the global object
     {
@@ -241,7 +243,7 @@ static inline std::shared_ptr<ScriptEngine::Object> objectFromV8Object(const v8:
     // no, see if we can get it via the first internal field
     v8::Handle<v8::Value> val = holder->GetInternalField(0);
     if (val.IsEmpty() || !val->IsExternal()) {
-        return std::shared_ptr<ScriptEngine::Object>();
+        return ScriptEngine::Object::SharedPtr();
     }
     v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(val);
     auto data = static_cast<ObjectData*>(ext->Value());
@@ -253,7 +255,7 @@ static void GetterCallback(v8::Local<v8::String> property, const v8::PropertyCal
     v8::Isolate* iso = info.GetIsolate();
     v8::HandleScope handleScope(iso);
 
-    std::shared_ptr<ScriptEngine::Object> obj = objectFromV8Object(info.Holder());
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
     if (!obj)
         return;
 
@@ -271,7 +273,7 @@ static void SetterCallback(v8::Local<v8::String> property, v8::Local<v8::Value> 
     v8::Isolate* iso = info.GetIsolate();
     v8::HandleScope handleScope(iso);
 
-    std::shared_ptr<ScriptEngine::Object> obj = objectFromV8Object(info.Holder());
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
     if (!obj)
         return;
 
@@ -460,9 +462,9 @@ ScriptEngine::Object::~Object()
     delete mPrivate;
 }
 
-std::shared_ptr<ScriptEngine::Object> ScriptEngine::Object::registerFunction(const String &name, Function &&func)
+ScriptEngine::Object::SharedPtr ScriptEngine::Object::registerFunction(const String &name, Function &&func)
 {
-    std::shared_ptr<ScriptEngine::Object> obj = createObject(shared_from_this(), CustomType_Function, name);
+    ScriptEngine::Object::SharedPtr obj = createObject(shared_from_this(), CustomType_Function, name);
     assert(obj);
     obj->mPrivate->func = std::move(func);
     return obj;
@@ -483,7 +485,7 @@ void ScriptEngine::Object::registerProperty(const String &name, Getter &&get, Se
     mPrivate->initProperty(name, data, ObjectPrivate::Getter|ObjectPrivate::Setter);
 }
 
-std::shared_ptr<ScriptEngine::Object> ScriptEngine::Object::child(const String &name)
+ScriptEngine::Object::SharedPtr ScriptEngine::Object::child(const String &name)
 {
     auto ch = mPrivate->children.find(name);
     if (ch != mPrivate->children.end())
@@ -533,7 +535,7 @@ void ScriptEngine::Object::setProperty(const String &propertyName, const Value &
 }
 
 Value ScriptEngine::Object::call(std::initializer_list<Value> arguments,
-                                 const std::shared_ptr<ScriptEngine::Object> &thisObject,
+                                 const ScriptEngine::Object::SharedPtr &thisObject,
                                  String *error)
 {
     assert(mPrivate->customType == CustomType_Function || mPrivate->customType == CustomType_AdoptedFunction);
@@ -583,11 +585,29 @@ const Value &ScriptEngine::Object::extraData() const
     return mPrivate->extraData;
 }
 
-std::shared_ptr<ScriptEngine::Object> ScriptEngine::toObject(const Value &value) const
+Value ScriptEngine::fromObject(const Object::SharedPtr& object)
+{
+    ObjectPrivate* priv = ObjectPrivate::objectPrivate(object.get());
+
+    v8::Isolate* iso = priv->engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, priv->engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, priv->object);
+    if (obj.IsEmpty()) {
+        error() << "unable to lock persistent for fromObject";
+        return Value();
+    }
+
+    return Value(std::make_shared<ScriptEngineCustom>(priv->customType, iso, obj, object));
+}
+
+ScriptEngine::Object::SharedPtr ScriptEngine::toObject(const Value &value) const
 {
     const std::shared_ptr<ScriptEngineCustom> &custom = std::static_pointer_cast<ScriptEngineCustom>(value.toCustom());
     if (!custom || custom->object.IsEmpty()) {
-        return std::shared_ptr<ScriptEngine::Object>();
+        return ScriptEngine::Object::SharedPtr();
     }
     return custom->scriptObject;
 }
@@ -692,4 +712,225 @@ static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value)
 {
     v8::EscapableHandleScope handleScope(isolate);
     return handleScope.Escape(toV8_helper(isolate, value));
+}
+
+class ClassPrivate
+{
+public:
+    struct PropertyData
+    {
+        ScriptEngine::Getter getter;
+        ScriptEngine::Setter setter;
+    };
+    enum { Getter = 0x1, Setter = 0x2 };
+    void initProperty(const String& name, PropertyData& data, unsigned int mode);
+    struct FunctionData
+    {
+        ScriptEngine::Function function;
+        v8::Persistent<v8::FunctionTemplate> templ;
+    };
+
+    ScriptEnginePrivate* engine;
+    v8::Persistent<v8::FunctionTemplate> functionTempl;
+    Hash<String, FunctionData> functions;
+    Hash<String, PropertyData> properties;
+
+    static ClassPrivate* classPrivate(ScriptEngine::Class* cls)
+    {
+        return cls->mPrivate;
+    }
+};
+
+static void ClassGetterCallback(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
+    if (!obj)
+        return;
+
+    ObjectPrivate* objpriv = ObjectPrivate::objectPrivate(obj.get());
+    ScriptEngine::Class::SharedPtr cls = objpriv->creator;
+    assert(cls);
+    ClassPrivate* priv = ClassPrivate::classPrivate(cls.get());
+    const String prop = toString(property);
+    auto it = priv->properties.find(prop);
+    if (it == priv->properties.end())
+        return;
+
+    info.GetReturnValue().Set(toV8(iso, it->second.getter()));
+}
+
+static void ClassFunctionPropertyCallback(v8::Local<v8::String> function, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
+    if (!obj)
+        return;
+
+    ObjectPrivate* objpriv = ObjectPrivate::objectPrivate(obj.get());
+    ScriptEngine::Class::SharedPtr cls = objpriv->creator;
+    assert(cls);
+    ClassPrivate* priv = ClassPrivate::classPrivate(cls.get());
+    const String func = toString(function);
+    auto it = priv->functions.find(func);
+    if (it == priv->functions.end())
+        return;
+
+    v8::Local<v8::FunctionTemplate> sub = v8::Local<v8::FunctionTemplate>::New(iso, it->second.templ);
+    info.GetReturnValue().Set(sub->GetFunction());
+}
+
+static void ClassSetterCallback(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<void>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
+    if (!obj)
+        return;
+
+    ObjectPrivate* objpriv = ObjectPrivate::objectPrivate(obj.get());
+    ScriptEngine::Class::SharedPtr cls = objpriv->creator;
+    assert(cls);
+    ClassPrivate* priv = ClassPrivate::classPrivate(cls.get());
+    const String prop = toString(property);
+    auto it = priv->properties.find(prop);
+    if (it == priv->properties.end())
+        return;
+
+    it->second.setter(fromV8(iso, value));
+}
+
+void ClassPrivate::initProperty(const String& name, PropertyData& data, unsigned int mode)
+{
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, functionTempl);
+    assert(mode & Getter);
+    if (mode & Setter) {
+        templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
+                                               ClassGetterCallback,
+                                               ClassSetterCallback);
+    } else {
+        templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
+                                               ClassGetterCallback);
+    }
+}
+
+ScriptEngine::Class::Class(const String& name)
+    : mPrivate(new ClassPrivate)
+{
+    ScriptEnginePrivate* engine = ScriptEnginePrivate::get(ScriptEngine::instance());
+    mPrivate->engine = engine;
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+    v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(iso);
+    templ->InstanceTemplate()->SetInternalFieldCount(1);
+    templ->SetClassName(v8::String::NewFromUtf8(iso, name.constData()));
+    mPrivate->functionTempl.Reset(iso, templ);
+}
+
+ScriptEngine::Class::~Class()
+{
+    delete mPrivate;
+}
+
+static void ClassFunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    v8::Local<v8::Object> data = v8::Local<v8::Object>::Cast(info.Data());
+    ClassPrivate* priv = static_cast<ClassPrivate*>(v8::Local<v8::External>::Cast(data->GetInternalField(0))->Value());
+    const String name = toString(v8::Local<v8::String>::Cast(data->GetInternalField(1)));
+
+    auto it = priv->functions.find(name);
+    if (it == priv->functions.end())
+        return;
+
+    List<Value> args;
+    const auto len = info.Length();
+    if (len > 0) {
+        args.reserve(len);
+        for (auto i = 0; i < len; ++i) {
+            args.append(fromV8(iso, info[i]));
+        }
+    }
+    const Value val = it->second.function(args);
+    info.GetReturnValue().Set(toV8(iso, val));
+}
+
+void ScriptEngine::Class::registerFunction(const String &name, Function &&func)
+{
+    ScriptEnginePrivate* engine = mPrivate->engine;
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    ClassPrivate::FunctionData& data = mPrivate->functions[name];
+    data.function = std::move(func);
+    // geh
+    v8::Handle<v8::ObjectTemplate> objTempl = v8::ObjectTemplate::New(iso);
+    objTempl->SetInternalFieldCount(2);
+    v8::Handle<v8::Object> ext = objTempl->NewInstance();
+    ext->SetInternalField(0, v8::External::New(iso, mPrivate));
+    ext->SetInternalField(1, v8::String::NewFromUtf8(iso, name.constData()));
+    v8::Handle<v8::FunctionTemplate> funcTempl = v8::FunctionTemplate::New(iso, ClassFunctionCallback, ext);
+    data.templ.Reset(iso, funcTempl);
+
+    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, mPrivate->functionTempl);
+    templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
+                                           ClassFunctionPropertyCallback);
+
+}
+
+void ScriptEngine::Class::registerProperty(const String &name, Getter &&get)
+{
+    ClassPrivate::PropertyData& data = mPrivate->properties[name];
+    data.getter = std::move(get);
+    mPrivate->initProperty(name, data, ClassPrivate::Getter);
+}
+
+void ScriptEngine::Class::registerProperty(const String &name, Getter &&get, Setter &&set)
+{
+    ClassPrivate::PropertyData& data = mPrivate->properties[name];
+    data.getter = std::move(get);
+    data.setter = std::move(set);
+    mPrivate->initProperty(name, data, ClassPrivate::Getter|ClassPrivate::Setter);
+}
+
+ScriptEngine::Object::SharedPtr ScriptEngine::Class::create()
+{
+    ScriptEnginePrivate* engine = mPrivate->engine;
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, mPrivate->functionTempl);
+    v8::Handle<v8::Object> obj = templ->GetFunction()->NewInstance();
+    ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
+
+    ObjectData* data = new ObjectData({ String(), o });
+    obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
+    obj->SetInternalField(0, v8::External::New(iso, data));
+
+    ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
+    priv->creator = shared_from_this();
+    priv->init(CustomType_ClassObject, engine, obj);
+
+    return o;
 }

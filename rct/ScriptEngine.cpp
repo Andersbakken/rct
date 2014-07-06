@@ -462,6 +462,12 @@ ScriptEngine::Object::~Object()
     delete mData;
 }
 
+bool ScriptEngine::Object::isFunction() const
+{
+    return (mPrivate->customType == CustomType_Function
+            || mPrivate->customType == CustomType_AdoptedFunction);
+}
+
 ScriptEngine::Object::SharedPtr ScriptEngine::Object::registerFunction(const String &name, Function &&func)
 {
     ScriptEngine::Object::SharedPtr obj = createObject(shared_from_this(), CustomType_Function, name);

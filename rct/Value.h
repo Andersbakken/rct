@@ -61,7 +61,6 @@ public:
         Type_Map,
         Type_List
     };
-    explicit Value(Type type) : mType(type) {}
 
     inline static const char *typeToString(Type type);
     inline Type type() const { return mType; }
@@ -99,6 +98,8 @@ public:
     String toJSON(bool pretty = false) const;
     static Value undefined() { return Value(Type_Undefined); }
 private:
+    explicit Value(Type type) : mType(type) {}
+
     static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);
     String *stringPtr() { return reinterpret_cast<String*>(mData.stringBuf); }

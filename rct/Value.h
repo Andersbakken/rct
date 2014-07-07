@@ -326,11 +326,8 @@ template <> inline String Value::convert<String>(bool *ok) const
     case Type_List: break;
     case Type_Map: break;
     }
-    if (ok)
-        *ok = false;
-
-    return String();
-}
+    return toJSON();
+ }
 
 template <> inline List<Value> Value::convert<List<Value> >(bool *ok) const
 {

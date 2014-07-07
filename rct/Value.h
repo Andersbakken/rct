@@ -61,6 +61,8 @@ public:
         Type_Map,
         Type_List
     };
+    explicit Value(Type type) : mType(type) {}
+
     inline static const char *typeToString(Type type);
     inline Type type() const { return mType; }
     inline bool toBool() const;
@@ -95,7 +97,7 @@ public:
     static Value fromJSON(const String &json, bool *ok = 0) { return fromJSON(json.constData(), ok); }
     static Value fromJSON(const char *json, bool *ok = 0);
     String toJSON(bool pretty = false) const;
-    static Value undefined() { return Value({ Type_Undefined }); }
+    static Value undefined() { return Value(Type_Undefined); }
 private:
     static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);

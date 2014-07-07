@@ -650,6 +650,8 @@ static Value fromV8(v8::Isolate *isolate, v8::Handle<v8::Value> value)
         return value->NumberValue();
     } else if (value->IsBoolean()) {
         return value->BooleanValue();
+    } if (value->IsUndefined()) {
+        return Value::undefined();
     } else if (!value->IsNull() && !value->IsUndefined()) {
         error() << "Unknown value type in fromV8";
     }
@@ -697,8 +699,10 @@ static inline v8::Local<v8::Value> toV8_helper(v8::Isolate* isolate, const Value
     case Value::Type_Boolean:
         result = v8::Boolean::New(isolate, value.toBool());
         break;
-    default:
+    case Value::Type_Undefined:
         result = v8::Undefined(isolate);
+        break;
+    default:
         break;
     }
     return result;
@@ -725,6 +729,14 @@ public:
         ScriptEngine::Function function;
         v8::Persistent<v8::FunctionTemplate> templ;
     };
+    struct
+    {
+        ScriptEngine::Class::InterceptGet getter;
+        ScriptEngine::Class::InterceptSet setter;
+        ScriptEngine::Class::InterceptQuery query;
+        ScriptEngine::Class::InterceptQuery deleter;
+        ScriptEngine::Class::InterceptEnumerate enumerator;
+    } intercept;
 
     ScriptEnginePrivate* engine;
     v8::Persistent<v8::FunctionTemplate> functionTempl;
@@ -933,4 +945,139 @@ ScriptEngine::Object::SharedPtr ScriptEngine::Class::create()
     priv->init(CustomType_ClassObject, engine, obj);
 
     return o;
+}
+
+static void ClassInterceptGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    const v8::Isolate::Scope isolateScope(iso);
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
+    if (!obj)
+        return;
+
+    v8::HandleScope handleScope(iso);
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(v8::Handle<v8::Object>::Cast(info.Data())->GetInternalField(0));
+    ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
+    ScriptEnginePrivate* engine = priv->engine;
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    const Value r = priv->intercept.getter(obj, toString(property));
+    if (r.type() == Value::Type_Invalid)
+        return;
+    info.GetReturnValue().Set(toV8(iso, r));
+}
+
+static void ClassInterceptSetter(v8::Local<v8::String> property, v8::Local<v8::Value> value,
+                                 const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    const v8::Isolate::Scope isolateScope(iso);
+    ScriptEngine::Object::SharedPtr obj = objectFromV8Object(info.Holder());
+    if (!obj)
+        return;
+
+    v8::HandleScope handleScope(iso);
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(v8::Handle<v8::Object>::Cast(info.Data())->GetInternalField(0));
+    ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
+    ScriptEnginePrivate* engine = priv->engine;
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    const Value v = fromV8(iso, value);
+    const Value r = priv->intercept.setter(obj, toString(property), v);
+    if (r.type() == Value::Type_Invalid)
+        return;
+    info.GetReturnValue().Set(toV8(iso, r));
+}
+
+static void ClassInterceptQuery(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Integer>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    const v8::Isolate::Scope isolateScope(iso);
+
+    v8::HandleScope handleScope(iso);
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(v8::Handle<v8::Object>::Cast(info.Data())->GetInternalField(0));
+    ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
+    ScriptEnginePrivate* engine = priv->engine;
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    abort();
+    const Value r = priv->intercept.query(toString(property));
+    if (r.type() != Value::Type_Integer)
+        return;
+    info.GetReturnValue().Set(v8::Integer::New(iso, r.toInteger()));
+}
+
+static void ClassInterceptDeleter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Boolean>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    const v8::Isolate::Scope isolateScope(iso);
+
+    v8::HandleScope handleScope(iso);
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(v8::Handle<v8::Object>::Cast(info.Data())->GetInternalField(0));
+    ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
+    ScriptEnginePrivate* engine = priv->engine;
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    const Value r = priv->intercept.deleter(toString(property));
+    if (r.type() != Value::Type_Boolean)
+        return;
+    info.GetReturnValue().Set(r.toBool() ? v8::True(iso) : v8::False(iso));
+}
+
+static void ClassInterceptEnumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    const v8::Isolate::Scope isolateScope(iso);
+
+    v8::HandleScope handleScope(iso);
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(v8::Handle<v8::Object>::Cast(info.Data())->GetInternalField(0));
+    ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
+    ScriptEnginePrivate* engine = priv->engine;
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    const Value r = priv->intercept.enumerator();
+    if (r.type() != Value::Type_List)
+        return;
+    const List<Value> l = r.toList();
+    v8::Local<v8::Array> array = v8::Array::New(iso, l.size());
+    for (int idx = 0; idx < l.size(); ++idx)
+        array->Set(idx, toV8(iso, l[idx]));
+    info.GetReturnValue().Set(array);
+}
+
+void ScriptEngine::Class::interceptPropertyName(InterceptGet&& get,
+                                                InterceptSet&& set,
+                                                InterceptQuery&& query,
+                                                InterceptQuery&& deleter,
+                                                InterceptEnumerate&& enumerator)
+{
+    mPrivate->intercept.getter = std::move(get);
+    mPrivate->intercept.setter = std::move(set);
+    mPrivate->intercept.query = std::move(query);
+    mPrivate->intercept.deleter = std::move(deleter);
+    mPrivate->intercept.enumerator = std::move(enumerator);
+
+    ScriptEnginePrivate* engine = mPrivate->engine;
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, mPrivate->functionTempl);
+    v8::Handle<v8::ObjectTemplate> objTempl = v8::ObjectTemplate::New(iso);
+    objTempl->SetInternalFieldCount(1);
+    v8::Handle<v8::Object> data = objTempl->NewInstance();
+    data->SetInternalField(0, v8::External::New(iso, mPrivate));
+    templ->InstanceTemplate()->SetNamedPropertyHandler(ClassInterceptGetter,
+                                                       ClassInterceptSetter,
+                                                       ClassInterceptQuery,
+                                                       ClassInterceptDeleter,
+                                                       ClassInterceptEnumerator,
+                                                       data);
 }

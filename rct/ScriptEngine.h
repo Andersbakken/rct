@@ -107,11 +107,34 @@ public:
 
         ~Class();
 
+        enum QueryResult {
+            None = 0x0,
+            ReadOnly = 0x1,
+            DontEnum = 0x2,
+            DontDelete = 0x4
+        };
+
+        // return an empty Value from these to not intercept
+
+        // return Value for both Set and Get
+        typedef std::function<Value(const Object::SharedPtr&, const String&, const Value&)> InterceptSet;
+        typedef std::function<Value(const Object::SharedPtr&, const String&)> InterceptGet;
+        // return QueryResult for Query, boolean for Deleter
+        typedef std::function<Value(const String&)> InterceptQuery;
+        // return List<Value>
+        typedef std::function<Value()> InterceptEnumerate;
+
         static SharedPtr create(const String& name) { return SharedPtr(new Class(name)); }
 
         void registerFunction(const String &name, Function &&func);
         void registerProperty(const String &name, Getter &&get);
         void registerProperty(const String &name, Getter &&get, Setter &&set);
+
+        void interceptPropertyName(InterceptGet&& get,
+                                   InterceptSet&& set,
+                                   InterceptQuery&& query,
+                                   InterceptQuery&& deleter,
+                                   InterceptEnumerate&& enumerator);
 
         Object::SharedPtr create();
 

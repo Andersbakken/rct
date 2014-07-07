@@ -112,6 +112,8 @@ cJSON *Value::toCJSON(const Value &value)
         return object; }
     case Value::Type_Invalid:
         break;
+    case Value::Type_Undefined:
+        break;
     case Value::Type_Custom:
         if (std::shared_ptr<Value::Custom> custom = value.toCustom())
             return cJSON_CreateString(custom->toString().constData());

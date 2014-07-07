@@ -52,6 +52,7 @@ public:
     inline bool isValid() const { return mType != Type_Invalid; }
     enum Type {
         Type_Invalid,
+        Type_Undefined,
         Type_Boolean,
         Type_Integer,
         Type_Double,
@@ -94,6 +95,7 @@ public:
     static Value fromJSON(const String &json, bool *ok = 0) { return fromJSON(json.constData(), ok); }
     static Value fromJSON(const char *json, bool *ok = 0);
     String toJSON(bool pretty = false) const;
+    static Value undefined() { return Value({ Type_Undefined }); }
 private:
     static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);
@@ -141,6 +143,7 @@ const char *Value::typeToString(Type type)
 {
     switch (type) {
     case Type_Invalid: return "invalid";
+    case Type_Undefined: return "undefined";
     case Type_Boolean: return "boolean";
     case Type_Integer: return "integer";
     case Type_Double: return "double";
@@ -167,6 +170,7 @@ template <> inline int Value::convert<int>(bool *ok) const
             return ret;
         break; }
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
@@ -191,6 +195,7 @@ template <> inline int64_t Value::convert<int64_t>(bool *ok) const
             return ret;
         break; }
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
@@ -215,6 +220,7 @@ template <> inline uint64_t Value::convert<uint64_t>(bool *ok) const
             return ret;
         break; }
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
@@ -234,6 +240,7 @@ template <> inline std::shared_ptr<Value::Custom> Value::convert<std::shared_ptr
     case Type_Boolean: break;
     case Type_String: break;
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: return *customPtr();
     case Type_List: break;
     case Type_Map: break;
@@ -262,6 +269,7 @@ template <> inline bool Value::convert<bool>(bool *ok) const
         break; }
     case Type_Custom:
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_List: break;
     case Type_Map: break;
     }
@@ -289,6 +297,7 @@ template <> inline double Value::convert<double>(bool *ok) const
         break; }
     case Type_Custom: break;
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_List: break;
     case Type_Map: break;
     }
@@ -309,6 +318,7 @@ template <> inline String Value::convert<String>(bool *ok) const
     case Type_Boolean: return mData.boolean ? "true" : "false";
     case Type_String: return *stringPtr();
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;
@@ -330,6 +340,7 @@ template <> inline List<Value> Value::convert<List<Value> >(bool *ok) const
     case Type_Boolean: break;
     case Type_String: break;
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: break;
     case Type_List: return *listPtr();
     case Type_Map: break;
@@ -351,6 +362,7 @@ template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *
     case Type_Boolean: break;
     case Type_String: break;
     case Type_Invalid: break;
+    case Type_Undefined: break;
     case Type_Custom: break;
     case Type_List: break;
     case Type_Map: return *mapPtr();
@@ -369,6 +381,7 @@ inline Value Value::convert(Type type, bool *ok) const
     case Type_Boolean: return convert<bool>(ok);
     case Type_String: return convert<String>(ok);
     case Type_Invalid: if (ok) *ok = true; return Value();
+    case Type_Undefined: if (ok) *ok = true; return Value::undefined();
     case Type_Custom: return convert<std::shared_ptr<Custom> >(ok);
     case Type_List: return convert<List<Value> >(ok);
     case Type_Map: return convert<Map<String, Value> >(ok);
@@ -515,6 +528,7 @@ inline Log operator<<(Log log, const Value &value)
         case Value::Type_Boolean: l << value.toBool(); break;
         case Value::Type_String: l << value.toString(); break;
         case Value::Type_Invalid: l << "(invalid)"; break;
+        case Value::Type_Undefined: l << "(undefined)"; break;
         case Value::Type_Custom: {
             const std::shared_ptr<Value::Custom> custom = value.toCustom();
             if (custom) {
@@ -544,6 +558,7 @@ inline Serializer& operator<<(Serializer& serializer, const Value& value)
     case Value::Type_List: serializer << value.toList(); break;
     case Value::Type_Custom: error() << "Trying to serialize pointer"; break;
     case Value::Type_Invalid: break;
+    case Value::Type_Undefined: break;
     }
     return serializer;
 }
@@ -562,6 +577,7 @@ inline Deserializer& operator>>(Deserializer& deserializer, Value& value)
     case Value::Type_List: { List<Value> v; deserializer >> v; value = v; break; }
     case Value::Type_Custom: value.clear(); error() << "Trying to deserialize pointer"; break;
     case Value::Type_Invalid: value.clear(); break;
+    case Value::Type_Undefined: value = Value::undefined(); break;
     }
     return deserializer;
 }

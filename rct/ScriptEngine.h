@@ -25,7 +25,7 @@ public:
     Value call(const String &function, String *error = 0);
     Value call(const String &function, std::initializer_list<Value> arguments, String *error = 0);
 
-    template <typename RetVal = Value>
+    template<typename RetVal>
     RetVal throwException(const Value& exception) {
         throwExceptionInternal(exception);
         return RetVal();
@@ -174,6 +174,12 @@ T ScriptEngine::Object::extraData() const
     if (!mData)
         return T();
     return *(static_cast<ExtraData<T>*>(mData)->t);
+}
+
+template<>
+inline Value ScriptEngine::throwException<Value>(const Value& exception) {
+    throwExceptionInternal(exception);
+    return Value::undefined();
 }
 
 #endif // HAVE_SCRIPTENGINE

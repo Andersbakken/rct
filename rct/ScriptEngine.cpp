@@ -16,6 +16,14 @@ enum CustomType {
     CustomType_ClassObject
 };
 
+struct ScriptEnginePrivate
+{
+    v8::Persistent<v8::Context> context;
+    v8::Isolate *isolate;
+
+    static ScriptEnginePrivate *get(ScriptEngine *engine) { return engine->mPrivate; }
+};
+
 struct ScriptEngineCustom : public Value::Custom
 {
     ScriptEngineCustom(int type, v8::Isolate *isolate, const v8::Handle<v8::Object> &obj,
@@ -26,16 +34,26 @@ struct ScriptEngineCustom : public Value::Custom
         object.Reset(isolate, obj);
     }
 
+    virtual String toString() const
+    {
+        if (object.IsEmpty())
+            return String("\"\"");
+
+        ScriptEnginePrivate *engine = ScriptEnginePrivate::get(ScriptEngine::instance());
+        v8::Isolate *iso = engine->isolate;
+        const v8::Isolate::Scope isolateScope(iso);
+        v8::HandleScope handleScope(iso);
+        v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+        v8::Context::Scope contextScope(ctx);
+
+        v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, object);
+        if (obj.IsEmpty())
+            return String("\"\"");
+        return ::toString(obj->ToString());
+    }
+
     v8::Persistent<v8::Object> object;
     ScriptEngine::Object::SharedPtr scriptObject;
-};
-
-struct ScriptEnginePrivate
-{
-    v8::Persistent<v8::Context> context;
-    v8::Isolate *isolate;
-
-    static ScriptEnginePrivate *get(ScriptEngine *engine) { return engine->mPrivate; }
 };
 
 class ObjectPrivate
@@ -590,6 +608,7 @@ Value ScriptEngine::fromObject(const Object::SharedPtr& object)
     v8::HandleScope handleScope(iso);
     v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, priv->engine->context);
     v8::Context::Scope contextScope(ctx);
+
     v8::Local<v8::Object> obj = v8::Local<v8::Object>::New(iso, priv->object);
     if (obj.IsEmpty()) {
         error() << "unable to lock persistent for fromObject";
@@ -1080,4 +1099,36 @@ void ScriptEngine::Class::interceptPropertyName(InterceptGet&& get,
                                                        ClassInterceptDeleter,
                                                        ClassInterceptEnumerator,
                                                        data);
+
+    if (!mPrivate->functions.contains("toString")) {
+        registerFunction("toString", [](const Object::SharedPtr &obj, const List<Value> &) -> Value {
+                ScriptEnginePrivate *engine = ScriptEnginePrivate::get(ScriptEngine::instance());
+                v8::Isolate *iso = engine->isolate;
+                const v8::Isolate::Scope isolateScope(iso);
+                v8::HandleScope handleScope(iso);
+                v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+                v8::Context::Scope contextScope(ctx);
+                ObjectPrivate* priv = ObjectPrivate::objectPrivate(obj.get());
+                assert(priv);
+                auto globalObject = ctx->Global();
+                assert(!globalObject.IsEmpty());
+                auto json = globalObject->Get(v8::String::NewFromUtf8(iso, "JSON"));
+                assert(!json.IsEmpty());
+                assert(json->IsObject());
+                auto jsonObject = v8::Local<v8::Object>::Cast(json);
+                auto stringify = jsonObject->Get(v8::String::NewFromUtf8(iso, "stringify"));
+                assert(!stringify.IsEmpty());
+                assert(stringify->IsFunction());
+
+                v8::TryCatch tryCatch;
+                v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(stringify);
+                v8::Local<v8::Object> objValue = v8::Local<v8::Object>::New(iso, priv->object);
+                v8::Local<v8::Value> value = objValue;
+                auto result = func->Call(json, 1, &value);
+                if (tryCatch.HasCaught()) {
+                    return "\"[object Object]\"";
+                }
+                return fromV8(iso, result);
+            });
+    }
 }

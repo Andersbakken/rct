@@ -29,7 +29,7 @@ public:
         {}
 
         virtual ~Custom() {}
-        virtual String toString() { return String(); }
+        virtual String toString() const { return String(); }
 
         const int type;
     };

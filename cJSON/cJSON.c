@@ -212,7 +212,7 @@ static const char *parse_string(cJSON *item,const char *str)
 }
 
 /* Render the cstring provided to an escaped version that can be printed. */
-static char *print_string_ptr(const char *str)
+static char *print_string_ptr(const char *str, int escape)
 {
     const char *ptr;char *ptr2,*out;int len=0;unsigned char token;
 
@@ -223,10 +223,11 @@ static char *print_string_ptr(const char *str)
     if (!out) return 0;
 
     ptr2=out;ptr=str;
-    *ptr2++='\"';
+    if (escape)
+        *ptr2++='\"';
     while (*ptr)
     {
-        if ((unsigned char)*ptr>31 && *ptr!='\"' && *ptr!='\\') *ptr2++=*ptr++;
+        if ((unsigned char)*ptr>31 && (*ptr!='\"' || !escape) && *ptr!='\\') *ptr2++=*ptr++;
         else
         {
             *ptr2++='\\';
@@ -243,11 +244,13 @@ static char *print_string_ptr(const char *str)
             }
         }
     }
-    *ptr2++='\"';*ptr2++=0;
+    if (escape)
+        *ptr2++='\"';
+    *ptr2++=0;
     return out;
 }
 /* Invote print_string_ptr (which is useful) on an item. */
-static char *print_string(cJSON *item)	{return print_string_ptr(item->valuestring);}
+static char *print_string(cJSON *item)	{return print_string_ptr(item->valuestring, item->type == cJSON_String);}
 
 /* Predeclare these prototypes. */
 static const char *parse_value(cJSON *item,const char *value);
@@ -305,13 +308,14 @@ static char *print_value(cJSON *item,int depth,int fmt)
     if (!item) return 0;
     switch ((item->type)&255)
     {
-        case cJSON_NULL:	out=cJSON_strdup("null");	break;
-        case cJSON_False:	out=cJSON_strdup("false");break;
+        case cJSON_NULL:	out=cJSON_strdup("null"); break;
+        case cJSON_False:	out=cJSON_strdup("false"); break;
         case cJSON_True:	out=cJSON_strdup("true"); break;
-        case cJSON_Number:	out=print_number(item);break;
-        case cJSON_String:	out=print_string(item);break;
-        case cJSON_Array:	out=print_array(item,depth,fmt);break;
-        case cJSON_Object:	out=print_object(item,depth,fmt);break;
+        case cJSON_Number:	out=print_number(item); break;
+        case cJSON_Array:	out=print_array(item,depth,fmt); break;
+        case cJSON_Object:	out=print_object(item,depth,fmt); break;
+        case cJSON_RawString:
+        case cJSON_String:	out=print_string(item); break;
     }
     return out;
 }
@@ -469,7 +473,7 @@ static char *print_object(cJSON *item,int depth,int fmt)
     child=item->child;depth++;if (fmt) len+=depth;
     while (child)
     {
-        names[i]=str=print_string_ptr(child->string);
+        names[i]=str=print_string_ptr(child->string, 1);
         entries[i++]=ret=print_value(child,depth,fmt);
         if (str && ret) len+=strlen(ret)+strlen(str)+2+(fmt?2+depth:0); else fail=1;
         child=child->next;

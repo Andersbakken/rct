@@ -62,6 +62,16 @@ public:
         Type_List
     };
 
+    inline bool isInvalid() const { return mType == Type_Invalid; }
+    inline bool isUndefined() const { return mType == Type_Undefined; }
+    inline bool isBoolean() const { return mType == Type_Boolean; }
+    inline bool isInteger() const { return mType == Type_Integer; }
+    inline bool isDouble() const { return mType == Type_Double; }
+    inline bool isString() const { return mType == Type_String; }
+    inline bool isCustom() const { return mType == Type_Custom; }
+    inline bool isMap() const { return mType == Type_Map; }
+    inline bool isList() const { return mType == Type_List; }
+
     inline static const char *typeToString(Type type);
     inline Type type() const { return mType; }
     inline bool toBool() const;

@@ -35,6 +35,10 @@ void SocketServer::close()
         loop->unregisterSocket(fd);
     ::close(fd);
     fd = -1;
+    if (!path.isEmpty()) {
+        Path::rm(path);
+        path.clear();
+    }
 }
 
 bool SocketServer::listen(uint16_t port, Mode mode)

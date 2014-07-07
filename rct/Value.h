@@ -18,7 +18,7 @@ public:
     inline Value(int64_t i) : mType(Type_Integer) { mData.int64 = i; }
     inline Value(uint64_t i) : mType(Type_Integer) { mData.uint64 = i; }
     inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
-    inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
+    explicit inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     inline Value(const std::shared_ptr<Custom> &custom) : mType(Type_Custom) { new (mData.customBuf) std::shared_ptr<Custom>(custom); }
     inline Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
 

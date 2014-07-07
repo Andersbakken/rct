@@ -782,7 +782,6 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                     eintrwrap(e, ::read(eventPipe[0], &q, 1));
                     if (e == 1 && q == 'q') {
                         // signal caught, we need to shut down
-                        fprintf(stderr, "Caught Ctrl-C\n");
                         return Success;
                     }
                 } while (e == 1);

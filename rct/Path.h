@@ -64,6 +64,7 @@ public:
     inline bool isFile() const { return type() == File; }
     inline bool isSocket() const { return type() == Socket; }
     inline bool isAbsolute() const { return (!isEmpty() && at(0) == '/'); }
+    static const char *typeName(Type type);
     bool isSymLink() const;
     Path followLink(bool *ok = 0) const;
     const char *fileName(int *len = 0) const;

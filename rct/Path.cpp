@@ -596,3 +596,18 @@ uint64_t Path::lastModifiedMs() const
     return st.st_mtime * static_cast<uint64_t>(1000);
 #endif
 }
+const char *Path::typeName(Type type)
+{
+    switch (type) {
+    case Invalid: return "Invalid";
+    case File: return "File";
+    case Directory: return "Directory";
+    case CharacterDevice: return "CharacterDevice";
+    case BlockDevice: return "BlockDevice";
+    case NamedPipe: return "NamedPipe";
+    case Socket: return "Socket";
+    default:
+        break;
+    }
+    return "";
+}

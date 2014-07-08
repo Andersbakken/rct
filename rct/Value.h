@@ -88,6 +88,7 @@ public:
     List<Value>::const_iterator listBegin() const;
     List<Value>::const_iterator listEnd() const;
     inline int count() const;
+    inline bool contains(const String &key) const;
     inline const Value &at(int idx) const;
     template <typename T> T operator[](int idx) const;
     template <typename T> T operator[](const String &key) const;
@@ -473,6 +474,15 @@ inline int Value::count() const
         break;
     }
     return 0;
+}
+
+inline bool Value::contains(const String &key) const
+{
+    if (mType == Type_Invalid) {
+        return false;
+    }
+    assert(mType == Type_Map);
+    return mapPtr()->contains(key);
 }
 
 inline const Value &Value::at(int idx) const

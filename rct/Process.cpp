@@ -504,7 +504,8 @@ void Process::closeStdIn(CloseStdInFlag flag)
         return;
 
     if (flag == CloseForce || mStdInBuffer.empty()) {
-        EventLoop::eventLoop()->unregisterSocket(mStdIn[1]);
+        if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
+            loop->unregisterSocket(mStdIn[1]);
         int err;
         eintrwrap(err, ::close(mStdIn[1]));
         mStdIn[1] = -1;

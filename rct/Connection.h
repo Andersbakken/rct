@@ -52,6 +52,26 @@ public:
     }
 
     void finish(int status = 0) { send(FinishMessage(status)); }
+    template <int StaticBufSize>
+    void finish(const char *format, ...)
+    {
+        if (!mSilent) {
+            va_list args;
+            va_start(args, format);
+            const String ret = String::format<StaticBufSize>(format, args);
+            va_end(args);
+            send(ResponseMessage(ret));
+        }
+        send(FinishMessage(0));
+    }
+
+    void finish(const String &msg, int status = 0)
+    {
+        if (!mSilent)
+            send(ResponseMessage(msg));
+        send(FinishMessage(status));
+    }
+
     int finishStatus() const { return mFinishStatus; }
 
     void close() { assert(mSocketClient); mSocketClient->close(); }

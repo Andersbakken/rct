@@ -122,6 +122,16 @@ public:
         return static_cast<unsigned int>(idx) < Base::size() ? Base::at(idx) : defaultValue;
     }
 
+    void deleteAll()
+    {
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
+            delete *it;
+            ++it;
+        }
+        Base::clear();
+    }
+
     void chop(int count)
     {
         assert(count <= size());

@@ -587,7 +587,6 @@ uint64_t Path::lastModifiedMs() const
 {
     struct stat st;
     if (stat(constData(), &st) == -1) {
-        warning("Stat failed for %s", constData());
         return 0;
     }
 #ifdef HAVE_STATMTIM

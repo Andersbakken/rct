@@ -163,12 +163,11 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         wordexp(constData(), &exp_result, 0);
         operator=(exp_result.we_wordv[0]);
         wordfree(&exp_result);
-
     }
     if (mode == MakeAbsolute) {
         if (isAbsolute())
             return true;
-        const Path copy = (cwd.isEmpty() ? Path::pwd() : (cwd.endsWith('/') ? cwd : (cwd + '/')) + *this);
+        const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
         if (copy.exists()) {
             if (changed)
                 *changed = true;

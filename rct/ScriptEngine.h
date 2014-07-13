@@ -123,12 +123,19 @@ public:
         typedef std::function<Value(const String&)> InterceptQuery;
         // return List<Value>
         typedef std::function<Value()> InterceptEnumerate;
+        typedef std::function<Value(const Value&)> Constructor;
 
-        static SharedPtr create(const String& name) { return SharedPtr(new Class(name)); }
+        static SharedPtr create(const String& name)
+        {
+            SharedPtr cls(new Class(name));
+            cls->init();
+            return cls;
+        }
 
         void registerFunction(const String &name, Function &&func);
         void registerProperty(const String &name, Getter &&get);
         void registerProperty(const String &name, Getter &&get, Setter &&set);
+        void registerConstructor(Constructor&& ctor);
 
         void interceptPropertyName(InterceptGet&& get,
                                    InterceptSet&& set,
@@ -142,6 +149,8 @@ public:
         Class(const String& name);
         Class(const Class&) = delete;
         Class& operator=(const Class&) = delete;
+
+        void init();
 
         ClassPrivate *mPrivate;
         friend class ScriptEngine;

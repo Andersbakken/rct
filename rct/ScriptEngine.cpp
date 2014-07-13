@@ -758,15 +758,45 @@ public:
     } intercept;
 
     ScriptEnginePrivate* engine;
-    v8::Persistent<v8::FunctionTemplate> functionTempl;
+    v8::Persistent<v8::FunctionTemplate> functionTempl, ctorTempl;
     Hash<String, FunctionData> functions;
     Hash<String, PropertyData> properties;
+    ScriptEngine::Class::Constructor constructor;
+    ScriptEngine::Class::WeakPtr cls;
 
     static ClassPrivate* classPrivate(ScriptEngine::Class* cls)
     {
         return cls->mPrivate;
     }
+
+    ScriptEngine::Object::SharedPtr create();
 };
+
+ScriptEngine::Object::SharedPtr ClassPrivate::create()
+{
+    ScriptEngine::Class::SharedPtr ptr = cls.lock();
+    assert(ptr);
+
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, functionTempl);
+    v8::Handle<v8::Object> obj = templ->GetFunction()->NewInstance();
+    ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
+
+    ObjectData* data = new ObjectData({ String(), o });
+    obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
+    obj->SetInternalField(0, v8::External::New(iso, data));
+
+    ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
+    priv->creator = ptr;
+    priv->init(CustomType_ClassObject, engine, obj);
+
+    return o;
+}
 
 static void ClassGetterCallback(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
@@ -851,6 +881,31 @@ void ClassPrivate::initProperty(const String& name, PropertyData& data, unsigned
     }
 }
 
+static void ClassConstruct(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    v8::Handle<v8::External> ext = v8::Handle<v8::External>::Cast(v8::Handle<v8::Object>::Cast(info.Data())->GetInternalField(0));
+    ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
+    if (!priv->constructor)
+        return;
+    Value arg;
+    if (info.Length() > 0)
+        arg = fromV8(iso, info[0]);
+    Value val = priv->constructor(arg);
+    if (!val.isCustom())
+        return;
+    v8::Local<v8::Value> v8obj = toV8(iso, val);
+    if (v8obj.IsEmpty() || !v8obj->IsObject()) {
+        v8::Local<v8::String> ex = v8::String::NewFromUtf8(iso, "Unable to get object for ClassConstruct");
+        iso->ThrowException(ex);
+        return;
+    }
+
+    info.GetReturnValue().Set(v8obj);
+}
+
 ScriptEngine::Class::Class(const String& name)
     : mPrivate(new ClassPrivate)
 {
@@ -861,10 +916,23 @@ ScriptEngine::Class::Class(const String& name)
     v8::HandleScope handleScope(iso);
     v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
     v8::Context::Scope contextScope(ctx);
-    v8::Local<v8::FunctionTemplate> templ = v8::FunctionTemplate::New(iso);
-    templ->InstanceTemplate()->SetInternalFieldCount(1);
-    templ->SetClassName(v8::String::NewFromUtf8(iso, name.constData()));
-    mPrivate->functionTempl.Reset(iso, templ);
+
+    v8::Local<v8::FunctionTemplate> ftempl = v8::FunctionTemplate::New(iso);
+    ftempl->InstanceTemplate()->SetInternalFieldCount(1);
+    ftempl->SetClassName(v8::String::NewFromUtf8(iso, name.constData()));
+    mPrivate->functionTempl.Reset(iso, ftempl);
+
+    v8::Local<v8::ObjectTemplate> cdtempl = v8::ObjectTemplate::New(iso);
+    cdtempl->SetInternalFieldCount(1);
+    v8::Local<v8::Object> cdata = cdtempl->NewInstance();
+    cdata->SetInternalField(0, v8::External::New(iso, mPrivate));
+    v8::Local<v8::FunctionTemplate> ctempl = v8::FunctionTemplate::New(iso, ClassConstruct, cdata);
+    ctempl->SetClassName(v8::String::NewFromUtf8(iso, name.constData()));
+    mPrivate->ctorTempl.Reset(iso, ctempl);
+
+    // expose to JS
+    v8::Local<v8::Object> global = ctx->Global();
+    global->Set(v8::String::NewFromUtf8(iso, name.constData()), ctempl->GetFunction());
 }
 
 ScriptEngine::Class::~Class()
@@ -942,28 +1010,19 @@ void ScriptEngine::Class::registerProperty(const String &name, Getter &&get, Set
     mPrivate->initProperty(name, data, ClassPrivate::Getter|ClassPrivate::Setter);
 }
 
+void ScriptEngine::Class::registerConstructor(Constructor&& ctor)
+{
+    mPrivate->constructor = std::move(ctor);
+}
+
+void ScriptEngine::Class::init()
+{
+    mPrivate->cls = shared_from_this();
+}
+
 ScriptEngine::Object::SharedPtr ScriptEngine::Class::create()
 {
-    ScriptEnginePrivate* engine = mPrivate->engine;
-    v8::Isolate* iso = engine->isolate;
-    const v8::Isolate::Scope isolateScope(iso);
-    v8::HandleScope handleScope(iso);
-    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
-    v8::Context::Scope contextScope(ctx);
-
-    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, mPrivate->functionTempl);
-    v8::Handle<v8::Object> obj = templ->GetFunction()->NewInstance();
-    ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
-
-    ObjectData* data = new ObjectData({ String(), o });
-    obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
-    obj->SetInternalField(0, v8::External::New(iso, data));
-
-    ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
-    priv->creator = shared_from_this();
-    priv->init(CustomType_ClassObject, engine, obj);
-
-    return o;
+    return mPrivate->create();
 }
 
 static void ClassInterceptGetter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)

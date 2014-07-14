@@ -148,6 +148,7 @@ target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RC
 install(CODE "message(\"Installing rct...\")")
 install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
 
+set(CMAKE_REQUIRED_FLAGS "-std=c++11")
 check_cxx_source_compiles("
   #include <memory>
   #include <mutex>

@@ -132,6 +132,17 @@ public:
         Base::clear();
     }
 
+    void deleteAll(void (*deleter)(void *t))
+    {
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
+            deleter(*it);
+            ++it;
+        }
+        Base::clear();
+    }
+
+
     void chop(int count)
     {
         assert(count <= size());

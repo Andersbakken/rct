@@ -97,9 +97,9 @@ public:
     const Value &operator[](const String &key) const;
     Value &operator[](const String &key);
     inline Value value(int idx, const Value &defaultValue = Value()) const;
-    template <typename T> inline T value(int idx, const T &defaultValue = T()) const;
+    template <typename T> inline T value(int idx, const T &defaultValue = T(), bool *ok = 0) const;
     inline Value value(const String &key, const Value &defaultValue = Value()) const;
-    template <typename T> inline T value(const String &name, const T &defaultValue = T()) const;
+    template <typename T> inline T value(const String &name, const T &defaultValue = T(), bool *ok = 0) const;
     template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
     inline Value convert(Type type, bool *ok) const;
     template <typename T> static Value create(const T &t) { return Value(t); }
@@ -417,9 +417,9 @@ inline Value Value::value(int idx, const Value &defaultValue) const
 }
 
 template <typename T>
-inline T Value::value(int idx, const T &defaultValue) const
+inline T Value::value(int idx, const T &defaultValue, bool *ok) const
 {
-    return value(idx, Value(defaultValue)).convert<T>();
+    return value(idx, Value(defaultValue)).convert<T>(ok);
 }
 
 inline Value Value::value(const String &key, const Value &defaultValue) const
@@ -428,9 +428,9 @@ inline Value Value::value(const String &key, const Value &defaultValue) const
 }
 
 template <typename T>
-inline T Value::value(const String &key, const T &defaultValue) const
+inline T Value::value(const String &key, const T &defaultValue, bool *ok) const
 {
-    return value(key, Value(defaultValue)).convert<T>();
+    return value(key, Value(defaultValue)).convert<T>(ok);
 }
 
 inline Map<String, Value>::const_iterator Value::begin() const

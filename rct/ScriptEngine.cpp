@@ -1191,3 +1191,9 @@ void ScriptEngine::Class::interceptPropertyName(InterceptGet&& get,
             });
     }
 }
+bool ScriptEngine::isFunction(const Value &value) const
+{
+    if (auto object = toObject(value))
+        return object->isFunction();
+    return false;
+}

@@ -160,6 +160,7 @@ public:
 
     Value fromObject(const Object::SharedPtr& object);
     Object::SharedPtr toObject(const Value &value) const;
+    bool isFunction(const Value &value) const;
     Object::SharedPtr globalObject() const { return mGlobalObject; }
 private:
     void throwExceptionInternal(const Value &exception);

@@ -26,6 +26,25 @@ public:
 
     T takeFirst() { assert(!isEmpty()); const T t = first(); std::list<T>::pop_front(); return t; }
     T takeLast() { assert(!isEmpty()); const T t = last(); std::list<T>::pop_back(); return t; }
+
+    typename std::list<T>::iterator find(const T &t)
+    {
+        for (auto it = std::list<T>::begin(); it != std::list<T>::end(); ++it) {
+            if (*it == t)
+                return it;
+        }
+        return std::list<T>::end();
+    }
+
+    typename std::list<T>::const_iterator find(const T &t) const
+    {
+        for (auto it = std::list<T>::begin(); it != std::list<T>::end(); ++it) {
+            if (*it == t)
+                return it;
+        }
+        return std::list<T>::end();
+    }
+
 };
 
 #endif

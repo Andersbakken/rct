@@ -44,7 +44,6 @@ public:
         }
         return std::list<T>::end();
     }
-
 };
 
 #endif

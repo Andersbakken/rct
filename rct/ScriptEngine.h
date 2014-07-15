@@ -123,7 +123,7 @@ public:
         typedef std::function<Value(const String&)> InterceptQuery;
         // return List<Value>
         typedef std::function<Value()> InterceptEnumerate;
-        typedef std::function<Value(const Value&)> Constructor;
+        typedef std::function<Value(const List<Value>&)> Constructor;
 
         static SharedPtr create(const String& name)
         {

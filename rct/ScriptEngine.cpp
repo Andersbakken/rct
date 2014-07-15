@@ -890,10 +890,15 @@ static void ClassConstruct(const v8::FunctionCallbackInfo<v8::Value>& info)
     ClassPrivate* priv = static_cast<ClassPrivate*>(ext->Value());
     if (!priv->constructor)
         return;
-    Value arg;
-    if (info.Length() > 0)
-        arg = fromV8(iso, info[0]);
-    Value val = priv->constructor(arg);
+    List<Value> args;
+    const auto len = info.Length();
+    if (len > 0) {
+        args.reserve(len);
+        for (auto i = 0; i < len; ++i) {
+            args.append(fromV8(iso, info[i]));
+        }
+    }
+    Value val = priv->constructor(args);
     if (!val.isCustom())
         return;
     v8::Local<v8::Value> v8obj = toV8(iso, val);
@@ -918,6 +923,7 @@ ScriptEngine::Class::Class(const String& name)
     v8::Context::Scope contextScope(ctx);
 
     v8::Local<v8::FunctionTemplate> ftempl = v8::FunctionTemplate::New(iso);
+
     ftempl->InstanceTemplate()->SetInternalFieldCount(1);
     ftempl->SetClassName(v8::String::NewFromUtf8(iso, name.constData()));
     mPrivate->functionTempl.Reset(iso, ftempl);

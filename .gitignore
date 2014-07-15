@@ -12,3 +12,4 @@
 /CMakeCache.txt
 /build.ninja
 /rules.ninja
+/.ninja_deps

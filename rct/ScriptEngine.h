@@ -34,6 +34,7 @@ public:
     class Object;
 
     typedef std::function<Value (const std::shared_ptr<Object>& obj, const List<Value> &)> Function;
+    typedef std::function<Value (const List<Value> &)> StaticFunction;
     typedef std::function<Value (const std::shared_ptr<Object>& obj)> Getter;
     typedef std::function<void (const std::shared_ptr<Object>& obj, const Value &)> Setter;
 
@@ -133,6 +134,7 @@ public:
         }
 
         void registerFunction(const String &name, Function &&func);
+        void registerStaticFunction(const String &name, StaticFunction &&func);
         void registerProperty(const String &name, Getter &&get);
         void registerProperty(const String &name, Getter &&get, Setter &&set);
         void registerConstructor(Constructor&& ctor);

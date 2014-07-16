@@ -760,6 +760,7 @@ public:
     ScriptEnginePrivate* engine;
     v8::Persistent<v8::FunctionTemplate> functionTempl, ctorTempl;
     Hash<String, FunctionData> functions;
+    Hash<String, ScriptEngine::StaticFunction> staticFunctions;
     Hash<String, PropertyData> properties;
     ScriptEngine::Class::Constructor constructor;
     ScriptEngine::Class::WeakPtr cls;
@@ -975,6 +976,31 @@ static void ClassFunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& inf
     info.GetReturnValue().Set(toV8(iso, val));
 }
 
+static void ClassStaticFunctionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    v8::Isolate* iso = info.GetIsolate();
+    v8::HandleScope handleScope(iso);
+
+    v8::Local<v8::Object> data = v8::Local<v8::Object>::Cast(info.Data());
+    ClassPrivate* priv = static_cast<ClassPrivate*>(v8::Local<v8::External>::Cast(data->GetInternalField(0))->Value());
+    const String name = toString(v8::Local<v8::String>::Cast(data->GetInternalField(1)));
+
+    auto it = priv->staticFunctions.find(name);
+    if (it == priv->staticFunctions.end())
+        return;
+
+    List<Value> args;
+    const auto len = info.Length();
+    if (len > 0) {
+        args.reserve(len);
+        for (auto i = 0; i < len; ++i) {
+            args.append(fromV8(iso, info[i]));
+        }
+    }
+    const Value val = it->second(args);
+    info.GetReturnValue().Set(toV8(iso, val));
+}
+
 void ScriptEngine::Class::registerFunction(const String &name, Function &&func)
 {
     ScriptEnginePrivate* engine = mPrivate->engine;
@@ -999,6 +1025,29 @@ void ScriptEngine::Class::registerFunction(const String &name, Function &&func)
     templ->InstanceTemplate()->SetAccessor(v8::String::NewFromUtf8(iso, name.constData()),
                                            ClassFunctionPropertyCallback);
 
+}
+
+void ScriptEngine::Class::registerStaticFunction(const String &name, StaticFunction &&func)
+{
+    ScriptEnginePrivate* engine = mPrivate->engine;
+    v8::Isolate* iso = engine->isolate;
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, engine->context);
+    v8::Context::Scope contextScope(ctx);
+
+    mPrivate->staticFunctions[name] = std::move(func);
+    // geh
+    v8::Handle<v8::ObjectTemplate> objTempl = v8::ObjectTemplate::New(iso);
+    objTempl->SetInternalFieldCount(2);
+    v8::Handle<v8::Object> ext = objTempl->NewInstance();
+    ext->SetInternalField(0, v8::External::New(iso, mPrivate));
+    ext->SetInternalField(1, v8::String::NewFromUtf8(iso, name.constData()));
+    v8::Handle<v8::Function> function = v8::Function::New(iso, ClassStaticFunctionCallback, ext);
+
+    v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, mPrivate->ctorTempl);
+
+    templ->GetFunction()->Set(v8::String::NewFromUtf8(iso, name.constData()), function);
 }
 
 void ScriptEngine::Class::registerProperty(const String &name, Getter &&get)

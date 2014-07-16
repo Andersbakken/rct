@@ -69,6 +69,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MessageQueue.cpp

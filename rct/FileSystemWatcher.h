@@ -8,6 +8,7 @@
 #include <rct/SignalSlot.h>
 #include <stdint.h>
 #include <mutex>
+#include <rct/Log.h>
 #ifdef HAVE_FSEVENTS
 #include <CoreServices/CoreServices.h>
 #ifdef check
@@ -66,24 +67,33 @@ private:
 #endif
 #endif
     Signal<std::function<void(const Path&)> > mRemoved, mModified, mAdded;
+
+    struct Changes {
+        enum Type {
+            Add,
+            Remove,
+            Modified
+        };
+        void add(Type type, const Path &path)
+        {
+            error() << type << path;
+            int other = -1;
+            switch (type) {
+            case Add:
+                other = Remove;
+                break;
+            case Remove:
+                other = Add;
+                break;
+            case Modified:
+                break;
+            }
+            if (other == -1 || !files[other].remove(path)) {
+                files[type].insert(path);
+            }
+        }
+        Set<Path> files[3];
+    };
+    void processChanges(const Changes &changes);
 };
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

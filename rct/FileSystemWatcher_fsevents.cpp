@@ -227,31 +227,25 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
     watcher->since = FSEventStreamGetLatestEventId(streamRef);
     char** paths = reinterpret_cast<char**>(eventPaths);
 
-    Set<Path> created, removed, modified;
-
+    std::shared_ptr<Changes> changes = std::make_shared<Changes>();
     for (size_t i = 0; i < numEvents; ++i) {
         const FSEventStreamEventFlags flags = eventFlags[i];
         if (flags & kFSEventStreamEventFlagHistoryDone)
             continue;
         if (flags & kFSEventStreamEventFlagItemIsFile) {
-            if (flags & kFSEventStreamEventFlagItemCreated) {
-                created.insert(Path(paths[i]));
-            }
-            if (flags & kFSEventStreamEventFlagItemRemoved) {
-                removed.insert(Path(paths[i]));
-            }
-            if (flags & (kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod)) {
-                modified.insert(Path(paths[i]));
-            }
+            const Path path(paths[i]);
+            if (flags & kFSEventStreamEventFlagItemCreated)
+                changes->add(Changes::Add, path);
+            if (flags & kFSEventStreamEventFlagItemRemoved)
+                changes->add(Changes::Remove, path);
+            if (flags & (kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod))
+                changes->add(Changes::Modified, path);
         }
     }
 
-    if (!created.empty())
-        EventLoop::eventLoop()->callLaterMove(std::bind(&FileSystemWatcher::pathsAdded, watcher->watcher, std::placeholders::_1), std::move(created));
-    if (!removed.empty())
-        EventLoop::eventLoop()->callLater(std::bind(&FileSystemWatcher::pathsRemoved, watcher->watcher, std::placeholders::_1), std::move(removed));
-    if (!modified.empty())
-        EventLoop::eventLoop()->callLater(std::bind(&FileSystemWatcher::pathsModified, watcher->watcher, std::placeholders::_1), std::move(modified));
+    if (changes->added.size() || changes->removed.size() || changes->modified.size()) {
+        EventLoop::eventLoop()->callLater([changes, watcher] { watcher->processChanges(*changes); });
+    }
 }
 
 FileSystemWatcher::FileSystemWatcher()

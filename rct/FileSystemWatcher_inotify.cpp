@@ -115,7 +115,7 @@ static inline void dump(unsigned mask)
 
 void FileSystemWatcher::notifyReadyRead()
 {
-    Set<Path> modified, removed, added;
+    Changes changes;
     {
         std::lock_guard<std::mutex> lock(mMutex);
         int s = 0;
@@ -128,10 +128,9 @@ void FileSystemWatcher::notifyReadyRead()
         const int read = ::read(mFd, buf, s);
         int idx = 0;
         while (idx < read) {
-            Path path;
             inotify_event *event = reinterpret_cast<inotify_event*>(buf + idx);
             idx += sizeof(inotify_event) + event->len;
-            path = mWatchedById.value(event->wd);
+            Path path = mWatchedById.value(event->wd);
             // printf("%s [%s]", path.constData(), event->name);
             // dump(event->mask);
             // printf("\n");
@@ -139,38 +138,19 @@ void FileSystemWatcher::notifyReadyRead()
             const bool isDir = path.isDir();
 
             if (event->mask & (IN_DELETE_SELF|IN_MOVE_SELF|IN_UNMOUNT)) {
-                added.insert(path);
+                changes.add(Changes::Remove, path);
             } else if (event->mask & (IN_CREATE|IN_MOVED_TO)) {
-                path.append(event->name);
-                added.insert(path);
+                changes.add(Changes::Add, path);
             } else if (event->mask & (IN_DELETE|IN_MOVED_FROM)) {
-                path.append(event->name);
-                added.remove(path);
-                removed.insert(path);
+                changes.add(Changes::Remove, path);
             } else if (event->mask & (IN_ATTRIB|IN_CLOSE_WRITE)) {
-                if (isDir) {
+                if (isDir)
                     path.append(event->name);
-                }
-                modified.insert(path);
+                changes.add(Changes::Modified, path);
             }
         }
         if (buf != staticBuf)
             delete []buf;
     }
-
-    struct {
-        Signal<std::function<void(const Path&)> > &signal;
-        const Set<Path> &paths;
-    } signals[] = {
-        { mModified, modified },
-        { mRemoved, removed },
-        { mAdded, added }
-    };
-    const unsigned count = sizeof(signals) / sizeof(signals[0]);
-    for (unsigned i=0; i<count; ++i) {
-        for (Set<Path>::const_iterator it = signals[i].paths.begin(); it != signals[i].paths.end(); ++it) {
-            signals[i].signal(*it);
-        }
-    }
-    // error() << modified << removed << added;
+    processChanges(changes);
 }

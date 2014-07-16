@@ -82,7 +82,7 @@ public:
     Log operator<<(int32_t number) { return addStringStream(number); }
     Log operator<<(uint16_t number) { return addStringStream(number); }
     Log operator<<(int16_t number) { return addStringStream(number); }
-    Log operator<<(uint8_t number) { return addStringStream(number); }
+    Log operator<<(uint8_t number) { return addStringStream<uint16_t>(number); }
     Log operator<<(int8_t number) { return addStringStream(number); }
     Log operator<<(float number) { return addStringStream(number); }
     Log operator<<(double number) { return addStringStream(number); }

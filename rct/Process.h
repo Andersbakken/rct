@@ -42,7 +42,7 @@ public:
     String readAllStdOut();
     String readAllStdErr();
 
-    bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return mPid == -1; }
+    bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn != ReturnUnset; }
     int returnCode() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn; }
 
     void kill(int signal = SIGTERM);

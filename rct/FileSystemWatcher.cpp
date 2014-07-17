@@ -6,9 +6,9 @@ void FileSystemWatcher::processChanges(const Changes &changes)
         Signal<std::function<void(const Path&)> > &signal;
         const Set<Path> &paths;
     } signals[] = {
-        { mAdded, changes.files[Changes::Add] },
-        { mRemoved, changes.files[Changes::Remove] },
-        { mModified, changes.files[Changes::Modified] }
+        { mAdded, changes.added },
+        { mRemoved, changes.removed },
+        { mModified, changes.modified }
     };
 
     const unsigned count = sizeof(signals) / sizeof(signals[0]);

@@ -76,23 +76,21 @@ private:
         };
         void add(Type type, const Path &path)
         {
-            error() << type << path;
-            int other = -1;
             switch (type) {
             case Add:
-                other = Remove;
+                if (!removed.remove(path))
+                    added.insert(path);
                 break;
             case Remove:
-                other = Add;
+                if (!added.remove(path))
+                    removed.insert(path);
                 break;
             case Modified:
+                modified.insert(path);
                 break;
             }
-            if (other == -1 || !files[other].remove(path)) {
-                files[type].insert(path);
-            }
         }
-        Set<Path> files[3];
+        Set<Path> added, removed, modified;
     };
     void processChanges(const Changes &changes);
 };

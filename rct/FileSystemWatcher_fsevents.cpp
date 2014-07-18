@@ -227,7 +227,7 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
     watcher->since = FSEventStreamGetLatestEventId(streamRef);
     char** paths = reinterpret_cast<char**>(eventPaths);
 
-    std::shared_ptr<Changes> changes = std::make_shared<Changes>();
+    std::shared_ptr<FileSystemWatcher::Changes> changes = std::make_shared<FileSystemWatcher::Changes>();
     for (size_t i = 0; i < numEvents; ++i) {
         const FSEventStreamEventFlags flags = eventFlags[i];
         if (flags & kFSEventStreamEventFlagHistoryDone)
@@ -235,16 +235,17 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
         if (flags & kFSEventStreamEventFlagItemIsFile) {
             const Path path(paths[i]);
             if (flags & kFSEventStreamEventFlagItemCreated)
-                changes->add(Changes::Add, path);
+                changes->add(FileSystemWatcher::Changes::Add, path);
             if (flags & kFSEventStreamEventFlagItemRemoved)
-                changes->add(Changes::Remove, path);
+                changes->add(FileSystemWatcher::Changes::Remove, path);
             if (flags & (kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod))
-                changes->add(Changes::Modified, path);
+                changes->add(FileSystemWatcher::Changes::Modified, path);
         }
     }
 
+    FileSystemWatcher *fsWatcher = watcher->watcher;
     if (changes->added.size() || changes->removed.size() || changes->modified.size()) {
-        EventLoop::eventLoop()->callLater([changes, watcher] { watcher->processChanges(*changes); });
+        EventLoop::eventLoop()->callLater([changes, fsWatcher] { fsWatcher->processChanges(*changes); });
     }
 }
 

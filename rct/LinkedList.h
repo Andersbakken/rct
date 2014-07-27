@@ -2,6 +2,7 @@
 #define LinkedList_h
 
 #include <list>
+#include <algorithm>
 
 template<typename T>
 class LinkedList : public std::list<T>
@@ -26,6 +27,8 @@ public:
 
     T takeFirst() { assert(!isEmpty()); const T t = first(); std::list<T>::pop_front(); return t; }
     T takeLast() { assert(!isEmpty()); const T t = last(); std::list<T>::pop_back(); return t; }
+
+    bool contains(const T& t) const { return std::find(std::list<T>::begin(), std::list<T>::end(), t) != std::list<T>::end(); }
 
     typename std::list<T>::iterator find(const T &t)
     {

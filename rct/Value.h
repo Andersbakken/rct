@@ -332,7 +332,7 @@ template <> inline String Value::convert<String>(bool *ok) const
     case Type_Boolean: return mData.boolean ? "true" : "false";
     case Type_String: return *stringPtr();
     case Type_Invalid: break;
-    case Type_Undefined: break;
+    case Type_Undefined: return "undefined";
     case Type_Custom: break;
     case Type_List: break;
     case Type_Map: break;

@@ -36,6 +36,22 @@
 #define CALLBACK(op) op
 #endif
 
+// EPOLL compitability hacks.
+// (see: https://github.com/kr/beanstalkd/issues/92).
+#if defined(HAVE_EPOLL)
+#include <linux/version.h>
+#  if !defined EPOLLRDHUP && LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,17)
+     // EPOLLRDHUP exists in the kernel since 2.6.17. Just define it here:
+     // (see: https://sourceware.org/bugzilla/show_bug.cgi?id=5040)
+#    define EPOLLRDHUP 0x2000
+#  endif
+#  if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,27)
+     // epoll_create1() was introduced in kernel 2.6.27.
+     // no problem, implement using epoll_create():
+#    define epoll_create1(size) epoll_create(1)
+#  endif
+#endif
+
 struct RctStrError
 {
     char buf[1024];

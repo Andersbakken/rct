@@ -195,6 +195,13 @@ template <typename T> inline String typeName()
 }
 
 template <typename T>
+inline Log operator<<(Log stream, const std::shared_ptr<T> &ptr)
+{
+    stream << ("std::shared_ptr<" + typeName<T>() + ">") << ptr.get();
+    return stream;
+}
+
+template <typename T>
 inline Log operator<<(Log stream, const List<T> &list)
 {
     stream << "List<";

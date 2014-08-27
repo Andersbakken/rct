@@ -1,6 +1,6 @@
 #include "Config.h"
 
-List<Config::Option> Config::sOptions;
+List<Config::OptionBase*> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;
 List<Value> Config::sFreeArgs;
 
@@ -50,15 +50,15 @@ void Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     }
     option *options = new option[sOptions.size() + 1];
 
-    List<Option*> optionPointers;
+    List<OptionBase*> optionPointers;
     for (int i=0; i<sOptions.size(); ++i) {
-        Option &opt = sOptions.at(i);
-        if (opt.name) {
+        OptionBase *opt = sOptions.at(i);
+        if (opt->name) {
             option &o = options[optionPointers.size()];
-            optionPointers.append(&opt);
-            o.name = opt.name;
-            o.has_arg = (opt.defaultValue.type() == Value::Type_Boolean) ? no_argument : required_argument; // ### no optional arg?
-            o.val = opt.shortOption;
+            optionPointers.append(opt);
+            o.name = opt->name;
+            o.has_arg = (opt->defaultValue.type() == Value::Type_Boolean) ? no_argument : required_argument; // ### no optional arg?
+            o.val = opt->shortOption;
             o.flag = 0;
         }
     }
@@ -82,7 +82,7 @@ void Config::parse(int argc, char **argv, const List<Path> &rcFiles)
         // error() << optind << ret << optarg;
         // error("%c [%s] [%s]", ret, optarg, a[optind]);
 
-        Option *opt = 0;
+        OptionBase *opt = 0;
         if (idx != -1) {
             opt = optionPointers[idx];
         } else {
@@ -136,6 +136,10 @@ void Config::parse(int argc, char **argv, const List<Path> &rcFiles)
             } else {
                 opt->value = val;
             }
+            if (!opt->validate(error)) {
+                ok = false;
+                goto done;
+            }
         } else {
             assert(opt->defaultValue.type() == Value::Type_Boolean);
             // must be a toggle arg
@@ -172,15 +176,15 @@ void Config::showHelp(FILE *f)
     List<String> out;
     int longest = 0;
     for (int i=0; i<sOptions.size(); ++i) {
-        const Option &option = sOptions.at(i);
-        if (!option.name && !option.shortOption) {
+        const OptionBase *option = sOptions.at(i);
+        if (!option->name && !option->shortOption) {
             out.append(String());
         } else {
             out.append(String::format<64>("  %s%s%s%s",
-                                          option.name ? String::format<4>("--%s", option. name).constData() : "",
-                                          option.name && option.shortOption ? "|" : "",
-                                          option.shortOption ? String::format<2>("-%c", option.shortOption).constData() : "",
-                                          option.defaultValue.type() == Value::Type_Boolean ? "" : " [arg] "));
+                                          option->name ? String::format<4>("--%s", option-> name).constData() : "",
+                                          option->name && option->shortOption ? "|" : "",
+                                          option->shortOption ? String::format<2>("-%c", option->shortOption).constData() : "",
+                                          option->defaultValue.type() == Value::Type_Boolean ? "" : " [arg] "));
             longest = std::max<int>(out[i].size(), longest);
         }
     }
@@ -188,12 +192,12 @@ void Config::showHelp(FILE *f)
     const int count = out.size();
     for (int i=0; i<count; ++i) {
         if (out.at(i).isEmpty()) {
-            fprintf(f, "%s\n", sOptions.at(i).description.constData());
+            fprintf(f, "%s\n", sOptions.at(i)->description.constData());
         } else {
             fprintf(f, "%s%s %s\n",
                     out.at(i).constData(),
                     String(longest - out.at(i).size(), ' ').constData(),
-                    sOptions.at(i).description.constData());
+                    sOptions.at(i)->description.constData());
         }
     }
 

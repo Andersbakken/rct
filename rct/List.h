@@ -195,6 +195,20 @@ public:
         return Base::at(size() - 1);
     }
 
+    List<T> mid(int from, int size = -1) const
+    {
+        assert(from >= 0);
+        const int count = Base::size();
+        if (from >= count)
+            return List<T>();
+        if (size < 0) {
+            size = count - from;
+        } else {
+            size = std::min(count - from, size);
+        }
+        return List<T>(Base::begin() + from, Base::begin() + from + size);
+    }
+
     bool startsWith(const List<T> &t) const
     {
         if (size() < t.size())

@@ -442,7 +442,9 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
 #if defined(HAVE_EPOLL)
     epoll_event ev;
     memset(&ev, 0, sizeof(ev));
-    ev.events = EPOLLET|EPOLLRDHUP;
+    ev.events = EPOLLRDHUP;
+    if (!(mode & SocketLevelTriggered))
+        ev.events |= EPOLLET;
     if (mode & SocketRead)
         ev.events |= EPOLLIN;
     if (mode & SocketWrite)
@@ -500,7 +502,9 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
 #if defined(HAVE_EPOLL)
     epoll_event ev;
     memset(&ev, 0, sizeof(ev));
-    ev.events = EPOLLET|EPOLLRDHUP;
+    ev.events = EPOLLRDHUP;
+    if (!(mode & SocketLevelTriggered))
+        ev.events |= EPOLLET;
     if (mode & SocketRead)
         ev.events |= EPOLLIN;
     if (mode & SocketWrite)

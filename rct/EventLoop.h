@@ -133,7 +133,8 @@ public:
         SocketRead = 0x1,
         SocketWrite = 0x2,
         SocketOneShot = 0x4,
-        SocketError = 0x8
+        SocketError = 0x8,
+        SocketLevelTriggered = 0x10
     };
     bool registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func);
     bool updateSocket(int fd, unsigned int mode);

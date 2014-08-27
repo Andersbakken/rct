@@ -12,8 +12,8 @@ public:
 
     uint8_t messageId() const { return mMessageId; }
 
-    virtual void encode(Serializer &serializer) const = 0;
-    virtual void decode(Deserializer &deserializer) = 0;
+    virtual void encode(Serializer &/* serializer */) const {}
+    virtual void decode(Deserializer &/* deserializer */) {}
 private:
     uint8_t mMessageId;
 };

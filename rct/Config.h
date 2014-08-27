@@ -11,7 +11,7 @@
 class Config
 {
 public:
-    static void parse(int argc, char **argv, const List<String> &rcFiles = List<String>());
+    static void parse(int argc, char **argv, const List<Path> &rcFiles = List<Path>());
 
     template<typename T, int listCount = 0>
     static void registerListOption(const char *name, const String &description, const char shortOpt = '\0',

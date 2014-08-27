@@ -9,7 +9,7 @@ static inline Value createValue(Value::Type type, const char *val, bool *ok)
     return Value::create(val).convert(type, ok);
 }
 
-void Config::parse(int argc, char **argv, const List<String> &rcFiles)
+void Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 {
     String error;
     Rct::findExecutablePath(argv[0]);
@@ -159,8 +159,10 @@ done:
     delete[] a;
 
     if (!ok) {
-        if (!error.isEmpty())
+        if (!error.isEmpty()) {
+            showHelp(stderr);
             fprintf(stderr, "%s\n", error.constData());
+        }
         exit(1);
     }
 }

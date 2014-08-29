@@ -209,6 +209,7 @@ Process::~Process()
 
 void Process::setCwd(const Path& cwd)
 {
+    assert(mReturn == ReturnUnset);
     mCwd = cwd;
 }
 
@@ -323,8 +324,10 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
         eintrwrap(err, ::dup2(mStdErr[1], STDERR_FILENO));
         eintrwrap(err, ::close(mStdErr[1]));
 
+        if (!mChRoot.isEmpty())
+            ::chroot(mChRoot.constData());
         if (!mCwd.isEmpty())
-            eintrwrap(err, ::chdir(mCwd.nullTerminated()));
+            ::chdir(mCwd.constData());
         int ret;
         if (hasEnviron)
             ret = ::execve(cmd.nullTerminated(), const_cast<char* const*>(args), const_cast<char* const*>(env));
@@ -706,4 +709,10 @@ List<String> Process::environment()
         ++cur;
     }
     return env;
+}
+
+void Process::setChRoot(const Path &path)
+{
+    assert(mReturn == ReturnUnset);
+    mChRoot = path;
 }

@@ -16,6 +16,7 @@ public:
     ~Process();
 
     void setCwd(const Path& cwd);
+    void setChRoot(const Path &path);
 
     bool start(const Path& command,
                const List<String>& arguments = List<String>(),
@@ -86,7 +87,7 @@ private:
     int mStdInIndex, mStdOutIndex, mStdErrIndex;
     bool mWantStdInClosed;
 
-    Path mCwd;
+    Path mCwd, mChRoot;
 
     String mErrorString;
 

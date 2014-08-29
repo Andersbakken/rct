@@ -79,7 +79,7 @@ void insert(Node *node, Node *&first, Node *&last, Node *after = 0)
 }
 
 template <typename Node>
-void remove(Node *node, Node *&first, Node *&last)
+Node *remove(Node *node, Node *&first, Node *&last)
 {
     assert(node);
     if (node == first) {
@@ -101,6 +101,7 @@ void remove(Node *node, Node *&first, Node *&last)
     }
 
     node->next = node->prev = 0; // ### ???
+    return node;
 }
 
 template <typename Node>

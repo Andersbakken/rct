@@ -15,7 +15,7 @@
 class ConnectionPrivate;
 class SocketClient;
 class Event;
-class Connection
+class Connection : public std::enable_shared_from_this<Connection>
 {
 public:
     Connection();

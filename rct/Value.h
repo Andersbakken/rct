@@ -41,6 +41,16 @@ public:
     }
     inline Value(const Value &other) : mType(Type_Invalid) { copy(other); }
     inline Value(const Map<String, Value> &map) : mType(Type_Map) { new (mData.mapBuf) Map<String, Value>(map); }
+    template <typename T> inline Value(const List<T> &list)
+        : mType(Type_List)
+    {
+        new (mData.listBuf) List<Value>(list.size());
+        int i = 0;
+        List<Value> *l = listPtr();
+
+        for (const T &t : list)
+            (*l)[i++] = t;
+    }
     inline Value(const List<Value> &list) : mType(Type_List) { new (mData.listBuf) List<Value>(list); }
     Value(Value &&other);
     ~Value() { clear(); }

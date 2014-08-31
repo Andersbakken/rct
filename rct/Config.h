@@ -20,7 +20,7 @@ public:
     {
         const Value def = Value::create(defaultValue);
         const Value::Type type = Value::create(T()).type();
-        Option<List<T> > *option = new Option<List<T> >;
+        ListOption<T> *option = new ListOption<T>;
         option->validator = validator;
         option->name = name;
         option->description = description;
@@ -170,6 +170,27 @@ private:
         }
         std::function<bool(const T &, String &err)> validator;
     };
+
+    template <typename T>
+    struct ListOption : public OptionBase {
+        virtual bool validate(String &err)
+        {
+            if (validator) {
+                const List<Value> t = value.convert<List<Value> >();
+                List<T> converted(t.size());
+                for (int i=0; i<t.size(); ++i) {
+                    converted[i] = t.at(i).convert<T>();
+                }
+                if (!validator(converted, err)) {
+                    value.clear();
+                    return false;
+                }
+            }
+            return true;
+        }
+        std::function<bool(const List<T> &, String &err)> validator;
+    };
+
     static List<OptionBase*> sOptions;
     static bool sAllowsFreeArgs;
     static List<Value> sFreeArgs;

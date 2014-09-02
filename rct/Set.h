@@ -42,6 +42,16 @@ public:
         return ret;
     }
 
+    void deleteAll()
+    {
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
+            delete *it;
+            ++it;
+        }
+        Base::clear();
+    }
+
     bool insert(const T &t)
     {
         return Base::insert(t).second;

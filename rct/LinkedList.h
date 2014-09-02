@@ -47,6 +47,16 @@ public:
         }
         return std::list<T>::end();
     }
+
+    void deleteAll()
+    {
+        typename std::list<T>::iterator it = std::list<T>::begin();
+        while (it != std::list<T>::end()) {
+            delete *it;
+            ++it;
+        }
+        std::list<T>::clear();
+    }
 };
 
 #endif

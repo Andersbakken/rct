@@ -46,6 +46,16 @@ public:
         return it->second;
     }
 
+    void deleteAll()
+    {
+        typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::begin();
+        while (it != std::unordered_map<Key, Value>::end()) {
+            delete it->second;
+            ++it;
+        }
+        std::unordered_map<Key, Value>::clear();
+    }
+
     Value take(const Key &key, bool *ok = 0)
     {
         Value ret = Value();

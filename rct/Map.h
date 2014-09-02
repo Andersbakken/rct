@@ -55,6 +55,16 @@ public:
         return false;
     }
 
+    void deleteAll()
+    {
+        typename std::map<Key, Value>::iterator it = std::map<Key, Value>::begin();
+        while (it != std::map<Key, Value>::end()) {
+            delete it.second;
+            ++it;
+        }
+        std::map<Key, Value>::clear();
+    }
+
     // bool insert(const Key &key, const Value &value)
     // {
     //     typedef typename std::map<Key, Value>::iterator Iterator;

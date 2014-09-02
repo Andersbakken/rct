@@ -688,7 +688,7 @@ void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::funct
 
 void Process::kill(int sig)
 {
-    if (mReturn != ReturnUnset)
+    if (mReturn != ReturnUnset || mPid == -1)
         return;
 
     mReturn = ReturnKilled;

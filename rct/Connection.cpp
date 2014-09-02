@@ -21,7 +21,8 @@ Connection::Connection(const SocketClient::SharedPtr &client)
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
-    EventLoop::eventLoop()->callLater(std::bind(&Connection::initConnection, this));
+    send(ConnectMessage());
+    EventLoop::eventLoop()->callLater(std::bind(&Connection::checkData, this));
 }
 
 Connection::~Connection()
@@ -31,11 +32,10 @@ Connection::~Connection()
     }
 }
 
-void Connection::initConnection()
+void Connection::checkData()
 {
     if (!mSocketClient->buffer().isEmpty())
         onDataAvailable(mSocketClient, std::forward<Buffer>(mSocketClient->takeBuffer()));
-    send(ConnectMessage());
 }
 
 bool Connection::connectUnix(const Path &socketFile, int timeout)

@@ -97,7 +97,7 @@ private:
         ::warning() << "Socket error" << error << errno << strerror(errno);
         mDisconnected(this);
     }
-    void initConnection();
+    void checkData();
 
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;

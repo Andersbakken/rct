@@ -8,7 +8,7 @@ class Message
 public:
     enum { ResponseId = 1, FinishMessageId = 2, ConnectMessageId = 3 };
 
-    Message(uint8_t id) : mMessageId(id), mFlags(None) {}
+    Message(uint8_t id, uint8_t flags = None) : mMessageId(id), mFlags(flags) {}
     virtual ~Message() {}
 
     enum Flag {
@@ -17,20 +17,6 @@ public:
     };
 
     uint8_t flags() const { return mFlags; }
-    void setFlag(Flag flag, bool on = true)
-    {
-        if (on) {
-            mFlags |= flag;
-        } else {
-            mFlags &= ~flag;
-        }
-    }
-
-    void setFlags(uint8_t flags)
-    {
-        mFlags = flags;
-    }
-
     uint8_t messageId() const { return mMessageId; }
 
     virtual void encode(Serializer &/* serializer */) const {}

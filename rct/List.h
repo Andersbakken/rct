@@ -62,6 +62,11 @@ public:
             Base::push_back(t.at(i));
     }
 
+    void sort()
+    {
+        std::sort(Base::begin(), Base::end());
+    }
+
     int indexOf(const T &t) const
     {
         const typename Base::const_iterator beg = Base::begin();

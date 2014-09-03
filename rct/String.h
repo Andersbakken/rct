@@ -368,7 +368,8 @@ public:
     }
 
     String compress() const;
-    String uncompress() const;
+    String uncompress() const { return uncompress(constData(), size()); }
+    static String uncompress(const char *data, int size);
 
     void append(const char *str, int len = -1)
     {

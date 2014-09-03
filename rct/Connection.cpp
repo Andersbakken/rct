@@ -1,7 +1,7 @@
 #include "Connection.h"
 #include "EventLoop.h"
 #include "Serializer.h"
-#include "Messages.h"
+#include "Message.h"
 #include "Timer.h"
 #include <assert.h>
 
@@ -86,25 +86,6 @@ bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
     return true;
 }
 
-bool Connection::send(uint8_t messageId, const String &message)
-{
-    // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
-    if (!mSocketClient->isConnected()) {
-        if (!mWarned) {
-            mWarned = true;
-            ::error("Trying to send message to unconnected client (%d)", messageId);
-        }
-        return false;
-    }
-
-    String header;
-    Serializer s(header);
-    s << static_cast<uint32_t>(sizeof(uint8_t) + sizeof(uint8_t) + message.size())
-      << static_cast<int8_t>(Messages::Version) << messageId;
-    mPendingWrite += header.size() + message.size();
-    return mSocketClient->write(header) && (message.isEmpty() || mSocketClient->write(message));
-}
-
 int Connection::pendingWrite() const
 {
     return mPendingWrite;
@@ -151,11 +132,12 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
     return num;
 }
 
-void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer)
+void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
 {
     while (true) {
         if (!mSocketClient->buffer().isEmpty())
             mBuffers.push_back(std::move(mSocketClient->takeBuffer()));
+
         unsigned int available = bufferSize(mBuffers);
         if (!available)
             break;
@@ -180,7 +162,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer
         const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
-        Message *message = Messages::create(buffer, read);
+        Message *message = Message::create(buffer, read);
         if (message) {
             if (message->messageId() == FinishMessage::MessageId) {
                 mFinishStatus = static_cast<const FinishMessage*>(message)->status();

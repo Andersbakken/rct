@@ -30,8 +30,22 @@ public:
 
     int pendingWrite() const;
 
-    bool send(Message&& message);
-    bool send(const Message& message);
+    bool send(const Message& message)
+    {
+        // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
+        if (!mSocketClient->isConnected()) {
+            if (!mWarned) {
+                mWarned = true;
+                ::error("Trying to send message to unconnected client (%d)", message.messageId());
+            }
+            return false;
+        }
+
+        String header, value;
+        message.prepare(header, value);
+        mPendingWrite += header.size() + value.size();
+        return mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value));
+    }
 
     template <int StaticBufSize>
     bool write(const char *format, ...)
@@ -85,7 +99,6 @@ public:
     Signal<std::function<void(Connection*, int)> > &finished() { return mFinished; }
     Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
-    bool send(uint8_t messageId, const String& message);
 private:
 
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
@@ -111,21 +124,5 @@ private:
     Signal<std::function<void(Connection*, int)> > mFinished;
 
 };
-
-inline bool Connection::send(Message&& message)
-{
-    String encoded;
-    Serializer serializer(encoded);
-    message.encode(serializer);
-    return send(message.messageId(), encoded);
-}
-
-inline bool Connection::send(const Message& message)
-{
-    String encoded;
-    Serializer serializer(encoded);
-    message.encode(serializer);
-    return send(message.messageId(), encoded);
-}
 
 #endif // CONNECTION_H

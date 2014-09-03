@@ -40,9 +40,9 @@ String String::compress() const
     return out;
 }
 
-String String::uncompress() const
+String String::uncompress(const char *data, int size)
 {
-    if (isEmpty())
+    if (!size)
         return String();
     z_stream stream;
     memset(&stream, 0, sizeof(stream));
@@ -51,13 +51,13 @@ String String::uncompress() const
         return String();
     }
 
-    stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef *>(data()));
-    stream.avail_in = size();
+    stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef *>(data));
+    stream.avail_in = size;
 
     char buffer[BufferSize];
 
     String out;
-    out.reserve(size() * 2);
+    out.reserve(size * 2);
 
     int error = 0;
     do {

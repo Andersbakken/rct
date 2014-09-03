@@ -72,6 +72,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/Message.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MessageQueue.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Messages.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Path.cpp
@@ -127,7 +128,7 @@ file(REMOVE "${RCT_INCLUDE_DIR}/rct-config.h.gen")
 add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 if (RCT_STATIC)
     add_library(rct ${RCT_SOURCES})
-else() 
+else()
     add_library(rct SHARED ${RCT_SOURCES})
 endif()
 if (RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD)

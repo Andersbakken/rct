@@ -14,8 +14,15 @@ public:
 
     virtual void encode(Serializer &/* serializer */) const {}
     virtual void decode(Deserializer &/* deserializer */) {}
+
+    virtual bool compress(const String &value) const { return true; }
 private:
+    void prepare(String &header, String &value) const;
+private:
+    friend class Connection;
     uint8_t mMessageId;
+    mutable String mHeader;
+    mutable String mValue;
 };
 
 #endif // MESSAGE_H

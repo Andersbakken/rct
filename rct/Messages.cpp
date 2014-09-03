@@ -14,7 +14,7 @@ Message* Messages::create(const char *data, int size)
         error("Can't create message from empty data");
         return 0;
     }
-    Deserializer ds(data, sizeof(uint8_t) + sizeof(int8_t));
+    Deserializer ds(data, sizeof(uint8_t) + sizeof(int8_t) + sizeof(bool));
     int8_t version;
     ds >> version;
     if (version != Version) {
@@ -27,6 +27,16 @@ Message* Messages::create(const char *data, int size)
     ds >> id;
     size -= sizeof(id);
     data += sizeof(id);
+    bool compressed;
+    ds >> compressed;
+    data += sizeof(compressed);
+    size -= sizeof(compressed);
+    String uncompressed;
+    if (compressed) {
+        uncompressed = String::uncompress(data, size);
+        data = uncompressed.constData();
+        size = uncompressed.size();
+    }
     std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId)) {
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();

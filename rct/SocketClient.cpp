@@ -1,6 +1,7 @@
 #include "SocketClient.h"
 #include "Rct.h"
 #include "EventLoop.h"
+#include "Log.h"
 #include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>

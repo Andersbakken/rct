@@ -28,17 +28,17 @@
 
 namespace Rct {
 
-bool readFile(const Path& path, String& data)
+bool readFile(const Path& path, String& data, mode_t *perm)
 {
     FILE *f = fopen(path.nullTerminated(), "r");
     if (!f)
         return false;
-    const bool ret = readFile(f, data);
+    const bool ret = readFile(f, data, perm);
     fclose(f);
     return ret;
 }
 
-bool readFile(FILE *f, String& data)
+bool readFile(FILE *f, String& data, mode_t *perm)
 {
     assert(f);
     const int sz = fileSize(f);
@@ -47,7 +47,16 @@ bool readFile(FILE *f, String& data)
         return true;
     }
     data.resize(sz);
-    return fread(data.data(), sz, 1, f);
+    if (!fread(data.data(), sz, 1, f))
+        return false;
+    if (perm) {
+        struct stat st;
+        if (fstat(fileno(f), &st))
+            return false;
+        *perm = st.st_mode;
+    }
+
+    return true;
 }
 
 bool writeFile(const Path& path, const String& data, int perm)

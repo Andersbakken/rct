@@ -609,3 +609,16 @@ const char *Path::typeName(Type type)
     }
     return "";
 }
+
+String Path::name() const
+{
+    if (endsWith('/')) {
+        const int secondLastSlash = lastIndexOf('/', size() - 2);
+        if (secondLastSlash != -1) {
+            return mid(secondLastSlash + 1, size() - secondLastSlash - 2);
+        }
+        return String();
+    } else {
+        return fileName();
+    }
+}

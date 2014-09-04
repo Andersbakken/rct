@@ -50,7 +50,7 @@ bool readFile(FILE *f, String& data)
     return fread(data.data(), sz, 1, f);
 }
 
-bool writeFile(const Path& path, const String& data)
+bool writeFile(const Path& path, const String& data, int perm)
 {
     FILE* f = fopen(path.nullTerminated(), "w");
     if (!f) {
@@ -69,6 +69,9 @@ bool writeFile(const Path& path, const String& data)
         unlink(path.nullTerminated());
         return false;
     }
+    if (perm >= 0)
+        chmod(path.constData(), static_cast<mode_t>(perm));
+
     return true;
 }
 

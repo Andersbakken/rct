@@ -67,6 +67,7 @@ public:
     static const char *typeName(Type type);
     bool isSymLink() const;
     Path followLink(bool *ok = 0) const;
+    String name() const;
     const char *fileName(int *len = 0) const;
     const char *extension(int *len = 0) const;
     static bool exists(const Path &path) { return path.exists(); }

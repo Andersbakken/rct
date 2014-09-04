@@ -68,6 +68,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/CpuUsage.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp

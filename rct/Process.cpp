@@ -324,16 +324,20 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
         eintrwrap(err, ::dup2(mStdErr[1], STDERR_FILENO));
         eintrwrap(err, ::close(mStdErr[1]));
 
-        if (!mChRoot.isEmpty())
-            ::chroot(mChRoot.constData());
-        if (!mCwd.isEmpty())
-            ::chdir(mCwd.constData());
         int ret;
-        if (hasEnviron)
+        if (!mChRoot.isEmpty() && ::chroot(mChRoot.constData())) {
+            goto error;
+        }
+        if (!mCwd.isEmpty() && ::chdir(mCwd.constData())) {
+            goto error;
+        }
+        if (hasEnviron) {
             ret = ::execve(cmd.nullTerminated(), const_cast<char* const*>(args), const_cast<char* const*>(env));
-        else
+        } else {
             ret = ::execv(cmd.nullTerminated(), const_cast<char* const*>(args));
+        }
         // notify the parent process
+  error:
         const char c = 'c';
         eintrwrap(err, ::write(closePipe[1], &c, 1));
         eintrwrap(err, ::close(closePipe[1]));

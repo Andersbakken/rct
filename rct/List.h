@@ -107,6 +107,11 @@ public:
         Base::erase(Base::begin() + idx);
     }
 
+    void remove(int idx, int count)
+    {
+        Base::erase(Base::begin() + idx, Base::begin() + idx + count + 1);
+    }
+
     void removeLast()
     {
         Base::pop_back();

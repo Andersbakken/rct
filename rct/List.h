@@ -109,7 +109,7 @@ public:
 
     void remove(int idx, int count)
     {
-        Base::erase(Base::begin() + idx, Base::begin() + idx + count + 1);
+        Base::erase(Base::begin() + idx, Base::begin() + idx + count);
     }
 
     void removeLast()

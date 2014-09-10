@@ -547,7 +547,11 @@ public:
         return mString;
     }
 
-    List<String> split(char ch) const
+    enum SplitFlag {
+        NoSplitFlag = 0x0,
+        SkipEmpty = 0x1
+    };
+    List<String> split(char ch, unsigned int flags = NoSplitFlag) const
     {
         List<String> ret;
         int last = 0;
@@ -555,10 +559,29 @@ public:
             const int next = indexOf(ch, last);
             if (next == -1)
                 break;
-            ret.append(mid(last, next - last));
+            if (last != next - last || !(flags & SkipEmpty))
+                ret.append(mid(last, next - last));
             last = next + 1;
         }
-        ret.append(mid(last));
+        if (last < size() || !(flags & SkipEmpty))
+            ret.append(mid(last));
+        return ret;
+    }
+
+    List<String> split(const String &split, unsigned int flags = NoSplitFlag) const
+    {
+        List<String> ret;
+        int last = 0;
+        while (1) {
+            const int next = indexOf(split, last);
+            if (next == -1)
+                break;
+            if (last != next - last || !(flags & SkipEmpty))
+                ret.append(mid(last, next - last));
+            last = next + split.size();
+        }
+        if (last < size() || !(flags & SkipEmpty))
+            ret.append(mid(last));
         return ret;
     }
 

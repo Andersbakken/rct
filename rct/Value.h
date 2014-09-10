@@ -92,6 +92,8 @@ public:
     inline String toString() const;
     inline std::shared_ptr<Custom> toCustom() const;
     inline Map<String, Value> toMap() const;
+    template <typename T>
+    inline List<T> toList() const;
     inline List<Value> toList() const;
     Map<String, Value>::const_iterator begin() const;
     Map<String, Value>::const_iterator end() const;
@@ -421,6 +423,19 @@ inline String Value::toString() const { return convert<String>(0); }
 inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(0); }
 inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
 inline List<Value> Value::toList() const { return convert<List<Value> >(0); }
+template <typename T>
+inline List<T> Value::toList() const
+{
+    List<T> ret;
+    if (type() == Type_List) {
+        ret.reserve(count());
+        for (const Value &val : *listPtr()) {
+            ret.append(val.convert<T>());
+        }
+    }
+    return ret;
+}
+
 inline Value Value::value(int idx, const Value &defaultValue) const
 {
     return mType == Type_List ? listPtr()->value(idx, defaultValue) : defaultValue;

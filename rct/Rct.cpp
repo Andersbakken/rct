@@ -30,6 +30,8 @@ namespace Rct {
 
 bool readFile(const Path& path, String& data, mode_t *perm)
 {
+    if (!path.isFile())
+        return false;
     FILE *f = fopen(path.nullTerminated(), "r");
     if (!f)
         return false;

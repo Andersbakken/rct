@@ -140,6 +140,16 @@ public:
     {
         return mData && mData->spacing;
     }
+    template <typename T>
+    static String toString(const T &t)
+    {
+        String ret;
+        {
+            Log l(&ret);
+            l << t;
+        }
+        return ret;
+    }
 private:
     template <typename T> Log addStringStream(T t)
     {

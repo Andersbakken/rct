@@ -28,7 +28,7 @@ SocketClient::SocketClient(unsigned int mode)
 }
 
 SocketClient::SocketClient(int f, unsigned int mode)
-    : fd(f), socketPort(0), socketState(Connected), socketMode(mode), writeWait(false)
+    : fd(f), socketPort(0), socketState(Connected), socketMode(mode), wMode(Asynchronous), writeWait(false)
 {
     assert(fd >= 0);
 #ifdef HAVE_NOSIGPIPE

@@ -202,3 +202,14 @@ void Config::showHelp(FILE *f)
     }
 
 }
+
+void Config::clear()
+{
+    sOptions.deleteAll();
+    sAllowsFreeArgs = false;
+    sFreeArgs.clear();
+}
+
+struct Janitor {
+    ~Janitor() { Config::clear(); }
+} static sJanitor;

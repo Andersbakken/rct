@@ -96,6 +96,7 @@ public:
     static void setAllowsFreeArguments(bool on) { sAllowsFreeArgs = on; }
     static bool allowsFreeArguments() { return sAllowsFreeArgs; }
     static List<Value> freeArgs() { return sFreeArgs; }
+    static void clear();
 private:
     template <class T> struct is_list { static const int value = 0; };
     template <class T> struct is_list<List<T> > { static const int value = 1; };
@@ -146,6 +147,7 @@ private:
     Config();
     ~Config();
     struct OptionBase {
+        virtual ~OptionBase() {}
         const char *name;
         char shortOption;
         String description;

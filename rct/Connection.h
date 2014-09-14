@@ -97,7 +97,7 @@ public:
     Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
     Signal<std::function<void(Connection*)> > &error() { return mError; }
     Signal<std::function<void(Connection*, int)> > &finished() { return mFinished; }
-    Signal<std::function<void(Message*, Connection*)> > &newMessage() { return mNewMessage; }
+    Signal<std::function<void(std::shared_ptr<Message>, Connection*)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
 private:
 
@@ -119,7 +119,7 @@ private:
 
     bool mSilent, mIsConnected, mWarned;
 
-    Signal<std::function<void(Message*, Connection*)> > mNewMessage;
+    Signal<std::function<void(std::shared_ptr<Message>, Connection*)> > mNewMessage;
     Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mSendFinished;
     Signal<std::function<void(Connection*, int)> > mFinished;
 

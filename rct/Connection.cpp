@@ -162,17 +162,16 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
-        Message *message = Message::create(buffer, read);
+        std::shared_ptr<Message> message = Message::create(buffer, read);
         if (message) {
             if (message->messageId() == FinishMessage::MessageId) {
-                mFinishStatus = static_cast<const FinishMessage*>(message)->status();
+                mFinishStatus = std::static_pointer_cast<FinishMessage>(message)->status();
                 mFinished(this, mFinishStatus);
             } else if (message->messageId() == ConnectMessage::MessageId) {
                 mIsConnected = true;
             } else {
                 newMessage()(message, this);
             }
-            delete message;
         }
         if (buffer != buf)
             delete[] buffer;

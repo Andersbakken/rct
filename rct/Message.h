@@ -22,7 +22,7 @@ public:
     virtual void encode(Serializer &/* serializer */) const {}
     virtual void decode(Deserializer &/* deserializer */) {}
 
-    static Message *create(const char *data, int size);
+    static std::shared_ptr<Message> create(const char *data, int size);
     template<typename T> static void registerMessage()
     {
         const uint8_t id = T::MessageId;

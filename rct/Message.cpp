@@ -27,7 +27,7 @@ void Message::prepare(String &header, String &value) const
     header = mHeader;
 }
 
-Message* Message::create(const char *data, int size)
+std::shared_ptr<Message> Message::create(const char *data, int size)
 {
     if (!size || !data) {
         error("Can't create message from empty data");
@@ -68,10 +68,9 @@ Message* Message::create(const char *data, int size)
         error("Invalid message id %d, data: %d bytes, factory %p", id, size, &sFactory);
         return 0;
     }
-    Message *message = base->create(data, size);
+    std::shared_ptr<Message> message(base->create(data, size));
     if (!message) {
         error("Can't create message from data id: %d, data: %d bytes", id, size);
-        return 0;
     }
     return message;
 }

@@ -88,7 +88,7 @@ time_t Path::lastAccess() const
     return st.st_atime;
 }
 
-bool Path::setLastModified(time_t lastModified)
+bool Path::setLastModified(time_t lastModified) const
 {
     const struct utimbuf buf = { lastAccess(), lastModified };
     return !utime(constData(), &buf);

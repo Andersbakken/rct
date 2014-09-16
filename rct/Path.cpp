@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <utime.h>
 #include <dirent.h>
 #include <fts.h>
 #include <wordexp.h>
@@ -75,6 +76,22 @@ time_t Path::lastModified() const
         return 0;
     }
     return st.st_mtime;
+}
+
+time_t Path::lastAccess() const
+{
+    struct stat st;
+    if (stat(constData(), &st) == -1) {
+        warning("Stat failed for %s", constData());
+        return 0;
+    }
+    return st.st_atime;
+}
+
+bool Path::setLastModified(time_t lastModified)
+{
+    const struct utimbuf buf = { lastAccess(), lastModified };
+    return !utime(constData(), &buf);
 }
 
 int64_t Path::fileSize() const

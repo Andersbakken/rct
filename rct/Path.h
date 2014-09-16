@@ -112,6 +112,8 @@ public:
     Path canonicalized() const;
     static Path canonicalized(const Path &path);
     time_t lastModified() const; // returns time_t ... no shit
+    time_t lastAccess() const;
+    bool setLastModified(time_t lastModified);
     uint64_t lastModifiedMs() const;
 
     int64_t fileSize() const;

@@ -49,7 +49,6 @@ public:
     void remove(T t) // if we're removing a reference to a shared_ptr this could be problematic
     {
         assert(t);
-        assert(t.use_count() > 1);
         if (t == mFirst) {
             if (t == mLast) {
                 assert(mCount == 1);
@@ -150,17 +149,19 @@ public:
     iterator begin() { return iterator(mFirst); }
     iterator end() { return iterator(T()); }
 
-    void removeFirst()
+    T removeFirst()
     {
         assert(mFirst);
         assert(mCount > 0);
         remove(mFirst);
+        return mFirst;
     }
 
-    void removeLast()
+    T removeLast()
     {
         assert(mLast);
         remove(mLast);
+        return mLast;
     }
 
     T takeFirst()

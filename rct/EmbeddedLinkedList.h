@@ -134,7 +134,6 @@ public:
         const_iterator(const T &t)
             : iterator_base<const_iterator>(t)
         {}
-
     };
 
     void erase(const iterator &it)

@@ -57,7 +57,7 @@ check_cxx_source_compiles("
   }" HAVE_STATMTIM)
 
 if (NOT DEFINED RCT_INCLUDE_DIR)
-   set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")
+  set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")
 endif ()
 
 find_package(ZLIB REQUIRED)
@@ -128,9 +128,9 @@ file(REMOVE "${RCT_INCLUDE_DIR}/rct-config.h.gen")
 
 add_definitions(-DOS_${CMAKE_SYSTEM_NAME})
 if (RCT_STATIC)
-    add_library(rct ${RCT_SOURCES})
+  add_library(rct ${RCT_SOURCES})
 else()
-    add_library(rct SHARED ${RCT_SOURCES})
+  add_library(rct SHARED ${RCT_SOURCES})
 endif()
 if (RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD)
   add_definitions("-DRCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD=${RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD}")
@@ -152,8 +152,10 @@ endif()
 
 target_link_libraries(rct ${CORESERVICES_LIBRARY} ${COREFOUNDATION_LIBRARY} ${RCT_SYSTEM_LIBRARIES} ${ZLIB_LIBRARIES} ${V8_LIBS})
 
-install(CODE "message(\"Installing rct...\")")
-install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
+if (NOT RCT_NO_INSTALL)
+  install(CODE "message(\"Installing rct...\")")
+  install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
+endif ()
 
 set(CMAKE_REQUIRED_FLAGS "-std=c++11")
 check_cxx_source_compiles("
@@ -191,48 +193,50 @@ check_cxx_source_runs("
       return 0;
   }" HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR)
 
-install(FILES
-        ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
-        rct/AES256CBC.h
-        rct/Apply.h
-        rct/Buffer.h
-        rct/Connection.h
-        rct/Config.h
-        rct/EventLoop.h
-        rct/FileSystemWatcher.h
-        rct/List.h
-        rct/Log.h
-        rct/Map.h
-        rct/SocketClient.h
-        rct/SocketServer.h
-        rct/MemoryMonitor.h
-        rct/Message.h
-        rct/MessageQueue.h
-        rct/Path.h
-        rct/Plugin.h
-        rct/Point.h
-        rct/Process.h
-        rct/Rct.h
-        rct/ReadLocker.h
-        rct/ReadWriteLock.h
-        rct/Rect.h
-        rct/RegExp.h
-        rct/ResponseMessage.h
-        rct/Semaphore.h
-        rct/Serializer.h
-        rct/Set.h
-        rct/SHA256.h
-        rct/SharedMemory.h
-        rct/SignalSlot.h
-        rct/Size.h
-        rct/StopWatch.h
-        rct/String.h
-        rct/Thread.h
-        rct/ThreadLocal.h
-        rct/ThreadPool.h
-        rct/Timer.h
-        rct/Value.h
-        rct/WriteLocker.h
-        DESTINATION include/rct)
+if (NOT RCT_NO_INSTALL)
+  install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h
+    rct/AES256CBC.h
+    rct/Apply.h
+    rct/Buffer.h
+    rct/Connection.h
+    rct/Config.h
+    rct/EventLoop.h
+    rct/FileSystemWatcher.h
+    rct/List.h
+    rct/Log.h
+    rct/Map.h
+    rct/SocketClient.h
+    rct/SocketServer.h
+    rct/MemoryMonitor.h
+    rct/Message.h
+    rct/MessageQueue.h
+    rct/Path.h
+    rct/Plugin.h
+    rct/Point.h
+    rct/Process.h
+    rct/Rct.h
+    rct/ReadLocker.h
+    rct/ReadWriteLock.h
+    rct/Rect.h
+    rct/RegExp.h
+    rct/ResponseMessage.h
+    rct/Semaphore.h
+    rct/Serializer.h
+    rct/Set.h
+    rct/SHA256.h
+    rct/SharedMemory.h
+    rct/SignalSlot.h
+    rct/Size.h
+    rct/StopWatch.h
+    rct/String.h
+    rct/Thread.h
+    rct/ThreadLocal.h
+    rct/ThreadPool.h
+    rct/Timer.h
+    rct/Value.h
+    rct/WriteLocker.h
+    DESTINATION include/rct)
 
-install(EXPORT "rct" DESTINATION lib/cmake)
+  install(EXPORT "rct" DESTINATION lib/cmake)
+endif ()

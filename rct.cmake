@@ -158,6 +158,8 @@ if (NOT RCT_NO_INSTALL)
 endif ()
 
 set(CMAKE_REQUIRED_FLAGS "-std=c++11")
+set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_EXE_LINKER_FLAGS}")
+
 check_cxx_source_compiles("
   #include <memory>
   #include <mutex>
@@ -192,6 +194,9 @@ check_cxx_source_runs("
       a.emplace(1, 1);
       return 0;
   }" HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR)
+
+unset(CMAKE_REQUIRED_FLAGS)
+unset(CMAKE_REQUIRED_LIBRARIES)
 
 if (NOT RCT_NO_INSTALL)
   install(FILES

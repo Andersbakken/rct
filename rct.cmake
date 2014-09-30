@@ -158,7 +158,9 @@ if (NOT RCT_NO_INSTALL)
 endif ()
 
 set(CMAKE_REQUIRED_FLAGS "-std=c++11")
-set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_EXE_LINKER_FLAGS}")
+if (RCT_USE_LIBCXX)
+  set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_EXE_LINKER_FLAGS}")
+endif ()
 
 check_cxx_source_compiles("
   #include <memory>

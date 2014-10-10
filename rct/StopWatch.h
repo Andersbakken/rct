@@ -17,17 +17,17 @@ public:
     {
     }
 
-    uint64_t start()
+    unsigned long long start()
     {
         return (mStart = current(mPrecision));
     }
 
-    uint64_t startTime() const
+    unsigned long long startTime() const
     {
         return mStart;
     }
 
-    static uint64_t current(Precision prec)
+    static unsigned long long current(Precision prec)
     {
         timeval t;
         Rct::gettime(&t); // monotonic
@@ -38,12 +38,12 @@ public:
         }
     }
 
-    uint64_t elapsed() const
+    unsigned long long elapsed() const
     {
         return current(mPrecision) - mStart;
     }
 
-    uint64_t restart()
+    unsigned long long restart()
     {
         const long int cur = current(mPrecision);
         const long int ret = cur - mStart;
@@ -53,7 +53,7 @@ public:
     Precision precision() const { return mPrecision; }
 private:
     const Precision mPrecision;
-    uint64_t mStart;
+    unsigned long long mStart;
 };
 #endif
 

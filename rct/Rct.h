@@ -50,6 +50,28 @@ uint64_t monoMs();
 uint64_t currentTimeMs();
 String hostName();
 
+enum AnsiColor {
+    AnsiColor_Default,
+    AnsiColor_Black,
+    AnsiColor_Red,
+    AnsiColor_Green,
+    AnsiColor_Yellow,
+    AnsiColor_Blue,
+    AnsiColor_Magenta,
+    AnsiColor_Cyan,
+    AnsiColor_White,
+    AnsiColor_BrightDefault,
+    AnsiColor_BrightBlack,
+    AnsiColor_BrightRed,
+    AnsiColor_BrightGreen,
+    AnsiColor_BrightYellow,
+    AnsiColor_BrightBlue,
+    AnsiColor_BrightMagenta,
+    AnsiColor_BrightCyan,
+    AnsiColor_BrightWhite
+};
+String colorize(const String &string, AnsiColor color, int from = 0, int len = -1);
+
 namespace LinkedList
 {
 template <typename Node>

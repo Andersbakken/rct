@@ -389,6 +389,55 @@ String hostName()
     return host;
 }
 
+const char *colors[] = {
+    "\x1b[0m", // Default
+    "\x1b[30m", // Black
+    "\x1b[31m", // Red
+    "\x1b[32m", // Green
+    "\x1b[33m", // Yellow
+    "\x1b[34m", // Blue
+    "\x1b[35m", // Magenta
+    "\x1b[36m", // Cyan
+    "\x1b[37m", // White
+    "\x1b[0;1m", // BrightDefault
+    "\x1b[30;1m", // BrightBlack
+    "\x1b[31;1m", // BrightRed
+    "\x1b[32;1m", // BrightGreen
+    "\x1b[33;1m", // BrightYellow
+    "\x1b[34;1m", // BrightBlue
+    "\x1b[35;1m", // BrightMagenta
+    "\x1b[36;1m", // BrightCyan
+    "\x1b[37;1m" // BrightWhite
+};
+
+String colorize(const String &string, AnsiColor color, int from, int len)
+{
+    assert(from <= size());
+    assert(from >= 0);
+    if (len == -1) {
+        len = string.size() - from;
+    }
+    assert(from + len <= string.size());
+    if (!len)
+        return string;
+
+    String ret;
+    ret.reserve(string.size() + 20);
+    const char *str = string.constData();
+    if (from > 0) {
+        ret.append(str, from);
+        str += from;
+    }
+    ret.append(colors[color]);
+    ret.append(str, len);
+    str += len;
+    ret.append(colors[AnsiColor_Default]);
+    if (from + len != string.size())
+        ret.append(str, string.size() - from - len);
+
+    return ret;
+}
+
 String addrLookup(const String& addr, LookupMode mode, bool *ok)
 {
     sockaddr_storage sockaddr;

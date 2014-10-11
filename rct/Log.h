@@ -78,8 +78,6 @@ public:
 #endif
     Log operator<<(long long unsigned number) { return addStringStream(number); }
     Log operator<<(long long number) { return addStringStream(number); }
-    Log operator<<(uint64_t number) { return addStringStream(number); }
-    Log operator<<(int64_t number) { return addStringStream(number); }
     Log operator<<(uint32_t number) { return addStringStream(number); }
     Log operator<<(int32_t number) { return addStringStream(number); }
     Log operator<<(uint16_t number) { return addStringStream(number); }

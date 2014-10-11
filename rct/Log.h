@@ -76,7 +76,7 @@ public:
     Log operator<<(long number) { return addStringStream(number); }
     Log operator<<(size_t number) { return addStringStream(number); }
 #endif
-#if (ULONG_MAX) == (UINT_MAX)
+#if (ULONG_MAX) != (UINT_MAX)
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }
 #endif

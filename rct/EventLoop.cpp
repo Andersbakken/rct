@@ -99,7 +99,7 @@ static EventLoop::WeakPtr& localEventLoop()
     return *ptr;
 }
 
-static void signalHandler(int sig)
+static void signalHandler(int /*sig*/)
 {
     char b = 'q';
     int w;

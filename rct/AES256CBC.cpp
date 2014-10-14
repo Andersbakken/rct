@@ -38,7 +38,7 @@ AES256CBCPrivate::~AES256CBCPrivate()
 
 static void deriveKey(const String& key, unsigned char* outkey,
                       unsigned char* outiv, int rounds,
-                      const unsigned char* salt = 0)
+                      const unsigned char* salt)
 {
     String preHash = key, currentHash, hash;
     if (salt) // we're assuming that salt is at least 8 bytes
@@ -65,7 +65,7 @@ AES256CBC::AES256CBC(const String& key, const unsigned char* salt)
 {
     unsigned char outkey[32];
 
-    deriveKey(key, outkey, priv->iv, 100);
+    deriveKey(key, outkey, priv->iv, 100, salt);
 #ifdef OS_Darwin
     CCCryptorCreate(kCCEncrypt, kCCAlgorithmAES128, kCCOptionPKCS7Padding,
                     outkey, kCCKeySizeAES256, priv->iv, &priv->ectx);

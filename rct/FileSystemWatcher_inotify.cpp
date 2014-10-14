@@ -83,6 +83,7 @@ bool FileSystemWatcher::unwatch(const Path &path)
     }
 }
 
+#if 0
 static inline void dump(unsigned mask)
 {
     if (mask & IN_ACCESS)
@@ -112,6 +113,7 @@ static inline void dump(unsigned mask)
     if (mask & IN_MOVE_SELF)
         printf("IN_MOVE_SELF ");
 }
+#endif
 
 void FileSystemWatcher::notifyReadyRead()
 {

@@ -136,7 +136,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
 {
     while (true) {
         if (!mSocketClient->buffer().isEmpty())
-            mBuffers.push_back(std::move(mSocketClient->takeBuffer()));
+            mBuffers.push_back(std::move(buf));
 
         unsigned int available = bufferSize(mBuffers);
         if (!available)

@@ -412,7 +412,7 @@ const char *colors[] = {
 
 String colorize(const String &string, AnsiColor color, int from, int len)
 {
-    assert(from <= size());
+    assert(from <= string.size());
     assert(from >= 0);
     if (len == -1) {
         len = string.size() - from;

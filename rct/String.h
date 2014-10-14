@@ -768,12 +768,12 @@ private:
     std::string mString;
 };
 
-inline const bool operator==(const char *l, const String &r)
+inline bool operator==(const char *l, const String &r)
 {
     return r.operator==(l);
 }
 
-inline const bool operator!=(const char *l, const String &r)
+inline bool operator!=(const char *l, const String &r)
 {
     return r.operator!=(l);
 }

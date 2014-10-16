@@ -120,7 +120,8 @@ public:
         if (len) {
             if (mData) {
                 if (mPos + len > mLength) {
-                    error() << "About to die" << mPos << len << mLength;
+                    error() << "About to die" << mPos << len << mLength << '\n' << Rct::backtrace();
+
                 }
                 assert(mPos + len <= mLength);
                 memcpy(target, mData + mPos, len);

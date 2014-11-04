@@ -60,7 +60,12 @@ if (NOT DEFINED RCT_INCLUDE_DIR)
   set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")
 endif ()
 
-find_package(ZLIB REQUIRED)
+find_package(ZLIB)
+if (ZLIB_FOUND) 
+    add_definitions(-DRCT_HAVE_ZLIB)
+else ()
+    message("ZLIB Can't be found. Rct configured without zlib support")
+endif ()
 find_package(OpenSSL REQUIRED)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/.. ${ZLIB_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})

@@ -1,9 +1,15 @@
 #include "String.h"
+#ifdef RCT_HAVE_ZLIB
 #include <zlib.h>
-
 enum { BufferSize = 1024 * 32 };
+#endif
+
 String String::compress() const
 {
+#ifndef RCT_HAVE_ZLIB
+    assert(0 && "Rct configured without zlib support");
+    return String();
+#else
     if (isEmpty())
         return String();
     z_stream stream;
@@ -38,10 +44,15 @@ String String::compress() const
     deflateEnd(&stream);
 
     return out;
+#endif
 }
 
 String String::uncompress(const char *data, int size)
 {
+#ifndef RCT_HAVE_ZLIB
+    assert(0 && "Rct configured without zlib support");
+    return String();
+#else
     if (!size)
         return String();
     z_stream stream;
@@ -77,4 +88,5 @@ String String::uncompress(const char *data, int size)
 
     inflateEnd(&stream);
     return out;
+#endif
 }

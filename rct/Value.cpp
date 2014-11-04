@@ -81,7 +81,7 @@ Value Value::fromJSON(const char *json, bool *ok)
 {
     cJSON *obj = cJSON_Parse(json);
     if (!obj) {
-        if (!ok)
+        if (ok)
             *ok = false;
         return Value();
     }

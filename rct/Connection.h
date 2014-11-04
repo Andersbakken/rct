@@ -30,7 +30,7 @@ public:
 
     int pendingWrite() const;
 
-    bool send(const Message& message)
+    virtual bool send(const Message &message)
     {
         // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
         if (!mSocketClient->isConnected()) {

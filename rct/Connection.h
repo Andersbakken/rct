@@ -20,7 +20,7 @@ class Connection : public std::enable_shared_from_this<Connection>
 public:
     Connection();
     Connection(const SocketClient::SharedPtr &client);
-    ~Connection();
+    virtual ~Connection();
 
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }

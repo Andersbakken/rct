@@ -12,7 +12,7 @@ static StopWatch sStart;
 static Set<LogOutput*> sOutputs;
 static std::mutex sOutputsMutex;
 static int sLevel = 0;
-static const bool sTimedLogs = getenv("RTAGS_LOG_TIME");
+static const bool sTimedLogs = getenv("RCT_LOG_TIME");
 
 class FileOutput : public LogOutput
 {

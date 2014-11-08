@@ -222,6 +222,7 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
                                  const FSEventStreamEventFlags eventFlags[],
                                  const FSEventStreamEventId eventIds[])
 {
+    (void)eventIds;
     WatcherData* watcher = static_cast<WatcherData*>(clientCallBackInfo);
     std::lock_guard<std::mutex> locker(watcher->mutex);
     watcher->since = FSEventStreamGetLatestEventId(streamRef);

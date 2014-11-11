@@ -149,6 +149,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
             assert(read == 4);
             Deserializer strm(buf, read);
             strm >> mPendingRead;
+            assert(mPendingRead > 0);
             available -= 4;
         }
         assert(mPendingRead >= 0);

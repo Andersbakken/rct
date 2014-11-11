@@ -218,6 +218,7 @@ Path Process::findCommand(const String& command)
     if (command.isEmpty() || command.at(0) == '/')
         return command;
 
+#warning this should use PATH from environ, if set
     const char* path = getenv("PATH");
     if (!path)
         return Path();

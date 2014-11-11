@@ -403,7 +403,7 @@ bool Path::rmdir(const Path& dir)
         }
     }
     fts_close(fdir);
-    return true;
+    return !::rmdir(dir.constData());
 }
 
 static void visitorWrapper(Path path, Path::VisitCallback callback, Set<Path> &seen, void *userData)

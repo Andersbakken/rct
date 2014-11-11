@@ -37,7 +37,14 @@ std::shared_ptr<Message> Message::create(const char *data, int size)
     int8_t version;
     ds >> version;
     if (version != Version) {
-        error("Invalid message version. Got %d, expected %d", version, Version);
+        size -= sizeof(version);
+        if (size > 1) {
+            uint8_t id;
+            ds >> id;
+            error("Invalid message version. Got %d, expected %d id: %d", version, Version, id);
+        } else {
+            error("Invalid message version. Got %d, expected %d", version, Version);
+        }
         return 0;
     }
     size -= sizeof(version);

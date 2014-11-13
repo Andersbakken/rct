@@ -438,42 +438,6 @@ String colorize(const String &string, AnsiColor color, int from, int len)
     return ret;
 }
 
-bool smaps(SMAPS &smaps)
-{
-    memset(&smaps, 0, sizeof(smaps));
-    bool ok = false;
-#ifdef OS_Linux
-    const String fn = String::format<128>("/proc/%d/smaps", getpid());
-    if (FILE *f = fopen(fn.constData(), "r")) {
-        ok = true;
-        char buf[1024];
-        struct {
-            const char *name;
-            const int length;
-            int &value;
-        } fields[] = {
-            { "Rss: ", 5, smaps.rss },
-            { "Private_Clean: ", 15, smaps.privateClean },
-            { "Private_Dirty: ", 15, smaps.privateDirty },
-            { "Shared_Clean: ", 14, smaps.sharedClean },
-            { "Shared_Dirty: ", 14, smaps.sharedDirty }
-        };
-
-        while (fgets(buf, sizeof(buf), f)) {
-            for (size_t i=0; i<sizeof(fields) / sizeof(fields[0]); ++i) {
-                if (!strncmp(buf, fields[i].name, fields[i].length)) {
-                    fields[i].value += atoi(buf + fields[i].length);
-                    break;
-                }
-            }
-        }
-
-        fclose(f);
-    }
-#endif
-    return ok;
-}
-
 String addrLookup(const String& addr, LookupMode mode, bool *ok)
 {
     sockaddr_storage sockaddr;

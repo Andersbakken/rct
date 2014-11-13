@@ -50,6 +50,12 @@ uint64_t monoMs();
 uint64_t currentTimeMs();
 String hostName();
 
+struct SMAPS {
+    int rss, privateClean, privateDirty, sharedClean, sharedDirty;
+};
+
+bool smaps(SMAPS &smaps);
+
 enum AnsiColor {
     AnsiColor_Default,
     AnsiColor_Black,

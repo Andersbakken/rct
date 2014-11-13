@@ -438,6 +438,51 @@ String colorize(const String &string, AnsiColor color, int from, int len)
     return ret;
 }
 
+bool smaps(SMAPS &smaps)
+{
+    memset(&smaps, 0, sizeof(smaps));
+    bool ok = false;
+#ifdef OS_Linux
+    const String fn = String::format<128>("/proc/%d/smaps", getpid());
+    if (FILE *f = fopen(fn.constData(), "r")) {
+        ok = true;
+        int total=0, privateclean=0, shared=0, privatedirty=0, line=0;
+        char buf[1024];
+        while (fgets(buf, sizeof(buf), f)) {
+            int *value = 0;
+            const char *ch = buf;
+
+            if (!strncmp(ch, "Rss: ", 5)) {
+                value = &smaps.rss;
+                ch += 5;
+            } else if (!strncmp(ch, "Private_Clean: ", 15)) {
+                value = &smaps.privateClean;
+                ch += 15;
+            } else if (!strncmp(ch, "Private_Dirty: ", 15)) {
+                value = &smaps.privatedirty;
+                ch += 15;
+            } else if (!strncmp(ch, "Shared_Clean: ", 14)) {
+                value = &smaps.sharedClean;
+                ch += 14;
+            } else if (!strncmp(ch, "Shared_Dirty: ", 14)) {
+                value = &smaps.sharedDirty;
+                ch += 14;
+            }
+            if (value) {
+                while (*ch && !isdigit(*ch))
+                    ++ch;
+                if (*ch) {
+                    *value += atoi(*ch);
+                }
+            }
+        }
+
+        fclose(f);
+    }
+#endif
+    return ok;
+}
+
 String addrLookup(const String& addr, LookupMode mode, bool *ok)
 {
     sockaddr_storage sockaddr;

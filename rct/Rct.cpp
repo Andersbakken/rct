@@ -446,7 +446,6 @@ bool smaps(SMAPS &smaps)
     const String fn = String::format<128>("/proc/%d/smaps", getpid());
     if (FILE *f = fopen(fn.constData(), "r")) {
         ok = true;
-        int total=0, privateclean=0, shared=0, privatedirty=0, line=0;
         char buf[1024];
         while (fgets(buf, sizeof(buf), f)) {
             int *value = 0;
@@ -459,7 +458,7 @@ bool smaps(SMAPS &smaps)
                 value = &smaps.privateClean;
                 ch += 15;
             } else if (!strncmp(ch, "Private_Dirty: ", 15)) {
-                value = &smaps.privatedirty;
+                value = &smaps.privateDirty;
                 ch += 15;
             } else if (!strncmp(ch, "Shared_Clean: ", 14)) {
                 value = &smaps.sharedClean;
@@ -472,7 +471,7 @@ bool smaps(SMAPS &smaps)
                 while (*ch && !isdigit(*ch))
                     ++ch;
                 if (*ch) {
-                    *value += atoi(*ch);
+                    *value += atoi(ch);
                 }
             }
         }

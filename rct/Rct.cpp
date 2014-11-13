@@ -447,31 +447,23 @@ bool smaps(SMAPS &smaps)
     if (FILE *f = fopen(fn.constData(), "r")) {
         ok = true;
         char buf[1024];
-        while (fgets(buf, sizeof(buf), f)) {
-            int *value = 0;
-            const char *ch = buf;
+        struct {
+            const char *name;
+            const int length;
+            int &value;
+        } fields[] = {
+            { "Rss: ", 5, smaps.rss },
+            { "Private_Clean: ", 15, smaps.privateClean },
+            { "Private_Dirty: ", 15, smaps.privateDirty },
+            { "Shared_Clean: ", 14, smaps.sharedClean },
+            { "Shared_Dirty: ", 14, smaps.sharedDirty }
+        };
 
-            if (!strncmp(ch, "Rss: ", 5)) {
-                value = &smaps.rss;
-                ch += 5;
-            } else if (!strncmp(ch, "Private_Clean: ", 15)) {
-                value = &smaps.privateClean;
-                ch += 15;
-            } else if (!strncmp(ch, "Private_Dirty: ", 15)) {
-                value = &smaps.privateDirty;
-                ch += 15;
-            } else if (!strncmp(ch, "Shared_Clean: ", 14)) {
-                value = &smaps.sharedClean;
-                ch += 14;
-            } else if (!strncmp(ch, "Shared_Dirty: ", 14)) {
-                value = &smaps.sharedDirty;
-                ch += 14;
-            }
-            if (value) {
-                while (*ch && !isdigit(*ch))
-                    ++ch;
-                if (*ch) {
-                    *value += atoi(ch);
+        while (fgets(buf, sizeof(buf), f)) {
+            for (size_t i=0; i<sizeof(fields) / sizeof(fields[0]); ++i) {
+                if (!strncmp(buf, fields[i].name, fields[i].length)) {
+                    fields[i].value += atoi(buf + fields[i].length);
+                    break;
                 }
             }
         }

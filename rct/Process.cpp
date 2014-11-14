@@ -100,16 +100,19 @@ void ProcessThread::run()
                 int ret;
                 pid_t p;
                 std::unique_lock<std::mutex> lock(sProcessMutex);
-                std::map<pid_t, ProcessData>::iterator proc = sProcesses.begin();
-                const std::map<pid_t, ProcessData>::const_iterator end = sProcesses.end();
-                while (proc != end) {
+                bool done = false;
+                do {
                     //printf("testing pid %d\n", proc->first);
-                    p = ::waitpid(proc->first, &ret, WNOHANG);
+                    eintrwrap(p, ::waitpid(0, &ret, WNOHANG));
                     switch(p) {
                     case 0:
+                        // we're done
+                        done = true;
+                        break;
                     case -1:
-                        //printf("this is not the pid I'm looking for\n");
-                        ++proc;
+                        // this is bad
+                        done = true;
+                        error() << "waitpid error" << errno;
                         break;
                     default:
                         //printf("successfully waited for pid (got %d)\n", p);
@@ -118,18 +121,23 @@ void ProcessThread::run()
                         } else {
                             ret = Process::ReturnCrashed;
                         }
-                        Process *process = proc->second.proc;
-                        EventLoop::SharedPtr loop = proc->second.loop.lock();
-                        sProcesses.erase(proc++);
-                        lock.unlock();
-                        if (loop) {
-                            loop->callLater([process, ret]() { process->finish(ret); });
+                        auto proc = sProcesses.find(p);
+                        if (proc != sProcesses.end()) {
+                            Process *process = proc->second.proc;
+                            EventLoop::SharedPtr loop = proc->second.loop.lock();
+                            sProcesses.erase(proc++);
+                            lock.unlock();
+                            if (loop) {
+                                loop->callLater([process, ret]() { process->finish(ret); });
+                            } else {
+                                process->finish(ret);
+                            }
+                            lock.lock();
                         } else {
-                            process->finish(ret);
+                            error() << "couldn't find process for pid" << p;
                         }
-                        lock.lock();
                     }
-                }
+                } while (!done);
             }
         }
     }

@@ -110,8 +110,10 @@ void ProcessThread::run()
                         done = true;
                         break;
                     case -1:
-                        // this is bad
                         done = true;
+                        if (errno == ECHILD)
+                            break;
+                        // this is bad
                         error() << "waitpid error" << errno;
                         break;
                     default:

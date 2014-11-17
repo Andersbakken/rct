@@ -61,7 +61,7 @@ if (NOT DEFINED RCT_INCLUDE_DIR)
 endif ()
 
 find_package(ZLIB)
-if (ZLIB_FOUND) 
+if (ZLIB_FOUND)
     add_definitions(-DRCT_HAVE_ZLIB)
 else ()
     message("ZLIB Can't be found. Rct configured without zlib support")
@@ -141,6 +141,10 @@ if (RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD)
   add_definitions("-DRCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD=${RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD}")
 endif ()
 
+if (RCT_USE_DB_STLMAP)
+  add_definitions(-DDB_STLMAP=1)
+endif ()
+
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_library(CORESERVICES_LIBRARY CoreServices)
   find_path(CORESERVICES_INCLUDE "CoreServices/CoreServices.h")
@@ -211,15 +215,14 @@ if (NOT RCT_NO_INSTALL)
     rct/AES256CBC.h
     rct/Apply.h
     rct/Buffer.h
-    rct/Connection.h
     rct/Config.h
+    rct/Connection.h
+    rct/DB.h
     rct/EventLoop.h
     rct/FileSystemWatcher.h
     rct/List.h
     rct/Log.h
     rct/Map.h
-    rct/SocketClient.h
-    rct/SocketServer.h
     rct/MemoryMonitor.h
     rct/Message.h
     rct/MessageQueue.h
@@ -233,13 +236,15 @@ if (NOT RCT_NO_INSTALL)
     rct/Rect.h
     rct/RegExp.h
     rct/ResponseMessage.h
+    rct/SHA256.h
     rct/Semaphore.h
     rct/Serializer.h
     rct/Set.h
-    rct/SHA256.h
     rct/SharedMemory.h
     rct/SignalSlot.h
     rct/Size.h
+    rct/SocketClient.h
+    rct/SocketServer.h
     rct/StopWatch.h
     rct/String.h
     rct/Thread.h

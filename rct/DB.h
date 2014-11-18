@@ -1,8 +1,11 @@
 #ifndef DB_h
 #define DB_h
 
+#ifdef RCT_DB_USE_MAP
+#include <rct/Map.h>
+#endif
 #include <rct/Path.h>
-#include <memory>
+#include <rct/Serializer.h>
 
 template <typename Key, typename Value>
 struct DBPrivate;
@@ -10,40 +13,118 @@ template <typename Key, typename Value>
 class DB
 {
 public:
-    DB();
-    ~DB();
+    inline DB();
+    inline DB(DB<Key, Value> &&other);
+    inline ~DB();
 
-    bool load(const Path &path) = 0;
-    std::shared_ptr<Value> value(const Key &key) const = 0;
+    inline DB &operator=(DB<Key, Value> &&other);
+
+    enum Flag {
+        None = 0x0,
+        Overwrite = 0x1,
+        AllowEmpty = 0x2
+    };
+    inline bool load(const Path &path, uint16_t version, unsigned int flags, String *error = 0);
+    inline void unload();
+    inline Path path() const { return mPath; }
+    inline uint16_t version() const { return mVersion; }
+    inline unsigned int flags() const { return mFlags; }
+    inline Value value(const Key &key) const;
     class iterator {
     public:
-        Key key() const;
-        std::shared_ptr<Value> value() const;
-        bool atEnd() const;
-        iterator &operator++();
-        iterator &operator--();
-        bool operator==(const iterator &other) const;
-        bool operator!=(const iterator &other) const { return !operator==(other); }
+        inline const Key &key() const;
+        inline const Value &constValue() const;
+        inline Value &value();
+
+        inline void setValue(const Value &value);
+
+        inline std::pair<const Key, Value> *operator->();
+        inline std::pair<const Key, Value> &operator*();
+        inline iterator &operator++();
+        inline iterator &operator--();
+        inline iterator operator++(int);
+        inline iterator operator--(int);
+        inline bool operator==(const iterator &other) const;
+        inline bool operator!=(const iterator &other) const { return !operator==(other); }
+    private:
+#ifdef RCT_DB_USE_MAP
+        typename Map<Key, Value>::iterator mIterator;
+        iterator(const typename Map<Key, Value>::iterator it)
+            : mIterator(it)
+        {
+        }
+#endif
+        friend class DB<Key, Value>;
     };
-    iterator begin() const;
-    iterator end() const;
-    iterator lowerBound(const Key &key) const;
-    iterator find(const Key &key) const;
+
+    inline iterator begin();
+    inline iterator end();
+    inline iterator lower_bound(const Key &key);
+    inline iterator find(const Key &key);
+
+    inline Value &operator[](const Key &key);
+
+    class const_iterator {
+    public:
+        inline const Key &key() const;
+        inline const Value &constValue() const;
+        inline const Value &value() const { return constValue(); }
+
+        inline const std::pair<const Key, Value> *operator->();
+        inline const std::pair<const Key, Value> &operator*();
+        inline const_iterator &operator++();
+        inline const_iterator &operator--();
+        inline const_iterator operator++(int);
+        inline const_iterator operator--(int);
+        inline bool operator==(const const_iterator &other) const;
+        inline bool operator!=(const const_iterator &other) const { return !operator==(other); }
+    private:
+#ifdef RCT_DB_USE_MAP
+        typename Map<Key, Value>::const_iterator mIterator;
+        const_iterator(const typename Map<Key, Value>::const_iterator it)
+            : mIterator(it)
+        {
+        }
+#endif
+        friend class DB<Key, Value>;
+    };
+    inline const_iterator begin() const;
+    inline const_iterator end() const;
+    inline const_iterator lower_bound(const Key &key) const;
+    inline const_iterator find(const Key &key) const;
+    inline bool contains(const Key &key) const { return find(key) != end(); }
 
     class WriteScope
     {
     public:
-        WriteScope(DB &db);
-        ~WriteScope();
+        inline ~WriteScope();
+    private:
+        inline WriteScope(DB &db);
+        DB &mDB;
+        friend class DB<Key, Value>;
     };
-    int size() const;
+    inline std::shared_ptr<WriteScope> createWriteScope();
+    inline int size() const;
+    inline bool isEmpty() const { return !size(); }
+    inline bool write();
+    inline void insert(const Key &key, const Value &value);
+    inline bool remove(const Key &key);
+    inline void erase(const iterator &it);
 private:
     DB(const DB &) = delete;
     DB &operator=(const DB &) = delete;
 
-    DBPrivate<Key, Value> *mPrivate;
+    Path mPath;
+    unsigned int mFlags;
+    uint16_t mVersion;
+#ifdef RCT_DB_USE_MAP
+    int mWriteScope;
+    Map<Key, Value> mMap;
+#endif
 };
-#ifdef DB_STLMAP
-#include <rct/DBstlmap.h>
+
+#ifdef RCT_DB_USE_MAP
+#include <rct/DBmap.h>
 #endif
 #endif
+

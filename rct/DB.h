@@ -100,7 +100,7 @@ public:
     {
     public:
         inline ~WriteScope();
-        bool flush();
+        bool flush(String *error = 0);
     private:
         inline WriteScope(DB &db);
         DB *mDB;
@@ -109,7 +109,7 @@ public:
     inline std::shared_ptr<WriteScope> createWriteScope();
     inline int size() const;
     inline bool isEmpty() const { return !size(); }
-    inline bool write();
+    inline bool write(String *error = 0);
     inline void insert(const Key &key, const Value &value);
     inline bool remove(const Key &key);
     inline void erase(const iterator &it);

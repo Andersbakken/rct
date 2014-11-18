@@ -53,12 +53,14 @@ bool DB<Key, Value>::load(const Path &path, uint16_t version, unsigned int flags
     bool error = false;
     FILE *f = 0;
     if (flags & Overwrite) {
+        Path::mkdir(path.parentDir(), Path::Recursive);
         f = fopen(path.constData(), "w");
         error = !f;
-        if (error && err) {
+        if (f) {
+            fclose(f);
+        } else if (err) {
             *err = String::format<64>("Couldn't open file %s for writing: %d", path.constData(), errno);
         }
-        fclose(f);
     } else {
         f = fopen(path.constData(), "r");
         if (f) {
@@ -317,12 +319,12 @@ DB<Key, Value>::WriteScope::~WriteScope()
 }
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::WriteScope::flush()
+bool DB<Key, Value>::WriteScope::flush(String *error)
 {
     assert(mDB);
     assert(mDB->mWriteScope == 1);
     --mDB->mWriteScope;
-    const bool ret = mDB->write();
+    const bool ret = mDB->write(error);
     mDB = 0;
     return ret;
 }
@@ -353,16 +355,19 @@ static inline void serializeValue(Serializer &serializer, const T &value)
 }
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::write()
+bool DB<Key, Value>::write(String *error)
 {
     assert(!mWriteScope);
     Path::mkdir(mPath.parentDir(), Path::Recursive);
     FILE *f = fopen(mPath.constData(), "w");
     if (!f) {
+        if (error)
+            *error = String::format<64>("Failed to open %s for writing: %d", mPath.constData(), errno);
         return false;
     }
 
     Serializer serializer(f);
+    serializer << mVersion;
     serializer << size();
     for (const auto &it : mMap) {
         serializer << it.first;

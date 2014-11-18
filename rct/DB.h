@@ -100,9 +100,10 @@ public:
     {
     public:
         inline ~WriteScope();
+        bool flush();
     private:
         inline WriteScope(DB &db);
-        DB &mDB;
+        DB *mDB;
         friend class DB<Key, Value>;
     };
     inline std::shared_ptr<WriteScope> createWriteScope();

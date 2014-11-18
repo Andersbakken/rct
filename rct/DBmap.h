@@ -213,6 +213,7 @@ typename DB<Key, Value>::iterator DB<Key, Value>::find(const Key &key)
 template <typename Key, typename Value>
 Value &DB<Key, Value>::operator[](const Key &key)
 {
+    assert(mWriteScope);
     return mMap[key];
 }
 
@@ -302,17 +303,28 @@ bool DB<Key, Value>::const_iterator::operator==(const const_iterator &other) con
 
 template <typename Key, typename Value>
 DB<Key, Value>::WriteScope::WriteScope(DB &db)
-    : mDB(db)
+    : mDB(&db)
 {
-    ++db.mWriteScope;
+    ++mDB->mWriteScope;
 }
 
 template <typename Key, typename Value>
 DB<Key, Value>::WriteScope::~WriteScope()
 {
-    if (!--mDB.mWriteScope) {
-        mDB.write();
+    if (mDB && !--mDB->mWriteScope) {
+        mDB->write();
     }
+}
+
+template <typename Key, typename Value>
+bool DB<Key, Value>::WriteScope::flush()
+{
+    assert(mDB);
+    assert(mDB->mWriteScope == 1);
+    --mDB->mWriteScope;
+    const bool ret = mDB->write();
+    mDB = 0;
+    return ret;
 }
 
 template <typename Key, typename Value>
@@ -327,9 +339,23 @@ std::shared_ptr<typename DB<Key, Value>::WriteScope> DB<Key, Value>::createWrite
     return std::shared_ptr<WriteScope>(new WriteScope(*this));
 }
 
+template <typename T>
+static inline void serializeValue(Serializer &serializer, const std::shared_ptr<T> &value)
+{
+    assert(value.get());
+    serializer << *value.get();
+}
+
+template <typename T>
+static inline void serializeValue(Serializer &serializer, const T &value)
+{
+    serializer << value;
+}
+
 template <typename Key, typename Value>
 bool DB<Key, Value>::write()
 {
+    assert(!mWriteScope);
     FILE *f = fopen(mPath.constData(), "w");
     if (!f)
         return false;
@@ -337,7 +363,8 @@ bool DB<Key, Value>::write()
     Serializer serializer(f);
     serializer << size();
     for (const auto &it : mMap) {
-        serializer << it.first << it.second;
+        serializer << it.first;
+        serializeValue(serializer, it.second);
     }
 
     fclose(f);
@@ -347,18 +374,21 @@ bool DB<Key, Value>::write()
 template <typename Key, typename Value>
 void DB<Key, Value>::insert(const Key &key, const Value &value)
 {
-
+    assert(mWriteScope);
+    mMap[key] = value;
 }
 
 template <typename Key, typename Value>
 bool DB<Key, Value>::remove(const Key &key)
 {
+    assert(mWriteScope);
     return mMap.remove(key);
 }
 
 template <typename Key, typename Value>
 void DB<Key, Value>::erase(const typename DB<Key, Value>::iterator &it)
 {
+    assert(mWriteScope);
     mMap.erase(it.mIterator);
 }
 

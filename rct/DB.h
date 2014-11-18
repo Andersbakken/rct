@@ -38,8 +38,8 @@ public:
 
         inline void setValue(const Value &value);
 
-        inline std::pair<const Key, Value> *operator->();
-        inline std::pair<const Key, Value> &operator*();
+        inline std::pair<const Key, Value> *operator->() const;
+        inline std::pair<const Key, Value> &operator*() const;
         inline iterator &operator++();
         inline iterator &operator--();
         inline iterator operator++(int);
@@ -70,8 +70,8 @@ public:
         inline const Value &constValue() const;
         inline const Value &value() const { return constValue(); }
 
-        inline const std::pair<const Key, Value> *operator->();
-        inline const std::pair<const Key, Value> &operator*();
+        inline const std::pair<const Key, Value> *operator->() const;
+        inline const std::pair<const Key, Value> &operator*() const;
         inline const_iterator &operator++();
         inline const_iterator &operator--();
         inline const_iterator operator++(int);
@@ -90,6 +90,8 @@ public:
     };
     inline const_iterator begin() const;
     inline const_iterator end() const;
+    inline const_iterator constBegin() const { return begin(); }
+    inline const_iterator constEnd() const { return end(); }
     inline const_iterator lower_bound(const Key &key) const;
     inline const_iterator find(const Key &key) const;
     inline bool contains(const Key &key) const { return find(key) != end(); }

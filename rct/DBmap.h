@@ -168,13 +168,13 @@ typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator--(int)
 }
 
 template <typename Key, typename Value>
-typename std::pair<const Key, Value> *DB<Key, Value>::iterator::operator->()
+typename std::pair<const Key, Value> *DB<Key, Value>::iterator::operator->() const
 {
     return mIterator.operator->();
 }
 
 template <typename Key, typename Value>
-typename std::pair<const Key, Value> &DB<Key, Value>::iterator::operator*()
+typename std::pair<const Key, Value> &DB<Key, Value>::iterator::operator*() const
 {
     return mIterator.operator*();
 }
@@ -283,13 +283,13 @@ typename DB<Key, Value>::const_iterator DB<Key, Value>::const_iterator::operator
 }
 
 template <typename Key, typename Value>
-const typename std::pair<const Key, Value> *DB<Key, Value>::const_iterator::operator->()
+const typename std::pair<const Key, Value> *DB<Key, Value>::const_iterator::operator->() const
 {
     return mIterator.operator->();
 }
 
 template <typename Key, typename Value>
-const typename std::pair<const Key, Value> &DB<Key, Value>::const_iterator::operator*()
+const typename std::pair<const Key, Value> &DB<Key, Value>::const_iterator::operator*() const
 {
     return mIterator.operator*();
 }

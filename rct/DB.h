@@ -34,12 +34,12 @@ public:
     public:
         inline const Key &key() const;
         inline const Value &constValue() const;
-        inline Value &value();
+        inline const Value &value() const;
 
         inline void setValue(const Value &value);
 
-        inline std::pair<const Key, Value> *operator->() const;
-        inline std::pair<const Key, Value> &operator*() const;
+        inline const std::pair<const Key, Value> *operator->() const;
+        inline const std::pair<const Key, Value> &operator*() const;
         inline iterator &operator++();
         inline iterator &operator--();
         inline iterator operator++(int);
@@ -48,11 +48,12 @@ public:
         inline bool operator!=(const iterator &other) const { return !operator==(other); }
     private:
 #ifdef RCT_DB_USE_MAP
-        typename Map<Key, Value>::iterator mIterator;
-        iterator(const typename Map<Key, Value>::iterator it)
-            : mIterator(it)
+        iterator(DB<Key, Value> *db, const typename Map<Key, Value>::iterator it)
+            : mIterator(it), mDB(db)
         {
         }
+        typename Map<Key, Value>::iterator mIterator;
+        DB<Key, Value> *mDB;
 #endif
         friend class DB<Key, Value>;
     };

@@ -134,9 +134,16 @@ const Value &DB<Key, Value>::iterator::constValue() const
 }
 
 template <typename Key, typename Value>
-Value &DB<Key, Value>::iterator::value()
+const Value &DB<Key, Value>::iterator::value() const
 {
     return mIterator.second;
+}
+
+template <typename Key, typename Value>
+void DB<Key, Value>::iterator::setValue(const Value &value)
+{
+    assert(mDB->mWriteScope);
+    mIterator->second = value;
 }
 
 template <typename Key, typename Value>
@@ -156,27 +163,29 @@ typename DB<Key, Value>::iterator &DB<Key, Value>::iterator::operator--()
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator++(int)
 {
-    const auto iterator = mIterator;
+    assert(mIterator != mDB->end().mIterator);
+    const auto prev = mIterator;
     ++mIterator;
-    return iterator;
+    return iterator(mDB, prev);
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator--(int)
 {
-    const auto iterator = mIterator;
+    assert(mIterator != mDB->begin().mIterator);
+    const auto prev = mIterator;
     --mIterator;
-    return iterator;
+    return iterator(mDB, prev);
 }
 
 template <typename Key, typename Value>
-typename std::pair<const Key, Value> *DB<Key, Value>::iterator::operator->() const
+const typename std::pair<const Key, Value> *DB<Key, Value>::iterator::operator->() const
 {
     return mIterator.operator->();
 }
 
 template <typename Key, typename Value>
-typename std::pair<const Key, Value> &DB<Key, Value>::iterator::operator*() const
+const typename std::pair<const Key, Value> &DB<Key, Value>::iterator::operator*() const
 {
     return mIterator.operator*();
 }
@@ -190,26 +199,25 @@ bool DB<Key, Value>::iterator::operator==(const iterator &other) const
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::begin()
 {
-    iterator it = { mMap.begin() };
-    return it;
+    return iterator(this, mMap.begin());
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::end()
 {
-    return mMap.end();
+    return iterator(this, mMap.end());
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::lower_bound(const Key &key)
 {
-    return mMap.lower_bound(key);
+    return iterator(this, mMap.lower_bound(key));
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::find(const Key &key)
 {
-    return mMap.find(key);
+    return iterator(this, mMap.find(key));
 }
 
 template <typename Key, typename Value>

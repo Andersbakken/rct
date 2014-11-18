@@ -102,7 +102,7 @@ bool DB<Key, Value>::load(const Path &path, uint16_t version, unsigned int flags
         mPath = path;
         mVersion = version;
     }
-    return error;
+    return !error;
 }
 
 template <typename Key, typename Value>
@@ -356,9 +356,11 @@ template <typename Key, typename Value>
 bool DB<Key, Value>::write()
 {
     assert(!mWriteScope);
+    Path::mkdir(mPath.parentDir(), Path::Recursive);
     FILE *f = fopen(mPath.constData(), "w");
-    if (!f)
+    if (!f) {
         return false;
+    }
 
     Serializer serializer(f);
     serializer << size();

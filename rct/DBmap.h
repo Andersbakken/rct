@@ -213,9 +213,8 @@ typename DB<Key, Value>::iterator DB<Key, Value>::find(const Key &key)
 }
 
 template <typename Key, typename Value>
-Value &DB<Key, Value>::operator[](const Key &key)
+const Value &DB<Key, Value>::operator[](const Key &key) const
 {
-    assert(mWriteScope);
     return mMap[key];
 }
 
@@ -379,7 +378,7 @@ bool DB<Key, Value>::write(String *error)
 }
 
 template <typename Key, typename Value>
-void DB<Key, Value>::insert(const Key &key, const Value &value)
+void DB<Key, Value>::set(const Key &key, const Value &value)
 {
     assert(mWriteScope);
     mMap[key] = value;

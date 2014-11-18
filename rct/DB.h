@@ -62,7 +62,7 @@ public:
     inline iterator lower_bound(const Key &key);
     inline iterator find(const Key &key);
 
-    inline Value &operator[](const Key &key);
+    inline const Value &operator[](const Key &key) const;
 
     class const_iterator {
     public:
@@ -110,7 +110,7 @@ public:
     inline int size() const;
     inline bool isEmpty() const { return !size(); }
     inline bool write(String *error = 0);
-    inline void insert(const Key &key, const Value &value);
+    inline void set(const Key &key, const Value &value);
     inline bool remove(const Key &key);
     inline void erase(const iterator &it);
 private:

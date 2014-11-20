@@ -13,3 +13,5 @@
 /build.ninja
 /rules.ninja
 /.ninja_deps
+/compile_commands.json
+/dbtest

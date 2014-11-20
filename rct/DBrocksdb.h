@@ -1,6 +1,61 @@
 #include <rct/Serializer.h>
 
-namespace DBMapHelpers {
+namespace DBRocksDBHelpers {
+template <typename T>
+inline void toString(const T &t, String &string)
+{
+    Serializer serializer(string);
+    serializer << t;
+}
+
+template <typename T>
+inline void toString(const std::shared_ptr<T> &t, String &string)
+{
+    toString(*t.get(), string);
+}
+
+template <>
+inline void toString(const String &s, String &string)
+{
+    string = s;
+}
+}
+
+template <typename Key, typename Value>
+DB<Key, Value>::DB()
+    : mDB(0), mWriteScope(0), mWriteBatch(0)
+{
+}
+
+template <typename Key, typename Value>
+DB<Key, Value>::DB(DB<Key, Value> &&other)
+    : mDB(other.mDB), mWriteScope(other.mWriteScope), mWriteBatch(other.mWriteBatch)
+{
+    other.mDB = 0;
+    other.mWriteBatch = 0;
+    other.mWriteScope = 0;
+}
+
+template <typename Key, typename Value>
+DB<Key, Value>::~DB()
+{
+    close();
+}
+
+template <typename Key, typename Value>
+DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
+{
+    close();
+    mDB = other.mDB;
+    mWriteScope = other.mWriteScope;
+    mWriteBatch = other.mWriteBatch;
+    other.mDB = 0;
+    other.mDB = 0;
+    other.mWriteBatch = 0;
+    other.mWriteScope = 0;
+    return *this;
+}
+
 template <typename Value>
 static inline void deserializeValue(Deserializer &deserializer, std::shared_ptr<Value> &value)
 {
@@ -13,52 +68,21 @@ static inline void deserializeValue(Deserializer &deserializer, Value &value)
 {
     deserializer >> value;
 }
-template <typename T>
-static inline void serializeValue(Serializer &serializer, const std::shared_ptr<T> &value)
-{
-    assert(value.get());
-    serializer << *value.get();
-}
-
-template <typename T>
-static inline void serializeValue(Serializer &serializer, const T &value)
-{
-    serializer << value;
-}
-}
-
-template <typename Key, typename Value>
-DB<Key, Value>::DB()
-    : mVersion(0), mWriteScope(0)
-{
-}
-
-template <typename Key, typename Value>
-DB<Key, Value>::DB(DB<Key, Value> &&other)
-    : mVersion(other.mVersion), mWriteScope(other.mWriteScope), mMap(std::move(other.mMap))
-{
-    other.mVersion = 0;
-    other.mWriteScope = 0;
-}
-
-template <typename Key, typename Value>
-DB<Key, Value>::~DB()
-{
-    assert(!mWriteScope);
-}
-
-template <typename Key, typename Value>
-DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
-{
-    mWriteScope = other.mWriteScope;
-    other.mWriteScope = 0;
-    mMap = std::move(other.mMap);
-    return *this;
-}
 
 template <typename Key, typename Value>
 bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags)
 {
+    assert(!mDB);
+    rocksdb::Options options;
+    options.IncreaseParallelism();
+    options.OptimizeLevelStyleCompaction();
+    options.create_if_missing = true;
+
+    rocksdb::Status s = rocksdb::DB::Open(options, path.ref(), &mDB);
+    if (!s.ok())
+        return false;
+
+#if 0
     FILE *f = 0;
     if (!(flags & Overwrite)) {
         f = fopen(path.constData(), "r");
@@ -81,7 +105,7 @@ bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags
                         Key key;
                         while (size--) {
                             deserializer >> key;
-                            DBMapHelpers::deserializeValue(deserializer, mMap[key]);
+                            deserializeValue(deserializer, mMap[key]);
                         }
                         ok = true;
                     } else {
@@ -109,223 +133,247 @@ bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags
         mVersion = version;
         return true;
     }
+#endif
     return false;
 }
 
 template <typename Key, typename Value>
 void DB<Key, Value>::close()
 {
+    assert(!mWriteBatch);
+    assert(!mWriteScope);
     mPath.clear();
-    mMap.clear();
+    delete mDB;
+    mDB = 0;
 }
 
 template <typename Key, typename Value>
 Value DB<Key, Value>::value(const Key &key) const
 {
-    return mMap.value(key);
+    // return mMap.value(key);
 }
 
 template <typename Key, typename Value>
 const Key &DB<Key, Value>::iterator::key() const
 {
-    return mIterator.first;
+    // return mIterator.first;
 }
 
 template <typename Key, typename Value>
 const Value &DB<Key, Value>::iterator::constValue() const
 {
-    return mIterator.second;
+    // return mIterator.second;
 }
 
 template <typename Key, typename Value>
 const Value &DB<Key, Value>::iterator::value() const
 {
-    return mIterator.second;
+    // return mIterator.second;
 }
 
 template <typename Key, typename Value>
 void DB<Key, Value>::iterator::setValue(const Value &value)
 {
-    assert(mDB->mWriteScope);
-    mIterator->second = value;
+    // assert(mDB->mWriteScope);
+    // mIterator->second = value;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator &DB<Key, Value>::iterator::operator++()
 {
-    ++mIterator;
-    return *this;
+    // ++mIterator;
+    // return *this;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator &DB<Key, Value>::iterator::operator--()
 {
-    --mIterator;
-    return *this;
+    // --mIterator;
+    // return *this;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator++(int)
 {
-    assert(mIterator != mDB->end().mIterator);
-    const auto prev = mIterator;
-    ++mIterator;
-    return iterator(mDB, prev);
+    // assert(mIterator != mDB->end().mIterator);
+    // const auto prev = mIterator;
+    // ++mIterator;
+    // return iterator(mDB, prev);
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator--(int)
 {
-    assert(mIterator != mDB->begin().mIterator);
-    const auto prev = mIterator;
-    --mIterator;
-    return iterator(mDB, prev);
+    // assert(mIterator != mDB->begin().mIterator);
+    // const auto prev = mIterator;
+    // --mIterator;
+    // return iterator(mDB, prev);
 }
 
 template <typename Key, typename Value>
 const typename std::pair<const Key, Value> *DB<Key, Value>::iterator::operator->() const
 {
-    return mIterator.operator->();
+    // return mIterator.operator->();
 }
 
 template <typename Key, typename Value>
 const typename std::pair<const Key, Value> &DB<Key, Value>::iterator::operator*() const
 {
-    return mIterator.operator*();
+    // return mIterator.operator*();
 }
 
 template <typename Key, typename Value>
 bool DB<Key, Value>::iterator::operator==(const iterator &other) const
 {
-    return mIterator == other.mIterator;
+    // return mIterator == other.mIterator;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::begin()
 {
-    return iterator(this, mMap.begin());
+    // return iterator(this, mMap.begin());
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::end()
 {
-    return iterator(this, mMap.end());
+    // return iterator(this, mMap.end());
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::lower_bound(const Key &key)
 {
-    return iterator(this, mMap.lower_bound(key));
+    // return iterator(this, mMap.lower_bound(key));
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::iterator DB<Key, Value>::find(const Key &key)
 {
-    return iterator(this, mMap.find(key));
+    // return iterator(this, mMap.find(key));
 }
 
 template <typename Key, typename Value>
-const Value &DB<Key, Value>::operator[](const Key &key) const
+Value DB<Key, Value>::operator[](const Key &key) const
 {
-    return mMap[key];
+#warning this probably needs to look at the current writeBatch if there is one.
+    assert(mDB);
+    std::string value;
+    String k;
+    DBRocksDBHelpers::toString(key, k);
+    rocksdb::Status s = mDB->Get(rocksdb::ReadOptions(), rocksdb::Slice(k.ref()), &value);
+    Value ret;
+    if (s.ok()) {
+        Deserializer deserializer(value);
+        deserializeValue(deserializer, ret);
+    }
+    return ret;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::begin() const
 {
-    return mMap.begin();
+    // return mMap.begin();
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::end() const
 {
-    return mMap.end();
+    // return mMap.end();
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::lower_bound(const Key &key) const
 {
-    return mMap.lower_bound(key);
+    // return mMap.lower_bound(key);
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::find(const Key &key) const
 {
-    return mMap.find(key);
+    // return mMap.find(key);
 }
 
 template <typename Key, typename Value>
 const Key &DB<Key, Value>::const_iterator::key() const
 {
-    return mIterator.first;
+    // return mIterator.first;
 }
 
 template <typename Key, typename Value>
 const Value &DB<Key, Value>::const_iterator::constValue() const
 {
-    return mIterator.second;
+    // return mIterator.second;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator &DB<Key, Value>::const_iterator::operator++()
 {
-    ++mIterator;
-    return *this;
+    // ++mIterator;
+    // return *this;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator &DB<Key, Value>::const_iterator::operator--()
 {
-    --mIterator;
-    return *this;
+    // --mIterator;
+    // return *this;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::const_iterator::operator++(int)
 {
-    const auto const_iterator = mIterator;
-    ++mIterator;
-    return const_iterator;
+    // const auto const_iterator = mIterator;
+    // ++mIterator;
+    // return const_iterator;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::const_iterator::operator--(int)
 {
-    const auto const_iterator = mIterator;
-    --mIterator;
-    return const_iterator;
+    // const auto const_iterator = mIterator;
+    // --mIterator;
+    // return const_iterator;
 }
 
 template <typename Key, typename Value>
 const typename std::pair<const Key, Value> *DB<Key, Value>::const_iterator::operator->() const
 {
-    return mIterator.operator->();
+    // return mIterator.operator->();
 }
 
 template <typename Key, typename Value>
 const typename std::pair<const Key, Value> &DB<Key, Value>::const_iterator::operator*() const
 {
-    return mIterator.operator*();
+    // return mIterator.operator*();
 }
 
 template <typename Key, typename Value>
 bool DB<Key, Value>::const_iterator::operator==(const const_iterator &other) const
 {
-    return mIterator == other.mIterator;
+    // return mIterator == other.mIterator;
 }
 
 template <typename Key, typename Value>
-DB<Key, Value>::WriteScope::WriteScope(DB *db, int /*reservedSize*/)
+DB<Key, Value>::WriteScope::WriteScope(DB *db, int reservedSize)
     : mDB(db)
 {
+    assert((mDB->mWriteBatch == 0) == (mDB->mWriteScope == 0));
     ++mDB->mWriteScope;
+    if (!mDB->mWriteBatch) {
+        mDB->mWriteBatch = new rocksdb::WriteBatch(reservedSize);
+    }
+    // ++mDB->mWriteScope;
 }
 
 template <typename Key, typename Value>
 DB<Key, Value>::WriteScope::~WriteScope()
 {
-    if (mDB && !--mDB->mWriteScope) {
-        mDB->write();
+    if (mDB) {
+        if (mDB->mWriteScope == 1) {
+            flush();
+        } else {
+            --mDB->mWriteScope;
+        }
     }
 }
 
@@ -334,59 +382,82 @@ bool DB<Key, Value>::WriteScope::flush(String *error)
 {
     assert(mDB);
     assert(mDB->mWriteScope == 1);
+    assert(mDB->mWriteBatch);
     --mDB->mWriteScope;
-    const bool ret = mDB->write(error);
+    const rocksdb::Status status = mDB->mDB->Write(rocksdb::WriteOptions(), mDB->mWriteBatch);
+    delete mDB->mWriteBatch;
+    mDB->mWriteBatch = 0;
     mDB = 0;
-    return ret;
+    return status.ok();
 }
 
 template <typename Key, typename Value>
 int DB<Key, Value>::size() const
 {
-    return mMap.size();
+    // return mMap.size();
 }
 
-template <typename Key, typename Value>
-bool DB<Key, Value>::write(String *error)
+template <typename T>
+static inline void serializeValue(Serializer &serializer, const T &value)
 {
-    assert(!mWriteScope);
-    Path::mkdir(mPath.parentDir(), Path::Recursive);
-    FILE *f = fopen(mPath.constData(), "w");
-    if (!f) {
-        if (error)
-            *error = String::format<64>("Failed to open %s for writing: %d", mPath.constData(), errno);
-        return false;
-    }
-
-    Serializer serializer(f);
-    serializer << mVersion;
-    serializer << size();
-    for (const auto &it : mMap) {
-        serializer << it.first;
-        DBMapHelpers::serializeValue(serializer, it.second);
-    }
-
-    fclose(f);
-    return true;
+    // serializer << value;
 }
+
+template <typename T>
+static inline void serializeValue(Serializer &serializer, const std::shared_ptr<T> &value)
+{
+    // assert(value.get());
+    // serializer << *value.get();
+}
+
+// template <typename Key, typename Value>
+// bool DB<Key, Value>::write(String *error)
+// {
+    // assert(!mWriteScope);
+    // Path::mkdir(mPath.parentDir(), Path::Recursive);
+    // FILE *f = fopen(mPath.constData(), "w");
+    // if (!f) {
+    //     if (error)
+    //         *error = String::format<64>("Failed to open %s for writing: %d", mPath.constData(), errno);
+    //     return false;
+    // }
+
+    // Serializer serializer(f);
+    // serializer << mVersion;
+    // serializer << size();
+    // for (const auto &it : mMap) {
+    //     serializer << it.first;
+    //     serializeValue(serializer, it.second);
+    // }
+
+    // fclose(f);
+    // return true;
+// }
 
 template <typename Key, typename Value>
 void DB<Key, Value>::set(const Key &key, const Value &value)
 {
-    assert(mWriteScope);
-    mMap[key] = value;
+    assert(mWriteBatch);
+    String k, v;
+    DBRocksDBHelpers::toString(key, k);
+    DBRocksDBHelpers::toString(value, v);
+    mWriteBatch->Put(rocksdb::Slice(k.ref()), rocksdb::Slice(v.ref()));
 }
 
 template <typename Key, typename Value>
 bool DB<Key, Value>::remove(const Key &key)
 {
-    assert(mWriteScope);
-    return mMap.remove(key);
+    assert(mWriteBatch);
+    String k;
+    DBRocksDBHelpers::toString(key, k);
+    mWriteBatch->Delete(rocksdb::Slice(k.ref()));
+    // assert(mWriteScope);
+    // return mMap.remove(key);
 }
 
 template <typename Key, typename Value>
 void DB<Key, Value>::erase(const typename DB<Key, Value>::iterator &it)
 {
-    assert(mWriteScope);
-    mMap.erase(it.mIterator);
+    // assert(mWriteScope);
+    // mMap.erase(it.mIterator);
 }

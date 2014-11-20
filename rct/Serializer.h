@@ -15,8 +15,12 @@
 class Serializer
 {
 public:
-    Serializer(String &out)
+    Serializer(std::string &out)
         : mError(false), mOutData(0), mOutString(&out), mOutFile(0), mPos(0), mMax(INT_MAX)
+    {}
+
+    Serializer(String &out)
+        : mError(false), mOutData(0), mOutString(&out.ref()), mOutFile(0), mPos(0), mMax(INT_MAX)
     {}
 
     Serializer(FILE *f)
@@ -34,7 +38,10 @@ public:
     bool write(const char *data, int len)
     {
         assert(len > 0);
-        if (mOutData) {
+        if (mOutString) {
+            mOutString->append(data, len);
+            return true;
+        } else if (mOutData) {
             if (mPos + len < mMax) {
                 memcpy(mOutData + mPos, data, len);
                 mPos += len;
@@ -42,27 +49,24 @@ public:
                 mError = true;
             }
             return mError;
-        } else if (mOutString) {
-            mOutString->append(data, len);
-            return true;
         } else {
             assert(mOutFile);
             const size_t ret = fwrite(data, sizeof(char), len, mOutFile);
             return (ret == static_cast<size_t>(len));
         }
     }
-    const String *string() const { return mOutString; }
-    String *string() { return mOutString; }
+    const std::string *string() const { return mOutString; }
+    std::string *string() { return mOutString; }
     char *outData() const { return mOutData; }
     const FILE *file() const { return mOutFile; }
     FILE *file() { return mOutFile; }
 
     int pos() const
     {
-        if (mOutData) {
-            return mPos;
-        } else if (mOutString) {
+        if (mOutString) {
             return mOutString->size();
+        } else if (mOutData) {
+            return mPos;
         } else {
             assert(mOutFile);
             return static_cast<int>(ftell(mOutFile));
@@ -72,7 +76,7 @@ public:
 private:
     bool mError;
     char *mOutData;
-    String *mOutString;
+    std::string *mOutString;
     FILE *mOutFile;
     int mPos, mMax;
 };

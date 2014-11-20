@@ -3,7 +3,12 @@
 
 #ifdef RCT_DB_USE_MAP
 #include <rct/Map.h>
+#elif defined(RCT_DB_USE_ROCKSDB)
+#include <rocksdb/db.h>
+#include <rocksdb/slice.h>
+#include <rocksdb/options.h>
 #endif
+
 #include <rct/Path.h>
 #include <rct/Serializer.h>
 
@@ -61,7 +66,11 @@ public:
     inline iterator lower_bound(const Key &key);
     inline iterator find(const Key &key);
 
+#ifdef RCT_DB_USE_MAP
     inline const Value &operator[](const Key &key) const;
+#else
+    inline Value operator[](const Key &key) const;
+#endif
 
     class const_iterator {
     public:
@@ -101,14 +110,17 @@ public:
         inline ~WriteScope();
         bool flush(String *error = 0);
     private:
-        inline WriteScope(DB &db);
+        inline WriteScope(DB *db, int reservedSize);
         DB *mDB;
         friend class DB<Key, Value>;
     };
-    inline std::shared_ptr<WriteScope> createWriteScope();
+
+    inline std::shared_ptr<WriteScope> createWriteScope(int reservedSize)
+    {
+        return std::shared_ptr<WriteScope>(new WriteScope(this, reservedSize));
+    }
     inline int size() const;
     inline bool isEmpty() const { return !size(); }
-    inline bool write(String *error = 0);
     inline void set(const Key &key, const Value &value);
     inline bool remove(const Key &key);
     inline void erase(const iterator &it);
@@ -119,13 +131,20 @@ private:
     Path mPath;
     uint16_t mVersion;
 #ifdef RCT_DB_USE_MAP
+    inline bool write(String *error = 0);
     int mWriteScope;
     Map<Key, Value> mMap;
+#elif defined(RCT_DB_USE_ROCKSDB)
+    rocksdb::DB *mDB;
+    int mWriteScope;
+    rocksdb::WriteBatch *mWriteBatch;
 #endif
 };
 
 #ifdef RCT_DB_USE_MAP
 #include <rct/DBmap.h>
-#endif
+#elif defined(RCT_DB_USE_ROCKSDB)
+#include <rct/DBrocksdb.h>
 #endif
 
+#endif

@@ -41,7 +41,7 @@ public:
             delete mIterator;
         }
 #endif
-        
+
         inline const Key &key() const;
         inline const Value &value() const;
 
@@ -58,7 +58,7 @@ public:
         Iterator(Iterator &&it) = delete;
         Iterator &operator=(const Iterator &it) = delete;
 #ifdef RCT_DB_USE_MAP
-        Iterator(DB<Key, Value> *db, const typename Map<Key, Value>::iterator it)
+        Iterator(DB<Key, Value> *db, const typename Map<Key, Value>::iterator &it)
             : mIterator(it), mDB(db)
         {
         }
@@ -90,10 +90,9 @@ public:
         friend class DB<Key, Value>;
     };
 
-    inline std::unique_ptr<Iterator> createIterator();
+    inline std::unique_ptr<Iterator> createIterator(); // seeks to begin
     inline std::unique_ptr<Iterator> lower_bound(const Key &key);
     inline std::unique_ptr<Iterator> find(const Key &key);
-
 #ifdef RCT_DB_USE_MAP
     inline const Value &operator[](const Key &key) const;
 #else

@@ -212,7 +212,7 @@ void EventLoop::cleanup()
     }
 
     for (auto timer : timersById) {
-        delete timer.first;
+        delete timer;
     }
     timersById.clear();
     timersByTime.clear();

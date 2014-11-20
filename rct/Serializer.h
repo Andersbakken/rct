@@ -201,18 +201,19 @@ DECLARE_NATIVE_TYPE(unsigned long);
 #endif
 #ifndef __x86_64__
 DECLARE_NATIVE_TYPE(time_t);
+#elif defined(OS_Linux)
+DECLARE_NATIVE_TYPE(unsigned long long);
 #endif
 
 template <>
-inline Serializer &operator<<(Serializer &s, const String &byteArray)
+inline Serializer &operator<<(Serializer &s, const String &string)
 {
-    const uint32_t size = byteArray.size();
+    const uint32_t size = string.size();
     s << size;
-    if (byteArray.size())
-        s.write(byteArray.constData(), byteArray.size()); // do I need to write out null terminator?
+    if (string.size())
+        s.write(string.constData(), string.size());
     return s;
 }
-
 
 template <>
 inline Serializer &operator<<(Serializer &s, const Path &path)
@@ -381,13 +382,13 @@ Deserializer &operator>>(Deserializer &s, Set<T> &set)
 }
 
 template <>
-inline Deserializer &operator>>(Deserializer &s, String &byteArray)
+inline Deserializer &operator>>(Deserializer &s, String &string)
 {
     uint32_t size;
     s >> size;
-    byteArray.resize(size);
+    string.resize(size);
     if (size) {
-        s.read(byteArray.data(), size);
+        s.read(string.data(), size);
     }
     return s;
 }

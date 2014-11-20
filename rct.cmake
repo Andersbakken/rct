@@ -98,6 +98,39 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp
   ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c)
 
+set(CMAKE_REQUIRED_LIBRARIES rocksdb snappy bz2 z pthread)
+check_cxx_source_compiles("
+#include <rocksdb/db.h>
+#include <rocksdb/slice.h>
+#include <rocksdb/options.h>
+#include <string>
+
+using namespace rocksdb;
+
+int main() {
+  DB* db;
+  Options options;
+  options.IncreaseParallelism();
+  options.OptimizeLevelStyleCompaction();
+  options.create_if_missing = true;
+  Status s = DB::Open(options, \"test.db\", &db);
+
+  std::string value;
+  s = db->Get(ReadOptions(), \"key\", &value);
+  delete db;
+
+  return 0;
+}" HAVE_ROCKSDB)
+
+if (RCT_DB_USE_ROCKSDB)
+  if (NOT HAVE_ROCKSDB)
+    message(FATAL_ERROR "RocksDB support not detected. Please make sure rocksdb is installed")
+  endif ()
+  add_definitions(-DRCT_DB_USE_ROCKSDB)
+else ()
+  add_definitions(-DRCT_DB_USE_MAP)
+endif()
+
 if (HAVE_INOTIFY EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_inotify.cpp)
 elseif (HAVE_FSEVENTS EQUAL 1)
@@ -193,7 +226,6 @@ if (NOT HAVE_CXX11)
   message(FATAL_ERROR "C++11 support not detected. rct requires a modern compiler, GCC >= 4.8 or Clang >= 3.2 should suffice")
 endif ()
 
-
 check_cxx_source_runs("
   #include <unordered_map>
 
@@ -218,6 +250,8 @@ if (NOT RCT_NO_INSTALL)
     rct/Config.h
     rct/Connection.h
     rct/DB.h
+    rct/DBmap.h
+    rct/DBrocksdb.h
     rct/EventLoop.h
     rct/FileSystemWatcher.h
     rct/List.h

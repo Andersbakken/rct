@@ -211,6 +211,13 @@ void EventLoop::cleanup()
         events.pop();
     }
 
+    for (auto timer : timersById) {
+        delete timer.first;
+    }
+    timersById.clear();
+    timersByTime.clear();
+    nextTimerId = 0;
+
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     if (pollFd != -1)
         ::close(pollFd);

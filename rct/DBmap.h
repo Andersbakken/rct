@@ -5,15 +5,14 @@
 
 template <typename Key, typename Value>
 DB<Key, Value>::DB()
-    : mFlags(0), mVersion(0), mWriteScope(0)
+    : mVersion(0), mWriteScope(0)
 {
 }
 
 template <typename Key, typename Value>
 DB<Key, Value>::DB(DB<Key, Value> &&other)
-    : mFlags(other.mFlags), mVersion(other.mVersion), mWriteScope(other.mWriteScope), mMap(std::move(other.mMap))
+    : mVersion(other.mVersion), mWriteScope(other.mWriteScope), mMap(std::move(other.mMap))
 {
-    other.mFlags = 0;
     other.mVersion = 0;
     other.mWriteScope = 0;
 }
@@ -33,85 +32,79 @@ DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
     return *this;
 }
 
-template <typename T>
-static inline void deserializeValue(Deserializer &deserializer, std::shared_ptr<T> &value)
+template <typename Value>
+static inline void deserializeValue(Deserializer &deserializer, std::shared_ptr<Value> &value)
 {
-    assert(!value.get());
-    value = std::make_shared<T>();
+    value = std::make_shared<Value>();
     deserializer >> *value.get();
 }
 
-template <typename T>
-static inline void deserializeValue(Deserializer &deserializer, T &value)
+template <typename Value>
+static inline void deserializeValue(Deserializer &deserializer, Value &value)
 {
     deserializer >> value;
 }
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::load(const Path &path, uint16_t version, unsigned int flags, String *err)
+bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags)
 {
-    bool error = false;
     FILE *f = 0;
-    if (flags & Overwrite) {
-        Path::mkdir(path.parentDir(), Path::Recursive);
-        f = fopen(path.constData(), "w");
-        error = !f;
-        if (f) {
-            fclose(f);
-        } else if (err) {
-            *err = String::format<64>("Couldn't open file %s for writing: %d", path.constData(), errno);
-        }
-    } else {
+    if (!(flags & Overwrite)) {
         f = fopen(path.constData(), "r");
         if (f) {
+            bool ok = false;
             fseek(f, 0, SEEK_END);
             const int size = ftell(f);
             if (size) {
                 fseek(f, 0, SEEK_SET);
-                char *buf = new char[size + 1];
+                char *buf = new char[size];
                 const int ret = fread(buf, sizeof(char), size, f);
-                if (ret != size) {
-                    delete[] buf;
-                    error = true;
-                } else {
-                    buf[size] = '\0';
+                if (ret == size) {
                     Deserializer deserializer(buf, size);
                     uint16_t ver;
                     deserializer >> ver;
-                    if (ver != version) {
-                        if (err)
-                            *err = String::format<64>("Invalid version, got %d, expected %d", ver, version);
-                        return false;
+                    if (ver == version) {
+                        int size;
+                        deserializer >> size;
+                        // error() << "reading" << size << "for" << path;
+                        Key key;
+                        while (size--) {
+                            deserializer >> key;
+                            deserializeValue(deserializer, mMap[key]);
+                        }
+                        ok = true;
+                    } else {
+                        error() << "Failed to load" << path << "Wrong version, expected" << version << "got" << ver;
                     }
-                    int size;
-                    deserializer >> size;
-                    Key key;
-                    while (size--) {
-                        deserializer >> key;
-                        deserializeValue(deserializer, mMap[key]);
-                    }
+                } else {
+                    error() << "Failed to read" << path;
                 }
+                delete[] buf;
+                // error() << "Read" << this->size() << "items";
             }
-            fclose(f);
-        } else if (!(flags & AllowEmpty)) {
-            if (err)
-                *err = String::format<64>("Couldn't open file %s for reading: %d", path.constData(), errno);
-            error = true;
+            if (!ok) {
+                fclose(f);
+                f = 0;
+            }
         }
     }
-    if (!error) {
-        mFlags = flags;
+    if (!f) {
+        Path::mkdir(path.parentDir(), Path::Recursive);
+        f = fopen(path.constData(), "w");
+    }
+    if (f) {
+        fclose(f);
         mPath = path;
         mVersion = version;
+        return true;
     }
-    return !error;
+    return false;
 }
 
 template <typename Key, typename Value>
-void DB<Key, Value>::unload()
+void DB<Key, Value>::close()
 {
     mPath.clear();
-    mFlags = 0;
     mMap.clear();
 }
 

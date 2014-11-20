@@ -21,14 +21,12 @@ public:
 
     enum Flag {
         None = 0x0,
-        Overwrite = 0x1,
-        AllowEmpty = 0x2
+        Overwrite = 0x1
     };
-    inline bool load(const Path &path, uint16_t version, unsigned int flags, String *error = 0);
-    inline void unload();
+    inline bool open(const Path &path, uint16_t version, unsigned int flags = None);
+    inline void close();
     inline Path path() const { return mPath; }
     inline uint16_t version() const { return mVersion; }
-    inline unsigned int flags() const { return mFlags; }
     inline Value value(const Key &key) const;
     class iterator {
     public:
@@ -119,7 +117,6 @@ private:
     DB &operator=(const DB &) = delete;
 
     Path mPath;
-    unsigned int mFlags;
     uint16_t mVersion;
 #ifdef RCT_DB_USE_MAP
     int mWriteScope;

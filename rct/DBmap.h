@@ -120,12 +120,6 @@ void DB<Key, Value>::close()
 }
 
 template <typename Key, typename Value>
-Value DB<Key, Value>::value(const Key &key) const
-{
-    return mMap.value(key);
-}
-
-template <typename Key, typename Value>
 const Key &DB<Key, Value>::iterator::key() const
 {
     return mIterator.first;
@@ -344,6 +338,12 @@ template <typename Key, typename Value>
 int DB<Key, Value>::size() const
 {
     return mMap.size();
+}
+
+template <typename Key, typename Value>
+int DB<Key, Value>::isEmpty() const
+{
+    return !mMap.size();
 }
 
 template <typename Key, typename Value>

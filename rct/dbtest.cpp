@@ -20,14 +20,15 @@ int main(int argc, char **argv)
         }
     }
 
-    DB<String, std::shared_ptr<int> > db;
+    DB<int, std::shared_ptr<int> > db;
     db.open(dbName, 1);
+    error() << "size is" << db.size();
     if (read) {
-        std::shared_ptr<int> val = db["value"];
+        std::shared_ptr<int> val = db[12];
         printf("Read %d items (%d)\n", db.size(), val ? *val : -1);
     } else {
         auto scope = db.createWriteScope(100);
-        db.set("value", std::make_shared<int>(12));
+        db.set(12, std::make_shared<int>(12));
     }
     return 0;
 };

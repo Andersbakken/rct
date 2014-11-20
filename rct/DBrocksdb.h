@@ -1,35 +1,71 @@
 #include <rct/Serializer.h>
 
 namespace DBRocksDBHelpers {
-template <typename T>
-inline void toString(const T &t, String &string)
+
+template <typename T, typename std::enable_if<!FixedSize<T>::value>::type * = nullptr>
+inline void toString(const T &t, String &string, rocksdb::Slice &slice)
 {
     Serializer serializer(string);
     serializer << t;
+    slice = rocksdb::Slice(string.constData(), string.size());
 }
 
-template <typename T>
-inline void toString(const std::shared_ptr<T> &t, String &string)
+
+template <typename T, typename std::enable_if<FixedSize<T>::value>::type * = nullptr>
+inline void toString(const T &t, String &, rocksdb::Slice &slice)
 {
-    toString(*t.get(), string);
+    slice = rocksdb::Slice(reinterpret_cast<const char*>(&t), FixedSize<T>::value);
 }
 
 template <>
-inline void toString(const String &s, String &string)
+inline void toString(const String &t, String &, rocksdb::Slice &slice)
 {
-    string = s;
+    slice = rocksdb::Slice(t.constData(), t.size());
+}
+
+template <typename T>
+inline void toString(const std::shared_ptr<T> &t, String &string, rocksdb::Slice &slice)
+{
+    toString(*t.get(), string, slice);
+}
+
+template <typename T, typename std::enable_if<!FixedSize<T>::value>::type * = nullptr>
+static inline void fromSlice(const rocksdb::Slice &slice, T &value)
+{
+    Deserializer deserializer(slice.data(), slice.size());
+    deserializer >> value;
+}
+
+template <typename T, typename std::enable_if<FixedSize<T>::value>::type * = nullptr>
+static inline void fromSlice(const rocksdb::Slice &slice, T &value)
+{
+    memcpy(reinterpret_cast<char*>(&value), slice.data(), FixedSize<T>::value);
+}
+
+template <>
+inline void fromSlice(const rocksdb::Slice &s, String &string)
+{
+    string.assign(s.data(), s.size());
+}
+
+template <typename Value>
+static inline void fromSlice(const std::string &string, std::shared_ptr<Value> &value)
+{
+    value = std::make_shared<Value>();
+    fromSlice(string, *value.get());
 }
 }
 
 template <typename Key, typename Value>
 DB<Key, Value>::DB()
-    : mDB(0), mWriteScope(0), mWriteBatch(0)
+    : mRocksDB(0), mWriteScope(0), mWriteBatch(0), mReadOptions(rocksdb::ReadOptions())
 {
 }
 
 template <typename Key, typename Value>
 DB<Key, Value>::DB(DB<Key, Value> &&other)
-    : mDB(other.mDB), mWriteScope(other.mWriteScope), mWriteBatch(other.mWriteBatch)
+    : mRocksDB(other.mDB), mWriteScope(other.mWriteScope),
+      mWriteBatch(other.mWriteBatch), mReadOptions(rocksdb::ReadOptions())
 {
     other.mDB = 0;
     other.mWriteBatch = 0;
@@ -46,95 +82,33 @@ template <typename Key, typename Value>
 DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
 {
     close();
-    mDB = other.mDB;
+    mRocksDB = other.mDB;
     mWriteScope = other.mWriteScope;
     mWriteBatch = other.mWriteBatch;
-    other.mDB = 0;
+
     other.mDB = 0;
     other.mWriteBatch = 0;
     other.mWriteScope = 0;
     return *this;
 }
 
-template <typename Value>
-static inline void deserializeValue(Deserializer &deserializer, std::shared_ptr<Value> &value)
-{
-    value = std::make_shared<Value>();
-    deserializer >> *value.get();
-}
-
-template <typename Value>
-static inline void deserializeValue(Deserializer &deserializer, Value &value)
-{
-    deserializer >> value;
-}
 
 template <typename Key, typename Value>
 bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags)
 {
-    assert(!mDB);
+    assert(!mRocksDB);
     rocksdb::Options options;
     options.IncreaseParallelism();
     options.OptimizeLevelStyleCompaction();
     options.create_if_missing = true;
 
-    rocksdb::Status s = rocksdb::DB::Open(options, path.ref(), &mDB);
+    if (flags & Overwrite)
+        Rct::removeDirectory(path);
+
+    rocksdb::Status s = rocksdb::DB::Open(options, path.ref(), &mRocksDB);
     if (!s.ok())
         return false;
-
-#if 0
-    FILE *f = 0;
-    if (!(flags & Overwrite)) {
-        f = fopen(path.constData(), "r");
-        if (f) {
-            bool ok = false;
-            fseek(f, 0, SEEK_END);
-            const int size = ftell(f);
-            if (size) {
-                fseek(f, 0, SEEK_SET);
-                char *buf = new char[size];
-                const int ret = fread(buf, sizeof(char), size, f);
-                if (ret == size) {
-                    Deserializer deserializer(buf, size);
-                    uint16_t ver;
-                    deserializer >> ver;
-                    if (ver == version) {
-                        int size;
-                        deserializer >> size;
-                        // error() << "reading" << size << "for" << path;
-                        Key key;
-                        while (size--) {
-                            deserializer >> key;
-                            deserializeValue(deserializer, mMap[key]);
-                        }
-                        ok = true;
-                    } else {
-                        error() << "Failed to load" << path << "Wrong version, expected" << version << "got" << ver;
-                    }
-                } else {
-                    error() << "Failed to read" << path;
-                }
-                delete[] buf;
-                // error() << "Read" << this->size() << "items";
-            }
-            if (!ok) {
-                fclose(f);
-                f = 0;
-            }
-        }
-    }
-    if (!f) {
-        Path::mkdir(path.parentDir(), Path::Recursive);
-        f = fopen(path.constData(), "w");
-    }
-    if (f) {
-        fclose(f);
-        mPath = path;
-        mVersion = version;
-        return true;
-    }
-#endif
-    return false;
+    return true;
 }
 
 template <typename Key, typename Value>
@@ -143,26 +117,16 @@ void DB<Key, Value>::close()
     assert(!mWriteBatch);
     assert(!mWriteScope);
     mPath.clear();
-    delete mDB;
-    mDB = 0;
-}
-
-template <typename Key, typename Value>
-Value DB<Key, Value>::value(const Key &key) const
-{
-    // return mMap.value(key);
+    delete mRocksDB;
+    mRocksDB = 0;
 }
 
 template <typename Key, typename Value>
 const Key &DB<Key, Value>::iterator::key() const
 {
+    assert(mIterator->Valid());
+    // return mIt
     // return mIterator.first;
-}
-
-template <typename Key, typename Value>
-const Value &DB<Key, Value>::iterator::constValue() const
-{
-    // return mIterator.second;
 }
 
 template <typename Key, typename Value>
@@ -256,15 +220,15 @@ template <typename Key, typename Value>
 Value DB<Key, Value>::operator[](const Key &key) const
 {
 #warning this probably needs to look at the current writeBatch if there is one.
-    assert(mDB);
+    assert(mRocksDB);
     std::string value;
     String k;
-    DBRocksDBHelpers::toString(key, k);
-    rocksdb::Status s = mDB->Get(rocksdb::ReadOptions(), rocksdb::Slice(k.ref()), &value);
+    rocksdb::Slice slice;
+    DBRocksDBHelpers::toString<Key>(key, k, slice);
+    rocksdb::Status s = mRocksDB->Get(rocksdb::ReadOptions(), slice, &value);
     Value ret;
     if (s.ok()) {
-        Deserializer deserializer(value);
-        deserializeValue(deserializer, ret);
+        DBRocksDBHelpers::fromSlice(value, ret);
     }
     return ret;
 }
@@ -272,13 +236,17 @@ Value DB<Key, Value>::operator[](const Key &key) const
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::begin() const
 {
-    // return mMap.begin();
+    assert(mRocksDB);
+    rocksdb::Iterator *it = mRocksDB->NewIterator(mReadOptions);
+    it->SeekToFirst();
+    return const_iterator(it, this);
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator DB<Key, Value>::end() const
 {
-    // return mMap.end();
+    assert(mRocksDB);
+    return const_iterator(mRocksDB->NewIterator(mReadOptions), this);
 }
 
 template <typename Key, typename Value>
@@ -296,43 +264,41 @@ typename DB<Key, Value>::const_iterator DB<Key, Value>::find(const Key &key) con
 template <typename Key, typename Value>
 const Key &DB<Key, Value>::const_iterator::key() const
 {
-    // return mIterator.first;
+    if (!(mCache & CachedKey)) {
+        const rocksdb::Slice slice = mIterator->key();
+        DBRocksDBHelpers::fromSlice(slice, mCachedKey);
+        mCache |= CachedKey;
+    }
+    return mCachedKey;
 }
 
 template <typename Key, typename Value>
-const Value &DB<Key, Value>::const_iterator::constValue() const
+const Value &DB<Key, Value>::const_iterator::value() const
 {
-    // return mIterator.second;
+    if (!(mCache & CachedValue)) {
+        const rocksdb::Slice slice = mIterator->value();
+        DBRocksDBHelpers::fromSlice(slice, mCachedValue);
+        mCache |= CachedValue;
+    }
+    return mCachedValue;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator &DB<Key, Value>::const_iterator::operator++()
 {
-    // ++mIterator;
-    // return *this;
+    assert(mIterator);
+    mIterator->Next();
+    clearCache();
+    return *this;
 }
 
 template <typename Key, typename Value>
 typename DB<Key, Value>::const_iterator &DB<Key, Value>::const_iterator::operator--()
 {
-    // --mIterator;
-    // return *this;
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator DB<Key, Value>::const_iterator::operator++(int)
-{
-    // const auto const_iterator = mIterator;
-    // ++mIterator;
-    // return const_iterator;
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator DB<Key, Value>::const_iterator::operator--(int)
-{
-    // const auto const_iterator = mIterator;
-    // --mIterator;
-    // return const_iterator;
+    assert(mIterator);
+    mIterator->Prev();
+    clearCache();
+    return *this;
 }
 
 template <typename Key, typename Value>
@@ -384,7 +350,7 @@ bool DB<Key, Value>::WriteScope::flush(String *error)
     assert(mDB->mWriteScope == 1);
     assert(mDB->mWriteBatch);
     --mDB->mWriteScope;
-    const rocksdb::Status status = mDB->mDB->Write(rocksdb::WriteOptions(), mDB->mWriteBatch);
+    const rocksdb::Status status = mDB->mRocksDB->Write(rocksdb::WriteOptions(), mDB->mWriteBatch);
     delete mDB->mWriteBatch;
     mDB->mWriteBatch = 0;
     mDB = 0;
@@ -394,54 +360,27 @@ bool DB<Key, Value>::WriteScope::flush(String *error)
 template <typename Key, typename Value>
 int DB<Key, Value>::size() const
 {
-    // return mMap.size();
+    assert(mRocksDB);
+    uint64_t count = 0;
+    mRocksDB->GetIntProperty("rocksdb.estimate-num-keys", &count);
+    return static_cast<int>(count);
 }
 
-template <typename T>
-static inline void serializeValue(Serializer &serializer, const T &value)
+template <typename Key, typename Value>
+bool DB<Key, Value>::isEmpty() const
 {
-    // serializer << value;
+    return !size();
 }
-
-template <typename T>
-static inline void serializeValue(Serializer &serializer, const std::shared_ptr<T> &value)
-{
-    // assert(value.get());
-    // serializer << *value.get();
-}
-
-// template <typename Key, typename Value>
-// bool DB<Key, Value>::write(String *error)
-// {
-    // assert(!mWriteScope);
-    // Path::mkdir(mPath.parentDir(), Path::Recursive);
-    // FILE *f = fopen(mPath.constData(), "w");
-    // if (!f) {
-    //     if (error)
-    //         *error = String::format<64>("Failed to open %s for writing: %d", mPath.constData(), errno);
-    //     return false;
-    // }
-
-    // Serializer serializer(f);
-    // serializer << mVersion;
-    // serializer << size();
-    // for (const auto &it : mMap) {
-    //     serializer << it.first;
-    //     serializeValue(serializer, it.second);
-    // }
-
-    // fclose(f);
-    // return true;
-// }
 
 template <typename Key, typename Value>
 void DB<Key, Value>::set(const Key &key, const Value &value)
 {
     assert(mWriteBatch);
     String k, v;
-    DBRocksDBHelpers::toString(key, k);
-    DBRocksDBHelpers::toString(value, v);
-    mWriteBatch->Put(rocksdb::Slice(k.ref()), rocksdb::Slice(v.ref()));
+    rocksdb::Slice ks, vs;
+    DBRocksDBHelpers::toString(key, k, ks);
+    DBRocksDBHelpers::toString(value, v, vs);
+    mWriteBatch->Put(ks, vs);
 }
 
 template <typename Key, typename Value>
@@ -449,10 +388,9 @@ bool DB<Key, Value>::remove(const Key &key)
 {
     assert(mWriteBatch);
     String k;
-    DBRocksDBHelpers::toString(key, k);
-    mWriteBatch->Delete(rocksdb::Slice(k.ref()));
-    // assert(mWriteScope);
-    // return mMap.remove(key);
+    rocksdb::Slice slice;
+    DBRocksDBHelpers::toString(key, k, slice);
+    mWriteBatch->Delete(slice);
 }
 
 template <typename Key, typename Value>

@@ -32,11 +32,34 @@ public:
     inline void close();
     inline Path path() const { return mPath; }
     inline uint16_t version() const { return mVersion; }
-    inline Value value(const Key &key) const;
+    inline Value value(const Key &key) const { return operator[](key); }
     class iterator {
     public:
+#ifdef RCT_DB_USE_ROCKSDB
+        iterator(DB<Key, Value>::iterator &&other)
+            : mIterator(other.mIterator), mDB(other.mDB), mCache(0)
+        {
+            other.mIterator = 0;
+            other.mDB = 0;
+            other.clearCache();
+        }
+        ~iterator()
+        {
+            delete mIterator;
+        }
+
+        iterator &operator=(iterator &&other)
+        {
+            delete mIterator;
+            mIterator = other.mIterator;
+            mDB = other.mDB;
+            mCache = 0;
+            other.clearCache();
+            return *this;
+        }
+#endif
+        
         inline const Key &key() const;
-        inline const Value &constValue() const;
         inline const Value &value() const;
 
         inline void setValue(const Value &value);
@@ -56,8 +79,30 @@ public:
         {
         }
         typename Map<Key, Value>::iterator mIterator;
-        DB<Key, Value> *mDB;
+#elif defined(RCT_DB_USE_ROCKSDB)
+        iterator(DB<Key, Value> *db, rocksdb::Iterator *it)
+            : mIterator(it), mDB(db), mCache(0)
+        {
+        }
+
+        rocksdb::Iterator *mIterator;
+        mutable Key mCachedKey;
+        mutable Value mCachedValue;
+        mutable uint8_t mCache;
+        enum {
+            CachedKey = 1,
+            CachedValue = 2
+        };
+        inline void clearCache()
+        {
+            if (mCache & CachedKey)
+                mCachedKey = Key();
+            if (mCache & CachedValue)
+                mCachedValue = Value();
+            mCache = 0;
+        }
 #endif
+        DB<Key, Value> *mDB;
         friend class DB<Key, Value>;
     };
 
@@ -74,16 +119,39 @@ public:
 
     class const_iterator {
     public:
+#ifdef RCT_DB_USE_ROCKSDB
+        const_iterator(DB<Key, Value>::const_iterator &&other)
+            : mIterator(other.mIterator), mDB(other.mDB), mCache(0)
+        {
+            other.mIterator = 0;
+            other.mDB = 0;
+            other.clearCache();
+        }
+        ~const_iterator()
+        {
+            delete mIterator;
+        }
+
+        const_iterator &operator=(const_iterator &&other)
+        {
+            delete mIterator;
+            mIterator = other.mIterator;
+            mDB = other.mDB;
+            mCache = 0;
+            other.mIterator = 0;
+            other.mDB = 0;
+            other.clearCache();
+            return *this;
+        }
+#endif
+        
         inline const Key &key() const;
-        inline const Value &constValue() const;
-        inline const Value &value() const { return constValue(); }
+        inline const Value &value() const;
 
         inline const std::pair<const Key, Value> *operator->() const;
         inline const std::pair<const Key, Value> &operator*() const;
         inline const_iterator &operator++();
         inline const_iterator &operator--();
-        inline const_iterator operator++(int);
-        inline const_iterator operator--(int);
         inline bool operator==(const const_iterator &other) const;
         inline bool operator!=(const const_iterator &other) const { return !operator==(other); }
     private:
@@ -93,6 +161,30 @@ public:
             : mIterator(it)
         {
         }
+#elif defined(RCT_DB_USE_ROCKSDB)
+        const_iterator(DB<Key, Value> *db, rocksdb::Iterator *it)
+            : mIterator(it), mDB(db), mCache(0)
+        {
+        }
+
+        mutable Key mCachedKey;
+        mutable Value mCachedValue;
+        mutable uint8_t mCache;
+        enum {
+            CachedKey = 1,
+            CachedValue = 2
+        };
+        inline void clearCache()
+        {
+            if (mCache & CachedKey)
+                mCachedKey = Key();
+            if (mCache & CachedValue)
+                mCachedValue = Value();
+            mCache = 0;
+        }
+        
+        rocksdb::Iterator *mIterator;
+        DB<Key, Value> *mDB;
 #endif
         friend class DB<Key, Value>;
     };
@@ -120,7 +212,7 @@ public:
         return std::shared_ptr<WriteScope>(new WriteScope(this, reservedSize));
     }
     inline int size() const;
-    inline bool isEmpty() const { return !size(); }
+    inline bool isEmpty() const;
     inline void set(const Key &key, const Value &value);
     inline bool remove(const Key &key);
     inline void erase(const iterator &it);
@@ -135,9 +227,10 @@ private:
     int mWriteScope;
     Map<Key, Value> mMap;
 #elif defined(RCT_DB_USE_ROCKSDB)
-    rocksdb::DB *mDB;
+    rocksdb::DB *mRocksDB;
     int mWriteScope;
     rocksdb::WriteBatch *mWriteBatch;
+    const rocksdb::ReadOptions mReadOptions;
 #endif
 };
 

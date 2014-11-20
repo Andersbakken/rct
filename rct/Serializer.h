@@ -165,15 +165,16 @@ Deserializer &operator>>(Deserializer &s, T &t)
     return s;
 }
 
-template <typename T> inline int fixedSize(const T &)
+template <typename T>
+struct FixedSize
 {
-    return 0;
-}
+    static constexpr size_t value = 0;
+};
 #define DECLARE_NATIVE_TYPE(type)                                   \
-    template <> inline int fixedSize(const type &)                  \
+    template <> struct FixedSize<type>                              \
     {                                                               \
-        return sizeof(type);                                        \
-    }                                                               \
+        static constexpr size_t value = sizeof(type);               \
+    };                                                              \
     template <> inline Serializer &operator<<(Serializer &s,        \
                                               const type &t)        \
     {                                                               \
@@ -236,7 +237,7 @@ Serializer &operator<<(Serializer &s, const List<T> &list)
     const uint32_t size = list.size();
     s << size;
     if (list.size()) {
-        const int fixed = fixedSize<T>(T());
+        const int fixed = FixedSize<T>::value;
         if (fixed) {
             s.write(reinterpret_cast<const char*>(list.data()), fixed * size);
         } else {
@@ -357,7 +358,7 @@ Deserializer &operator>>(Deserializer &s, List<T> &list)
     s >> size;
     list.resize(size);
     if (size) {
-        const int fixed = fixedSize<T>(T());
+        const int fixed = FixedSize<T>::value;
         if (fixed) {
             s.read(reinterpret_cast<char*>(list.data()), fixed * size);
         } else {

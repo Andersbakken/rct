@@ -1,6 +1,3 @@
-#ifndef DBstlmap_h
-#define DBstlmap_h
-
 #include <rct/Serializer.h>
 
 template <typename Key, typename Value>
@@ -398,6 +395,3 @@ void DB<Key, Value>::erase(const typename DB<Key, Value>::iterator &it)
     assert(mWriteScope);
     mMap.erase(it.mIterator);
 }
-
-
-#endif

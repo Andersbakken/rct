@@ -122,96 +122,103 @@ void DB<Key, Value>::close()
 }
 
 template <typename Key, typename Value>
-const Key &DB<Key, Value>::iterator::key() const
+const Key &DB<Key, Value>::Iterator::key() const
 {
+    assert(mIterator);
     assert(mIterator->Valid());
-    // return mIt
-    // return mIterator.first;
+    if (!(mCache & CachedKey)) {
+        const rocksdb::Slice slice = mIterator->key();
+        DBRocksDBHelpers::fromSlice(slice, mCachedKey);
+        mCache |= CachedKey;
+    }
+    return mCachedKey;
 }
 
 template <typename Key, typename Value>
-const Value &DB<Key, Value>::iterator::value() const
+const Value &DB<Key, Value>::Iterator::value() const
 {
-    // return mIterator.second;
+    assert(mIterator);
+    assert(mIterator->Valid());
+    if (!(mCache & CachedValue)) {
+        const rocksdb::Slice slice = mIterator->value();
+        DBRocksDBHelpers::fromSlice(slice, mCachedValue);
+        mCache |= CachedValue;
+    }
+    return mCachedValue;
 }
 
 template <typename Key, typename Value>
-void DB<Key, Value>::iterator::setValue(const Value &value)
+void DB<Key, Value>::Iterator::setValue(const Value &value)
 {
-    // assert(mDB->mWriteScope);
-    // mIterator->second = value;
+    assert(mIterator);
+    assert(mIterator->Valid());
+    const Key k = key();
+    mCachedValue = value;
+    mCache |= CachedValue;
+    assert(mDB);
+    mDB->set(k, value);
 }
 
 template <typename Key, typename Value>
-typename DB<Key, Value>::iterator &DB<Key, Value>::iterator::operator++()
+void DB<Key, Value>::Iterator::erase()
 {
-    // ++mIterator;
-    // return *this;
+    assert(mIterator);
+    assert(mIterator->Valid());
+    const Key k = key();
+    assert(mDB);
+    next();
+    mDB->remove(k);
 }
 
 template <typename Key, typename Value>
-typename DB<Key, Value>::iterator &DB<Key, Value>::iterator::operator--()
+void DB<Key, Value>::Iterator::next()
 {
-    // --mIterator;
-    // return *this;
+    assert(mIterator);
+    assert(mIterator->Valid());
+    clearCache();
+    mIterator->Next();
 }
 
 template <typename Key, typename Value>
-typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator++(int)
+void DB<Key, Value>::Iterator::prev()
 {
-    // assert(mIterator != mDB->end().mIterator);
-    // const auto prev = mIterator;
-    // ++mIterator;
-    // return iterator(mDB, prev);
+    assert(mIterator);
+    assert(mIterator->Valid());
+    clearCache();
+    mIterator->Prev();
 }
 
 template <typename Key, typename Value>
-typename DB<Key, Value>::iterator DB<Key, Value>::iterator::operator--(int)
+void DB<Key, Value>::Iterator::seekToFront()
 {
-    // assert(mIterator != mDB->begin().mIterator);
-    // const auto prev = mIterator;
-    // --mIterator;
-    // return iterator(mDB, prev);
+    assert(mIterator);
+    clearCache();
+    mIterator->SeekToFirst();
 }
 
 template <typename Key, typename Value>
-const typename std::pair<const Key, Value> *DB<Key, Value>::iterator::operator->() const
+void DB<Key, Value>::Iterator::seekToEnd()
 {
-    // return mIterator.operator->();
+    assert(mIterator);
+    clearCache();
+    mIterator->SeekToLast();
 }
 
 template <typename Key, typename Value>
-const typename std::pair<const Key, Value> &DB<Key, Value>::iterator::operator*() const
+bool DB<Key, Value>::Iterator::isValid() const
 {
-    // return mIterator.operator*();
+    assert(mIterator);
+    return mIterator->Valid();
 }
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::iterator::operator==(const iterator &other) const
-{
-    // return mIterator == other.mIterator;
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::iterator DB<Key, Value>::begin()
-{
-    // return iterator(this, mMap.begin());
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::iterator DB<Key, Value>::end()
-{
-    // return iterator(this, mMap.end());
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::iterator DB<Key, Value>::lower_bound(const Key &key)
+std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::lower_bound(const Key &key)
 {
     // return iterator(this, mMap.lower_bound(key));
 }
 
 template <typename Key, typename Value>
-typename DB<Key, Value>::iterator DB<Key, Value>::find(const Key &key)
+std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::find(const Key &key)
 {
     // return iterator(this, mMap.find(key));
 }
@@ -231,92 +238,6 @@ Value DB<Key, Value>::operator[](const Key &key) const
         DBRocksDBHelpers::fromSlice(value, ret);
     }
     return ret;
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator DB<Key, Value>::begin() const
-{
-    assert(mRocksDB);
-    rocksdb::Iterator *it = mRocksDB->NewIterator(mReadOptions);
-    it->SeekToFirst();
-    return const_iterator(it, this);
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator DB<Key, Value>::end() const
-{
-    assert(mRocksDB);
-    return const_iterator(mRocksDB->NewIterator(mReadOptions), this);
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator DB<Key, Value>::lower_bound(const Key &key) const
-{
-    // return mMap.lower_bound(key);
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator DB<Key, Value>::find(const Key &key) const
-{
-    // return mMap.find(key);
-}
-
-template <typename Key, typename Value>
-const Key &DB<Key, Value>::const_iterator::key() const
-{
-    if (!(mCache & CachedKey)) {
-        const rocksdb::Slice slice = mIterator->key();
-        DBRocksDBHelpers::fromSlice(slice, mCachedKey);
-        mCache |= CachedKey;
-    }
-    return mCachedKey;
-}
-
-template <typename Key, typename Value>
-const Value &DB<Key, Value>::const_iterator::value() const
-{
-    if (!(mCache & CachedValue)) {
-        const rocksdb::Slice slice = mIterator->value();
-        DBRocksDBHelpers::fromSlice(slice, mCachedValue);
-        mCache |= CachedValue;
-    }
-    return mCachedValue;
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator &DB<Key, Value>::const_iterator::operator++()
-{
-    assert(mIterator);
-    mIterator->Next();
-    clearCache();
-    return *this;
-}
-
-template <typename Key, typename Value>
-typename DB<Key, Value>::const_iterator &DB<Key, Value>::const_iterator::operator--()
-{
-    assert(mIterator);
-    mIterator->Prev();
-    clearCache();
-    return *this;
-}
-
-template <typename Key, typename Value>
-const typename std::pair<const Key, Value> *DB<Key, Value>::const_iterator::operator->() const
-{
-    // return mIterator.operator->();
-}
-
-template <typename Key, typename Value>
-const typename std::pair<const Key, Value> &DB<Key, Value>::const_iterator::operator*() const
-{
-    // return mIterator.operator*();
-}
-
-template <typename Key, typename Value>
-bool DB<Key, Value>::const_iterator::operator==(const const_iterator &other) const
-{
-    // return mIterator == other.mIterator;
 }
 
 template <typename Key, typename Value>
@@ -391,11 +312,4 @@ bool DB<Key, Value>::remove(const Key &key)
     rocksdb::Slice slice;
     DBRocksDBHelpers::toString(key, k, slice);
     mWriteBatch->Delete(slice);
-}
-
-template <typename Key, typename Value>
-void DB<Key, Value>::erase(const typename DB<Key, Value>::iterator &it)
-{
-    // assert(mWriteScope);
-    // mMap.erase(it.mIterator);
 }

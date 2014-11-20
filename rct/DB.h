@@ -33,29 +33,12 @@ public:
     inline Path path() const { return mPath; }
     inline uint16_t version() const { return mVersion; }
     inline Value value(const Key &key) const { return operator[](key); }
-    class iterator {
+    class Iterator {
     public:
 #ifdef RCT_DB_USE_ROCKSDB
-        iterator(DB<Key, Value>::iterator &&other)
-            : mIterator(other.mIterator), mDB(other.mDB), mCache(0)
-        {
-            other.mIterator = 0;
-            other.mDB = 0;
-            other.clearCache();
-        }
-        ~iterator()
+        ~Iterator()
         {
             delete mIterator;
-        }
-
-        iterator &operator=(iterator &&other)
-        {
-            delete mIterator;
-            mIterator = other.mIterator;
-            mDB = other.mDB;
-            mCache = 0;
-            other.clearCache();
-            return *this;
         }
 #endif
         
@@ -64,23 +47,24 @@ public:
 
         inline void setValue(const Value &value);
 
-        inline const std::pair<const Key, Value> *operator->() const;
-        inline const std::pair<const Key, Value> &operator*() const;
-        inline iterator &operator++();
-        inline iterator &operator--();
-        inline iterator operator++(int);
-        inline iterator operator--(int);
-        inline bool operator==(const iterator &other) const;
-        inline bool operator!=(const iterator &other) const { return !operator==(other); }
+        inline void next();
+        inline void prev();
+        inline bool isValid() const;
+        inline void seekToFront();
+        inline void seekToEnd();
+        inline void erase();
     private:
+        Iterator(const Iterator &it) = delete;
+        Iterator(Iterator &&it) = delete;
+        Iterator &operator=(const Iterator &it) = delete;
 #ifdef RCT_DB_USE_MAP
-        iterator(DB<Key, Value> *db, const typename Map<Key, Value>::iterator it)
+        Iterator(DB<Key, Value> *db, const typename Map<Key, Value>::iterator it)
             : mIterator(it), mDB(db)
         {
         }
         typename Map<Key, Value>::iterator mIterator;
 #elif defined(RCT_DB_USE_ROCKSDB)
-        iterator(DB<Key, Value> *db, rocksdb::Iterator *it)
+        Iterator(DB<Key, Value> *db, rocksdb::Iterator *it)
             : mIterator(it), mDB(db), mCache(0)
         {
         }
@@ -106,10 +90,9 @@ public:
         friend class DB<Key, Value>;
     };
 
-    inline iterator begin();
-    inline iterator end();
-    inline iterator lower_bound(const Key &key);
-    inline iterator find(const Key &key);
+    inline std::unique_ptr<Iterator> createIterator();
+    inline std::unique_ptr<Iterator> lower_bound(const Key &key);
+    inline std::unique_ptr<Iterator> find(const Key &key);
 
 #ifdef RCT_DB_USE_MAP
     inline const Value &operator[](const Key &key) const;
@@ -117,84 +100,7 @@ public:
     inline Value operator[](const Key &key) const;
 #endif
 
-    class const_iterator {
-    public:
-#ifdef RCT_DB_USE_ROCKSDB
-        const_iterator(DB<Key, Value>::const_iterator &&other)
-            : mIterator(other.mIterator), mDB(other.mDB), mCache(0)
-        {
-            other.mIterator = 0;
-            other.mDB = 0;
-            other.clearCache();
-        }
-        ~const_iterator()
-        {
-            delete mIterator;
-        }
-
-        const_iterator &operator=(const_iterator &&other)
-        {
-            delete mIterator;
-            mIterator = other.mIterator;
-            mDB = other.mDB;
-            mCache = 0;
-            other.mIterator = 0;
-            other.mDB = 0;
-            other.clearCache();
-            return *this;
-        }
-#endif
-        
-        inline const Key &key() const;
-        inline const Value &value() const;
-
-        inline const std::pair<const Key, Value> *operator->() const;
-        inline const std::pair<const Key, Value> &operator*() const;
-        inline const_iterator &operator++();
-        inline const_iterator &operator--();
-        inline bool operator==(const const_iterator &other) const;
-        inline bool operator!=(const const_iterator &other) const { return !operator==(other); }
-    private:
-#ifdef RCT_DB_USE_MAP
-        typename Map<Key, Value>::const_iterator mIterator;
-        const_iterator(const typename Map<Key, Value>::const_iterator it)
-            : mIterator(it)
-        {
-        }
-#elif defined(RCT_DB_USE_ROCKSDB)
-        const_iterator(DB<Key, Value> *db, rocksdb::Iterator *it)
-            : mIterator(it), mDB(db), mCache(0)
-        {
-        }
-
-        mutable Key mCachedKey;
-        mutable Value mCachedValue;
-        mutable uint8_t mCache;
-        enum {
-            CachedKey = 1,
-            CachedValue = 2
-        };
-        inline void clearCache()
-        {
-            if (mCache & CachedKey)
-                mCachedKey = Key();
-            if (mCache & CachedValue)
-                mCachedValue = Value();
-            mCache = 0;
-        }
-        
-        rocksdb::Iterator *mIterator;
-        DB<Key, Value> *mDB;
-#endif
-        friend class DB<Key, Value>;
-    };
-    inline const_iterator begin() const;
-    inline const_iterator end() const;
-    inline const_iterator constBegin() const { return begin(); }
-    inline const_iterator constEnd() const { return end(); }
-    inline const_iterator lower_bound(const Key &key) const;
-    inline const_iterator find(const Key &key) const;
-    inline bool contains(const Key &key) const { return find(key) != end(); }
+    inline bool contains(const Key &key) const { return find(key)->isValid(); }
 
     class WriteScope
     {
@@ -215,7 +121,6 @@ public:
     inline bool isEmpty() const;
     inline void set(const Key &key, const Value &value);
     inline bool remove(const Key &key);
-    inline void erase(const iterator &it);
 private:
     DB(const DB &) = delete;
     DB &operator=(const DB &) = delete;

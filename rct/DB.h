@@ -100,7 +100,7 @@ public:
 #endif
 
     inline bool contains(const Key &key) { return find(key)->isValid(); }
-#warning need a const_iterator
+    // ### need a const_iterator
 
     class WriteScope
     {

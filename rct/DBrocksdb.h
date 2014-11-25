@@ -212,15 +212,37 @@ bool DB<Key, Value>::Iterator::isValid() const
 }
 
 template <typename Key, typename Value>
+std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::createIterator()
+{
+    rocksdb::Iterator *it = mRocksDB->NewIterator(mReadOptions);
+    it->SeekToFirst();
+    return std::unique_ptr<typename DB<Key, Value>::Iterator>(new Iterator(this, it));
+}
+
+template <typename Key, typename Value>
 std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::lower_bound(const Key &key)
 {
-    // return iterator(this, mMap.lower_bound(key));
+    rocksdb::Iterator *it = mRocksDB->NewIterator(mReadOptions);
+    String k;
+    rocksdb::Slice slice;
+    DBRocksDBHelpers::toSlice<Key>(key, slice, k);
+    it->Seek(slice);
+    return std::unique_ptr<typename DB<Key, Value>::Iterator>(new Iterator(this, it));
 }
 
 template <typename Key, typename Value>
 std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::find(const Key &key)
 {
-    // return iterator(this, mMap.find(key));
+    rocksdb::Iterator *it = mRocksDB->NewIterator(mReadOptions);
+    String k;
+    rocksdb::Slice slice;
+    DBRocksDBHelpers::toSlice<Key>(key, slice, k);
+    it->Seek(slice);
+    if (it->key() != key) {
+        delete it;
+        it = mRocksDB->NewIterator(mReadOptions);
+    }
+    return std::unique_ptr<typename DB<Key, Value>::Iterator>(new Iterator(this, it));
 }
 
 template <typename Key, typename Value>

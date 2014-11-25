@@ -65,7 +65,7 @@ public:
         typename Map<Key, Value>::iterator mIterator;
 #elif defined(RCT_DB_USE_ROCKSDB)
         Iterator(DB<Key, Value> *db, rocksdb::Iterator *it)
-            : mIterator(it), mDB(db), mCache(0)
+            : mIterator(it), mCache(0), mDB(db)
         {
         }
 
@@ -93,11 +93,7 @@ public:
     inline std::unique_ptr<Iterator> createIterator(); // seeks to begin
     inline std::unique_ptr<Iterator> lower_bound(const Key &key);
     inline std::unique_ptr<Iterator> find(const Key &key);
-#ifdef RCT_DB_USE_MAP
-    inline const Value &operator[](const Key &key) const;
-#else
     inline Value operator[](const Key &key) const;
-#endif
 
     inline bool contains(const Key &key) { return find(key)->isValid(); }
     // ### need a const_iterator

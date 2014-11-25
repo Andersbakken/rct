@@ -197,9 +197,9 @@ std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::createIterato
 }
 
 template <typename Key, typename Value>
-const Value &DB<Key, Value>::operator[](const Key &key) const
+Value DB<Key, Value>::operator[](const Key &key) const
 {
-    return mMap[key];
+    return mMap.value(key);
 }
 
 template <typename Key, typename Value>

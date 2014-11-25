@@ -99,7 +99,7 @@ public:
     inline Value operator[](const Key &key) const;
 #endif
 
-    inline bool contains(const Key &key) const { return find(key)->isValid(); }
+    inline bool contains(const Key &key) { return find(key)->isValid(); }
 
     class WriteScope
     {

@@ -3,7 +3,7 @@
 namespace DBRocksDBHelpers {
 
 template <typename T, typename std::enable_if<!FixedSize<T>::value>::type * = nullptr>
-inline void toString(const T &t, String &string, rocksdb::Slice &slice)
+inline void toSlice(const T &t, rocksdb::Slice &slice, String &string)
 {
     Serializer serializer(string);
     serializer << t;
@@ -12,21 +12,21 @@ inline void toString(const T &t, String &string, rocksdb::Slice &slice)
 
 
 template <typename T, typename std::enable_if<FixedSize<T>::value>::type * = nullptr>
-inline void toString(const T &t, String &, rocksdb::Slice &slice)
+inline void toSlice(const T &t, rocksdb::Slice &slice, String &)
 {
     slice = rocksdb::Slice(reinterpret_cast<const char*>(&t), FixedSize<T>::value);
 }
 
 template <>
-inline void toString(const String &t, String &, rocksdb::Slice &slice)
+inline void toSlice(const String &t, rocksdb::Slice &slice, String &)
 {
     slice = rocksdb::Slice(t.constData(), t.size());
 }
 
 template <typename T>
-inline void toString(const std::shared_ptr<T> &t, String &string, rocksdb::Slice &slice)
+inline void toSlice(const std::shared_ptr<T> &t, rocksdb::Slice &slice, String &string)
 {
-    toString(*t.get(), string, slice);
+    toSlice(*t.get(), slice, string);
 }
 
 template <typename T, typename std::enable_if<!FixedSize<T>::value>::type * = nullptr>
@@ -231,7 +231,7 @@ Value DB<Key, Value>::operator[](const Key &key) const
     std::string value;
     String k;
     rocksdb::Slice slice;
-    DBRocksDBHelpers::toString<Key>(key, k, slice);
+    DBRocksDBHelpers::toSlice<Key>(key, slice, k);
     rocksdb::Status s = mRocksDB->Get(rocksdb::ReadOptions(), slice, &value);
     Value ret;
     if (s.ok()) {
@@ -246,10 +246,6 @@ DB<Key, Value>::WriteScope::WriteScope(DB *db, int reservedSize)
 {
     assert((mDB->mWriteBatch == 0) == (mDB->mWriteScope == 0));
     ++mDB->mWriteScope;
-    if (!mDB->mWriteBatch) {
-        mDB->mWriteBatch = new rocksdb::WriteBatch(reservedSize);
-    }
-    // ++mDB->mWriteScope;
 }
 
 template <typename Key, typename Value>
@@ -299,8 +295,8 @@ void DB<Key, Value>::set(const Key &key, const Value &value)
     assert(mWriteBatch);
     String k, v;
     rocksdb::Slice ks, vs;
-    DBRocksDBHelpers::toString(key, k, ks);
-    DBRocksDBHelpers::toString(value, v, vs);
+    DBRocksDBHelpers::toSlice(key, ks, k);
+    DBRocksDBHelpers::toSlice(value, vs, v);
     mWriteBatch->Put(ks, vs);
 }
 
@@ -310,6 +306,6 @@ bool DB<Key, Value>::remove(const Key &key)
     assert(mWriteBatch);
     String k;
     rocksdb::Slice slice;
-    DBRocksDBHelpers::toString(key, k, slice);
+    DBRocksDBHelpers::toSlice(key, slice, k);
     mWriteBatch->Delete(slice);
 }

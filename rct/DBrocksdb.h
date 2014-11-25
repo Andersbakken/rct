@@ -267,6 +267,9 @@ DB<Key, Value>::WriteScope::WriteScope(DB *db, int reservedSize)
 {
     assert((mDB->mWriteBatch == 0) == (mDB->mWriteScope == 0));
     ++mDB->mWriteScope;
+    if (!mDB->mWriteBatch) {
+        mDB->mWriteBatch = new rocksdb::WriteBatch(reservedSize);
+    }
 }
 
 template <typename Key, typename Value>

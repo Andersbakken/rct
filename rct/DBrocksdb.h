@@ -323,7 +323,7 @@ void DB<Key, Value>::set(const Key &key, const Value &value)
 }
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::remove(const Key &key)
+void DB<Key, Value>::remove(const Key &key)
 {
     assert(mWriteBatch);
     String k;

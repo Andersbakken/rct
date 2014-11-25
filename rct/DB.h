@@ -116,7 +116,7 @@ public:
     inline int size() const;
     inline bool isEmpty() const;
     inline void set(const Key &key, const Value &value);
-    inline bool remove(const Key &key);
+    inline void remove(const Key &key);
 private:
     DB(const DB &) = delete;
     DB &operator=(const DB &) = delete;

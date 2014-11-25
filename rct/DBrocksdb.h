@@ -2,7 +2,7 @@
 
 namespace DBRocksDBHelpers {
 
-template <typename T, typename std::enable_if<!FixedSize<T>::value>::type * = nullptr>
+template <typename T, typename std::enable_if<FixedSize<T>::value == 0>::type * = nullptr>
 inline void toSlice(const T &t, rocksdb::Slice &slice, String &string)
 {
     Serializer serializer(string);
@@ -11,7 +11,7 @@ inline void toSlice(const T &t, rocksdb::Slice &slice, String &string)
 }
 
 
-template <typename T, typename std::enable_if<FixedSize<T>::value>::type * = nullptr>
+template <typename T, typename std::enable_if<FixedSize<T>::value != 0>::type * = nullptr>
 inline void toSlice(const T &t, rocksdb::Slice &slice, String &)
 {
     slice = rocksdb::Slice(reinterpret_cast<const char*>(&t), FixedSize<T>::value);
@@ -29,14 +29,14 @@ inline void toSlice(const std::shared_ptr<T> &t, rocksdb::Slice &slice, String &
     toSlice(*t.get(), slice, string);
 }
 
-template <typename T, typename std::enable_if<!FixedSize<T>::value>::type * = nullptr>
+template <typename T, typename std::enable_if<FixedSize<T>::value == 0>::type * = nullptr>
 static inline void fromSlice(const rocksdb::Slice &slice, T &value)
 {
     Deserializer deserializer(slice.data(), slice.size());
     deserializer >> value;
 }
 
-template <typename T, typename std::enable_if<FixedSize<T>::value>::type * = nullptr>
+template <typename T, typename std::enable_if<FixedSize<T>::value != 0>::type * = nullptr>
 static inline void fromSlice(const rocksdb::Slice &slice, T &value)
 {
     memcpy(reinterpret_cast<char*>(&value), slice.data(), FixedSize<T>::value);

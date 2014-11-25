@@ -10,7 +10,6 @@ inline void toSlice(const T &t, rocksdb::Slice &slice, String &string)
     slice = rocksdb::Slice(string.constData(), string.size());
 }
 
-
 template <typename T, typename std::enable_if<FixedSize<T>::value != 0>::type * = nullptr>
 inline void toSlice(const T &t, rocksdb::Slice &slice, String &)
 {
@@ -49,10 +48,10 @@ inline void fromSlice(const rocksdb::Slice &s, String &string)
 }
 
 template <typename Value>
-static inline void fromSlice(const std::string &string, std::shared_ptr<Value> &value)
+static inline void fromSlice(const rocksdb::Slice &s, std::shared_ptr<Value> &value)
 {
     value = std::make_shared<Value>();
-    fromSlice(string, *value.get());
+    fromSlice(s, *value.get());
 }
 }
 
@@ -238,7 +237,7 @@ std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::find(const Ke
     rocksdb::Slice slice;
     DBRocksDBHelpers::toSlice<Key>(key, slice, k);
     it->Seek(slice);
-    if (it->key() != key) {
+    if (it->key() != slice) {
         delete it;
         it = mRocksDB->NewIterator(mReadOptions);
     }

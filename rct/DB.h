@@ -28,10 +28,9 @@ public:
         None = 0x0,
         Overwrite = 0x1
     };
-    inline bool open(const Path &path, uint16_t version, unsigned int flags = None);
+    inline bool open(const Path &path, unsigned int flags = None);
     inline void close();
     inline Path path() const { return mPath; }
-    inline uint16_t version() const { return mVersion; }
     inline Value value(const Key &key) const { return operator[](key); }
     class Iterator {
     public:
@@ -90,7 +89,12 @@ public:
         friend class DB<Key, Value>;
     };
 
-    inline std::unique_ptr<Iterator> createIterator(); // seeks to begin
+    enum CreateIteratorMode {
+        Beginning,
+        Invalid,
+        End
+    };
+    inline std::unique_ptr<Iterator> createIterator(CreateIteratorMode mode = Beginning); // seeks to begin
     inline std::unique_ptr<Iterator> lower_bound(const Key &key);
     inline std::unique_ptr<Iterator> find(const Key &key);
     inline Value operator[](const Key &key) const;
@@ -122,7 +126,6 @@ private:
     DB &operator=(const DB &) = delete;
 
     Path mPath;
-    uint16_t mVersion;
 #ifdef RCT_DB_USE_MAP
     inline bool write(String *error = 0);
     int mWriteScope;

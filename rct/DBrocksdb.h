@@ -93,7 +93,7 @@ DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
 
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags)
+bool DB<Key, Value>::open(const Path &path, unsigned int flags)
 {
     assert(!mRocksDB);
     rocksdb::Options options;
@@ -103,6 +103,7 @@ bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags
 
     if (flags & Overwrite)
         Rct::removeDirectory(path);
+    Path::mkdir(path.parentDir(), Path::Recursive);
 
     rocksdb::Status s = rocksdb::DB::Open(options, path.ref(), &mRocksDB);
     if (!s.ok())
@@ -211,10 +212,19 @@ bool DB<Key, Value>::Iterator::isValid() const
 }
 
 template <typename Key, typename Value>
-std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::createIterator()
+std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::createIterator(CreateIteratorMode mode)
 {
     rocksdb::Iterator *it = mRocksDB->NewIterator(mReadOptions);
-    it->SeekToFirst();
+    switch (mode) {
+    case Beginning:
+        it->SeekToFirst();
+        break;
+    case End:
+        it->SeekToLast();
+        break;
+    case Invalid:
+        break;
+    }
     return std::unique_ptr<typename DB<Key, Value>::Iterator>(new Iterator(this, it));
 }
 
@@ -237,7 +247,7 @@ std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::find(const Ke
     rocksdb::Slice slice;
     DBRocksDBHelpers::toSlice<Key>(key, slice, k);
     it->Seek(slice);
-    if (it->key() != slice) {
+    if (it->Valid() && it->key() != slice) {
         delete it;
         it = mRocksDB->NewIterator(mReadOptions);
     }

@@ -257,7 +257,7 @@ std::unique_ptr<typename DB<Key, Value>::Iterator> DB<Key, Value>::find(const Ke
 template <typename Key, typename Value>
 Value DB<Key, Value>::operator[](const Key &key) const
 {
-#warning this probably needs to look at the current writeBatch if there is one.
+// #warning this probably needs to look at the current writeBatch if there is one.
     assert(mRocksDB);
     std::string value;
     String k;

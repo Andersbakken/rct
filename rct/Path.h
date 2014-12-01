@@ -147,7 +147,7 @@ public:
         Recurse
     };
     typedef VisitResult (*VisitCallback)(const Path &path, void *userData);
-    void visit(VisitCallback callback, void *userData) const;
+    void visit(VisitCallback callback, void *userData = 0) const;
 
     List<Path> files(unsigned filter = All, int max = -1, bool recurse = false) const;
 };

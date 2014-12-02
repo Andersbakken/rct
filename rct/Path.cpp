@@ -223,7 +223,11 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
 const char * Path::fileName(int *len) const
 {
-    const int idx = lastIndexOf('/') + 1;
+    const int length = size();
+    int idx = 0;
+    if (length > 1)
+        idx = lastIndexOf('/', length - 2) + 1;
+
     if (len)
         *len = size() - idx;
     return constData() + idx;

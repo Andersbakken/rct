@@ -7,13 +7,15 @@
 #include <rocksdb/db.h>
 #include <rocksdb/slice.h>
 #include <rocksdb/options.h>
+#include <rocksdb/comparator.h>
+namespace DBRocksDBHelpers {
+class DBComparator;
+};
 #endif
 
 #include <rct/Path.h>
 #include <rct/Serializer.h>
 
-template <typename Key, typename Value>
-struct DBPrivate;
 template <typename Key, typename Value>
 class DB
 {
@@ -28,7 +30,7 @@ public:
         None = 0x0,
         Overwrite = 0x1
     };
-    inline bool open(const Path &path, unsigned int flags = None);
+    inline bool open(const Path &path, unsigned int flags = None, std::function<int(const char *l, int ll, const char *r, int rl)> func = 0);
     inline void close();
     inline Path path() const { return mPath; }
     inline Value value(const Key &key) const { return operator[](key); }
@@ -135,6 +137,7 @@ private:
     int mWriteScope;
     rocksdb::WriteBatch *mWriteBatch;
     const rocksdb::ReadOptions mReadOptions;
+    std::unique_ptr<DBRocksDBHelpers::DBComparator> mComparator;
 #endif
 };
 

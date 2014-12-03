@@ -2,6 +2,24 @@
 
 namespace DBRocksDBHelpers {
 
+class DBComparator : public rocksdb::Comparator
+{
+public:
+    DBComparator(std::function<int(const char *l, int ll, const char *r, int rl)> func)
+        : mFunction(func)
+    {
+        assert(mFunction);
+    }
+
+    virtual int Compare(const rocksdb::Slice& a, const rocksdb::Slice& b) const { return mFunction(a.data(), a.size(), b.data(), b.size()); }
+    virtual const char* Name() const { return "rct.dbcomparator"; }
+    virtual void FindShortestSeparator(std::string */*start*/, const rocksdb::Slice &/*limit*/) const {}
+    virtual void FindShortSuccessor(std::string */*key*/) const {}
+
+private:
+    std::function<int(const char *l, int ll, const char *r, int rl)> mFunction;
+};
+
 template <typename T, typename std::enable_if<FixedSize<T>::value == 0>::type * = nullptr>
 inline void toSlice(const T &t, rocksdb::Slice &slice, String &string)
 {
@@ -91,15 +109,18 @@ DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
     return *this;
 }
 
-
 template <typename Key, typename Value>
-bool DB<Key, Value>::open(const Path &path, unsigned int flags)
+bool DB<Key, Value>::open(const Path &path, unsigned int flags, std::function<int(const char *l, int ll, const char *r, int rl)> func)
 {
     assert(!mRocksDB);
     rocksdb::Options options;
     options.IncreaseParallelism();
     options.OptimizeLevelStyleCompaction();
     options.create_if_missing = true;
+    if (func) {
+        mComparator.reset(new DBRocksDBHelpers:: DBComparator(func));
+        options.comparator = mComparator.get();
+    }
 
     if (flags & Overwrite)
         Rct::removeDirectory(path);

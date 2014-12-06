@@ -326,7 +326,12 @@ bool DB<Key, Value>::WriteScope::flush(String *error)
     delete mDB->mWriteBatch;
     mDB->mWriteBatch = 0;
     mDB = 0;
-    return status.ok();
+    if (!status.ok()) {
+        if (error)
+            *error = status.ToString();
+        return false;
+    }
+    return true;
 }
 
 template <typename Key, typename Value>

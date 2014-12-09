@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <rct/List.h>
+#include <memory>
 #include "rct-config.h"
 
 template <typename Key, typename Value>
@@ -82,6 +83,23 @@ public:
         return false;
     }
 
+
+    int remove(std::function<bool(const Key &key)> match)
+    {
+        int ret = 0;
+        typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::begin();
+        while (it != std::unordered_map<Key, Value>::end()) {
+            if (match(it->first)) {
+                std::unordered_map<Key, Value>::erase(it++);
+                ++ret;
+            } else {
+                ++it;
+            }
+        }
+        return ret;
+    }
+
+
     // bool insert(const Key &key, const Value &value)
     // {
     //     typedef typename std::unordered_map<Key, Value>::iterator Iterator;
@@ -102,15 +120,22 @@ public:
         return std::unordered_map<Key, Value>::find(key)->second;
     }
 
-    Hash<Key, Value> &unite(const Hash<Key, Value> &other)
+    Hash<Key, Value> &unite(const Hash<Key, Value> &other, int *count = 0)
     {
         typename std::unordered_map<Key, Value>::const_iterator it = other.begin();
-        while (it != other.end()) {
+        const auto end = other.end();
+        while (it != end) {
             const Key &key = it->first;
             const Value &val = it->second;
-            std::unordered_map<Key, Value>::operator[](key) = val;
-            // std::unordered_map<Key, Value>::insert(it);
-            // std::unordered_map<Key, Value>::operator[](it->first) = it->second;
+            if (count) {
+                auto cur = find(key);
+                if (cur == end || cur->second != val) {
+                    ++*count;
+                    std::unordered_map<Key, Value>::operator[](key) = val;
+                }
+            } else {
+                std::unordered_map<Key, Value>::operator[](key) = val;
+            }
             ++it;
         }
         return *this;

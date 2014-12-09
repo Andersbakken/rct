@@ -3,6 +3,7 @@
 
 #include <set>
 #include <rct/List.h>
+#include <memory>
 
 template <typename T>
 class Set : public std::set<T>
@@ -30,6 +31,21 @@ public:
         }
         return false;
     }
+    int remove(std::function<bool(const T &t)> match)
+    {
+        int ret = 0;
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
+            if (match(*it)) {
+                Base::erase(it++);
+                ++ret;
+            } else {
+                ++it;
+            }
+        }
+        return ret;
+    }
+
     List<T> toList() const
     {
         List<T> ret(size());

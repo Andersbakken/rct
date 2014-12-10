@@ -81,14 +81,10 @@ public:
         std::map<Key, Value>::clear();
     }
 
-    // bool insert(const Key &key, const Value &value)
-    // {
-    //     typedef typename std::map<Key, Value>::iterator Iterator;
-    //     typedef std::pair<Iterator, bool> Tuple;
-    //     Tuple tup = std::map<Key, Value>::insert(key, value);
-    //     return std::map<Key, Value>::insert(key, value).second;
-    //     // return tup->second;
-    // }
+    bool insert(const Key &key, const Value &value)
+    {
+        return std::map<Key, Value>::insert(std::make_pair(key, value)).second;
+    }
 
     Value &operator[](const Key &key)
     {

@@ -110,7 +110,10 @@ DB<Key, Value> &DB<Key, Value>::operator=(DB<Key, Value> &&other)
 }
 
 template <typename Key, typename Value>
-bool DB<Key, Value>::open(const Path &path, unsigned int flags, std::function<int(const char *l, int ll, const char *r, int rl)> func)
+bool DB<Key, Value>::open(const Path &path,
+                          unsigned int flags,
+                          std::function<int(const char *l, int ll, const char *r, int rl)> func,
+                          String *error)
 {
     assert(!mRocksDB);
     rocksdb::Options options;
@@ -127,8 +130,13 @@ bool DB<Key, Value>::open(const Path &path, unsigned int flags, std::function<in
     Path::mkdir(path.parentDir(), Path::Recursive);
 
     rocksdb::Status s = rocksdb::DB::Open(options, path.ref(), &mRocksDB);
-    if (!s.ok())
+    if (!s.ok()) {
+        if (!(flags & Overwrite) && open(path, flags | Overwrite, func))
+            return true;
+        if (error)
+            *error = s.ToString();
         return false;
+    }
     return true;
 }
 

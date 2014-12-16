@@ -122,12 +122,13 @@ int main() {
   return 0;
 }" HAVE_ROCKSDB)
 
+if (NOT HAVE_ROCKSDB)
+  set(RCT_DB_USE_MAP 1)
+endif ()
 if (RCT_DB_USE_MAP)
   set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_MAP)
 else ()
-  if (NOT HAVE_ROCKSDB)
-    message(FATAL_ERROR "RocksDB support not detected. Please make sure rocksdb is installed")
-  endif ()
+  message("RocksDB support not detected. Please make sure rocksdb is installed")
   set(DB_LIBS rocksdb snappy bz2 z pthread)
   set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_ROCKSDB)
 endif()

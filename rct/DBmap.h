@@ -29,15 +29,14 @@ static inline void serializeValue(Serializer &serializer, const T &value)
 
 template <typename Key, typename Value>
 DB<Key, Value>::DB()
-    : mVersion(0), mWriteScope(0)
+    : mWriteScope(0)
 {
 }
 
 template <typename Key, typename Value>
 DB<Key, Value>::DB(DB<Key, Value> &&other)
-    : mVersion(other.mVersion), mWriteScope(other.mWriteScope), mMap(std::move(other.mMap))
+    : mWriteScope(other.mWriteScope), mMap(std::move(other.mMap))
 {
-    other.mVersion = 0;
     other.mWriteScope = 0;
 }
 
@@ -106,7 +105,6 @@ bool DB<Key, Value>::open(const Path &path, uint16_t version, unsigned int flags
     if (f) {
         fclose(f);
         mPath = path;
-        mVersion = version;
         return true;
     }
     return false;
@@ -253,7 +251,6 @@ bool DB<Key, Value>::write(String *error)
     }
 
     Serializer serializer(f);
-    serializer << mVersion;
     serializer << size();
     for (const auto &it : mMap) {
         serializer << it.first;

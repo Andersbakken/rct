@@ -62,10 +62,10 @@ static void collectData()
                 if (sData.lastUsage > usage) {
                     sData.usage = 0;
                 } else {
+#ifdef OS_Linux
                     const uint32_t deltaUsage = usage - sData.lastUsage;
                     const uint64_t deltaTime = time - sData.lastTime;
                     const float timeRatio = deltaTime / (SLEEP_TIME / 1000);
-#ifdef OS_Linux
                     sData.usage = (deltaUsage / sData.hz / sData.cores) / timeRatio;
 #endif
                 }

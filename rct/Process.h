@@ -15,12 +15,12 @@ public:
     Process();
     ~Process();
 
-    void setCwd(const Path& cwd);
+    void setCwd(const Path &cwd);
     void setChRoot(const Path &path);
 
-    bool start(const Path& command,
-               const List<String>& arguments = List<String>(),
-               const List<String>& environ = List<String>());
+    bool start(const Path &command,
+               const List<String> &arguments = List<String>(),
+               const List<String> &environ = List<String>());
 
     enum ExecState { Error, Done, TimedOut };
 
@@ -28,14 +28,14 @@ public:
         None = 0x0,
         NoCloseStdIn = 0x1
     };
-    ExecState exec(const Path& command, const List<String>& arguments = List<String>(),
+    ExecState exec(const Path &command, const List<String> &arguments = List<String>(),
                    int timeout = 0, unsigned flags = 0);
-    ExecState exec(const Path& command, const List<String>& arguments,
-                   const List<String>& environ, int timeout = 0, unsigned flags = 0);
+    ExecState exec(const Path &command, const List<String> &arguments,
+                   const List<String> &environ, int timeout = 0, unsigned flags = 0);
 
     String errorString() const { std::lock_guard<std::mutex> lock(mMutex); return mErrorString; }
 
-    void write(const String& data);
+    void write(const String &data);
 
     enum CloseStdInFlag { CloseNormal, CloseForce };
     void closeStdIn(CloseStdInFlag flag = CloseNormal);
@@ -48,13 +48,13 @@ public:
 
     void kill(int signal = SIGTERM);
 
-    Signal<std::function<void(Process*)> >& readyReadStdOut() { return mReadyReadStdOut; }
-    Signal<std::function<void(Process*)> >& readyReadStdErr() { return mReadyReadStdErr; }
-    Signal<std::function<void(Process*)> >& finished() { return mFinished; }
+    Signal<std::function<void(Process*)> > &readyReadStdOut() { return mReadyReadStdOut; }
+    Signal<std::function<void(Process*)> > &readyReadStdErr() { return mReadyReadStdErr; }
+    Signal<std::function<void(Process*)> > &finished() { return mFinished; }
 
     static List<String> environment();
 
-    static Path findCommand(const String& command);
+    static Path findCommand(const String &command);
 
     pid_t pid() const { return mPid; }
 private:
@@ -65,10 +65,10 @@ private:
     void closeStdErr();
 
     void handleInput(int fd);
-    void handleOutput(int fd, String& buffer, int& index, Signal<std::function<void(Process*)> >& signal);
+    void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal);
 
-    ExecState startInternal(const Path& command, const List<String>& arguments,
-                            const List<String>& environ, int timeout = 0, unsigned flags = 0);
+    ExecState startInternal(const Path &command, const List<String> &arguments,
+                            const List<String> &environ, int timeout = 0, unsigned flags = 0);
 
 private:
 

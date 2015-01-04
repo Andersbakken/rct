@@ -217,13 +217,13 @@ Process::~Process()
         eintrwrap(w, ::close(mSync[1]));
 }
 
-void Process::setCwd(const Path& cwd)
+void Process::setCwd(const Path &cwd)
 {
     assert(mReturn == ReturnUnset);
     mCwd = cwd;
 }
 
-Path Process::findCommand(const String& command)
+Path Process::findCommand(const String &command)
 {
     if (command.isEmpty() || command.at(0) == '/')
         return command;
@@ -242,7 +242,7 @@ Path Process::findCommand(const String& command)
     return Path();
 }
 
-Process::ExecState Process::startInternal(const Path& command, const List<String>& a, const List<String>& environ,
+Process::ExecState Process::startInternal(const Path &command, const List<String> &a, const List<String> &environ,
                                           int timeout, unsigned execFlags)
 {
     mErrorString.clear();
@@ -489,26 +489,26 @@ Process::ExecState Process::startInternal(const Path& command, const List<String
     return Done;
 }
 
-bool Process::start(const Path& command, const List<String>& a, const List<String>& environ)
+bool Process::start(const Path &command, const List<String> &a, const List<String> &environ)
 {
     mMode = Async;
     return startInternal(command, a, environ) == Done;
 }
 
-Process::ExecState Process::exec(const Path& command, const List<String>& arguments, int timeout, unsigned flags)
+Process::ExecState Process::exec(const Path &command, const List<String> &arguments, int timeout, unsigned flags)
 {
     mMode = Sync;
     return startInternal(command, arguments, List<String>(), timeout, flags);
 }
 
-Process::ExecState Process::exec(const Path& command, const List<String>& a, const List<String>& environ,
+Process::ExecState Process::exec(const Path &command, const List<String> &a, const List<String> &environ,
                                  int timeout, unsigned flags)
 {
     mMode = Sync;
     return startInternal(command, a, environ, timeout, flags);
 }
 
-void Process::write(const String& data)
+void Process::write(const String &data)
 {
     if (!data.isEmpty() && mStdIn[1] != -1) {
         mStdInBuffer.push_back(data);
@@ -630,7 +630,7 @@ void Process::handleInput(int fd)
 
         //printf("Process::handleInput in loop\n");
         int w, want;
-        const String& front = mStdInBuffer.front();
+        const String &front = mStdInBuffer.front();
         if (mStdInIndex) {
             want = front.size() - mStdInIndex;
             eintrwrap(w, ::write(fd, front.mid(mStdInIndex).constData(), want));
@@ -656,7 +656,7 @@ void Process::handleInput(int fd)
     }
 }
 
-void Process::handleOutput(int fd, String& buffer, int& index, Signal<std::function<void(Process*)> >& signal)
+void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal)
 {
     //printf("Process::handleOutput %d\n", fd);
     enum { BufSize = 1024, MaxSize = (1024 * 1024 * 16) };

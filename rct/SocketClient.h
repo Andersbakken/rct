@@ -52,8 +52,8 @@ public:
     void close();
 
     // TCP/UNIX
-    bool write(const unsigned char* data, unsigned int num);
-    bool write(const String& data) { return write(reinterpret_cast<const unsigned char*>(&data[0]), data.size()); }
+    bool write(const void *data, unsigned int num);
+    bool write(const String &data) { return write(&data[0], data.size()); }
 
     String peerName(uint16_t* port = 0) const;
     String peerString() const

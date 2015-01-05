@@ -501,9 +501,9 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
     return true;
 }
 
-bool SocketClient::write(const unsigned char* data, unsigned int size)
+bool SocketClient::write(const void *data, unsigned int size)
 {
-    return writeTo(String(), 0, data, size);
+    return writeTo(String(), 0, reinterpret_cast<const unsigned char*>(data), size);
 }
 
 static String addrToString(const sockaddr* addr, bool IPv6)

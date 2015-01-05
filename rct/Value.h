@@ -106,6 +106,7 @@ public:
     template <typename T> T operator[](const String &key) const;
     const Value &operator[](int idx) const;
     Value &operator[](int idx);
+    void push_back(const Value &value);
     const Value &operator[](const String &key) const;
     Value &operator[](const String &key);
     inline Value value(int idx, const Value &defaultValue = Value()) const;
@@ -530,6 +531,17 @@ inline Value &Value::operator[](int idx)
         assert(mType == Type_List);
     }
     return (*listPtr())[idx];
+}
+
+inline void Value::push_back(const Value &value)
+{
+    if (mType == Type_Invalid) {
+        new (mData.listBuf) List<Value>;
+        mType = Type_List;
+    } else {
+        assert(mType == Type_List);
+    }
+    listPtr()->push_back(value);
 }
 
 inline const Value &Value::operator[](const String &key) const

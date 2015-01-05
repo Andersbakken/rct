@@ -1,0 +1,77 @@
+cmake_minimum_required(VERSION 2.8)
+
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/include/)
+add_definitions(-DROCKSDB_PLATFORM_POSIX)
+set(RCT_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_builder.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_hash_index.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/table_properties.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_key_coding.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/cuckoo_table_reader.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/format.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/cuckoo_table_factory.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/mock_table.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/table_reader_bench.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/bloom_block.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_reader.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_based_table_factory.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/adaptive_table_factory.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_based_filter_block.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_prefix_index.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/get_context.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/meta_blocks.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_factory.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/cuckoo_table_builder.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/full_filter_block.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/iterator.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_builder.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/flush_block_policy.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/two_level_iterator.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_based_table_builder.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/merger.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_index.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/block_based_table_reader.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/port/port_posix.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/port/stack_trace.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/db_impl_debug.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/version_edit.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/log_reader.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/write_controller.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/wal_manager.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/memtable_list.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/flush_scheduler.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/db_bench.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/db_impl.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/dbformat.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/memtable_allocator.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/compaction.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/merge_helper.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/db_iter.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/log_and_apply_bench.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/column_family.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/write_batch.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/c.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/builder.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/version_set.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/file_indexer.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/flush_job.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/merge_operator.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/compaction_picker.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/repair.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/filename.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/log_writer.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/write_thread.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/db_impl_readonly.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/compaction_job.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/internal_stats.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/version_builder.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/db_filesnapshot.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/transaction_log_impl.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/memtable.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/forward_iterator.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/table_cache.cc
+    ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/db/table_properties_collector.cc)
+
+set(DB_LIBS snappy bz2 z pthread)

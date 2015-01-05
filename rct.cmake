@@ -68,8 +68,44 @@ else ()
 endif ()
 find_package(OpenSSL REQUIRED)
 
+if (RCT_USE_DB)
+  set(CMAKE_REQUIRED_LIBRARIES rocksdb snappy bz2 z pthread)
+  check_cxx_source_compiles("
+#include <rocksdb/db.h>
+#include <rocksdb/slice.h>
+#include <rocksdb/options.h>
+#include <string>
+
+using namespace rocksdb;
+
+int main() {
+  DB* db;
+  Options options;
+  options.IncreaseParallelism();
+  options.OptimizeLevelStyleCompaction();
+  options.create_if_missing = true;
+  Status s = DB::Open(options, \"test.db\", &db);
+
+  std::string value;
+  s = db->Get(ReadOptions(), \"key\", &value);
+  delete db;
+
+  return 0;
+}" HAVE_ROCKSDB)
+  set(CMAKE_REQUIRED_LIBRARIES "")
+
+  if (NOT HAVE_ROCKSDB)
+    include(${CMAKE_CURRENT_LIST_DIR}/embed_rocksdb.cmake)
+    set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_ROCKSDB)
+  else ()
+    set(DB_LIBS rocksdb snappy bz2 z pthread)
+    set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_ROCKSDB)
+  endif ()
+endif ()
+
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/.. ${ZLIB_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 set(RCT_SOURCES
+  ${RCT_SOURCES}
   ${CMAKE_CURRENT_LIST_DIR}/rct/AES256CBC.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
@@ -97,42 +133,6 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp
   ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c)
-
-set(CMAKE_REQUIRED_LIBRARIES rocksdb snappy bz2 z pthread)
-check_cxx_source_compiles("
-#include <rocksdb/db.h>
-#include <rocksdb/slice.h>
-#include <rocksdb/options.h>
-#include <string>
-
-using namespace rocksdb;
-
-int main() {
-  DB* db;
-  Options options;
-  options.IncreaseParallelism();
-  options.OptimizeLevelStyleCompaction();
-  options.create_if_missing = true;
-  Status s = DB::Open(options, \"test.db\", &db);
-
-  std::string value;
-  s = db->Get(ReadOptions(), \"key\", &value);
-  delete db;
-
-  return 0;
-}" HAVE_ROCKSDB)
-set(CMAKE_REQUIRED_LIBRARIES "")
-
-if (NOT HAVE_ROCKSDB)
-#  message("RocksDB support not detected. Please make sure rocksdb is installed")
-  set(RCT_DB_USE_MAP 1)
-endif ()
-if (RCT_DB_USE_MAP)
-  set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_MAP)
-else ()
-  set(DB_LIBS rocksdb snappy bz2 z pthread)
-  set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_ROCKSDB)
-endif ()
 
 if (HAVE_INOTIFY EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_inotify.cpp)

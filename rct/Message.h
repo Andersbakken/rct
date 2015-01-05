@@ -8,7 +8,7 @@ class Message
 public:
     enum { ResponseId = 1, FinishMessageId = 2, ConnectMessageId = 3 };
 
-    Message(uint8_t id, uint8_t flags = None) : mMessageId(id), mFlags(flags) {}
+    Message(uint8_t id, uint8_t flags = None) : mMessageId(id), mFlags(flags), mVersion(0) {}
     virtual ~Message() {}
 
     enum Flag {
@@ -22,7 +22,7 @@ public:
     virtual void encode(Serializer &/* serializer */) const {}
     virtual void decode(Deserializer &/* deserializer */) {}
 
-    static std::shared_ptr<Message> create(const char *data, int size);
+    static std::shared_ptr<Message> create(int version, const char *data, int size);
     template<typename T> static void registerMessage()
     {
         const uint8_t id = T::MessageId;
@@ -34,7 +34,6 @@ public:
     }
     static void cleanup();
 private:
-    enum { Version = -2 };
     class MessageCreatorBase
     {
     public:
@@ -55,11 +54,12 @@ private:
         }
     };
 
-    void prepare(String &header, String &value) const;
+    void prepare(int version, String &header, String &value) const;
     friend class Connection;
 
     uint8_t mMessageId;
     uint8_t mFlags;
+    mutable int mVersion;
     mutable String mHeader;
     mutable String mValue;
 

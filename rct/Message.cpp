@@ -8,44 +8,45 @@
 std::mutex Message::sMutex;
 Map<uint8_t, Message::MessageCreatorBase *> Message::sFactory;
 
-void Message::prepare(String &header, String &value) const
+void Message::prepare(int version, String &header, String &value) const
 {
-    if (mHeader.isEmpty()) {
+    if (mHeader.isEmpty() || version != mVersion) {
         {
             Serializer s(mValue);
             encode(s);
         }
         if (mFlags & Compressed) {
-            String old = mValue;
             mValue = mValue.compress();
         }
         Serializer s(mHeader);
-        s << static_cast<uint32_t>(sizeof(uint8_t) + sizeof(uint8_t) + sizeof(bool) + mValue.size())
-          << static_cast<int8_t>(Message::Version) << static_cast<uint8_t>(mMessageId) << mFlags;
+        s << static_cast<uint32_t>(sizeof(int) + sizeof(uint8_t) + sizeof(uint8_t) + mValue.size())
+          << version << static_cast<uint8_t>(mMessageId) << mFlags;
+        mVersion = version;
     }
     value = mValue;
     header = mHeader;
 }
 
-std::shared_ptr<Message> Message::create(const char *data, int size)
+std::shared_ptr<Message> Message::create(int version, const char *data, int size)
 {
     if (!size || !data) {
         error("Can't create message from empty data");
-        return 0;
+        return std::shared_ptr<Message>();
     }
-    Deserializer ds(data, sizeof(uint8_t) + sizeof(int8_t) + sizeof(bool));
-    int8_t version;
-    ds >> version;
-    if (version != Version) {
-        size -= sizeof(version);
+    Deserializer ds(data, sizeof(int) + sizeof(uint8_t) + sizeof(uint8_t));
+    int ver;
+    ds >> ver;
+    if (ver != version) {
+        size -= sizeof(ver);
         if (size > 1) {
             uint8_t id;
             ds >> id;
-            error("Invalid message version. Got %d, expected %d id: %d", version, Version, id);
+            error("Invalid message version. Got %d, expected %d id: %d", ver, version, id);
+            // error() << Rct::backtrace();
         } else {
-            error("Invalid message version. Got %d, expected %d", version, Version);
+            error("Invalid message version. Got %d, expected %d", ver, version);
         }
-        return 0;
+        return std::shared_ptr<Message>();
     }
     size -= sizeof(version);
     data += sizeof(version);
@@ -73,7 +74,7 @@ std::shared_ptr<Message> Message::create(const char *data, int size)
     MessageCreatorBase *base = sFactory.value(id);
     if (!base) {
         error("Invalid message id %d, data: %d bytes, factory %p", id, size, &sFactory);
-        return 0;
+        return std::shared_ptr<Message>();
     }
     std::shared_ptr<Message> message(base->create(data, size));
     if (!message) {

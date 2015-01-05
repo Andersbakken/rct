@@ -7,14 +7,15 @@
 
 #include "Connection.h"
 
-Connection::Connection()
-    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0), mSilent(false), mIsConnected(false), mWarned(false)
+Connection::Connection(int version)
+    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0),
+      mVersion(version), mSilent(false), mIsConnected(false), mWarned(false)
 {
 }
 
-Connection::Connection(const SocketClient::SharedPtr &client)
+Connection::Connection(const SocketClient::SharedPtr &client, int version)
     : mSocketClient(client), mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0),
-      mSilent(false), mIsConnected(true), mWarned(false)
+      mVersion(version), mSilent(false), mIsConnected(true), mWarned(false)
 {
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
@@ -163,7 +164,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
-        std::shared_ptr<Message> message = Message::create(buffer, read);
+        std::shared_ptr<Message> message = Message::create(mVersion, buffer, read);
         if (message) {
             if (message->messageId() == FinishMessage::MessageId) {
                 mFinishStatus = std::static_pointer_cast<FinishMessage>(message)->status();
@@ -176,8 +177,9 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         }
         if (buffer != buf)
             delete[] buffer;
-
-        // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);
+        if (!message)
+            mSocketClient->close();
+    // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);
     }
 }
 
@@ -190,3 +192,21 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
         mSendFinished(this);
     }
 }
+
+bool Connection::send(const Message &message)
+{
+    // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
+    if (!mSocketClient->isConnected()) {
+        if (!mWarned) {
+            mWarned = true;
+            ::error("Trying to send message to unconnected client (%d)", message.messageId());
+        }
+        return false;
+    }
+
+    String header, value;
+    message.prepare(mVersion, header, value);
+    mPendingWrite += header.size() + value.size();
+    return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
+}
+

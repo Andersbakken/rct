@@ -18,9 +18,12 @@ class Event;
 class Connection : public std::enable_shared_from_this<Connection>
 {
 public:
-    Connection();
-    Connection(const SocketClient::SharedPtr &client);
+    Connection(int version = 0);
+    Connection(const SocketClient::SharedPtr &client, int version = 0);
     virtual ~Connection();
+
+    void setVersion(int version) { mVersion = version; }
+    int version() const { return mVersion; }
 
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }
@@ -30,23 +33,7 @@ public:
 
     int pendingWrite() const;
 
-    virtual bool send(const Message &message)
-    {
-        // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
-        if (!mSocketClient->isConnected()) {
-            if (!mWarned) {
-                mWarned = true;
-                ::error("Trying to send message to unconnected client (%d)", message.messageId());
-            }
-            return false;
-        }
-
-        String header, value;
-        message.prepare(header, value);
-        mPendingWrite += header.size() + value.size();
-        return mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value));
-    }
-
+    virtual bool send(const Message &message);
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {
@@ -114,8 +101,7 @@ private:
 
     SocketClient::SharedPtr mSocketClient;
     LinkedList<Buffer> mBuffers;
-    int mPendingRead, mPendingWrite;
-    int mTimeoutTimer, mFinishStatus;
+    int mPendingRead, mPendingWrite, mTimeoutTimer, mFinishStatus, mVersion;
 
     bool mSilent, mIsConnected, mWarned;
 

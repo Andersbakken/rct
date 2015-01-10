@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 2.8)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/include/)
 add_definitions(-DROCKSDB_PLATFORM_POSIX)
+if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  add_definitions(-DOS_MACOSX)
+endif ()
 set(RCT_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/rocksdb_build_version.cc
     ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_builder.cc

@@ -6,6 +6,23 @@ add_definitions(-DROCKSDB_PLATFORM_POSIX)
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   add_definitions(-DOS_MACOSX)
 endif ()
+
+if (NOT snappy_ROOT)
+    find_path(snappy_INCLUDE_DIRS snappy.h)
+    find_library(snappy_LIBRARIES NAMES snappy)
+else ()
+    find_path(snappy_INCLUDE_DIRS snappy.h NO_DEFAULT_PATH PATHS ${snappy_ROOT})
+    find_library(snappy_LIBRARIES NAMES snappy NO_DEFAULT_PATH PATHS ${snappy_ROOT})
+endif ()
+
+if (snappy_INCLUDE_DIRS AND snappy_LIBRARIES)
+  add_definitions(-DSNAPPY)
+  set(DB_LIBS bz2 z pthread ${snappy_LIBRARIES})
+  include_directories(SYSTEM ${snappy_INCLUDE_DIRS})
+else ()
+  set(DB_LIBS bz2 z pthread)
+endif ()
+
 set(RCT_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/rocksdb_build_version.cc
     ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/table/plain_table_builder.cc
@@ -142,4 +159,3 @@ ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/util/ldb_cmd.cc
 ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/util/db_info_dumper.cc
 ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/util/thread_status_updater_debug.cc)
 
-set(DB_LIBS bz2 z pthread)

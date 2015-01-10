@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/)
-include_directories(${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/include/)
+include_directories(SYSTEM ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/)
+include_directories(SYSTEM ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/include/)
 add_definitions(-DROCKSDB_PLATFORM_POSIX)
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   add_definitions(-DOS_MACOSX)
@@ -142,4 +142,4 @@ ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/util/ldb_cmd.cc
 ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/util/db_info_dumper.cc
 ${CMAKE_CURRENT_LIST_DIR}/3rdparty/rocksdb/util/thread_status_updater_debug.cc)
 
-set(DB_LIBS snappy bz2 z pthread)
+set(DB_LIBS bz2 z pthread)

@@ -50,6 +50,8 @@ String String::compress() const
 String String::uncompress(const char *data, int size)
 {
 #ifndef RCT_HAVE_ZLIB
+    (void)data;
+    (void)size;
     assert(0 && "Rct configured without zlib support");
     return String();
 #else

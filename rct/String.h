@@ -650,6 +650,10 @@ public:
         return String(buf, w);
     }
 
+    String toHex() const { return toHex(*this); }
+    static String toHex(const String &hex) { return toHex(hex.constData(), hex.size()); }
+    static String toHex(const void *data, int len);
+
     static String number(int8_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
     static String number(uint8_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }
     static String number(int16_t num, int base = 10) { return String::number(static_cast<int64_t>(num), base); }

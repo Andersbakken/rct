@@ -21,12 +21,16 @@ public:
         return !std::map<Key, Value>::size();
     }
 
-    Value value(const Key &key, const Value &defaultValue = Value()) const
+    Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = 0) const
     {
         typename std::map<Key, Value>::const_iterator it = std::map<Key, Value>::find(key);
         if (it == std::map<Key, Value>::end()) {
+            if (ok)
+                *ok = false;
             return defaultValue;
         }
+        if (ok)
+            *ok = true;
         return it->second;
     }
 

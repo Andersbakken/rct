@@ -38,12 +38,16 @@ public:
         return !std::unordered_map<Key, Value>::size();
     }
 
-    Value value(const Key &key, const Value &defaultValue = Value()) const
+    Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = 0) const
     {
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::find(key);
         if (it == std::unordered_map<Key, Value>::end()) {
+            if (ok)
+                *ok = false;
             return defaultValue;
         }
+        if (ok)
+            *ok = true;
         return it->second;
     }
 

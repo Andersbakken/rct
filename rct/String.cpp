@@ -117,11 +117,12 @@ String String::toHex(const void *pAddressIn, int lSize)
             lOutLen = 16;
 
         // create a 64-character formatted output line:
-        sprintf(szBuf,
-                " >                            "
-                "                      "
-                "    %08lX",
-                pTmp - pAddress);
+        snprintf(szBuf,
+                 sizeof(szBuf),
+                 " >                            "
+                 "                      "
+                 "    %08lX",
+                 static_cast<long unsigned int>(pTmp - pAddress));
         lOutLen2 = lOutLen;
 
         for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0; lOutLen2; lOutLen2--, lIndex += 2, lIndex2++) {

@@ -340,7 +340,9 @@ inline Log operator<<(Log stream, const String &byteArray)
 template <typename T>
 String &operator<<(String &str, const T &t)
 {
-    Log(&str) << t;
+    Log l(&str);
+    l.setSpacing(false);
+    l << t;
     return str;
 }
 

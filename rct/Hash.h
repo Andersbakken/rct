@@ -127,7 +127,7 @@ public:
             const Key &key = it->first;
             const Value &val = it->second;
             if (count) {
-                auto cur = find(key);
+                auto cur = std::unordered_map<Key, Value>::find(key);
                 if (cur == end || cur->second != val) {
                     ++*count;
                     std::unordered_map<Key, Value>::operator[](key) = val;

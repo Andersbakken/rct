@@ -86,8 +86,8 @@ public:
     Signal<std::function<void(Connection*, int)> > &finished() { return mFinished; }
     Signal<std::function<void(std::shared_ptr<Message>, Connection*)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
-private:
 
+private:
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
     void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);

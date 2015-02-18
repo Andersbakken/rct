@@ -217,6 +217,32 @@ Process::~Process()
         eintrwrap(w, ::close(mSync[1]));
 }
 
+void Process::clear()
+{
+    // don't clear a running process please
+    assert(mPid == -1);
+
+    if (mStdIn[0] != -1 && EventLoop::eventLoop()) {
+        // try to finish off any pending writes
+        handleInput(mStdIn[1]);
+    }
+
+    closeStdIn(CloseForce);
+    closeStdOut();
+    closeStdErr();
+
+    int w;
+    if (mSync[0] != -1)
+        eintrwrap(w, ::close(mSync[0]));
+    if (mSync[1] != -1)
+        eintrwrap(w, ::close(mSync[1]));
+
+    mReturn = ReturnUnset;
+    mStdInIndex = mStdOutIndex = mStdErrIndex = 0;
+    mWantStdInClosed = false;
+    mMode = Sync;
+}
+
 void Process::setCwd(const Path &cwd)
 {
     assert(mReturn == ReturnUnset);
@@ -611,6 +637,8 @@ void Process::finish(int returnCode)
             eintrwrap(w, ::close(mSync[1]));
             mSync[1] = -1;
         }
+
+        mPid = -1;
     }
 
     if (mMode == Async)

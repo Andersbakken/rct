@@ -57,6 +57,9 @@ public:
     static Path findCommand(const String &command);
 
     pid_t pid() const { return mPid; }
+
+    void clear();
+
 private:
     void finish(int returnCode);
     void processCallback(int fd, int mode);

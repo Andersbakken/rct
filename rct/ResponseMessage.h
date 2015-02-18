@@ -8,19 +8,22 @@ class ResponseMessage : public Message
 {
 public:
     enum { MessageId = ResponseId };
+    enum Type { Stdout, Stderr };
 
-    ResponseMessage(const String &data = String())
-        : Message(MessageId), mData(data)
+    ResponseMessage(const String &data = String(), Type type = Stdout)
+        : Message(MessageId), mData(data), mType(type)
     {
         if (mData.endsWith('\n'))
             mData.chop(1);
     }
-    ResponseMessage(const List<String> &data)
-        : Message(MessageId), mData(String::join(data, "\n"))
+    ResponseMessage(const List<String> &data, Type type = Stdout)
+        : Message(MessageId), mData(String::join(data, "\n")), mType(type)
     {
         if (mData.endsWith('\n'))
             mData.chop(1);
     }
+
+    Type type() const { return mType; }
 
     String data() const { return mData; }
     void setData(const String &data) { mData = data; }
@@ -29,6 +32,7 @@ public:
     void decode(Deserializer &deserializer) { deserializer >> mData; }
 private:
     String mData;
+    Type mType;
 };
 
 #endif

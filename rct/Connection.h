@@ -45,11 +45,11 @@ public:
         va_end(args);
         return send(ResponseMessage(ret));
     }
-    bool write(const String &out)
+    bool write(const String &out, ResponseMessage::Type type = ResponseMessage::Stdout)
     {
         if (mSilent)
             return isConnected();
-        return send(ResponseMessage(out));
+        return send(ResponseMessage(out, type));
     }
 
     void finish(int status = 0) { send(FinishMessage(status)); }

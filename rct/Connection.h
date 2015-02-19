@@ -94,7 +94,7 @@ private:
     void onDataWritten(const SocketClient::SharedPtr&, int);
     void onSocketError(const SocketClient::SharedPtr&, SocketClient::Error error)
     {
-        ::warning() << "Socket error" << error << errno << strerror(errno);
+        ::warning() << "Socket error" << error << errno << Rct::strerror();
         mDisconnected(this);
     }
     void checkData();

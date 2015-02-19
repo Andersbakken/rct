@@ -1,6 +1,7 @@
 #include "FileSystemWatcher.h"
 #include "EventLoop.h"
 #include "Log.h"
+#include "Rct.h"
 #include "rct-config.h"
 #include <sys/types.h>
 #include <sys/event.h>
@@ -27,7 +28,7 @@ FileSystemWatcher::~FileSystemWatcher()
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
             // bad stuff
             error("FileSystemWatcher::~FileSystemWatcher() kevent failed for '%s' (%d) %s",
-                  it->first.constData(), errno, strerror(errno));
+                  it->first.constData(), errno, Rct::strerror().constData());
         }
         ::close(it->second);
     }
@@ -166,14 +167,14 @@ bool FileSystemWatcher::watch(const Path &p)
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
             // bad things have happened
             error("FileSystemWatcher::watch() kevent failed for '%s' (%d) %s",
-                  path.constData(), errno, strerror(errno));
+                  path.constData(), errno, Rct::strerror().constData());
             ::close(ret);
             return false;
         }
     }
     if (ret == -1) {
         error("FileSystemWatcher::watch() watch failed for '%s' (%d) %s",
-              path.constData(), errno, strerror(errno));
+              path.constData(), errno, Rct::strerror().constData());
         return false;
     }
 
@@ -207,7 +208,7 @@ bool FileSystemWatcher::unwatch(const Path &p)
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
             // bad stuff
             error("FileSystemWatcher::unwatch() kevent failed for '%s' (%d) %s",
-                  path.constData(), errno, strerror(errno));
+                  path.constData(), errno, Rct::strerror().constData());
         }
         ::close(wd);
         Map<Path, uint64_t>::iterator it = mTimes.lower_bound(path);
@@ -233,7 +234,7 @@ void FileSystemWatcher::notifyReadyRead()
                 break;
             } else if (ret == -1) {
                 error("FileSystemWatcher::notifyReadyRead() kevent failed (%d) %s",
-                      errno, strerror(errno));
+                      errno, Rct::strerror().constData());
                 break;
             }
             assert(ret > 0 && ret <= MaxEvents);
@@ -243,7 +244,7 @@ void FileSystemWatcher::notifyReadyRead()
                 const Path p = mWatchedById.value(event.ident);
                 if (event.flags & EV_ERROR) {
                     error("FileSystemWatcher::notifyReadyRead() kevent element failed for '%s' (%ld) %s",
-                          p.constData(), event.data, strerror(event.data));
+                          p.constData(), event.data, Rct::strerror(event.data));
                     continue;
                 }
                 if (p.isEmpty()) {

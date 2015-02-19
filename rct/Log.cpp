@@ -225,10 +225,7 @@ bool initLogging(const char* ident, int mode, int level, const Path &file, unsig
                 const Path rotated = String::format<64>("%s.%d", file.constData(), ++i);
                 if (!rotated.exists()) {
                     if (rename(file.constData(), rotated.constData())) {
-                        char buf[1025];
-                        if (!strerror_r(errno, buf, 1024)) {
-                            error() << "Couldn't rotate log file" << file << "to" << rotated << buf;
-                        }
+                        error() << "Couldn't rotate log file" << file << "to" << rotated << Rct::strerror();
                     }
                     break;
                 }

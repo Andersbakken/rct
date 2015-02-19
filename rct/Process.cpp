@@ -380,7 +380,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
         eintrwrap(err, ::close(closePipe[1]));
         ::_exit(1);
         (void)ret;
-        //printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, strerror(errno));
+        //printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, Rct::strerror().constData());
     } else {
         delete[] env;
         delete[] args;
@@ -466,7 +466,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 eintrwrap(ret, ::select(max + 1, &rfds, &wfds, 0, selecttime));
                 if (ret == -1) { // ow
                     mErrorString = "Sync select failed: ";
-                    mErrorString += strerror(errno);
+                    mErrorString += Rct::strerror();
                     return Error;
                 }
                 // check fds and stuff
@@ -694,7 +694,7 @@ void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::funct
         int r;
         eintrwrap(r, ::read(fd, buf, BufSize));
         if (r == -1) {
-            //printf("Process::handleOutput %d returning -1, errno %d %s\n", fd, errno, strerror(errno));
+            //printf("Process::handleOutput %d returning -1, errno %d %s\n", fd, errno, Rct::strerror().constData());
             break;
         } else if (r == 0) { // file descriptor closed, remove it
             //printf("Process::handleOutput %d returning 0\n", fd);

@@ -1,5 +1,6 @@
 #include "SocketServer.h"
 #include "EventLoop.h"
+#include "Rct.h"
 #include <rct-config.h>
 #include <assert.h>
 #include <unistd.h>
@@ -138,7 +139,7 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
     enum { Backlog = 128 };
     if (::listen(fd, Backlog) < 0) {
         fprintf(stderr, "::listen() failed with errno: %s\n",
-                strerror( errno ));
+                Rct::strerror().constData());
 
         serverError(this, ListenError);
         close();

@@ -1,5 +1,6 @@
 #include "SharedMemory.h"
 #include "Log.h"
+#include "Rct.h"
 #include <rct-config.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -73,7 +74,7 @@ void* SharedMemory::attach(AttachFlag flag, void* address)
         flg |= SHM_RDONLY;
     mAddr = shmat(mShm, address, flg);
     if (mAddr == reinterpret_cast<void*>(-1)) {
-        error() << strerror(errno) << errno;
+        error() << Rct::strerror() << errno;
         mAddr = 0;
     }
     return mAddr;

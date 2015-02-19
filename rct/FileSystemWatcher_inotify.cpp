@@ -4,6 +4,7 @@
 #include "rct-config.h"
 #include <sys/inotify.h>
 #include <sys/ioctl.h>
+#include "Rct.h"
 #include <errno.h>
 
 FileSystemWatcher::FileSystemWatcher()
@@ -60,7 +61,7 @@ bool FileSystemWatcher::watch(const Path &p)
     const int ret = inotify_add_watch(mFd, path.nullTerminated(), flags);
     if (ret == -1) {
         error("FileSystemWatcher::watch() watch failed for '%s' (%d) %s",
-              path.constData(), errno, strerror(errno));
+              path.constData(), errno, Rct::strerror().constData());
         return false;
     }
 

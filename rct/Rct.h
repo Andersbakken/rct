@@ -242,6 +242,13 @@ static inline bool wildCmp(const char *wild, const char *string, String::CaseSen
     }
     return !*wild;
 }
+
+static inline String strError(int error = errno)
+{
+    char buf[1024];
+    strerror_r(error, buf, sizeof(buf));
+    return buf;
+}
 }
 
 #define eintrwrap(VAR, BLOCK)                   \

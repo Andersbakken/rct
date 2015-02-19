@@ -9,6 +9,11 @@ public:
         : mFirst(T()), mLast(T()), mCount(0)
     {}
 
+    ~EmbeddedLinkedList()
+    {
+        deleteAll();
+    }
+
     bool isEmpty() const { return !mCount; }
 
     int size() const { return mCount; }

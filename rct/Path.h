@@ -149,7 +149,7 @@ public:
     typedef VisitResult (*VisitCallback)(const Path &path, void *userData);
     void visit(VisitCallback callback, void *userData = 0) const;
 
-    List<Path> files(unsigned filter = All, int max = -1, bool recurse = false) const;
+    List<Path> files(unsigned int filter = All, int max = -1, bool recurse = false) const;
 };
 
 namespace std

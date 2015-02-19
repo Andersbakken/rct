@@ -56,7 +56,7 @@ void logDirect(int level, const String &out);
 
 bool testLog(int level);
 enum { LogStderr = 0x1, LogSyslog = 0x2 };
-bool initLogging(const char* ident, int mode = LogStderr, int logLevel = Error, const Path &logFile = Path(), unsigned flags = 0);
+bool initLogging(const char* ident, int mode = LogStderr, int logLevel = Error, const Path &logFile = Path(), unsigned int flags = 0);
 void cleanupLogging();
 int logLevel();
 void restartTime();
@@ -79,7 +79,7 @@ public:
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }
 #endif
-    Log operator<<(long long unsigned number) { return addStringStream(number); }
+    Log operator<<(unsigned long long number) { return addStringStream(number); }
     Log operator<<(long long number) { return addStringStream(number); }
     Log operator<<(uint32_t number) { return addStringStream(number); }
     Log operator<<(int32_t number) { return addStringStream(number); }

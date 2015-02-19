@@ -93,9 +93,9 @@ public:
         Async
     };
 
-    void init(unsigned flags = None);
+    void init(unsigned int flags = None);
 
-    unsigned flags() const { return flgs; }
+    unsigned int flags() const { return flgs; }
 
     template<typename T>
     static void deleteLater(T* del)
@@ -250,7 +250,7 @@ private:
 
     static EventLoop::WeakPtr mainLoop;
 
-    unsigned flgs;
+    unsigned int flgs;
 private:
     EventLoop(const EventLoop&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;

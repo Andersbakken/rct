@@ -11,7 +11,7 @@ void FileSystemWatcher::processChanges(const Changes &changes)
         { mModified, changes.modified }
     };
 
-    const unsigned count = sizeof(signals) / sizeof(signals[0]);
+    const unsigned int count = sizeof(signals) / sizeof(signals[0]);
     for (unsigned i=0; i<count; ++i) {
         for (Set<Path>::const_iterator it = signals[i].paths.begin(); it != signals[i].paths.end(); ++it) {
             signals[i].signal(*it);

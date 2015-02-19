@@ -459,7 +459,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                     if (wMode == Synchronous) {
                         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                             // store the rest
-                            const unsigned rem = size - total;
+                            const unsigned int rem = size - total;
                             writeBuffer.reserve(writeBuffer.size() + rem);
                             memcpy(writeBuffer.end(), data + total, rem);
                             writeBuffer.resize(writeBuffer.size() + rem);
@@ -493,7 +493,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
 
     if (total < size) {
         // store the rest
-        const unsigned rem = size - total;
+        const unsigned int rem = size - total;
         writeBuffer.reserve(writeBuffer.size() + rem);
         memcpy(writeBuffer.end(), data + total, rem);
         writeBuffer.resize(writeBuffer.size() + rem);

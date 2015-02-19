@@ -29,9 +29,9 @@ public:
         NoCloseStdIn = 0x1
     };
     ExecState exec(const Path &command, const List<String> &arguments = List<String>(),
-                   int timeout = 0, unsigned flags = 0);
+                   int timeout = 0, unsigned int flags = 0);
     ExecState exec(const Path &command, const List<String> &arguments,
-                   const List<String> &environ, int timeout = 0, unsigned flags = 0);
+                   const List<String> &environ, int timeout = 0, unsigned int flags = 0);
 
     String errorString() const { std::lock_guard<std::mutex> lock(mMutex); return mErrorString; }
 
@@ -71,7 +71,7 @@ private:
     void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal);
 
     ExecState startInternal(const Path &command, const List<String> &arguments,
-                            const List<String> &environ, int timeout = 0, unsigned flags = 0);
+                            const List<String> &environ, int timeout = 0, unsigned int flags = 0);
 
 private:
 

@@ -84,7 +84,7 @@ bool FileSystemWatcher::unwatch(const Path &path)
 }
 
 #if 0
-static inline void dump(unsigned mask)
+static inline void dump(unsigned int mask)
 {
     if (mask & IN_ACCESS)
         printf("IN_ACCESS ");

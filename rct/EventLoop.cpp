@@ -127,7 +127,7 @@ EventLoop::~EventLoop()
     cleanup();
 }
 
-void EventLoop::init(unsigned flags)
+void EventLoop::init(unsigned int flags)
 {
     std::lock_guard<std::mutex> locker(mutex);
     flgs = flags;

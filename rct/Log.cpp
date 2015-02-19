@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include <syslog.h>
 
-static unsigned sFlags = 0;
+static unsigned int sFlags = 0;
 static StopWatch sStart;
 static Set<LogOutput*> sOutputs;
 static std::mutex sOutputsMutex;
@@ -209,7 +209,7 @@ int logLevel()
     return sLevel;
 }
 
-bool initLogging(const char* ident, int mode, int level, const Path &file, unsigned flags)
+bool initLogging(const char* ident, int mode, int level, const Path &file, unsigned int flags)
 {
     sStart.start();
     sFlags = flags;

@@ -577,7 +577,7 @@ Path Path::pwd()
 }
 struct FilesUserData
 {
-    unsigned filter;
+    unsigned int filter;
     int max;
     bool recurse;
     List<Path> paths;
@@ -595,7 +595,7 @@ static Path::VisitResult filesVisitor(const Path &path, void *userData)
     return u.recurse ? Path::Recurse : Path::Continue;
 }
 
-List<Path> Path::files(unsigned filter, int max, bool recurse) const
+List<Path> Path::files(unsigned int filter, int max, bool recurse) const
 {
     assert(max != 0);
     FilesUserData userData = { filter, max, recurse, List<Path>() };

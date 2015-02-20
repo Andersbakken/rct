@@ -249,7 +249,7 @@ static inline String strerror(int error = errno)
 #ifdef _GNU_SOURCE
     return strerror_r(error, buf, sizeof(buf));
 #else
-    strerror_r(errn, buf, sizeof(buf));
+    strerror_r(error, buf, sizeof(buf));
     return buf;
 #endif
 }

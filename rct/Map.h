@@ -5,26 +5,26 @@
 #include <rct/List.h>
 #include <memory>
 
-template <typename Key, typename Value>
-class Map : public std::map<Key, Value>
+template <typename Key, typename Value, typename Compare = std::less<Key> >
+class Map : public std::map<Key, Value, Compare>
 {
 public:
     Map() {}
 
     bool contains(const Key &t) const
     {
-        return std::map<Key, Value>::find(t) != std::map<Key, Value>::end();
+        return std::map<Key, Value, Compare>::find(t) != std::map<Key, Value, Compare>::end();
     }
 
     bool isEmpty() const
     {
-        return !std::map<Key, Value>::size();
+        return !std::map<Key, Value, Compare>::size();
     }
 
     Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = 0) const
     {
-        typename std::map<Key, Value>::const_iterator it = std::map<Key, Value>::find(key);
-        if (it == std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::find(key);
+        if (it == std::map<Key, Value, Compare>::end()) {
             if (ok)
                 *ok = false;
             return defaultValue;
@@ -48,11 +48,11 @@ public:
 
     bool remove(const Key &t, Value *value = 0)
     {
-        typename std::map<Key, Value>::iterator it = std::map<Key, Value>::find(t);
-        if (it != std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::iterator it = std::map<Key, Value, Compare>::find(t);
+        if (it != std::map<Key, Value, Compare>::end()) {
             if (value)
                 *value = it->second;
-            std::map<Key, Value>::erase(it);
+            std::map<Key, Value, Compare>::erase(it);
             return true;
         }
         if (value)
@@ -63,10 +63,10 @@ public:
     int remove(std::function<bool(const Key &key)> match)
     {
         int ret = 0;
-        typename std::map<Key, Value>::iterator it = std::map<Key, Value>::begin();
-        while (it != std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::iterator it = std::map<Key, Value, Compare>::begin();
+        while (it != std::map<Key, Value, Compare>::end()) {
             if (match(it->first)) {
-                std::map<Key, Value>::erase(it++);
+                std::map<Key, Value, Compare>::erase(it++);
                 ++ret;
             } else {
                 ++it;
@@ -77,91 +77,91 @@ public:
 
     void deleteAll()
     {
-        typename std::map<Key, Value>::iterator it = std::map<Key, Value>::begin();
-        while (it != std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::iterator it = std::map<Key, Value, Compare>::begin();
+        while (it != std::map<Key, Value, Compare>::end()) {
             delete it.second;
             ++it;
         }
-        std::map<Key, Value>::clear();
+        std::map<Key, Value, Compare>::clear();
     }
 
     bool insert(const Key &key, const Value &value)
     {
-        return std::map<Key, Value>::insert(std::make_pair(key, value)).second;
+        return std::map<Key, Value, Compare>::insert(std::make_pair(key, value)).second;
     }
 
     Value &operator[](const Key &key)
     {
-        return std::map<Key, Value>::operator[](key);
+        return std::map<Key, Value, Compare>::operator[](key);
     }
 
     const Value &operator[](const Key &key) const
     {
         assert(contains(key));
-        return std::map<Key, Value>::find(key)->second;
+        return std::map<Key, Value, Compare>::find(key)->second;
     }
 
-    Map<Key, Value> &unite(const Map<Key, Value> &other, int *count = 0)
+    Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, int *count = 0)
     {
-        typename std::map<Key, Value>::const_iterator it = other.begin();
+        typename std::map<Key, Value, Compare>::const_iterator it = other.begin();
         const auto end = other.end();
         while (it != end) {
             const Key &key = it->first;
             const Value &val = it->second;
             if (count) {
-                auto cur = std::map<Key, Value>::find(key);
+                auto cur = std::map<Key, Value, Compare>::find(key);
                 if (cur == end || cur->second != val) {
                     ++*count;
-                    std::map<Key, Value>::operator[](key) = val;
+                    std::map<Key, Value, Compare>::operator[](key) = val;
                 }
             } else {
-                std::map<Key, Value>::operator[](key) = val;
+                std::map<Key, Value, Compare>::operator[](key) = val;
             }
             ++it;
         }
         return *this;
     }
 
-    Map<Key, Value> &subtract(const Map<Key, Value> &other)
+    Map<Key, Value, Compare> &subtract(const Map<Key, Value, Compare> &other)
     {
-        typename std::map<Key, Value>::iterator it = other.begin();
+        typename std::map<Key, Value, Compare>::iterator it = other.begin();
         while (it != other.end()) {
-            std::map<Key, Value>::erase(*it);
+            std::map<Key, Value, Compare>::erase(*it);
             ++it;
         }
         return *this;
     }
 
-    Map<Key, Value> &operator+=(const Map<Key, Value> &other)
+    Map<Key, Value, Compare> &operator+=(const Map<Key, Value, Compare> &other)
     {
         return unite(other);
     }
 
-    Map<Key, Value> &operator-=(const Map<Key, Value> &other)
+    Map<Key, Value, Compare> &operator-=(const Map<Key, Value, Compare> &other)
     {
         return subtract(other);
     }
 
     int size() const
     {
-        return std::map<Key, Value>::size();
+        return std::map<Key, Value, Compare>::size();
     }
 
-    typename std::map<Key, Value>::const_iterator constBegin() const
+    typename std::map<Key, Value, Compare>::const_iterator constBegin() const
     {
-        return std::map<Key, Value>::begin();
+        return std::map<Key, Value, Compare>::begin();
     }
 
-    typename std::map<Key, Value>::const_iterator constEnd() const
+    typename std::map<Key, Value, Compare>::const_iterator constEnd() const
     {
-        return std::map<Key, Value>::end();
+        return std::map<Key, Value, Compare>::end();
     }
 
     List<Key> keys() const
     {
         List<Key> keys;
-        typename std::map<Key, Value>::const_iterator it = std::map<Key, Value>::begin();
-        while (it != std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::begin();
+        while (it != std::map<Key, Value, Compare>::end()) {
             keys.append(it->first);
             ++it;
         }
@@ -171,8 +171,8 @@ public:
     Set<Key> keysAsSet() const
     {
         Set<Key> keys;
-        typename std::map<Key, Value>::const_iterator it = std::map<Key, Value>::begin();
-        while (it != std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::begin();
+        while (it != std::map<Key, Value, Compare>::end()) {
             keys.insert(it->first);
             ++it;
         }
@@ -182,8 +182,8 @@ public:
     List<Value> values() const
     {
         List<Value> values;
-        typename std::map<Key, Value>::const_iterator it = std::map<Key, Value>::begin();
-        while (it != std::map<Key, Value>::end()) {
+        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::begin();
+        while (it != std::map<Key, Value, Compare>::end()) {
             values.append(it->second);
             ++it;
         }
@@ -191,18 +191,18 @@ public:
     }
 };
 
-template <typename Key, typename Value>
-inline const Map<Key, Value> operator+(const Map<Key, Value> &l, const Map<Key, Value> &r)
+template <typename Key, typename Value, typename Compare>
+inline const Map<Key, Value, Compare> operator+(const Map<Key, Value, Compare> &l, const Map<Key, Value, Compare> &r)
 {
-    Map<Key, Value> ret = l;
+    Map<Key, Value, Compare> ret = l;
     ret += r;
     return ret;
 }
 
-template <typename Key, typename Value>
-inline const Map<Key, Value> operator-(const Map<Key, Value> &l, const Map<Key, Value> &r)
+template <typename Key, typename Value, typename Compare>
+inline const Map<Key, Value, Compare> operator-(const Map<Key, Value, Compare> &l, const Map<Key, Value, Compare> &r)
 {
-    Map<Key, Value> ret = l;
+    Map<Key, Value, Compare> ret = l;
     ret -= r;
     return ret;
 }

@@ -403,9 +403,11 @@ public:
         return *this;
     }
 
-    int compare(const String &other) const
+    int compare(const String &other, CaseSensitivity cs = CaseSensitive) const
     {
-        return mString.compare(other.mString);
+        if (cs == CaseSensitive)
+            return mString.compare(other.mString);
+        return strcasecmp(mString.c_str(), other.mString.c_str());
     }
 
     bool operator==(const String &other) const

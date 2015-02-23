@@ -517,19 +517,9 @@ String Path::readAll(int max) const
     FILE *f = fopen(constData(), "r");
     if (!f)
         return String();
-    fseek(f, 0, SEEK_END);
-    int size = ftell(f);
-    if (max > 0 && max < size)
-        size = max;
-    String buf(size, '\0');
-    if (size) {
-        fseek(f, 0, SEEK_SET);
-        const int ret = fread(buf.data(), sizeof(char), size, f);
-        if (ret != size)
-            buf.clear();
-    }
+    const String ret = Rct::readAll(f, max);
     fclose(f);
-    return buf;
+    return ret;
 }
 
 bool Path::write(const Path& path, const String& data, WriteMode mode)

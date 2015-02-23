@@ -21,6 +21,7 @@ enum { Max_USec = 1000000 };
 
 String shortOptions(const option *longOptions);
 int readLine(FILE *f, char *buf = 0, int max = -1);
+String readAll(FILE *f, int max = -1);
 inline int fileSize(FILE *f)
 {
     assert(f);

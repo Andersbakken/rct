@@ -102,6 +102,24 @@ int readLine(FILE *f, char *buf, int max)
     return -1;
 }
 
+String readAll(FILE *f, int max)
+{
+    assert(f);
+    const int prev = ftell(f);
+    fseek(f, 0, SEEK_END);
+    int size = ftell(f);
+    if (max > 0 && max < size)
+        size = max;
+    String buf(size, '\0');
+    if (size) {
+        fseek(f, 0, SEEK_SET);
+        const int ret = fread(buf.data(), sizeof(char), size, f);
+        if (ret != size)
+            buf.clear();
+    }
+    fseek(f, prev, SEEK_SET);
+    return buf;
+}
 
 String shortOptions(const option *longOptions)
 {

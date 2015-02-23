@@ -42,9 +42,11 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
             uint8_t id;
             ds >> id;
             error("Invalid message version. Got %d, expected %d id: %d", ver, version, id);
+            error() << String::toHex(data, std::min(size, 1024));
             // error() << Rct::backtrace();
         } else {
             error("Invalid message version. Got %d, expected %d", ver, version);
+            error() << String::toHex(data, std::min(size, 1024));
         }
         return std::shared_ptr<Message>();
     }

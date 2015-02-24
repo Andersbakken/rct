@@ -10,6 +10,22 @@ class Map : public std::map<Key, Value, Compare>
 {
 public:
     Map() {}
+    Map(std::initializer_list<typename std::map<Key, Value>::value_type> init, const Compare& comp = Compare())
+        : std::map<Key, Value, Compare>(init, comp)
+    {
+    }
+
+    Map<Key, Value, Compare>& operator=(const Map<Key, Value, Compare>& other)
+    {
+        std::map<Key, Value, Compare>::operator=(other);
+        return *this;
+    }
+
+    Map<Key, Value, Compare>& operator=(std::initializer_list<typename std::map<Key, Value>::value_type> init)
+    {
+        std::map<Key, Value, Compare>::operator=(init);
+        return *this;
+    }
 
     bool contains(const Key &t) const
     {

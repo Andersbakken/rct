@@ -234,7 +234,7 @@ bool Connection::send(const Message &message)
         String header, value;
         message.prepare(mVersion, header, value);
         mPendingWrite += header.size() + value.size();
-        assert(!size || size == (header.size() + value.size() - 4));
+        assert(size == -1 || size == (header.size() + value.size() - 4));
         return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
     } else {
         assert(size >= 0);

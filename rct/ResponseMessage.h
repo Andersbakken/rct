@@ -28,8 +28,9 @@ public:
     String data() const { return mData; }
     void setData(const String &data) { mData = data; }
 
-    void encode(Serializer &serializer) const { serializer << mData; }
-    void decode(Deserializer &deserializer) { deserializer >> mData; }
+    virtual int encodedSize() const { return mData.size() + sizeof(int); }
+    virtual void encode(Serializer &serializer) const { serializer << mData; }
+    virtual void decode(Deserializer &deserializer) { deserializer >> mData; }
 private:
     String mData;
     Type mType;

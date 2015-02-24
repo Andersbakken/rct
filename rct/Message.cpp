@@ -3,6 +3,7 @@
 #include "FinishMessage.h"
 #include "ConnectMessage.h"
 #include "Serializer.h"
+#include "QuitMessage.h"
 #include <assert.h>
 
 std::mutex Message::sMutex;
@@ -74,6 +75,7 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
         sFactory[FinishMessage::MessageId] = new MessageCreator<FinishMessage>();
         sFactory[ConnectMessage::MessageId] = new MessageCreator<ConnectMessage>();
+        sFactory[QuitMessage::MessageId] = new MessageCreator<QuitMessage>();
     }
 
     MessageCreatorBase *base = sFactory.value(id);

@@ -249,13 +249,13 @@ void Process::setCwd(const Path &cwd)
     mCwd = cwd;
 }
 
-Path Process::findCommand(const String &command)
+Path Process::findCommand(const String &command, const char *path)
 {
     if (command.isEmpty() || command.at(0) == '/')
         return command;
 
-#warning this should use PATH from environ, if set
-    const char* path = getenv("PATH");
+    if (!path)
+        path = getenv("PATH");
     if (!path)
         return Path();
     bool ok;
@@ -273,7 +273,14 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
 {
     mErrorString.clear();
 
-    Path cmd = findCommand(command);
+    const char *path = 0;
+    for (const auto &it : environ) {
+        if (it.startsWith("PATH=")) {
+            path = it.constData() + 5;
+            break;
+        }
+    }
+    Path cmd = findCommand(command, path);
     if (cmd.isEmpty()) {
         mErrorString = "Command not found";
         return Error;

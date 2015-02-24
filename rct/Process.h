@@ -54,7 +54,7 @@ public:
 
     static List<String> environment();
 
-    static Path findCommand(const String &command);
+    static Path findCommand(const String &command, const char *path = 0);
 
     pid_t pid() const { return mPid; }
 

@@ -15,70 +15,101 @@
 class Serializer
 {
 public:
+    class Buffer
+    {
+    public:
+        virtual ~Buffer() {}
+        virtual bool write(const char *data, int len) = 0;
+        virtual int pos() const = 0;
+    };
+
+    Serializer(std::unique_ptr<Buffer> &&buffer)
+        : mError(false), mBuffer(std::move(buffer))
+    {}
+
     Serializer(std::string &out)
-        : mError(false), mOutData(0), mOutString(&out), mOutFile(0), mPos(0), mMax(INT_MAX)
+        : mError(false), mBuffer(new StringBuffer(out))
     {}
 
     Serializer(String &out)
-        : mError(false), mOutData(0), mOutString(&out.ref()), mOutFile(0), mPos(0), mMax(INT_MAX)
+        : mError(false), mBuffer(new StringBuffer(out))
     {}
 
     Serializer(FILE *f)
-        : mError(false), mOutData(0), mOutString(0), mOutFile(f), mPos(0), mMax(INT_MAX)
+        : mError(false), mBuffer(new FileBuffer(f))
     {
         assert(f);
     }
-    Serializer(char *outData, int max)
-        : mError(false), mOutData(outData), mOutString(0), mOutFile(0), mPos(0), mMax(max)
-    {}
+
     bool write(const String &string)
     {
         return write(string.constData(), string.size());
     }
+
     bool write(const char *data, int len)
     {
         assert(len > 0);
-        if (mOutString) {
-            mOutString->append(data, len);
-            return true;
-        } else if (mOutData) {
-            if (mPos + len < mMax) {
-                memcpy(mOutData + mPos, data, len);
-                mPos += len;
-            } else {
-                mError = true;
-            }
-            return mError;
-        } else {
-            assert(mOutFile);
-            const size_t ret = fwrite(data, sizeof(char), len, mOutFile);
-            return (ret == static_cast<size_t>(len));
+        if (mError)
+            return false;
+        if (mBuffer->write(data, len)) {
+            mError = true;
+            return false;
         }
+        return true;
     }
-    const std::string *string() const { return mOutString; }
-    std::string *string() { return mOutString; }
-    char *outData() const { return mOutData; }
-    const FILE *file() const { return mOutFile; }
-    FILE *file() { return mOutFile; }
 
     int pos() const
     {
-        if (mOutString) {
-            return mOutString->size();
-        } else if (mOutData) {
-            return mPos;
-        } else {
-            assert(mOutFile);
-            return static_cast<int>(ftell(mOutFile));
-        }
+        return mBuffer->pos();
     }
+
     bool hasError() const { return mError; }
 private:
+    class StringBuffer : public Buffer
+    {
+    public:
+        StringBuffer(std::string &out)
+            : mString(&out)
+        {}
+        StringBuffer(String &out)
+            : mString(&out.ref())
+        {}
+
+        virtual bool write(const char *data, int len)
+        {
+            mString->append(data, len);
+            return true;
+        }
+        virtual int pos() const { return mString->size(); }
+    private:
+        std::string *mString;
+    };
+    class FileBuffer : public Buffer
+    {
+    public:
+        FileBuffer(FILE *f)
+            : mFile(f)
+        {
+            assert(f);
+        }
+
+        virtual bool write(const char *data, int len)
+        {
+            assert(mFile);
+            const size_t ret = fwrite(data, sizeof(char), len, mFile);
+            return (ret == static_cast<size_t>(len));
+        }
+
+        virtual int pos() const
+        {
+            return static_cast<int>(ftell(mFile));
+        }
+    private:
+        FILE *mFile;
+    };
+
     bool mError;
-    char *mOutData;
-    std::string *mOutString;
-    FILE *mOutFile;
-    int mPos, mMax;
+    std::unique_ptr<Buffer> mBuffer;
 };
 
 class Deserializer

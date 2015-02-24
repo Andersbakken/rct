@@ -6,10 +6,18 @@
 class Message
 {
 public:
-    enum { ResponseId = 1, FinishMessageId = 2, ConnectMessageId = 3 };
+    enum {
+        ResponseId = 1,
+        FinishMessageId = 2,
+        ConnectMessageId = 3,
+        QuitMessageId = 4
+    };
 
-    Message(uint8_t id, uint8_t flags = None) : mMessageId(id), mFlags(flags), mVersion(0) {}
-    virtual ~Message() {}
+    Message(uint8_t id, uint8_t flags = None)
+        : mMessageId(id), mFlags(flags), mVersion(0)
+    {}
+    virtual ~Message()
+    {}
 
     enum Flag {
         None = 0x0,

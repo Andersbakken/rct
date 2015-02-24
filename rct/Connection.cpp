@@ -238,11 +238,10 @@ bool Connection::send(const Message &message)
         return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
     } else {
         assert(size >= 0);
-        mPendingWrite += (size + Message::HeaderExtra);
+        mPendingWrite += (size + Message::HeaderExtra) + sizeof(int);
         Serializer serializer(std::unique_ptr<SocketClientBuffer>(new SocketClientBuffer(mSocketClient)));
         message.encodeHeader(serializer, size, mVersion);
         message.encode(serializer);
-        assert(serializer.hasError() || serializer.pos() == size + 4);
         return !serializer.hasError();
     }
 }

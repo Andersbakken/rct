@@ -14,6 +14,7 @@ public:
     {
     }
 
+    virtual int encodedSize() const { return 0; }
     void encode(Serializer &) const {}
     void decode(Deserializer &) {}
 };

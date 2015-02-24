@@ -545,7 +545,6 @@ void SocketClient::socketCallback(int f, int mode)
     }
 
     if (writeWait && (mode & EventLoop::SocketWrite)) {
-
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->updateSocket(fd, EventLoop::SocketRead);
             writeWait = false;

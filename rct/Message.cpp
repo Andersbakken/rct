@@ -23,8 +23,7 @@ void Message::prepare(int version, String &header, String &value) const
             mValue = mValue.compress();
         }
         Serializer s(mHeader);
-        s << static_cast<uint32_t>(sizeof(int) + sizeof(uint8_t) + sizeof(uint8_t) + mValue.size())
-          << version << static_cast<uint8_t>(mMessageId) << mFlags;
+        encodeHeader(s, mValue.size(), version);
         mVersion = version;
     }
     value = mValue;

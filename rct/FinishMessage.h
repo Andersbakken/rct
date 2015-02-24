@@ -16,8 +16,9 @@ public:
 
     int status() const { return mStatus; }
 
-    void encode(Serializer &s) const { s << mStatus; }
-    void decode(Deserializer &d) { d >> mStatus; }
+    virtual int encodedSize() const { return sizeof(mStatus); }
+    virtual void encode(Serializer &s) const { s << mStatus; }
+    virtual void decode(Deserializer &d) { d >> mStatus; }
 private:
     int mStatus;
 };

@@ -136,7 +136,7 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
 void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
 {
     while (true) {
-        if (!mSocketClient->buffer().isEmpty())
+        if (!buf.isEmpty())
             mBuffers.push_back(std::move(buf));
 
         unsigned int available = bufferSize(mBuffers);
@@ -193,6 +193,31 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
     }
 }
 
+class SocketClientBuffer : public Serializer::Buffer
+{
+public:
+    SocketClientBuffer(const SocketClient::SharedPtr &client)
+        : mClient(client), mWritten(0)
+    {}
+
+    virtual bool write(const char *data, int len)
+    {
+        if (mClient->write(data, len)) {
+            mWritten += len;
+            return true;
+        }
+        return false;
+    }
+
+    virtual int pos() const
+    {
+        return mWritten;
+    }
+private:
+    SocketClient::SharedPtr mClient;
+    int mWritten;
+};
+
 bool Connection::send(const Message &message)
 {
     // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
@@ -204,9 +229,21 @@ bool Connection::send(const Message &message)
         return false;
     }
 
-    String header, value;
-    message.prepare(mVersion, header, value);
-    mPendingWrite += header.size() + value.size();
-    return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
+    const int size = message.encodedSize();
+    if (size == -1 || message.mFlags & Message::MessageCache) {
+        String header, value;
+        message.prepare(mVersion, header, value);
+        mPendingWrite += header.size() + value.size();
+        assert(!size || size == (header.size() + value.size() - 4));
+        return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
+    } else {
+        assert(size >= 0);
+        mPendingWrite += (size + Message::HeaderExtra);
+        Serializer serializer(std::unique_ptr<SocketClientBuffer>(new SocketClientBuffer(mSocketClient)));
+        message.encodeHeader(serializer, size, mVersion);
+        message.encode(serializer);
+        assert(serializer.hasError() || serializer.pos() == size + 4);
+        return !serializer.hasError();
+    }
 }
 

@@ -51,7 +51,7 @@ public:
         assert(len > 0);
         if (mError)
             return false;
-        if (mBuffer->write(data, len)) {
+        if (!mBuffer->write(data, len)) {
             mError = true;
             return false;
         }

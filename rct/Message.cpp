@@ -11,6 +11,10 @@ Map<uint8_t, Message::MessageCreatorBase *> Message::sFactory;
 void Message::prepare(int version, String &header, String &value) const
 {
     if (mHeader.isEmpty() || version != mVersion) {
+        if (version != mVersion) {
+            mHeader.clear();
+            mValue.clear();
+        }
         {
             Serializer s(mValue);
             encode(s);

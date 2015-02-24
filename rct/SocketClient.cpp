@@ -373,6 +373,7 @@ String SocketClient::sockName(uint16_t* port) const
 
 bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int size)
 {
+    assert((!size) == (!data));
     SocketClient::SharedPtr socketPtr = shared_from_this();
 
     Resolver resolver;
@@ -380,7 +381,6 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
         resolver.resolve(host, port, socketPtr);
 
     int e;
-    bool done = !data;
     unsigned int total = 0;
 
 #ifdef HAVE_NOSIGNAL
@@ -393,11 +393,12 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
         if (!writeBuffer.isEmpty()) {
             while (total < writeBuffer.size()) {
                 assert(writeBuffer.size() > total);
-                if (resolver.addr)
+                if (resolver.addr) {
                     eintrwrap(e, ::sendto(fd, writeBuffer.data() + total, writeBuffer.size() - total,
                                           sendFlags, resolver.addr, resolver.size));
-                else
+                } else {
                     eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
+                }
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         if (wMode == Synchronous) {
@@ -420,7 +421,6 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                             loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
                             writeWait = true;
                         }
-                        done = true;
                         break;
                     } else {
                         // bad
@@ -433,6 +433,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 total += e;
             }
             if (total) {
+                assert(total <= writeBuffer.size());
                 if (total < writeBuffer.size()) {
                     memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
                 }
@@ -440,53 +441,56 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
             }
         }
 
-        if (done || fd == -1) {
+        if (fd == -1 || !data) {
             return fd != -1;
         }
         total = 0;
 
         assert(data != 0 && size > 0);
 
-        for (;;) {
-            assert(size > total);
-            if (resolver.addr)
-                eintrwrap(e, ::sendto(fd, data + total, size - total,
-                                      sendFlags, resolver.addr, resolver.size));
-            else
-                eintrwrap(e, ::write(fd, data + total, size - total));
-            if (e == -1) {
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    if (wMode == Synchronous) {
-                        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-                            // store the rest
-                            const unsigned int rem = size - total;
-                            writeBuffer.reserve(writeBuffer.size() + rem);
-                            memcpy(writeBuffer.end(), data + total, rem);
-                            writeBuffer.resize(writeBuffer.size() + rem);
-
-                            (void)loop->processSocket(fd);
-                            return isConnected();
-                        }
-                    }
-                    assert(!writeWait);
-                    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-                        loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
-                        writeWait = true;
-                    }
-                    break;
+        if (writeBuffer.isEmpty()) {
+            for (;;) {
+                assert(size > total);
+                if (resolver.addr) {
+                    eintrwrap(e, ::sendto(fd, data + total, size - total,
+                                          sendFlags, resolver.addr, resolver.size));
                 } else {
-                    // bad
-                    signalError(shared_from_this(), WriteError);
-                    close();
-                    return false;
+                    eintrwrap(e, ::write(fd, data + total, size - total));
                 }
-            }
-            signalBytesWritten(socketPtr, e);
-            total += e;
-            assert(total <= size);
-            if (total == size) {
-                // we're done
-                return true;
+                if (e == -1) {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        if (wMode == Synchronous) {
+                            if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+                                // store the rest
+                                const unsigned int rem = size - total;
+                                writeBuffer.reserve(writeBuffer.size() + rem);
+                                memcpy(writeBuffer.end(), data + total, rem);
+                                writeBuffer.resize(writeBuffer.size() + rem);
+
+                                (void)loop->processSocket(fd);
+                                return isConnected();
+                            }
+                        }
+                        assert(!writeWait);
+                        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+                            loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
+                            writeWait = true;
+                        }
+                        break;
+                    } else {
+                        // bad
+                        signalError(shared_from_this(), WriteError);
+                        close();
+                        return false;
+                    }
+                }
+                signalBytesWritten(socketPtr, e);
+                total += e;
+                assert(total <= size);
+                if (total == size) {
+                    // we're done
+                    return true;
+                }
             }
         }
     }

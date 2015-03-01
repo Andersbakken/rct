@@ -11,6 +11,8 @@
 
 namespace Rct {
 
+constexpr bool is64Bit = sizeof(void*) == 8;
+
 template <typename T, size_t N>
 constexpr size_t countof(T(&)[N])
 {

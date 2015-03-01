@@ -456,6 +456,24 @@ String colorize(const String &string, AnsiColor color, int from, int len)
     return ret;
 }
 
+bool isIP(const String& addr, LookupMode mode)
+{
+    sockaddr_storage sockaddr;
+    memset(&sockaddr, 0, sizeof(sockaddr_storage));
+    if (mode == Auto)
+        mode = addr.contains(':') ? IPv6 : IPv4;
+    if (mode == IPv6) {
+        sockaddr_in6* sockaddr6 = reinterpret_cast<sockaddr_in6*>(&sockaddr);
+        if (inet_pton(AF_INET6, addr.constData(), &sockaddr6->sin6_addr) != 1)
+            return false;
+    } else {
+        sockaddr_in* sockaddr4 = reinterpret_cast<sockaddr_in*>(&sockaddr);
+        if (inet_pton(AF_INET, addr.constData(), &sockaddr4->sin_addr) != 1)
+            return false;
+    }
+    return true;
+}
+
 String addrLookup(const String& addr, LookupMode mode, bool *ok)
 {
     sockaddr_storage sockaddr;

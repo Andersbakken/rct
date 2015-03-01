@@ -165,6 +165,7 @@ void moveToFront(Node *node, Node *&first, Node *&last)
 enum LookupMode { Auto, IPv4, IPv6 };
 String addrLookup(const String& addr, LookupMode mode = Auto, bool *ok = 0);
 String nameLookup(const String& name, LookupMode mode = IPv4, bool *ok = 0);
+bool isIP(const String& addr, LookupMode mode = Auto);
 
 inline bool timevalGreaterEqualThan(const timeval* a, const timeval* b)
 {

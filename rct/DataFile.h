@@ -1,6 +1,10 @@
 #ifndef DataFile_h
 #define DataFile_h
 
+#include <rct/Serializer.h>
+#include <rct/Path.h>
+#include <stdio.h>
+
 class DataFile
 {
 public:

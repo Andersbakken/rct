@@ -8,6 +8,7 @@
 #include <rct/Path.h>
 #include <rct/List.h>
 #include <sys/select.h>
+#include <regex>
 
 namespace Rct {
 
@@ -20,6 +21,27 @@ constexpr size_t countof(T(&)[N])
 }
 
 enum { Max_USec = 1000000 };
+
+inline int indexIn(const String &string, const std::regex &rx)
+{
+    std::cmatch match;
+    if (std::regex_match(string.constData(), match, rx) && !match.empty())
+        return match.position(0);
+    return -1;
+}
+
+inline bool contains(const char *str, const std::regex &rx, std::cmatch *match = 0)
+{
+    std::cmatch null;
+    std::cmatch &m = match ? *match : null;
+    return std::regex_match(str, m, rx);
+}
+
+inline bool contains(const String &str, const std::regex &rx, std::cmatch *match = 0)
+{
+    return contains(str.constData(), rx, match);
+}
+
 
 String shortOptions(const option *longOptions);
 int readLine(FILE *f, char *buf = 0, int max = -1);

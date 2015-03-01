@@ -561,7 +561,7 @@ public:
             const int next = indexOf(ch, last);
             if (next == -1)
                 break;
-            if (last != next - last || !(flags & SkipEmpty))
+            if (next > last || !(flags & SkipEmpty))
                 ret.append(mid(last, next - last));
             last = next + 1;
         }
@@ -578,7 +578,7 @@ public:
             const int next = indexOf(split, last);
             if (next == -1)
                 break;
-            if (last != next - last || !(flags & SkipEmpty))
+            if (next > last || !(flags & SkipEmpty))
                 ret.append(mid(last, next - last));
             last = next + split.size();
         }

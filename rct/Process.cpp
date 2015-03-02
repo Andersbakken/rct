@@ -7,6 +7,7 @@
 #include "StopWatch.h"
 #include "Thread.h"
 #include <map>
+#include <unordered_map>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -24,8 +25,9 @@ class ProcessThread : public Thread
 public:
     static void installProcessHandler();
     static void addPid(pid_t pid, Process* process, bool async);
-    static void removePid(pid_t pid);
     static void shutdown();
+    static void setPending(int pending);
+
 protected:
     void run();
 
@@ -43,6 +45,8 @@ private:
     static int sProcessPipe[2];
 
     static std::mutex sProcessMutex;
+    static int sPending;
+    static std::unordered_map<pid_t, int> sPendingPids;
 
     struct ProcessData
     {
@@ -55,6 +59,8 @@ private:
 ProcessThread* ProcessThread::sProcessThread = 0;
 int ProcessThread::sProcessPipe[2];
 std::mutex ProcessThread::sProcessMutex;
+int ProcessThread::sPending = 0;
+std::unordered_map<pid_t, int> ProcessThread::sPendingPids;
 std::map<pid_t, ProcessThread::ProcessData> ProcessThread::sProcesses;
 
 class ProcessThreadKiller
@@ -75,16 +81,42 @@ ProcessThread::ProcessThread()
     SocketClient::setFlags(sProcessPipe[1], O_NONBLOCK, F_GETFL, F_SETFL);
 }
 
+void ProcessThread::setPending(int pending)
+{
+    std::lock_guard<std::mutex> lock(sProcessMutex);
+    sPending += pending;
+    assert(sPending >= 0);
+    if (!pending)
+        sPendingPids.clear();
+}
+
 void ProcessThread::addPid(pid_t pid, Process* process, bool async)
 {
     std::lock_guard<std::mutex> lock(sProcessMutex);
-    sProcesses[pid] = { process, async ? EventLoop::eventLoop() : EventLoop::SharedPtr() };
-}
+    sPending -= 1;
 
-void ProcessThread::removePid(pid_t pid)
-{
-    std::lock_guard<std::mutex> lock(sProcessMutex);
-    sProcesses.erase(pid);
+    if (!sPendingPids.empty()) {
+        // we have to check
+        auto it = sPendingPids.find(pid);
+        if (it != sPendingPids.end()) {
+            // fire the signal now
+            const int ret = it->second;
+            if (async) {
+                EventLoop::eventLoop()->callLater([process, ret]() { process->finish(ret); });
+            } else {
+                process->finish(ret);
+            }
+            sPendingPids.erase(it);
+            if (!sPending)
+                sPendingPids.clear();
+            return;
+        }
+    }
+
+    sProcesses[pid] = { process, async ? EventLoop::eventLoop() : EventLoop::SharedPtr() };
+
+    if (!sPending)
+        sPendingPids.clear();
 }
 
 void ProcessThread::run()
@@ -136,7 +168,12 @@ void ProcessThread::run()
                             }
                             lock.lock();
                         } else {
-                            error() << "couldn't find process for pid" << p;
+                            if (sPending) {
+                                assert(sPendingPids.find(p) == sPendingPids.end());
+                                sPendingPids[p] = ret;
+                            } else {
+                                error() << "couldn't find process for pid" << p;
+                            }
                         }
                     }
                 } while (!done);
@@ -333,10 +370,15 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
         }
     }
 
+    ProcessThread::setPending(1);
+
     mPid = ::fork();
     if (mPid == -1) {
         //printf("fork, something horrible has happened %d\n", errno);
         // bail out
+
+        ProcessThread::setPending(-1);
+
         eintrwrap(err, ::close(mStdIn[1]));
         eintrwrap(err, ::close(mStdIn[0]));
         eintrwrap(err, ::close(mStdOut[1]));
@@ -419,6 +461,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Failed to read from closePipe during process start";
                 mPid = -1;
+                ProcessThread::setPending(-1);
                 return Error;
             } else if (err == 0) {
                 // process has started successfully
@@ -428,6 +471,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Process failed to start";
                 mPid = -1;
+                ProcessThread::setPending(-1);
                 return Error;
             }
         }

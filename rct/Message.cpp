@@ -5,6 +5,7 @@
 #include "Serializer.h"
 #include "QuitMessage.h"
 #include <assert.h>
+#include <cstdlib>
 
 std::mutex Message::sMutex;
 Map<uint8_t, Message::MessageCreatorBase *> Message::sFactory;
@@ -72,6 +73,7 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
     }
     std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId)) {
+        atexit(Message::cleanup);
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
         sFactory[FinishMessage::MessageId] = new MessageCreator<FinishMessage>();
         sFactory[ConnectMessage::MessageId] = new MessageCreator<ConnectMessage>();
@@ -97,7 +99,3 @@ void Message::cleanup()
         delete it->second;
     sFactory.clear();
 }
-
-struct Janitor {
-    ~Janitor() { Message::cleanup(); }
-} janitor;

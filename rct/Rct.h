@@ -269,19 +269,7 @@ static inline bool wildCmp(const char *wild, const char *string, String::CaseSen
     return !*wild;
 }
 
-static inline String strerror(int error = errno)
-{
-#ifdef _GNU_SOURCE
-#define HAD_GNU_SOURCE
-#undef _GNU_SOURCE
-#endif
-    char buf[1024];
-    strerror_r(error, buf, sizeof(buf));
-#ifdef HAD_GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-    return buf;
-}
+String strerror(int error = errno);
 }
 
 #define eintrwrap(VAR, BLOCK)                   \

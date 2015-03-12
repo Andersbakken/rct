@@ -562,6 +562,20 @@ String nameLookup(const String& name, LookupMode mode, bool *ok)
     return out;
 }
 
+String strerror(int error)
+{
+#ifdef _GNU_SOURCE
+#undef _GNU_SOURCE
+#endif
+#ifdef __USE_GNU
+#undef __USE_GNU
+#endif
+    char buf[1024];
+    strerror_r(error, buf, sizeof(buf));
+    return buf;
+}
+
+
 } // namespace Rct
 
 #ifdef RCT_DEBUG_MUTEX

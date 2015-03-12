@@ -101,17 +101,18 @@ String String::toHex(const void *pAddressIn, int lSize)
     int lOutLen, lIndex, lIndex2, lOutLen2;
     int lRelPos;
     struct {
-        char *pData;
+        const unsigned char *pData;
         unsigned int lSize;
     } buf;
-    unsigned char *pTmp, ucTmp;
-    unsigned char *pAddress = (unsigned char *)pAddressIn;
+    const unsigned char *pTmp;
+    unsigned char ucTmp;
+    const unsigned char *pAddress = static_cast<const unsigned char *>(pAddressIn);
 
-    buf.pData = (char *)pAddress;
+    buf.pData = pAddress;
     buf.lSize = lSize;
 
     while (buf.lSize > 0) {
-        pTmp = (unsigned char *)buf.pData;
+        pTmp = buf.pData;
         lOutLen = (int)buf.lSize;
         if (lOutLen > 16)
             lOutLen = 16;

@@ -271,8 +271,14 @@ static inline bool wildCmp(const char *wild, const char *string, String::CaseSen
 
 static inline String strerror(int error = errno)
 {
+#ifdef _GNU_SOURCE
+#define HAD_GNU_SOURCE
+#undef _GNU_SOURCE
     char buf[1024];
     strerror_r(error, buf, sizeof(buf));
+#ifdef HAD_GNU_SOURCE
+#defined _GNU_SOURCE
+#endif
     return buf;
 }
 }

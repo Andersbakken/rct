@@ -152,6 +152,14 @@ void logDirect(int level, const String &out)
     }
 }
 
+void log(const std::function<void(LogOutput *)> &func)
+{
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
+    for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
+        func(*it);
+    }
+}
+
 void log(int level, const char *format, ...)
 {
     va_list v;

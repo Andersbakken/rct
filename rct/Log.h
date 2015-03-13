@@ -32,9 +32,17 @@ public:
         return level >= 0 && level <= mLogLevel;
     }
     virtual void log(const char */*msg*/, int /*len*/) { }
+    void log(const String &msg) { log(msg.constData(), msg.length()); }
+    template <int StaticBufSize = 256>
+    void log(const char *format, ...)
+    {
+        va_list args;
+        va_start(args, format);
+        log(String::format<StaticBufSize>(format, args));
+        va_end(args);
+    }
 
     int logLevel() const { return mLogLevel; }
-
 private:
     int mLogLevel;
 };
@@ -53,6 +61,7 @@ void warning(const char *format, ...);
 void error(const char *format, ...);
 #endif
 void logDirect(int level, const String &out);
+void log(const std::function<void(LogOutput *)> &func);
 
 bool testLog(int level);
 enum { LogStderr = 0x1, LogSyslog = 0x2 };

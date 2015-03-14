@@ -19,9 +19,9 @@ class Connection : public std::enable_shared_from_this<Connection>
 {
 public:
     Connection(int version = 0);
-    Connection(const SocketClient::SharedPtr &client, int version = 0);
     virtual ~Connection();
 
+    void connect(const SocketClient::SharedPtr &client);
     void setVersion(int version) { mVersion = version; }
     int version() const { return mVersion; }
 
@@ -79,24 +79,24 @@ public:
 
     bool isConnected() const { return mSocketClient->isConnected(); }
 
-    Signal<std::function<void(Connection*)> > &sendFinished() { return mSendFinished; }
-    Signal<std::function<void(Connection*)> > &connected() { return mConnected; }
-    Signal<std::function<void(Connection*)> > &disconnected() { return mDisconnected; }
-    Signal<std::function<void(Connection*)> > &error() { return mError; }
-    Signal<std::function<void(Connection*, int)> > &finished() { return mFinished; }
-    Signal<std::function<void(std::shared_ptr<Message>, Connection*)> > &newMessage() { return mNewMessage; }
+    Signal<std::function<void(std::shared_ptr<Connection>)> > &sendFinished() { return mSendFinished; }
+    Signal<std::function<void(std::shared_ptr<Connection>)> > &connected() { return mConnected; }
+    Signal<std::function<void(std::shared_ptr<Connection>)> > &disconnected() { return mDisconnected; }
+    Signal<std::function<void(std::shared_ptr<Connection>)> > &error() { return mError; }
+    Signal<std::function<void(std::shared_ptr<Connection>, int)> > &finished() { return mFinished; }
+    Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)> > &newMessage() { return mNewMessage; }
     SocketClient::SharedPtr client() const { return mSocketClient; }
 
 private:
-    void onClientConnected(const SocketClient::SharedPtr&) { mConnected(this); }
-    void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(this); }
+    void onClientConnected(const SocketClient::SharedPtr&) { mConnected(shared_from_this()); }
+    void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(shared_from_this()); }
     void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);
     void onDataWritten(const SocketClient::SharedPtr&, int);
     void onSocketError(const SocketClient::SharedPtr&, SocketClient::Error error)
     {
         ::warning() << "Socket error" << error << errno << Rct::strerror();
-        mError(this);
-        mDisconnected(this);
+        mError(shared_from_this());
+        mDisconnected(shared_from_this());
     }
     void checkData();
 
@@ -106,9 +106,9 @@ private:
 
     bool mSilent, mIsConnected, mWarned;
 
-    Signal<std::function<void(std::shared_ptr<Message>, Connection*)> > mNewMessage;
-    Signal<std::function<void(Connection*)> > mConnected, mDisconnected, mError, mSendFinished;
-    Signal<std::function<void(Connection*, int)> > mFinished;
+    Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)> > mNewMessage;
+    Signal<std::function<void(std::shared_ptr<Connection>)> > mConnected, mDisconnected, mError, mSendFinished;
+    Signal<std::function<void(std::shared_ptr<Connection>, int)> > mFinished;
 
 };
 

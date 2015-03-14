@@ -9,7 +9,7 @@
 
 static unsigned int sFlags = 0;
 static StopWatch sStart;
-static Set<LogOutput*> sOutputs;
+static Set<std::shared_ptr<LogOutput> > sOutputs;
 static std::mutex sOutputsMutex;
 static int sLevel = 0;
 static const bool sTimedLogs = getenv("RCT_LOG_TIME");
@@ -120,43 +120,39 @@ static void log(int level, const char *format, va_list v)
         n = vsnprintf(msg, n + 1, format, v2);
     }
 
-    std::lock_guard<std::mutex> lock(sOutputsMutex);
-    if (sOutputs.isEmpty()) {
-        printf("%s\n", msg);
-    } else {
-        for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
-            LogOutput *output = *it;
-            if (output->testLog(level)) {
-                output->log(msg, n);
-            }
-        }
-    }
-
+    logDirect(level, msg, n);
     if (msg != buf)
         delete []msg;
     va_end(v2);
 }
 
-void logDirect(int level, const String &out)
+void logDirect(int level, const char *msg, int len)
 {
-    std::lock_guard<std::mutex> lock(sOutputsMutex);
-    if (sOutputs.isEmpty()) {
-        printf("%s\n", out.constData());
+    Set<std::shared_ptr<LogOutput> > logs;
+    {
+        std::lock_guard<std::mutex> lock(sOutputsMutex);
+        logs = sOutputs;
+    }
+    if (logs.isEmpty()) {
+        printf("%s\n", msg);
     } else {
-        for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
-            LogOutput *output = *it;
+        for (const auto &output : logs) {
             if (output->testLog(level)) {
-                output->log(out.constData(), out.size());
+                output->log(msg, len);
             }
         }
     }
 }
 
-void log(const std::function<void(LogOutput *)> &func)
+void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func)
 {
-    std::lock_guard<std::mutex> lock(sOutputsMutex);
-    for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
-        func(*it);
+    Set<std::shared_ptr<LogOutput> > logs;
+    {
+        std::lock_guard<std::mutex> lock(sOutputsMutex);
+        logs = sOutputs;
+    }
+    for (const auto &out : logs) {
+        func(out);
     }
 }
 
@@ -205,8 +201,8 @@ bool testLog(int level)
     std::lock_guard<std::mutex> lock(sOutputsMutex);
     if (sOutputs.isEmpty())
         return true;
-    for (Set<LogOutput*>::const_iterator it = sOutputs.begin(); it != sOutputs.end(); ++it) {
-        if ((*it)->testLog(level))
+    for (const auto &output : sOutputs) {
+        if (output->testLog(level))
             return true;
     }
     return false;
@@ -222,10 +218,14 @@ bool initLogging(const char* ident, int mode, int level, const Path &file, unsig
     sStart.start();
     sFlags = flags;
     sLevel = level;
-    if (mode & LogStderr)
-        new StderrOutput(level);
-    if (mode & LogSyslog)
-        new SyslogOutput(ident, level);
+    if (mode & LogStderr) {
+        std::shared_ptr<StderrOutput> out(new StderrOutput(level));
+        out->add();
+    }
+    if (mode & LogSyslog) {
+        std::shared_ptr<SyslogOutput> out(new SyslogOutput(ident, level));
+        out->add();
+    }
     if (!file.isEmpty()) {
         if (!(flags & (Log::Append|Log::DontRotate)) && file.exists()) {
             int i = 0;
@@ -242,19 +242,16 @@ bool initLogging(const char* ident, int mode, int level, const Path &file, unsig
         FILE *f = fopen(file.constData(), flags & Log::Append ? "a" : "w");
         if (!f)
             return false;
-        new FileOutput(f);
+        std::shared_ptr<FileOutput> out(new FileOutput(f));
+        out->add();
     }
     return true;
 }
 
 void cleanupLogging()
 {
-    Set<LogOutput*>::const_iterator it = sOutputs.begin();
-    while (it != sOutputs.end()) {
-        LogOutput *out = *it;
-        sOutputs.erase(it++);
-        delete out;
-    }
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
+    sOutputs.clear();
 }
 
 Log::Log(String *out)
@@ -283,12 +280,20 @@ Log &Log::operator=(const Log &other)
 LogOutput::LogOutput(int logLevel)
     : mLogLevel(logLevel)
 {
-    std::lock_guard<std::mutex> lock(sOutputsMutex);
-    sOutputs.insert(this);
 }
 
 LogOutput::~LogOutput()
 {
+}
+
+void LogOutput::add()
+{
     std::lock_guard<std::mutex> lock(sOutputsMutex);
-    sOutputs.remove(this);
+    sOutputs.insert(shared_from_this());
+}
+
+void LogOutput::remove()
+{
+    std::lock_guard<std::mutex> lock(sOutputsMutex);
+    sOutputs.remove(shared_from_this());
 }

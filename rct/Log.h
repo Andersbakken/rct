@@ -21,11 +21,14 @@ enum LogLevel {
     VerboseDebug = 3
 };
 
-class LogOutput
+class LogOutput : public std::enable_shared_from_this<LogOutput>
 {
 public:
     LogOutput(int logLevel);
     virtual ~LogOutput();
+
+    void add();
+    void remove();
 
     virtual bool testLog(int level) const
     {
@@ -60,8 +63,12 @@ void verboseDebug(const char *format, ...);
 void warning(const char *format, ...);
 void error(const char *format, ...);
 #endif
-void logDirect(int level, const String &out);
-void log(const std::function<void(LogOutput *)> &func);
+void logDirect(int level, const char *str, int length);
+inline void logDirect(int level, const String &out)
+{
+    return logDirect(level, out.constData(), out.size());
+}
+void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func);
 
 bool testLog(int level);
 enum { LogStderr = 0x1, LogSyslog = 0x2 };

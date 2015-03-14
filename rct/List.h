@@ -93,13 +93,17 @@ public:
         return -1;
     }
 
-    bool remove(const T& t)
+    bool remove(const T &t)
     {
-        typename Base::iterator it = std::find(Base::begin(), Base::end(), t);
-        if (it == Base::end())
-            return false;
-        Base::erase(it);
-        return true;
+        bool ret = false;
+        while (true) {
+            typename Base::iterator it = std::find(Base::begin(), Base::end(), t);
+            if (it == Base::end())
+                break;
+            Base::erase(it);
+            ret = true;
+        }
+        return ret;
     }
 
     void removeAt(int idx)

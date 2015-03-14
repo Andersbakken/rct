@@ -93,15 +93,15 @@ public:
         return -1;
     }
 
-    bool remove(const T &t)
+    int remove(const T &t)
     {
-        bool ret = false;
+        int ret = 0;
         while (true) {
             typename Base::iterator it = std::find(Base::begin(), Base::end(), t);
             if (it == Base::end())
                 break;
             Base::erase(it);
-            ret = true;
+            ++ret;
         }
         return ret;
     }

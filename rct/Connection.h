@@ -18,7 +18,10 @@ class Event;
 class Connection : public std::enable_shared_from_this<Connection>
 {
 public:
-    Connection(int version = 0);
+    static std::shared_ptr<Connection> create(int version = 0)
+    {
+        return std::shared_ptr<Connection>(new Connection(version));
+    }
     virtual ~Connection();
 
     void connect(const SocketClient::SharedPtr &client);
@@ -88,6 +91,7 @@ public:
     SocketClient::SharedPtr client() const { return mSocketClient; }
 
 private:
+    Connection(int version);
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(shared_from_this()); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(shared_from_this()); }
     void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);

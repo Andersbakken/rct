@@ -22,9 +22,14 @@ public:
     {
         return std::shared_ptr<Connection>(new Connection(version));
     }
+    static std::shared_ptr<Connection> create(const std::shared_ptr<SocketClient> &client, int version = 0)
+    {
+        std::shared_ptr<Connection> ret(new Connection(version));
+        ret->connect(client);
+        return ret;
+    }
     virtual ~Connection();
 
-    void connect(const SocketClient::SharedPtr &client);
     void setVersion(int version) { mVersion = version; }
     int version() const { return mVersion; }
 
@@ -92,6 +97,7 @@ public:
 
 private:
     Connection(int version);
+    void connect(const SocketClient::SharedPtr &client);
     void onClientConnected(const SocketClient::SharedPtr&) { mConnected(shared_from_this()); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(shared_from_this()); }
     void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);

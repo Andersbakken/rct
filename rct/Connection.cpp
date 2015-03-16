@@ -237,7 +237,7 @@ bool Connection::send(const Message &message)
         return false;
     }
 
-    mAboutToSend(shared_from_this(), message);
+    mAboutToSend(shared_from_this(), &message);
 
     const int size = message.encodedSize();
     if (size == -1 || message.mFlags & Message::MessageCache) {

@@ -571,6 +571,7 @@ String strerror(int error)
 #undef __USE_GNU
 #endif
     char buf[1024];
+    buf[0] = '\0';
     auto foo = strerror_r(error, buf, sizeof(buf));
     (void)foo;
     return buf;

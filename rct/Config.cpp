@@ -1,4 +1,5 @@
 #include "Config.h"
+#include "Log.h"
 
 List<Config::OptionBase*> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;
@@ -9,11 +10,12 @@ static inline Value createValue(Value::Type type, const char *val, bool *ok)
     return Value::create(val).convert(type, ok);
 }
 
-void Config::parse(int argc, char **argv, const List<Path> &rcFiles)
+bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 {
     String error;
     Rct::findExecutablePath(argv[0]);
     List<String> args;
+    args << argv[0];
     for (int i=0; i<rcFiles.size(); ++i) {
         FILE *f = fopen(rcFiles.at(i).constData(), "r");
         if (f) {
@@ -39,10 +41,10 @@ void Config::parse(int argc, char **argv, const List<Path> &rcFiles)
             fclose(f);
         }
     }
-    for (int i=0; i<argc; ++i)
+    for (int i=1; i<argc; ++i)
         args.append(argv[i]);
 
-    // error() << "parsing" << args;
+    // ::error() << "parsing" << args;
 
     char **a = new char*[args.size()];
     for (int i=0; i<args.size(); ++i) {
@@ -152,6 +154,7 @@ done:
         sFreeArgs << a[optind++];
     }
     if (!sAllowsFreeArgs && !sFreeArgs.isEmpty()) {
+        error = String::format<128>("Unexpected free args");
         ok = false;
     }
 
@@ -167,8 +170,8 @@ done:
             showHelp(stderr);
             fprintf(stderr, "%s\n", error.constData());
         }
-        exit(1);
     }
+    return ok;
 }
 
 void Config::showHelp(FILE *f)

@@ -574,7 +574,9 @@ String strerror(int error)
     buf[0] = '\0';
     auto foo = strerror_r(error, buf, sizeof(buf));
     (void)foo;
-    return buf;
+    String ret = buf;
+    ret << " (" << error << ')';
+    return ret;
 }
 
 

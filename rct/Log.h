@@ -30,6 +30,8 @@ public:
     void add();
     void remove();
 
+    virtual unsigned int flags() const { return 0; }
+
     virtual bool testLog(int level) const
     {
         return level >= 0 && level <= mLogLevel;

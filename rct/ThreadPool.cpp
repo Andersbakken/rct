@@ -29,7 +29,7 @@ public:
     void stop();
 
 protected:
-    virtual void run();
+    virtual void run() override;
 
 private:
     std::shared_ptr<ThreadPool::Job> mJob;

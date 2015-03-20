@@ -28,7 +28,7 @@ public:
         ret->connect(client);
         return ret;
     }
-    virtual ~Connection();
+    ~Connection();
 
     void setVersion(int version) { mVersion = version; }
     int version() const { return mVersion; }
@@ -41,7 +41,7 @@ public:
 
     int pendingWrite() const;
 
-    virtual bool send(const Message &message);
+    bool send(const Message &message);
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {

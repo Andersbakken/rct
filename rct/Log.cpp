@@ -27,7 +27,7 @@ public:
             fclose(file);
     }
 
-    virtual void log(const char *msg, int)
+    virtual void log(const char *msg, int) override
     {
         if (sTimedLogs) {
             fprintf(file, "%s %s\n", String::formatTime(time(0), String::Time).constData(), msg);
@@ -45,7 +45,7 @@ public:
     StderrOutput(int lvl)
         : LogOutput(lvl)
     {}
-    virtual void log(const char *msg, int)
+    virtual void log(const char *msg, int) override
     {
         if (sTimedLogs) {
             fprintf(stderr, "%s %s\n", String::formatTime(time(0), String::Time).constData(), msg);
@@ -67,7 +67,7 @@ public:
     {
         ::closelog();
     }
-    virtual void log(const char *msg, int)
+    virtual void log(const char *msg, int) override
     {
         ::syslog(LOG_NOTICE, "%s", msg);
     }

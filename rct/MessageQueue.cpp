@@ -23,7 +23,7 @@ public:
     void stop();
 
 protected:
-    virtual void run();
+    virtual void run() override;
 
 private:
     static void notifyDataAvailable(const Buffer& buf, const std::weak_ptr<MessageThread>& thread);

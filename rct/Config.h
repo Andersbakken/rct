@@ -159,7 +159,7 @@ private:
     };
     template <typename T>
     struct Option : public OptionBase {
-        virtual bool validate(String &err)
+        virtual bool validate(String &err) override
         {
             if (validator) {
                 const T t = value.convert<T>();
@@ -175,7 +175,7 @@ private:
 
     template <typename T>
     struct ListOption : public OptionBase {
-        virtual bool validate(String &err)
+        virtual bool validate(String &err) override
         {
             if (validator) {
                 const List<Value> t = value.convert<List<Value> >();

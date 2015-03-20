@@ -75,12 +75,12 @@ private:
             : mString(&out.ref())
         {}
 
-        virtual bool write(const char *data, int len)
+        virtual bool write(const char *data, int len) override
         {
             mString->append(data, len);
             return true;
         }
-        virtual int pos() const { return mString->size(); }
+        virtual int pos() const override { return mString->size(); }
     private:
         std::string *mString;
     };
@@ -93,14 +93,14 @@ private:
             assert(f);
         }
 
-        virtual bool write(const char *data, int len)
+        virtual bool write(const char *data, int len) override
         {
             assert(mFile);
             const size_t ret = fwrite(data, sizeof(char), len, mFile);
             return (ret == static_cast<size_t>(len));
         }
 
-        virtual int pos() const
+        virtual int pos() const override
         {
             return static_cast<int>(ftell(mFile));
         }

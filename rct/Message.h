@@ -55,7 +55,7 @@ private:
     class MessageCreator : public MessageCreatorBase
     {
     public:
-        virtual Message *create(const char *data, int size)
+        virtual Message *create(const char *data, int size) override
         {
             T *t = new T;
             Deserializer deserializer(data, size);

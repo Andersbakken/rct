@@ -14,9 +14,9 @@ public:
     {
     }
 
-    virtual int encodedSize() const { return 0; }
-    void encode(Serializer &) const {}
-    void decode(Deserializer &) {}
+    virtual int encodedSize() const override { return 0; }
+    virtual void encode(Serializer &) const override {}
+    virtual void decode(Deserializer &) override {}
 };
 
 #endif

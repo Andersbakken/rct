@@ -208,7 +208,7 @@ public:
         : mClient(client), mWritten(0)
     {}
 
-    virtual bool write(const char *data, int len)
+    virtual bool write(const char *data, int len) override
     {
         if (mClient->write(data, len)) {
             mWritten += len;
@@ -217,7 +217,7 @@ public:
         return false;
     }
 
-    virtual int pos() const
+    virtual int pos() const override
     {
         return mWritten;
     }

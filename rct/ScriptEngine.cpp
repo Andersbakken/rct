@@ -34,7 +34,7 @@ struct ScriptEngineCustom : public Value::Custom
         object.Reset(isolate, obj);
     }
 
-    virtual String toString() const
+    virtual String toString() const override
     {
         if (object.IsEmpty())
             return String("\"\"");

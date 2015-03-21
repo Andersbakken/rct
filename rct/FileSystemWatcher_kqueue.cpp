@@ -244,7 +244,7 @@ void FileSystemWatcher::notifyReadyRead()
                 const Path p = mWatchedById.value(event.ident);
                 if (event.flags & EV_ERROR) {
                     error("FileSystemWatcher::notifyReadyRead() kevent element failed for '%s' (%ld) %s",
-                          p.constData(), event.data, Rct::strerror(event.data));
+                          p.constData(), event.data, Rct::strerror(event.data).constData());
                     continue;
                 }
                 if (p.isEmpty()) {

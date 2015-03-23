@@ -229,7 +229,7 @@ private:
 bool Connection::send(const Message &message)
 {
     // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
-    if (!mSocketClient->isConnected()) {
+    if (!mSocketClient || !mSocketClient->isConnected()) {
         if (!mWarned) {
             mWarned = true;
             ::error("Trying to send message to unconnected client (%d)", message.messageId());

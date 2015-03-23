@@ -143,8 +143,12 @@ void FileSystemWatcher::notifyReadyRead()
             if (event->mask & (IN_DELETE_SELF|IN_MOVE_SELF|IN_UNMOUNT)) {
                 changes.add(Changes::Remove, path);
             } else if (event->mask & (IN_CREATE|IN_MOVED_TO)) {
+                if (isDir)
+                    path.append(event->name);
                 changes.add(Changes::Add, path);
             } else if (event->mask & (IN_DELETE|IN_MOVED_FROM)) {
+                if (isDir)
+                    path.append(event->name);
                 changes.add(Changes::Remove, path);
             } else if (event->mask & (IN_ATTRIB|IN_CLOSE_WRITE)) {
                 if (isDir)

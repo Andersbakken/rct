@@ -46,7 +46,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 
     // ::error() << "parsing" << args;
 
-    char **a = new char*[args.size()];
+    char *a[args.size()];
     for (int i=0; i<args.size(); ++i) {
         a[i] = strdup(args.at(i).constData());
     }
@@ -163,7 +163,6 @@ done:
     }
 
     delete[] options;
-    delete[] a;
 
     if (!ok) {
         if (!error.isEmpty()) {

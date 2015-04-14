@@ -250,9 +250,6 @@ if (NOT RCT_NO_INSTALL)
     rct/Buffer.h
     rct/Config.h
     rct/Connection.h
-    rct/DB.h
-    rct/DBmap.h
-    rct/DBrocksdb.h
     rct/EventLoop.h
     rct/FileSystemWatcher.h
     rct/List.h
@@ -269,7 +266,6 @@ if (NOT RCT_NO_INSTALL)
     rct/ReadLocker.h
     rct/ReadWriteLock.h
     rct/Rect.h
-    rct/RegExp.h
     rct/ResponseMessage.h
     rct/SHA256.h
     rct/Semaphore.h

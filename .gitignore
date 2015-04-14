@@ -15,3 +15,4 @@
 /.ninja_deps
 /compile_commands.json
 /dbtest
+/build/*

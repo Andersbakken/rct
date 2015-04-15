@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <mutex>
 #include <rct/Log.h>
+#include <rct/Timer.h>
 #ifdef HAVE_FSEVENTS
 #include <CoreServices/CoreServices.h>
 #ifdef check
@@ -52,6 +53,9 @@ private:
     bool isWatching(const Path& path) const;
 #endif
 #else
+#if defined(HAVE_INOTIFY)
+    Timer mTimer;
+#endif
     std::mutex mMutex;
     void notifyReadyRead();
     int mFd;

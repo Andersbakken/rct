@@ -9,9 +9,14 @@
 
 FileSystemWatcher::FileSystemWatcher()
 {
+    mTimer.timeout().connect([this](Timer *) {
+            notifyReadyRead(); });
+
     mFd = inotify_init();
     assert(mFd != -1);
-    EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
+    EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, [this](int, unsigned int) {
+            mTimer.restart(10, Timer::SingleShot);
+        });
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -84,7 +89,6 @@ bool FileSystemWatcher::unwatch(const Path &path)
     }
 }
 
-#if 0
 static inline void dump(unsigned int mask)
 {
     if (mask & IN_ACCESS)
@@ -114,10 +118,14 @@ static inline void dump(unsigned int mask)
     if (mask & IN_MOVE_SELF)
         printf("IN_MOVE_SELF ");
 }
-#endif
+
+static inline void foolishness2();
+static inline void foolishness() { dump(0); foolishness2(); }
+static inline void foolishness2() { foolishness(); }
 
 void FileSystemWatcher::notifyReadyRead()
 {
+    // printf("notifyReadyRead\n");
     Changes changes;
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -134,9 +142,11 @@ void FileSystemWatcher::notifyReadyRead()
             inotify_event *event = reinterpret_cast<inotify_event*>(buf + idx);
             idx += sizeof(inotify_event) + event->len;
             Path path = mWatchedById.value(event->wd);
-            // printf("%s [%s]", path.constData(), event->name);
-            // dump(event->mask);
-            // printf("\n");
+            // if (event->mask) {
+            //     printf("%s [%s]", path.constData(), event->name);
+            //     dump(event->mask);
+            //     printf("\n");
+            // }
 
             const bool isDir = path.isDir();
 

@@ -19,7 +19,7 @@ public:
     {
     public:
         virtual ~Buffer() {}
-        virtual bool write(const char *data, int len) = 0;
+        virtual bool write(const void *data, int len) = 0;
         virtual int pos() const = 0;
     };
 
@@ -46,7 +46,7 @@ public:
         return write(string.constData(), string.size());
     }
 
-    bool write(const char *data, int len)
+    bool write(const void *data, int len)
     {
         assert(len > 0);
         if (mError)
@@ -75,9 +75,9 @@ private:
             : mString(&out.ref())
         {}
 
-        virtual bool write(const char *data, int len) override
+        virtual bool write(const void *data, int len) override
         {
-            mString->append(data, len);
+            mString->append(static_cast<const char*>(data), len);
             return true;
         }
         virtual int pos() const override { return mString->size(); }
@@ -93,7 +93,7 @@ private:
             assert(f);
         }
 
-        virtual bool write(const char *data, int len) override
+        virtual bool write(const void *data, int len) override
         {
             assert(mFile);
             const size_t ret = fwrite(data, sizeof(char), len, mFile);
@@ -146,7 +146,7 @@ public:
         return 0;
     }
 
-    int read(char *target, int len)
+    int read(void *target, int len)
     {
         static const bool dump = getenv("RCT_SERIALIZER_DUMP");
         if (dump) {

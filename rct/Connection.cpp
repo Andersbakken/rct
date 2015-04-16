@@ -208,7 +208,7 @@ public:
         : mClient(client), mWritten(0)
     {}
 
-    virtual bool write(const char *data, int len) override
+    virtual bool write(const void *data, int len) override
     {
         if (mClient->write(data, len)) {
             mWritten += len;

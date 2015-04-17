@@ -122,9 +122,13 @@ private:
     }                                                                   \
     inline Deserializer &operator>>(Deserializer &s, Flags<T> &f)       \
     {                                                                   \
-        char buf[sizeof(T)];                                            \
-        s.read(reinterpret_cast<char*>(buf), sizeof(T));                \
-        f = *reinterpret_cast<T*>(buf);                                 \
+        union                                                           \
+        {                                                               \
+          char buf[sizeof(T)];                                          \
+          T val;                                                        \
+        } aliased;                                                      \
+        s.read(aliased.buf, sizeof(T));                                 \
+        f = aliased.val;                                                \
         return s;                                                       \
     }
 

@@ -209,13 +209,23 @@ struct FixedSize
     template <> inline Serializer &operator<<(Serializer &s,        \
                                               const type &t)        \
     {                                                               \
-        s.write(reinterpret_cast<const char*>(&t), sizeof(type));   \
+        union {                                                     \
+            type orig;                                              \
+            unsigned char buf[sizeof(type)];                        \
+        };                                                          \
+        orig = t;                                                   \
+        s.write(buf, sizeof(buf));                                  \
         return s;                                                   \
     }                                                               \
     template <> inline Deserializer &operator>>(Deserializer &s,    \
                                                 type &t)            \
     {                                                               \
-        s.read(reinterpret_cast<char*>(&t), sizeof(type));          \
+        union {                                                     \
+            type value;                                             \
+            unsigned char buf[sizeof(type)];                        \
+        };                                                          \
+        s.read(buf, sizeof(buf));                                   \
+        t = value;                                                  \
         return s;                                                   \
     }                                                               \
     struct macrohack
@@ -267,15 +277,8 @@ Serializer &operator<<(Serializer &s, const List<T> &list)
 {
     const uint32_t size = list.size();
     s << size;
-    if (list.size()) {
-        const int fixed = FixedSize<T>::value;
-        if (fixed) {
-            s.write(reinterpret_cast<const char*>(list.data()), fixed * size);
-        } else {
-            for (uint32_t i=0; i<size; ++i) {
-                s << list.at(i);
-            }
-        }
+    for (uint32_t i=0; i<size; ++i) {
+        s << list.at(i);
     }
     return s;
 }
@@ -387,15 +390,10 @@ Deserializer &operator>>(Deserializer &s, List<T> &list)
 {
     uint32_t size;
     s >> size;
-    list.resize(size);
     if (size) {
-        const int fixed = FixedSize<T>::value;
-        if (fixed) {
-            s.read(reinterpret_cast<char*>(list.data()), fixed * size);
-        } else {
-            for (uint32_t i=0; i<size; ++i) {
-                s >> list[i];
-            }
+        list.resize(size);
+        for (uint32_t i=0; i<size; ++i) {
+            s >> list[i];
         }
     }
     return s;

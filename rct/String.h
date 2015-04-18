@@ -463,24 +463,33 @@ public:
 
     bool endsWith(const String &str, CaseSensitivity cs = CaseSensitive) const
     {
-        const int len = str.size();
+        return endsWith(str.constData(), str.size(), cs);
+    }
+
+    bool endsWith(const char *str, int len = -1, CaseSensitivity cs = CaseSensitive) const
+    {
+        if (len == -1)
+            len = strlen(str);
         const int s = mString.size();
         if (s >= len) {
-            return (cs == CaseInsensitive
-                    ? !strncasecmp(str.constData(), constData() + s - len, len)
-                    : !strncmp(str.constData(), constData() + s - len, len));
+            return (cs == CaseInsensitive ? !strncasecmp(str, constData() + s - len, len) : !strncmp(str, constData() + s - len, len));
         }
         return false;
     }
 
+
     bool startsWith(const String &str, CaseSensitivity cs = CaseSensitive) const
     {
+        return startsWith(str.constData(), str.size(), cs);
+    }
+
+    bool startsWith(const char *str, int len = -1, CaseSensitivity cs = CaseSensitive) const
+    {
         const int s = mString.size();
-        const int len = str.size();
+        if (len == -1)
+            len = strlen(str);
         if (s >= len) {
-            return (cs == CaseInsensitive
-                    ? !strncasecmp(str.constData(), constData(), len)
-                    : !strncmp(str.constData(), constData(), len));
+            return (cs == CaseInsensitive ? !strncasecmp(str, constData(), len) : !strncmp(str, constData(), len));
         }
         return false;
     }

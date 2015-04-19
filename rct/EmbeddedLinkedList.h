@@ -51,8 +51,9 @@ public:
     T &last() { return mLast; }
     const T &last() const { return mLast; }
 
-    void remove(T t) // if we're removing a reference to a shared_ptr this could be problematic
+    void remove(const T &tt)
     {
+        T t = tt; // prevent shared_ptr from disappearing underneath us
         assert(t);
         if (t == mFirst) {
             if (t == mLast) {
@@ -188,12 +189,35 @@ public:
 
     void deleteAll()
     {
-        while (mCount) {
-            T t = takeFirst();
+        T t = mFirst;
+        while (t) {
+            T next = t->next;
             deleteNode(t);
+            t = next;
+        }
+        mFirst = mLast = 0;
+        mCount = 0;
+    }
+    void moveToEnd(const T &t)
+    {
+        assert(mCount);
+        if (t->next) {
+            T copy = t;
+            remove(t);
+            append(copy);
         }
     }
 
+    void moveToFront(const T &t)
+    {
+        assert(mCount);
+        if (t->prev) {
+            T copy = t;
+            remove(t);
+            prepend(copy);
+        }
+    }
+private:
     template <typename NodeType>
     void deleteNode(std::shared_ptr<NodeType> &) {}
     template <typename NodeType>
@@ -206,7 +230,7 @@ public:
     {
         delete t;
     }
-// private:
+
     T mFirst, mLast;
     int mCount;
 };

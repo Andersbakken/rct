@@ -27,13 +27,14 @@ public:
             fclose(file);
     }
 
-    virtual void log(const char *msg, int) override
+    virtual void log(const char *msg, int len) override
     {
         if (sTimedLogs) {
-            fprintf(file, "%s %s\n", String::formatTime(time(0), String::Time).constData(), msg);
-        } else {
-            fprintf(file, "%s\n", msg);
+            const String time = String::formatTime(::time(0), String::Time);
+            fwrite(time.constData(), time.size(), 1, file);
         }
+        fwrite(msg, len, 1, file);
+        fwrite("\n", 1, 1, file);
         fflush(file);
     }
     FILE *file;
@@ -134,7 +135,8 @@ void logDirect(int level, const char *msg, int len)
         logs = sOutputs;
     }
     if (logs.isEmpty()) {
-        printf("%s\n", msg);
+        fwrite(msg, len, 1, stdout);
+        fwrite("\n", 1, 1, stdout);
     } else {
         for (const auto &output : logs) {
             if (output->testLog(level)) {

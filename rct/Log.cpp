@@ -14,6 +14,15 @@ static std::mutex sOutputsMutex;
 static int sLevel = 0;
 static const bool sTimedLogs = getenv("RCT_LOG_TIME");
 
+static inline void writeLog(FILE *f, const char *msg, int len)
+{
+    if (sTimedLogs) {
+        const String time = String::formatTime(::time(0), String::Time);
+        fwrite(time.constData(), time.size(), 1, f);
+    }
+    fwrite(msg, len, 1, f);
+    fwrite("\n", 1, 1, f);
+}
 class FileOutput : public LogOutput
 {
 public:
@@ -29,12 +38,7 @@ public:
 
     virtual void log(const char *msg, int len) override
     {
-        if (sTimedLogs) {
-            const String time = String::formatTime(::time(0), String::Time);
-            fwrite(time.constData(), time.size(), 1, file);
-        }
-        fwrite(msg, len, 1, file);
-        fwrite("\n", 1, 1, file);
+        writeLog(file, msg, len);
         fflush(file);
     }
     FILE *file;
@@ -46,13 +50,9 @@ public:
     StderrOutput(int lvl)
         : LogOutput(lvl)
     {}
-    virtual void log(const char *msg, int) override
+    virtual void log(const char *msg, int len) override
     {
-        if (sTimedLogs) {
-            fprintf(stderr, "%s %s\n", String::formatTime(time(0), String::Time).constData(), msg);
-        } else {
-            fprintf(stderr, "%s\n", msg);
-        }
+        writeLog(stderr, msg, len);
     }
 };
 

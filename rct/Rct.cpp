@@ -105,20 +105,21 @@ int readLine(FILE *f, char *buf, int max)
 String readAll(FILE *f, int max)
 {
     assert(f);
-    const int prev = ftell(f);
-    fseek(f, 0, SEEK_END);
-    int size = ftell(f);
-    if (max > 0 && max < size)
-        size = max;
-    String buf(size, '\0');
-    if (size) {
-        fseek(f, 0, SEEK_SET);
-        const int ret = fread(buf.data(), sizeof(char), size, f);
-        if (ret != size)
-            buf.clear();
+    int fd = fileno(f);
+    assert(fd != -1);
+    struct stat st;
+    if (!fstat(fd, &st)) {
+        int size = static_cast<int>(st.st_size);
+        if (max > 0 && max < size)
+            size = max;
+        String buf(size, '\0');
+        if (size) {
+            const int ret = fread(buf.data(), sizeof(char), size, f);
+            if (ret == size)
+                return buf;
+        }
     }
-    fseek(f, prev, SEEK_SET);
-    return buf;
+    return String();
 }
 
 String shortOptions(const option *longOptions)

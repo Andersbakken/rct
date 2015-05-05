@@ -71,6 +71,9 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
         data = uncompressed.constData();
         size = uncompressed.size();
     }
+    if (id == 32) {
+        error() << "About to create a 32:" << String::toHex(data, size);
+    }
     std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId)) {
         atexit(Message::cleanup);

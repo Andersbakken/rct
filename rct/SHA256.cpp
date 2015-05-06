@@ -96,3 +96,24 @@ String SHA256::hash(const char* data, unsigned int size, MapType type)
         return hashToHex(&priv);
     return String(reinterpret_cast<char*>(priv.hash), SHA256_DIGEST_LENGTH);
 }
+
+String SHA256::hashFile(const Path& file, MapType type)
+{
+    int fd = ::open(file.nullTerminated(), 0);
+    if (fd < 0) {
+        return "";
+    }
+
+    int64_t size = file.fileSize();
+    void *mapped = ::mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (mapped == MAP_FAILED) {
+        return "";
+    }
+
+    String ret = SHA256::hash((const char *) mapped, size, type);
+
+    ::munmap(mapped, size);
+    ::close(fd);
+
+    return ret;
+}

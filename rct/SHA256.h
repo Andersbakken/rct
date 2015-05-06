@@ -2,6 +2,7 @@
 #define SHA256_H
 
 #include <rct/String.h>
+#include <rct/Path.h>
 
 class SHA256Private;
 
@@ -22,6 +23,7 @@ public:
 
     static String hash(const String& data, MapType type = Hex);
     static String hash(const char* data, unsigned int size, MapType type = Hex);
+    static String hashFile(const Path& fileName, MapType type = Hex);
 
 private:
     SHA256Private* priv;

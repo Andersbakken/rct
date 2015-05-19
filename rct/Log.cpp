@@ -37,7 +37,7 @@ public:
             fclose(file);
     }
 
-    virtual void log(const char *msg, int len, Flags<LogOutput::LogFlag> flags) override
+    virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
         writeLog(file, msg, len, flags);
         fflush(file);
@@ -51,7 +51,7 @@ public:
     StderrOutput(int lvl)
         : LogOutput(lvl)
     {}
-    virtual void log(const char *msg, int len, Flags<LogOutput::LogFlag> flags) override
+    virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
         writeLog(stderr, msg, len, flags);
     }
@@ -69,7 +69,7 @@ public:
     {
         ::closelog();
     }
-    virtual void log(const char *msg, int, Flags<LogOutput::LogFlag>) override
+    virtual void log(Flags<LogOutput::LogFlag>, const char *msg, int) override
     {
         ::syslog(LOG_NOTICE, "%s", msg);
     }
@@ -142,7 +142,7 @@ void logDirect(int level, const char *msg, int len, Flags<LogOutput::LogFlag> fl
     } else {
         for (const auto &output : logs) {
             if (output->testLog(level)) {
-                output->log(msg, len, flags);
+                output->log(flags, msg, len);
             }
         }
     }

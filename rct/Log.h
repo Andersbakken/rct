@@ -42,8 +42,8 @@ public:
         TrailingNewLine = 0x1,
         DefaultFlags = TrailingNewLine
     };
-    virtual void log(const char */*msg*/, int /*len*/, Flags<LogFlag> /*flags*/) { }
-    void log(const String &msg) { log(msg.constData(), msg.length()); }
+    virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
+    void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
     template <int StaticBufSize = 256>
     void log(const char *format, ...)
     {

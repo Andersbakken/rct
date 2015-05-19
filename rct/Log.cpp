@@ -7,21 +7,22 @@
 #include <stdarg.h>
 #include <syslog.h>
 
-static unsigned int sFlags = 0;
+static Flags<LogFileFlag> sFlags;
 static StopWatch sStart;
 static Set<std::shared_ptr<LogOutput> > sOutputs;
 static std::mutex sOutputsMutex;
 static int sLevel = 0;
 static const bool sTimedLogs = getenv("RCT_LOG_TIME");
 
-static inline void writeLog(FILE *f, const char *msg, int len)
+static inline void writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
     if (sTimedLogs) {
         const String time = String::formatTime(::time(0), String::Time);
         fwrite(time.constData(), time.size(), 1, f);
     }
     fwrite(msg, len, 1, f);
-    fwrite("\n", 1, 1, f);
+    if (flags & LogOutput::TrailingNewLine)
+        fwrite("\n", 1, 1, f);
 }
 class FileOutput : public LogOutput
 {
@@ -36,9 +37,9 @@ public:
             fclose(file);
     }
 
-    virtual void log(const char *msg, int len) override
+    virtual void log(const char *msg, int len, Flags<LogOutput::LogFlag> flags) override
     {
-        writeLog(file, msg, len);
+        writeLog(file, msg, len, flags);
         fflush(file);
     }
     FILE *file;
@@ -50,9 +51,9 @@ public:
     StderrOutput(int lvl)
         : LogOutput(lvl)
     {}
-    virtual void log(const char *msg, int len) override
+    virtual void log(const char *msg, int len, Flags<LogOutput::LogFlag> flags) override
     {
-        writeLog(stderr, msg, len);
+        writeLog(stderr, msg, len, flags);
     }
 };
 
@@ -68,7 +69,7 @@ public:
     {
         ::closelog();
     }
-    virtual void log(const char *msg, int) override
+    virtual void log(const char *msg, int, Flags<LogOutput::LogFlag>) override
     {
         ::syslog(LOG_NOTICE, "%s", msg);
     }
@@ -127,7 +128,7 @@ static void log(int level, const char *format, va_list v)
     va_end(v2);
 }
 
-void logDirect(int level, const char *msg, int len)
+void logDirect(int level, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
     Set<std::shared_ptr<LogOutput> > logs;
     {
@@ -136,11 +137,12 @@ void logDirect(int level, const char *msg, int len)
     }
     if (logs.isEmpty()) {
         fwrite(msg, len, 1, stdout);
-        fwrite("\n", 1, 1, stdout);
+        if (flags & LogOutput::TrailingNewLine)
+            fwrite("\n", 1, 1, stdout);
     } else {
         for (const auto &output : logs) {
             if (output->testLog(level)) {
-                output->log(msg, len);
+                output->log(msg, len, flags);
             }
         }
     }
@@ -215,7 +217,7 @@ int logLevel()
     return sLevel;
 }
 
-bool initLogging(const char* ident, int mode, int level, const Path &file, unsigned int flags)
+bool initLogging(const char* ident, Flags<LogMode> mode, int level, const Path &file, Flags<LogFileFlag> flags)
 {
     sStart.start();
     sFlags = flags;
@@ -229,7 +231,7 @@ bool initLogging(const char* ident, int mode, int level, const Path &file, unsig
         out->add();
     }
     if (!file.isEmpty()) {
-        if (!(flags & (Log::Append|Log::DontRotate)) && file.exists()) {
+        if (!(flags & (Append|DontRotate)) && file.exists()) {
             int i = 0;
             while (true) {
                 const Path rotated = String::format<64>("%s.%d", file.constData(), ++i);
@@ -241,7 +243,7 @@ bool initLogging(const char* ident, int mode, int level, const Path &file, unsig
                 }
             }
         }
-        FILE *f = fopen(file.constData(), flags & Log::Append ? "a" : "w");
+        FILE *f = fopen(file.constData(), flags & Append ? "a" : "w");
         if (!f)
             return false;
         std::shared_ptr<FileOutput> out(new FileOutput(f));
@@ -262,10 +264,10 @@ Log::Log(String *out)
     mData.reset(new Data(out));
 }
 
-Log::Log(int level)
+Log::Log(int level, Flags<LogOutput::LogFlag> flags)
 {
     if (testLog(level))
-        mData.reset(new Data(level));
+        mData.reset(new Data(level, flags));
 }
 
 Log::Log(const Log &other)

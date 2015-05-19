@@ -93,16 +93,19 @@ private:
     T mValue;
 };
 
+#define RCT_FLAGS_OPERATORS(T)                            \
+    inline Flags<T> operator|(T l, T r) { return Flags<T>(l) | r; } \
+    inline Flags<T> operator&(T l, T r) { return Flags<T>(l) & r; } \
+    inline Flags<T> operator^(T l, T r) { return Flags<T>(l) ^ r; } \
+    inline Flags<T> operator+(T l, T r) { return Flags<T>(l) + r; } \
+    inline Flags<T> operator-(T l, T r) { return Flags<T>(l) - r; } \
+    inline Flags<T> operator*(T l, T r) { return Flags<T>(l) * r; } \
+    inline Flags<T> operator%(T l, T r) { return Flags<T>(l) % r; } \
+    inline Flags<T> operator/(T l, T r) { return Flags<T>(l) / r; } \
+    inline Flags<T> operator~(T t) { return ~Flags<T>(t); }
+
 #define RCT_FLAGS(T)                                                    \
-    inline Flags<T> operator|(T l, T r) { return Flags<T>(l) | r; }     \
-    inline Flags<T> operator&(T l, T r) { return Flags<T>(l) & r; }     \
-    inline Flags<T> operator^(T l, T r) { return Flags<T>(l) ^ r; }     \
-    inline Flags<T> operator+(T l, T r) { return Flags<T>(l) + r; }     \
-    inline Flags<T> operator-(T l, T r) { return Flags<T>(l) - r; }     \
-    inline Flags<T> operator*(T l, T r) { return Flags<T>(l) * r; }     \
-    inline Flags<T> operator%(T l, T r) { return Flags<T>(l) % r; }     \
-    inline Flags<T> operator/(T l, T r) { return Flags<T>(l) / r; }     \
-    inline Flags<T> operator~(T t) { return ~Flags<T>(t); }             \
+    RCT_FLAGS_OPERATORS(T)                                              \
     inline Log operator<<(Log log, Flags<T> f)                          \
     {                                                                   \
         log << f.toString();                                            \
@@ -118,13 +121,12 @@ private:
     {                                                                   \
         union                                                           \
         {                                                               \
-          char buf[sizeof(T)];                                          \
-          T val;                                                        \
+            char buf[sizeof(T)];                                        \
+            T val;                                                      \
         } aliased;                                                      \
         s.read(aliased.buf, sizeof(T));                                 \
         f = aliased.val;                                                \
         return s;                                                       \
     }
-
 #endif
 

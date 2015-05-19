@@ -7,6 +7,7 @@
 #include <rct/Hash.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
+#include <rct/Flags.h>
 #include <assert.h>
 #include <cxxabi.h>
 #include <sstream>
@@ -36,7 +37,12 @@ public:
     {
         return level >= 0 && level <= mLogLevel;
     }
-    virtual void log(const char */*msg*/, int /*len*/) { }
+    enum LogFlag {
+        None = 0x0,
+        TrailingNewLine = 0x1,
+        DefaultFlags = TrailingNewLine
+    };
+    virtual void log(const char */*msg*/, int /*len*/, Flags<LogFlag> /*flags*/) { }
     void log(const String &msg) { log(msg.constData(), msg.length()); }
     template <int StaticBufSize = 256>
     void log(const char *format, ...)
@@ -52,6 +58,8 @@ private:
     int mLogLevel;
 };
 
+RCT_FLAGS_OPERATORS(LogOutput::LogFlag);
+
 #ifdef __GNUC__
 void log(int level, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 void debug(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
@@ -65,29 +73,39 @@ void verboseDebug(const char *format, ...);
 void warning(const char *format, ...);
 void error(const char *format, ...);
 #endif
-void logDirect(int level, const char *str, int length);
-inline void logDirect(int level, const String &out)
+void logDirect(int level, const char *str, int length, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
+inline void logDirect(int level, const String &out, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags)
 {
-    return logDirect(level, out.constData(), out.size());
+    return logDirect(level, out.constData(), out.size(), flags);
 }
 void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func);
 
 bool testLog(int level);
-enum { LogStderr = 0x1, LogSyslog = 0x2 };
-bool initLogging(const char* ident, int mode = LogStderr, int logLevel = Error, const Path &logFile = Path(), unsigned int flags = 0);
+enum LogMode {
+    LogStderr = 0x1,
+    LogSyslog = 0x2
+};
+RCT_FLAGS_OPERATORS(LogMode);
+
+enum LogFileFlag {
+    Append = 0x1,
+    DontRotate = 0x2
+};
+RCT_FLAGS_OPERATORS(LogFileFlag);
+
+bool initLogging(const char* ident,
+                 Flags<LogMode> mode = LogStderr,
+                 int logLevel = Error,
+                 const Path &logFile = Path(),
+                 Flags<LogFileFlag> = Flags<LogFileFlag>());
 void cleanupLogging();
 int logLevel();
 void restartTime();
 class Log
 {
 public:
-    enum Flag {
-        Append = 0x1,
-        DontRotate = 0x2
-    };
-
     Log(String *out);
-    Log(int level = 0);
+    Log(int level = 0, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
     Log(const Log &other);
     Log &operator=(const Log &other);
 #ifdef OS_Darwin
@@ -188,14 +206,14 @@ private:
         Data(String *string)
             : outPtr(string), level(-1), spacing(true), disableSpacingOverride(0)
         {}
-        Data(int lvl)
-            : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0)
+        Data(int lvl, Flags<LogOutput::LogFlag> f)
+            : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0), flags(f)
         {
         }
         ~Data()
         {
             if (!out.isEmpty()) {
-                logDirect(level, out);
+                logDirect(level, out, flags);
             }
         }
 
@@ -204,6 +222,7 @@ private:
         String out;
         bool spacing;
         int disableSpacingOverride;
+        Flags<LogOutput::LogFlag> flags;
     };
 
     std::shared_ptr<Data> mData;

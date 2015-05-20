@@ -330,6 +330,8 @@ ScriptEngine::ScriptEngine()
     assert(!sInstance);
     sInstance = this;
 
+    v8::V8::Initialize();
+
     mPrivate->isolate = v8::Isolate::New();
     const v8::Isolate::Scope isolateScope(mPrivate->isolate);
     v8::HandleScope handleScope(mPrivate->isolate);

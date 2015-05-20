@@ -51,7 +51,7 @@ public:
 
     Flags<T> operator~() const { return static_cast<T>(~static_cast<unsigned long long>(mValue)); }
     bool operator!() const { return !mValue; }
-    operator bool() const { return mValue; }
+    operator T() const { return mValue; }
 
     bool test(T flag) const { return mValue & flag; }
     Flags<T> test(Flags<T> flags) const { return mValue & flags; }

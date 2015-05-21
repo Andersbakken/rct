@@ -1,5 +1,7 @@
 #include "ScriptEngine.h"
 
+#ifdef HAVE_SCRIPTENGINE
+
 #include <v8.h>
 #include <rct/EventLoop.h>
 
@@ -1254,3 +1256,5 @@ bool ScriptEngine::isFunction(const Value &value) const
         return object->isFunction();
     return false;
 }
+
+#endif

@@ -117,21 +117,6 @@ else()
 	/opt/lib
 	/usr/freeware/lib64
     )
-    FIND_LIBRARY(V8_LIBRARY_ICUDATA
-	NAMES icudata
-	PATHS
-	$ENV{V8_DIR}/lib
-	$ENV{V8_DIR}
-	~/Library/Frameworks
-	/Library/Frameworks
-	/usr/local/lib
-	/usr/lib
-	/sw/lib
-	/opt/local/lib
-	/opt/csw/lib
-	/opt/lib
-	/usr/freeware/lib64
-    )
     FIND_LIBRARY(V8_LIBRARY_ICUUC
 	NAMES icuuc
 	PATHS
@@ -147,8 +132,23 @@ else()
 	/opt/lib
 	/usr/freeware/lib64
     )
-    if (V8_LIBRARY_BASE AND V8_LIBRARY_LIBBASE AND V8_LIBRARY_LIBPLATFORM AND V8_LIBRARY_SNAPSHOT AND V8_LIBRARY_ICUI18N AND V8_LIBRARY_ICUDATA AND V8_LIBRARY_ICUUC)
-	set(V8_LIBRARIES ${V8_LIBRARY_BASE} ${V8_LIBRARY_LIBBASE} ${V8_LIBRARY_LIBPLATFORM} ${V8_LIBRARY_SNAPSHOT} ${V8_LIBRARY_ICUI18N} ${V8_LIBRARY_ICUDATA} ${V8_LIBRARY_ICUUC})
+    FIND_LIBRARY(V8_LIBRARY_ICUDATA
+	NAMES icudata
+	PATHS
+	$ENV{V8_DIR}/lib
+	$ENV{V8_DIR}
+	~/Library/Frameworks
+	/Library/Frameworks
+	/usr/local/lib
+	/usr/lib
+	/sw/lib
+	/opt/local/lib
+	/opt/csw/lib
+	/opt/lib
+	/usr/freeware/lib64
+    )
+    if (V8_LIBRARY_BASE AND V8_LIBRARY_LIBBASE AND V8_LIBRARY_LIBPLATFORM AND V8_LIBRARY_SNAPSHOT AND V8_LIBRARY_ICUI18N AND V8_LIBRARY_ICUUC AND V8_LIBRARY_ICUDATA)
+	set(V8_LIBRARIES ${V8_LIBRARY_BASE} ${V8_LIBRARY_LIBBASE} ${V8_LIBRARY_LIBPLATFORM} ${V8_LIBRARY_SNAPSHOT} ${V8_LIBRARY_ICUI18N} ${V8_LIBRARY_ICUUC} ${V8_LIBRARY_ICUDATA})
     endif()
 endif()
 

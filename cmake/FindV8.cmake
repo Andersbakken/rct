@@ -39,7 +39,75 @@ FIND_LIBRARY(V8_LIBRARY
     /usr/freeware/lib64
 )
 
+if (V8_LIBRARY)
+    SET(V8_LIBRARIES ${V8_LIBRARY})
+else()
+    FIND_LIBRARY(V8_LIBRARY_BASE
+        NAMES v8_base
+        PATHS
+        $ENV{V8_DIR}/lib
+        $ENV{V8_DIR}
+        ~/Library/Frameworks
+        /Library/Frameworks
+        /usr/local/lib
+        /usr/lib
+        /sw/lib
+        /opt/local/lib
+        /opt/csw/lib
+        /opt/lib
+        /usr/freeware/lib64
+    )
+    FIND_LIBRARY(V8_LIBRARY_LIBBASE
+        NAMES v8_libbase
+        PATHS
+        $ENV{V8_DIR}/lib
+        $ENV{V8_DIR}
+        ~/Library/Frameworks
+        /Library/Frameworks
+        /usr/local/lib
+        /usr/lib
+        /sw/lib
+        /opt/local/lib
+        /opt/csw/lib
+        /opt/lib
+        /usr/freeware/lib64
+    )
+    FIND_LIBRARY(V8_LIBRARY_LIBPLATFORM
+        NAMES v8_libplatform
+        PATHS
+        $ENV{V8_DIR}/lib
+        $ENV{V8_DIR}
+        ~/Library/Frameworks
+        /Library/Frameworks
+        /usr/local/lib
+        /usr/lib
+        /sw/lib
+        /opt/local/lib
+        /opt/csw/lib
+        /opt/lib
+        /usr/freeware/lib64
+    )
+    FIND_LIBRARY(V8_LIBRARY_SNAPSHOT
+        NAMES v8_snapshot
+        PATHS
+        $ENV{V8_DIR}/lib
+        $ENV{V8_DIR}
+        ~/Library/Frameworks
+        /Library/Frameworks
+        /usr/local/lib
+        /usr/lib
+        /sw/lib
+        /opt/local/lib
+        /opt/csw/lib
+        /opt/lib
+        /usr/freeware/lib64
+    )
+    if (V8_LIBRARY_BASE AND V8_LIBRARY_LIBBASE AND V8_LIBRARY_LIBPLATFORM AND V8_LIBRARY_SNAPSHOT)
+        set(V8_LIBRARIES ${V8_LIBRARY_BASE} ${V8_LIBRARY_LIBBASE} ${V8_LIBRARY_LIBPLATFORM} ${V8_LIBRARY_SNAPSHOT})
+    endif()
+endif()
+
 SET(V8_FOUND "NO")
-IF(V8_LIBRARY AND V8_INCLUDE_DIR)
+IF(V8_LIBRARIES AND V8_INCLUDE_DIR)
     SET(V8_FOUND "YES")
 ENDIF()

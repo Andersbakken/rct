@@ -59,7 +59,7 @@ public:
 
     void assign(const char *data, int len = -1)
     {
-        if (data) {
+        if (data || !len) {
             if (len == -1)
                 len = strlen(data);
             mString.assign(data, len);

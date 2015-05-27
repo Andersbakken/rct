@@ -151,22 +151,20 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         if (!mPendingRead) {
             if (available < static_cast<int>(sizeof(uint32_t)))
                 break;
-            char buf[sizeof(uint32_t)];
+            union {
+                char buf[sizeof(uint32_t)];
+                int pending;
+            };
             const int read = bufferRead(mBuffers, buf, 4);
             assert(read == 4);
-            Deserializer strm(buf, read);
-            strm >> mPendingRead;
+            mPendingRead = pending;
             assert(mPendingRead > 0);
             available -= 4;
         }
         assert(mPendingRead >= 0);
         if (available < static_cast<unsigned int>(mPendingRead))
             break;
-        char buf[1024];
-        char *buffer = buf;
-        if (mPendingRead > static_cast<int>(sizeof(buf))) {
-            buffer = new char[mPendingRead];
-        }
+        char buffer[mPendingRead];
         const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
@@ -179,9 +177,9 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
             } else {
                 newMessage()(message, that);
             }
+        } else {
+            ::error() << "Unable to create message from data" << read;
         }
-        if (buffer != buf)
-            delete[] buffer;
         if (!message)
             mSocketClient->close();
     // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);
@@ -225,7 +223,7 @@ private:
 
 bool Connection::send(const Message &message)
 {
-    // ::error() << getpid() << "sending message" << static_cast<int>(id) << message.size();
+    // ::error() << getpid() << "sending message" << static_cast<int>(message.messageId());
     if (!mSocketClient || !mSocketClient->isConnected()) {
         if (!mWarned) {
             mWarned = true;
@@ -236,7 +234,12 @@ bool Connection::send(const Message &message)
 
     mAboutToSend(shared_from_this(), &message);
 
+#ifdef RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
+    const int size = -1;
+#else
     const int size = message.encodedSize();
+#endif
+
     if (size == -1 || message.mFlags & Message::MessageCache) {
         String header, value;
         message.prepare(mVersion, header, value);

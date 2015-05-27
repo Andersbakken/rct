@@ -1,6 +1,7 @@
 #ifndef Serializer_h
 #define Serializer_h
 
+// #define RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
 #include <rct/String.h>
 #include <rct/List.h>
 #include <rct/Log.h>
@@ -64,6 +65,18 @@ public:
     }
 
     bool hasError() const { return mError; }
+#ifdef RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
+    template <typename T>
+    bool encodeType()
+    {
+        const unsigned char len = sizeof(T);
+        return write(&len, 1);
+    }
+    template <typename T> static constexpr size_t sizeOf(T = T()) { return sizeof(T) + 1; }
+#else
+    template <typename T> static constexpr size_t sizeOf(T = T()) { return sizeof(T); }
+    template <typename T> bool encodeType() { return true; }
+#endif
 private:
     class StringBuffer : public Buffer
     {
@@ -174,6 +187,22 @@ public:
 
     int pos() const { return mFile ? ftell(mFile) : mPos; }
     int length() const { return mFile ? Rct::fileSize(mFile) : mLength; }
+#ifdef RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
+    template <typename T>
+    bool decodeType()
+    {
+        unsigned char byte = 0;
+        read(&byte, 1);
+        if (byte != sizeof(T)) {
+            error() << "Invalid size. Expected" << sizeof(T) << "got" << static_cast<int>(byte);
+            return false;
+        }
+
+        return true;
+    }
+#else
+    template <typename T> bool decodeType() { return true; }
+#endif
 private:
     const char *mData;
     const int mLength;
@@ -201,31 +230,34 @@ struct FixedSize
 {
     static constexpr size_t value = 0;
 };
-#define DECLARE_NATIVE_TYPE(type)                                   \
-    template <> struct FixedSize<type>                              \
+#define DECLARE_NATIVE_TYPE(T)                                      \
+    template <> struct FixedSize<T>                                 \
     {                                                               \
-        static constexpr size_t value = sizeof(type);               \
+        static constexpr size_t value = sizeof(T);                  \
     };                                                              \
     template <> inline Serializer &operator<<(Serializer &s,        \
-                                              const type &t)        \
+                                              const T &t)           \
     {                                                               \
+        s.encodeType<T>();                                          \
         union {                                                     \
-            type orig;                                              \
-            unsigned char buf[sizeof(type)];                        \
+            T orig;                                                 \
+            unsigned char buf[sizeof(T)];                           \
         };                                                          \
         orig = t;                                                   \
         s.write(buf, sizeof(buf));                                  \
         return s;                                                   \
     }                                                               \
     template <> inline Deserializer &operator>>(Deserializer &s,    \
-                                                type &t)            \
+                                                T &t)               \
     {                                                               \
-        union {                                                     \
-            type value;                                             \
-            unsigned char buf[sizeof(type)];                        \
-        };                                                          \
-        s.read(buf, sizeof(buf));                                   \
-        t = value;                                                  \
+        if (s.decodeType<T>()) {                                    \
+            union {                                                 \
+                T value;                                            \
+                unsigned char buf[sizeof(T)];                       \
+            };                                                      \
+            s.read(buf, sizeof(buf));                               \
+            t = value;                                              \
+        }                                                           \
         return s;                                                   \
     }                                                               \
     struct macrohack

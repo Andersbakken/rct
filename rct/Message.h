@@ -64,10 +64,12 @@ private:
     };
 
     void prepare(int version, String &header, String &value) const;
-    enum { HeaderExtra = sizeof(int) + sizeof(uint8_t) + sizeof(uint8_t) };
+    enum { HeaderExtra = Serializer::sizeOf<int>() + Serializer::sizeOf<uint8_t>() + Serializer::sizeOf<uint8_t>() };
     inline void encodeHeader(Serializer &serializer, uint32_t size, int version) const
     {
-        serializer << (size + HeaderExtra) << version << static_cast<uint8_t>(mMessageId) << mFlags;
+        size += HeaderExtra;
+        serializer.write(&size, sizeof(size));
+        serializer << version << static_cast<uint8_t>(mMessageId) << mFlags;
     }
     friend class Connection;
 

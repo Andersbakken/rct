@@ -37,11 +37,11 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
         error("Can't create message from empty data");
         return std::shared_ptr<Message>();
     }
-    Deserializer ds(data, sizeof(int) + sizeof(uint8_t) + sizeof(uint8_t));
+    Deserializer ds(data, Serializer::sizeOf<int>() + Serializer::sizeOf<uint8_t>() + Serializer::sizeOf<uint8_t>());
     int ver;
     ds >> ver;
     if (ver != version) {
-        size -= sizeof(ver);
+        size -= Serializer::sizeOf(ver);
         if (size > 1) {
             uint8_t id;
             ds >> id;
@@ -54,16 +54,16 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
         }
         return std::shared_ptr<Message>();
     }
-    size -= sizeof(version);
-    data += sizeof(version);
+    size -= Serializer::sizeOf(version);
+    data += Serializer::sizeOf(version);
     uint8_t id;
     ds >> id;
-    size -= sizeof(id);
-    data += sizeof(id);
+    size -= Serializer::sizeOf(id);
+    data += Serializer::sizeOf(id);
     uint8_t flags;
     ds >> flags;
-    data += sizeof(flags);
-    size -= sizeof(flags);
+    data += Serializer::sizeOf(flags);
+    size -= Serializer::sizeOf(flags);
     String uncompressed;
     if (flags & Compressed) {
         uncompressed = String::uncompress(data, size);

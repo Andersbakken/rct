@@ -7,6 +7,8 @@
 
 #include "Connection.h"
 
+#include <vector>
+
 Connection::Connection(int version)
     : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0),
       mVersion(version), mSilent(false), mIsConnected(false), mWarned(false)
@@ -164,11 +166,11 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         assert(mPendingRead >= 0);
         if (available < static_cast<unsigned int>(mPendingRead))
             break;
-        char buffer[mPendingRead];
-        const int read = bufferRead(mBuffers, buffer, mPendingRead);
+        std::vector<char> buffer(mPendingRead);
+        const int read = bufferRead(mBuffers, &buffer[0], mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
-        std::shared_ptr<Message> message = Message::create(mVersion, buffer, read);
+        std::shared_ptr<Message> message = Message::create(mVersion, &buffer[0], read);
         if (message) {
             auto that = shared_from_this();
             if (message->messageId() == FinishMessage::MessageId) {

@@ -9,7 +9,6 @@
 #include <rct/Map.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
-#include <rct/ConnectMessage.h>
 #include <rct/FinishMessage.h>
 
 class ConnectionPrivate;
@@ -99,8 +98,8 @@ public:
 private:
     Connection(int version);
     void connect(const SocketClient::SharedPtr &client);
-    void onClientConnected(const SocketClient::SharedPtr&) { mConnected(shared_from_this()); }
-    void onClientDisconnected(const SocketClient::SharedPtr&) { mDisconnected(shared_from_this()); }
+    void onClientConnected(const SocketClient::SharedPtr&) { mIsConnected = true; mConnected(shared_from_this()); }
+    void onClientDisconnected(const SocketClient::SharedPtr&) { mIsConnected = false; mDisconnected(shared_from_this()); }
     void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);
     void onDataWritten(const SocketClient::SharedPtr&, int);
     void onSocketError(const SocketClient::SharedPtr&, SocketClient::Error error)

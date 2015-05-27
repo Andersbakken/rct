@@ -1,7 +1,6 @@
 #include "Message.h"
 #include "ResponseMessage.h"
 #include "FinishMessage.h"
-#include "ConnectMessage.h"
 #include "Serializer.h"
 #include "QuitMessage.h"
 #include <assert.h>
@@ -76,7 +75,6 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
         atexit(Message::cleanup);
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
         sFactory[FinishMessage::MessageId] = new MessageCreator<FinishMessage>();
-        sFactory[ConnectMessage::MessageId] = new MessageCreator<ConnectMessage>();
         sFactory[QuitMessage::MessageId] = new MessageCreator<QuitMessage>();
     }
 

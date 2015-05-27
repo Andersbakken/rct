@@ -30,7 +30,6 @@ void Connection::connect(const SocketClient::SharedPtr &client)
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, that, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, that, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, that, std::placeholders::_1, std::placeholders::_2));
-    send(ConnectMessage());
     std::weak_ptr<Connection> weak = that;
     EventLoop::eventLoop()->callLater([weak]() {
             if (auto strong = weak.lock())
@@ -177,8 +176,6 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
             if (message->messageId() == FinishMessage::MessageId) {
                 mFinishStatus = std::static_pointer_cast<FinishMessage>(message)->status();
                 mFinished(that, mFinishStatus);
-            } else if (message->messageId() == ConnectMessage::MessageId) {
-                mIsConnected = true;
             } else {
                 newMessage()(message, that);
             }

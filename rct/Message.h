@@ -9,8 +9,7 @@ public:
     enum {
         ResponseId = 1,
         FinishMessageId = 2,
-        ConnectMessageId = 3,
-        QuitMessageId = 4
+        QuitMessageId = 3
     };
 
     Message(uint8_t id, uint8_t flags = None)

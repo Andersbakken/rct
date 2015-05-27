@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(rct)
 
+if (POLICY CMP0022)
+  cmake_policy(SET CMP0022 OLD)
+endif ()
+
 if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
@@ -71,41 +75,6 @@ else ()
     message("ZLIB Can't be found. Rct configured without zlib support")
 endif ()
 find_package(OpenSSL REQUIRED)
-
-if (RCT_USE_DB)
-  set(CMAKE_REQUIRED_LIBRARIES rocksdb snappy bz2 z pthread)
-  check_cxx_source_compiles("
-#include <rocksdb/db.h>
-#include <rocksdb/slice.h>
-#include <rocksdb/options.h>
-#include <string>
-
-using namespace rocksdb;
-
-int main() {
-  DB* db;
-  Options options;
-  options.IncreaseParallelism();
-  options.OptimizeLevelStyleCompaction();
-  options.create_if_missing = true;
-  Status s = DB::Open(options, \"test.db\", &db);
-
-  std::string value;
-  s = db->Get(ReadOptions(), \"key\", &value);
-  delete db;
-
-  return 0;
-}" HAVE_ROCKSDB)
-  set(CMAKE_REQUIRED_LIBRARIES "")
-
-  if (NOT HAVE_ROCKSDB)
-    include(${CMAKE_CURRENT_LIST_DIR}/embed_rocksdb.cmake)
-    set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_ROCKSDB)
-  else ()
-    set(DB_LIBS rocksdb snappy bz2 z pthread)
-    set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_DB_USE_ROCKSDB)
-  endif ()
-endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/.. ${ZLIB_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 set(RCT_SOURCES
@@ -193,7 +162,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_path(COREFOUNDATION_INCLUDE "CoreFoundation/CoreFoundation.h")
 endif ()
 
-set(RCT_LIBRARIES pthread ${ZLIB_LIBRARIES} ${DB_LIBS} ${OPENSSL_CRYPTO_LIBRARY})
+set(RCT_LIBRARIES pthread ${ZLIB_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARY})
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
   list(APPEND RCT_LIBRARIES dl rt)
 endif ()

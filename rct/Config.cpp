@@ -1,6 +1,8 @@
 #include "Config.h"
 #include "Log.h"
 
+#include <vector>
+
 List<Config::OptionBase*> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;
 List<Value> Config::sFreeArgs;
@@ -46,7 +48,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 
     // ::error() << "parsing" << args;
 
-    char *a[args.size()];
+    std::vector<char*> a{static_cast<size_t>(args.size())};
     for (int i=0; i<args.size(); ++i) {
         a[i] = strdup(args.at(i).constData());
     }
@@ -71,7 +73,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 
     while (true) {
         int idx = -1;
-        const int ret = getopt_long(args.size(), a, shortOpts.constData(), options, &idx);
+        const int ret = getopt_long(args.size(), &a[0], shortOpts.constData(), options, &idx);
         switch (ret) {
         case -1:
             goto done;

@@ -3,6 +3,7 @@
 #include "Serializer.h"
 #include "Message.h"
 #include "Timer.h"
+#include "StackBuffer.h"
 #include <assert.h>
 
 #include "Connection.h"
@@ -165,8 +166,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         if (available < static_cast<unsigned int>(mPendingRead))
             break;
 
-        char staticBuf[1024 * 16];
-        char *buffer = static_cast<size_t>(mPendingRead) > sizeof(staticBuf) ? new char[mPendingRead] : staticBuf;
+        StackBuffer<1024 * 16> buffer(mPendingRead);
         const int read = bufferRead(mBuffers, buffer, mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
@@ -182,8 +182,6 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         } else {
             ::error() << "Unable to create message from data" << read;
         }
-        if (buffer != staticBuf)
-            delete[] buffer;
         if (!message)
             mSocketClient->close();
     // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);

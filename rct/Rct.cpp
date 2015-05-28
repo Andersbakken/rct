@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include "StackBuffer.h"
 #ifdef OS_Darwin
 # include <mach-o/dyld.h>
 #elif OS_FreeBSD
@@ -174,29 +175,24 @@ void removeDirectory(const Path &path)
         dirent *p;
 
         while (!readdir_r(d, dbuf, &p) && p) {
-            char *buf;
-            size_t len;
-
             /* Skip the names "." and ".." as we don't want to recurse on them. */
             if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
                 continue;
             }
 
-            len = path_len + strlen(p->d_name) + 2;
-            buf = static_cast<char*>(malloc(len));
+            const size_t len = path_len + strlen(p->d_name) + 2;
+            StackBuffer<PATH_MAX> buffer(len);
 
-            if (buf) {
+            if (buffer) {
                 struct stat statbuf;
-                snprintf(buf, len, "%s/%s", path.constData(), p->d_name);
-                if (!stat(buf, &statbuf)) {
+                snprintf(buffer, len, "%s/%s", path.constData(), p->d_name);
+                if (!stat(buffer, &statbuf)) {
                     if (S_ISDIR(statbuf.st_mode)) {
-                        removeDirectory(buf);
+                        removeDirectory(Path(buffer));
                     } else {
-                        unlink(buf);
+                        unlink(buffer);
                     }
                 }
-
-                free(buf);
             }
         }
         closedir(d);

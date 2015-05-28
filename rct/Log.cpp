@@ -6,6 +6,7 @@
 #include "StopWatch.h"
 #include <stdarg.h>
 #include <syslog.h>
+#include "StackBuffer.h"
 
 static Flags<LogFileFlag> sFlags;
 static StopWatch sStart;
@@ -109,22 +110,20 @@ static void log(int level, const char *format, va_list v)
     va_list v2;
     va_copy(v2, v);
     enum { Size = 16384 };
-    char buf[Size];
-    char *msg = buf;
-    int n = vsnprintf(msg, Size, format, v);
+
+    StackBuffer<Size> buf(Size);
+    int n = vsnprintf(buf, Size, format, v);
     if (n == -1) {
         va_end(v2);
         return;
     }
 
     if (n >= Size) {
-        msg = new char[n + 2];
-        n = vsnprintf(msg, n + 1, format, v2);
+        buf.resize(n + 2);
+        n = vsnprintf(buf, n + 1, format, v2);
     }
 
-    logDirect(level, msg, n);
-    if (msg != buf)
-        delete []msg;
+    logDirect(level, buf, n);
     va_end(v2);
 }
 

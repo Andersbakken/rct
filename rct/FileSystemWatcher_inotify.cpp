@@ -4,6 +4,7 @@
 #include "rct-config.h"
 #include <sys/inotify.h>
 #include <sys/ioctl.h>
+#include "StackBuffer.h"
 #include "Rct.h"
 #include <errno.h>
 
@@ -133,9 +134,8 @@ void FileSystemWatcher::notifyReadyRead()
         ioctl(mFd, FIONREAD, &s);
         if (!s)
             return;
-        enum { StaticBufSize = 4096 };
-        char staticBuf[StaticBufSize];
-        char *buf = s > StaticBufSize ? new char[s] : staticBuf;
+
+        StackBuffer<4096> buf(s);
         const int read = ::read(mFd, buf, s);
         int idx = 0;
         while (idx < read) {
@@ -166,8 +166,6 @@ void FileSystemWatcher::notifyReadyRead()
                 changes.add(Changes::Modified, path);
             }
         }
-        if (buf != staticBuf)
-            delete []buf;
     }
     processChanges(changes);
 }

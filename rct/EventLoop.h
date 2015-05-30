@@ -86,7 +86,8 @@ public:
     enum Flag {
         None = 0x0,
         MainEventLoop = 0x1,
-        EnableSigIntHandler = 0x2
+        EnableSigIntHandler = 0x2,
+        EnableSigTermHandler = 0x4
     };
     enum PostType {
         Move = 1,

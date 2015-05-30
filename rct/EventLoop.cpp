@@ -155,15 +155,26 @@ void EventLoop::init(unsigned int flags)
         return;
     }
 
-    if (flgs & EnableSigIntHandler) {
+    if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
         assert(mainEventPipe == -1);
         mainEventPipe = eventPipe[1];
+
         struct sigaction act;
         memset (&act, '\0', sizeof(act));
         act.sa_handler = signalHandler;
-        if (::sigaction(SIGINT, &act, 0) == -1) {
-            cleanup();
-            return;
+
+        if (flgs & EnableSigIntHandler) {
+            if (::sigaction(SIGINT, &act, 0) == -1) {
+                cleanup();
+                return;
+            }
+        }
+
+        if (flgs & EnableSigTermHandler) {
+            if (::sigaction(SIGTERM, &act, 0) == -1) {
+                cleanup();
+                return;
+            }
         }
     }
 
@@ -191,6 +202,20 @@ void EventLoop::cleanup()
     timersById.clear();
     timersByTime.clear();
     nextTimerId = 0;
+
+    if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
+        struct sigaction act;
+        memset(&act, 0, sizeof act);
+        act.sa_handler = SIG_DFL;
+
+        if (flgs & EnableSigIntHandler) {
+            ::sigaction(SIGINT, &act, 0);
+        }
+
+        if (flgs & EnableSigTermHandler) {
+            ::sigaction(SIGTERM, &act, 0);
+        }
+    }
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     if (pollFd != -1)
@@ -854,8 +879,6 @@ unsigned int EventLoop::exec(int timeoutTime)
                     waitingForInactivityTimeout = true;
                 }
             }
-            printf("inactivityTimeout = %d waitUntil = %d waitingForInactivityTimeout = %d\n",
-                   inactivityTimeout, waitUntil, waitingForInactivityTimeout);
         }
         int eventCount;
 #if defined(HAVE_EPOLL)

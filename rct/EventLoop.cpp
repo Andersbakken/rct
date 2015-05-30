@@ -849,7 +849,7 @@ unsigned int EventLoop::exec(int timeoutTime)
             }
 
             if (inactivityTimeout > 0) {
-                if (inactivityTimeout > waitUntil) {
+                if (waitUntil < 0) {
                     waitUntil = inactivityTimeout;
                     waitingForInactivityTimeout = true;
                 }

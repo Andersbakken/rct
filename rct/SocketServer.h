@@ -23,6 +23,7 @@ public:
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
     bool listen(const Path &path); // UNIX
+    bool listenfd(int fd);         // UNIX
     bool isListening() const { return fd != -1; }
 
     SocketClient::SharedPtr nextConnection();
@@ -34,7 +35,8 @@ public:
 
 private:
     void socketCallback(int fd, int mode);
-    bool commonListen(sockaddr* addr, size_t size);
+    bool commonBindAndListen(sockaddr* addr, size_t size);
+    bool commonListen();
 
 private:
     int fd;

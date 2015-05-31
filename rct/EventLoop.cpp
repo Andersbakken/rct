@@ -87,7 +87,7 @@ EventLoop::EventLoop()
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     pollFd(-1),
 #endif
-    nextTimerId(0), stop(false), timeout(false), flgs(0)
+    nextTimerId(0), stop(false), timeout(false), flgs(0), inactivityTimeout(0)
 {
     std::call_once(mainOnce, [](){
             mainEventPipe = -1;
@@ -155,15 +155,26 @@ void EventLoop::init(unsigned int flags)
         return;
     }
 
-    if (flgs & EnableSigIntHandler) {
+    if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
         assert(mainEventPipe == -1);
         mainEventPipe = eventPipe[1];
+
         struct sigaction act;
         memset (&act, '\0', sizeof(act));
         act.sa_handler = signalHandler;
-        if (::sigaction(SIGINT, &act, 0) == -1) {
-            cleanup();
-            return;
+
+        if (flgs & EnableSigIntHandler) {
+            if (::sigaction(SIGINT, &act, 0) == -1) {
+                cleanup();
+                return;
+            }
+        }
+
+        if (flgs & EnableSigTermHandler) {
+            if (::sigaction(SIGTERM, &act, 0) == -1) {
+                cleanup();
+                return;
+            }
         }
     }
 
@@ -191,6 +202,20 @@ void EventLoop::cleanup()
     timersById.clear();
     timersByTime.clear();
     nextTimerId = 0;
+
+    if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
+        struct sigaction act;
+        memset(&act, 0, sizeof act);
+        act.sa_handler = SIG_DFL;
+
+        if (flgs & EnableSigIntHandler) {
+            ::sigaction(SIGINT, &act, 0);
+        }
+
+        if (flgs & EnableSigTermHandler) {
+            ::sigaction(SIGTERM, &act, 0);
+        }
+    }
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     if (pollFd != -1)
@@ -802,6 +827,11 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
     return all;
 }
 
+void EventLoop::setInactivityTimeout(int timeout)
+{
+    inactivityTimeout = timeout;
+}
+
 unsigned int EventLoop::exec(int timeoutTime)
 {
     int quitTimerId = -1;
@@ -821,6 +851,7 @@ unsigned int EventLoop::exec(int timeoutTime)
                 break;
         }
         int waitUntil = -1;
+        bool waitingForInactivityTimeout = false;
         {
             std::lock_guard<std::mutex> locker(mutex);
 
@@ -840,6 +871,13 @@ unsigned int EventLoop::exec(int timeoutTime)
             if (timer != timersByTime.end()) {
                 const uint64_t now = currentTime();
                 waitUntil = std::max<int>((*timer)->when - now, 0);
+            }
+
+            if (inactivityTimeout > 0) {
+                if (waitUntil < 0) {
+                    waitUntil = inactivityTimeout;
+                    waitingForInactivityTimeout = true;
+                }
             }
         }
         int eventCount;
@@ -903,6 +941,9 @@ unsigned int EventLoop::exec(int timeoutTime)
             ret = processSocketEvents(events, eventCount);
             if (ret & (Success|GeneralError|Timeout))
                 break;
+        } else if (eventCount == 0 && waitingForInactivityTimeout) {
+            this->timeout = true;
+            quit();
         }
     }
 

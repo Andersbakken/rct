@@ -98,7 +98,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
         addr4.sin_port = htons(port);
     }
 
-    return commonListen(addr, size);
+    return commonBindAndListen(addr, size);
 }
 
 bool SocketServer::listen(const Path &p)
@@ -120,14 +120,23 @@ bool SocketServer::listen(const Path &p)
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, p.constData(), sizeof(addr.sun_path));
 
-    if (commonListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un))) {
+    if (commonBindAndListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un))) {
         path = p;
         return true;
     }
     return false;
 }
 
-bool SocketServer::commonListen(sockaddr* addr, size_t size)
+bool SocketServer::listenfd(int fdArg)
+{
+    close();
+    
+    fd = fdArg;
+
+    return commonListen();
+}
+
+bool SocketServer::commonBindAndListen(sockaddr* addr, size_t size)
 {
     if (::bind(fd, reinterpret_cast<sockaddr*>(addr), size) < 0) {
         serverError(this, BindError);
@@ -135,6 +144,11 @@ bool SocketServer::commonListen(sockaddr* addr, size_t size)
         return false;
     }
 
+    return commonListen();
+}
+
+bool SocketServer::commonListen()
+{
     // ### should be able to customize the backlog
     enum { Backlog = 128 };
     if (::listen(fd, Backlog) < 0) {

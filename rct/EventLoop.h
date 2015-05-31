@@ -1,4 +1,4 @@
-#ifndef EVENTLOOP_H
+#ifndef EVENTLOOP_H // -*- mode:c++ -*-
 #define EVENTLOOP_H
 
 #include <map>
@@ -86,7 +86,8 @@ public:
     enum Flag {
         None = 0x0,
         MainEventLoop = 0x1,
-        EnableSigIntHandler = 0x2
+        EnableSigIntHandler = 0x2,
+        EnableSigTermHandler = 0x4
     };
     enum PostType {
         Move = 1,
@@ -144,6 +145,10 @@ public:
     // See Timer.h for the flags
     int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
     void unregisterTimer(int id);
+
+    // Changes to the inactivity timeout while the loop is running may
+    // not be honoured.
+    void setInactivityTimeout(int timeout);
 
     enum { Success = 0x100, GeneralError = 0x200, Timeout = 0x400 };
     unsigned int exec(int timeout = -1);
@@ -251,6 +256,8 @@ private:
     static EventLoop::WeakPtr mainLoop;
 
     unsigned int flgs;
+
+    int inactivityTimeout;
 private:
     EventLoop(const EventLoop&) = delete;
     EventLoop& operator=(const EventLoop&) = delete;

@@ -108,10 +108,14 @@ public:
     Log(int level = 0, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
     Log(const Log &other);
     Log &operator=(const Log &other);
-#ifdef OS_Darwin
+#if defined(__i386__)
+    Log operator<<(long number) { return addStringStream(number); }
+#endif
+#if defined(OS_Darwin)
     Log operator<<(long number) { return addStringStream(number); }
     Log operator<<(size_t number) { return addStringStream(number); }
-#elif (ULONG_MAX) != (UINT_MAX)
+#endif
+#if (ULONG_MAX) != (UINT_MAX)
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }
 #endif

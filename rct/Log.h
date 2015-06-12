@@ -10,22 +10,25 @@
 #include <rct/Flags.h>
 #include <assert.h>
 #include <cxxabi.h>
+#include <climits>
 #include <sstream>
 #include <memory>
 
 class Path;
 
-enum LogLevel {
+enum class LogLevel {
+    None = -1,
     Error = 0,
     Warning = 1,
     Debug = 2,
-    VerboseDebug = 3
+    VerboseDebug = 3,
+    Max = INT_MAX
 };
 
 class LogOutput : public std::enable_shared_from_this<LogOutput>
 {
 public:
-    LogOutput(int logLevel);
+    LogOutput(LogLevel logLevel);
     virtual ~LogOutput();
 
     void add();
@@ -33,9 +36,9 @@ public:
 
     virtual unsigned int flags() const { return 0; }
 
-    virtual bool testLog(int level) const
+    virtual bool testLog(LogLevel level) const
     {
-        return level >= 0 && level <= mLogLevel;
+        return level >= LogLevel::Error && level <= mLogLevel;
     }
     enum LogFlag {
         None = 0x0,
@@ -53,34 +56,34 @@ public:
         va_end(args);
     }
 
-    int logLevel() const { return mLogLevel; }
+    LogLevel logLevel() const { return mLogLevel; }
 private:
-    int mLogLevel;
+    LogLevel mLogLevel;
 };
 
 RCT_FLAGS_OPERATORS(LogOutput::LogFlag);
 
 #ifdef __GNUC__
-void log(int level, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
+void log(LogLevel level, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
 void debug(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 void verboseDebug(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 void warning(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 void error(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
 #else
-void log(int level, const char *format, ...);
+void log(LogLevel level, const char *format, ...);
 void debug(const char *format, ...);
 void verboseDebug(const char *format, ...);
 void warning(const char *format, ...);
 void error(const char *format, ...);
 #endif
-void logDirect(int level, const char *str, int length, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
-inline void logDirect(int level, const String &out, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags)
+void logDirect(LogLevel level, const char *str, int length, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
+inline void logDirect(LogLevel level, const String &out, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags)
 {
     return logDirect(level, out.constData(), out.size(), flags);
 }
 void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func);
 
-bool testLog(int level);
+bool testLog(LogLevel level);
 enum LogMode {
     LogStderr = 0x1,
     LogSyslog = 0x2
@@ -95,17 +98,17 @@ RCT_FLAGS_OPERATORS(LogFileFlag);
 
 bool initLogging(const char* ident,
                  Flags<LogMode> mode = LogStderr,
-                 int logLevel = Error,
+                 LogLevel logLevel = LogLevel::Error,
                  const Path &logFile = Path(),
                  Flags<LogFileFlag> = Flags<LogFileFlag>());
 void cleanupLogging();
-int logLevel();
+LogLevel logLevel();
 void restartTime();
 class Log
 {
 public:
     Log(String *out);
-    Log(int level = 0, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
+    Log(LogLevel level = LogLevel::Error, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
     Log(const Log &other);
     Log &operator=(const Log &other);
 #if defined(OS_Darwin)
@@ -207,9 +210,9 @@ private:
     {
     public:
         Data(String *string)
-            : outPtr(string), level(-1), spacing(true), disableSpacingOverride(0)
+            : outPtr(string), level(LogLevel::None), spacing(true), disableSpacingOverride(0)
         {}
-        Data(int lvl, Flags<LogOutput::LogFlag> f)
+        Data(LogLevel lvl, Flags<LogOutput::LogFlag> f)
             : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0), flags(f)
         {
         }
@@ -221,7 +224,7 @@ private:
         }
 
         String *outPtr;
-        const int level;
+        const LogLevel level;
         String out;
         bool spacing;
         int disableSpacingOverride;
@@ -388,22 +391,22 @@ String &operator<<(String &str, const T &t)
 
 static inline Log error()
 {
-    return Log(Error);
+    return Log(LogLevel::Error);
 }
 
 static inline Log warning()
 {
-    return Log(Warning);
+    return Log(LogLevel::Warning);
 }
 
 static inline Log debug()
 {
-    return Log(Debug);
+    return Log(LogLevel::Debug);
 }
 
 static inline Log verboseDebug()
 {
-    return Log(VerboseDebug);
+    return Log(LogLevel::VerboseDebug);
 }
 
 #endif

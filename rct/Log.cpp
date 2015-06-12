@@ -12,7 +12,7 @@ static Flags<LogFileFlag> sFlags;
 static StopWatch sStart;
 static Set<std::shared_ptr<LogOutput> > sOutputs;
 static std::mutex sOutputsMutex;
-static int sLevel = 0;
+static LogLevel sLevel = LogLevel::Error;
 static const bool sTimedLogs = getenv("RCT_LOG_TIME");
 
 static inline void writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
@@ -29,7 +29,7 @@ class FileOutput : public LogOutput
 {
 public:
     FileOutput(FILE *f)
-        : LogOutput(INT_MAX), file(f)
+        : LogOutput(LogLevel::Max), file(f)
     {
     }
     ~FileOutput()
@@ -49,7 +49,7 @@ public:
 class StderrOutput : public LogOutput
 {
 public:
-    StderrOutput(int lvl)
+    StderrOutput(LogLevel lvl)
         : LogOutput(lvl)
     {}
     virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
@@ -61,7 +61,7 @@ public:
 class SyslogOutput : public LogOutput
 {
 public:
-    SyslogOutput(const char* ident, int lvl)
+    SyslogOutput(const char* ident, LogLevel lvl)
         : LogOutput(lvl)
     {
         ::openlog(ident, LOG_CONS | LOG_NOWAIT | LOG_PID, LOG_USER);
@@ -102,7 +102,7 @@ static inline String prettyTimeSinceStarted()
 }
 #endif
 
-static void log(int level, const char *format, va_list v)
+static void log(LogLevel level, const char *format, va_list v)
 {
     if (!testLog(level))
         return;
@@ -127,7 +127,7 @@ static void log(int level, const char *format, va_list v)
     va_end(v2);
 }
 
-void logDirect(int level, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
+void logDirect(LogLevel level, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
     Set<std::shared_ptr<LogOutput> > logs;
     {
@@ -159,7 +159,7 @@ void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func)
     }
 }
 
-void log(int level, const char *format, ...)
+void log(LogLevel level, const char *format, ...)
 {
     va_list v;
     va_start(v, format);
@@ -171,7 +171,7 @@ void debug(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(Debug, format, v);
+    log(LogLevel::Debug, format, v);
     va_end(v);
 }
 
@@ -179,7 +179,7 @@ void verboseDebug(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(VerboseDebug, format, v);
+    log(LogLevel::VerboseDebug, format, v);
     va_end(v);
 }
 
@@ -187,7 +187,7 @@ void warning(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(Warning, format, v);
+    log(LogLevel::Warning, format, v);
     va_end(v);
 }
 
@@ -195,11 +195,11 @@ void error(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(Error, format, v);
+    log(LogLevel::Error, format, v);
     va_end(v);
 }
 
-bool testLog(int level)
+bool testLog(LogLevel level)
 {
     std::lock_guard<std::mutex> lock(sOutputsMutex);
     if (sOutputs.isEmpty())
@@ -211,12 +211,12 @@ bool testLog(int level)
     return false;
 }
 
-int logLevel()
+LogLevel logLevel()
 {
     return sLevel;
 }
 
-bool initLogging(const char* ident, Flags<LogMode> mode, int level, const Path &file, Flags<LogFileFlag> flags)
+bool initLogging(const char* ident, Flags<LogMode> mode, LogLevel level, const Path &file, Flags<LogFileFlag> flags)
 {
     sStart.start();
     sFlags = flags;
@@ -263,7 +263,7 @@ Log::Log(String *out)
     mData.reset(new Data(out));
 }
 
-Log::Log(int level, Flags<LogOutput::LogFlag> flags)
+Log::Log(LogLevel level, Flags<LogOutput::LogFlag> flags)
 {
     if (testLog(level))
         mData.reset(new Data(level, flags));
@@ -280,7 +280,7 @@ Log &Log::operator=(const Log &other)
     return *this;
 }
 
-LogOutput::LogOutput(int logLevel)
+LogOutput::LogOutput(LogLevel logLevel)
     : mLogLevel(logLevel)
 {
 }

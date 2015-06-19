@@ -748,7 +748,7 @@ public:
         }
         return ret;
     }
-    template <int StaticBufSize = 256>
+    template <int StaticBufSize = 4096>
     static String format(const char *format, ...)
     {
         va_list args;
@@ -758,25 +758,23 @@ public:
         return ret;
     }
 
-    template <int StaticBufSize = 256>
+    template <int StaticBufSize = 4096>
     static String format(const char *format, va_list args)
     {
         va_list copy;
         va_copy(copy, args);
 
         char buffer[StaticBufSize];
-        char *ch = buffer;
-        int size = ::vsnprintf(buffer, StaticBufSize, format, args);
+        const int size = ::vsnprintf(buffer, StaticBufSize, format, args);
         assert(size >= 0);
-        if (size >= StaticBufSize) {
-            ch = reinterpret_cast<char*>(malloc(size + 1));
-            size = vsnprintf(ch, size+1, format, copy);
+        String ret;
+        if (size < StaticBufSize) {
+            ret.assign(buffer, size);
+        } else {
+            ret.resize(size);
+            ::vsnprintf(&ret[0], size+1, format, copy);
         }
-        ch[size] = 0;
         va_end(copy);
-        const String ret(ch, size);
-        if (ch != buffer)
-            free(ch);
         return ret;
     }
 private:

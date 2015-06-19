@@ -41,6 +41,11 @@ public:
     int pendingWrite() const;
 
     bool send(const Message &message);
+    bool send(const std::shared_ptr<Message> &message)
+    {
+        assert(message);
+        return send(*message);
+    }
     template <int StaticBufSize>
     bool write(const char *format, ...)
     {

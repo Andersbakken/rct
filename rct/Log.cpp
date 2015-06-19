@@ -15,6 +15,13 @@ static std::mutex sOutputsMutex;
 static LogLevel sLevel = LogLevel::Error;
 static const bool sTimedLogs = getenv("RCT_LOG_TIME");
 
+const LogLevel LogLevel::None(-1);
+const LogLevel LogLevel::Error(0);
+const LogLevel LogLevel::Warning(1);
+const LogLevel LogLevel::Debug(2);
+const LogLevel LogLevel::VerboseDebug(3);
+const LogLevel LogLevel::Max(INT_MAX);
+
 static inline void writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
     if (sTimedLogs) {

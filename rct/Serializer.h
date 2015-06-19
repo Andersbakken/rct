@@ -303,6 +303,12 @@ inline Serializer &operator<<(Serializer &s, const Path &path)
     return s;
 }
 
+template <>
+inline Serializer &operator<<(Serializer &s, const LogLevel &level)
+{
+    s << level.toInt();
+    return s;
+}
 
 template <typename T>
 Serializer &operator<<(Serializer &s, const List<T> &list)
@@ -475,6 +481,14 @@ inline Deserializer &operator>>(Deserializer &s, Path &path)
     if (size) {
         s.read(path.data(), size);
     }
+    return s;
+}
+
+inline Deserializer &operator>>(Deserializer &s, LogLevel &level)
+{
+    int l;
+    s >> l;
+    level = LogLevel(l);
     return s;
 }
 

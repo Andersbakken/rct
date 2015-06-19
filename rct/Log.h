@@ -16,13 +16,36 @@
 
 class Path;
 
-enum class LogLevel {
-    None = -1,
-    Error = 0,
-    Warning = 1,
-    Debug = 2,
-    VerboseDebug = 3,
-    Max = INT_MAX
+class LogLevel
+{
+public:
+    explicit LogLevel(int val)
+        : mValue(val)
+    {}
+
+    // operator int() const { return mValue; }
+    bool operator==(const LogLevel &other) const { return mValue == other.mValue; }
+    bool operator!=(const LogLevel &other) const { return mValue != other.mValue; }
+    bool operator<(const LogLevel &other) const { return mValue < other.mValue; }
+    bool operator<=(const LogLevel &other) const { return mValue <= other.mValue; }
+    bool operator>(const LogLevel &other) const { return mValue > other.mValue; }
+    bool operator>=(const LogLevel &other) const { return mValue >= other.mValue; }
+
+    LogLevel &operator++() { ++mValue; return *this; }
+    LogLevel operator++(int) { return LogLevel(mValue++); }
+    LogLevel &operator--() { --mValue; return *this; }
+    LogLevel operator--(int) { return LogLevel(mValue--); }
+
+    int toInt() const { return mValue; }
+
+    static const LogLevel None;
+    static const LogLevel Error;
+    static const LogLevel Warning;
+    static const LogLevel Debug;
+    static const LogLevel VerboseDebug;
+    static const LogLevel Max;
+private:
+    int mValue;
 };
 
 class LogOutput : public std::enable_shared_from_this<LogOutput>

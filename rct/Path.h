@@ -146,9 +146,7 @@ public:
         Continue,
         Recurse
     };
-    typedef VisitResult (*VisitCallback)(const Path &path, void *userData);
-    void visit(VisitCallback callback, void *userData = 0) const;
-
+    void visit(const std::function<VisitResult(const Path &path)> &callback) const;
     List<Path> files(unsigned int filter = All, int max = -1, bool recurse = false) const;
 };
 

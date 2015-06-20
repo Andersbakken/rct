@@ -410,7 +410,7 @@ bool Path::rmdir(const Path& dir)
     return !::rmdir(dir.constData());
 }
 
-static void visitorWrapper(Path path, Path::VisitCallback callback, Set<Path> &seen, void *userData)
+static void visitorWrapper(Path path, const std::function<Path::VisitResult(const Path &path)> &callback, Set<Path> &seen)
 {
     if (!seen.insert(path.resolved())) {
         return;
@@ -440,7 +440,7 @@ static void visitorWrapper(Path path, Path::VisitCallback callback, Set<Path> &s
         if (path.isDir())
             path.append('/');
 #endif
-        switch (callback(path, userData)) {
+        switch (callback(path)) {
         case Path::Abort:
             p = 0;
             break;
@@ -457,16 +457,16 @@ static void visitorWrapper(Path path, Path::VisitCallback callback, Set<Path> &s
     for (int i=0; i<count; ++i) {
         path.truncate(s);
         path.append(recurseDirs.at(i));
-        visitorWrapper(path, callback, seen, userData);
+        visitorWrapper(path, callback, seen);
     }
 }
 
-void Path::visit(VisitCallback callback, void *userData) const
+void Path::visit(const std::function<VisitResult(const Path &path)> &callback) const
 {
     if (!callback || !isDir())
         return;
     Set<Path> seenDirs;
-    visitorWrapper(*this, callback, seenDirs, userData);
+    visitorWrapper(*this, callback, seenDirs);
 }
 
 Path Path::followLink(bool *ok) const
@@ -565,32 +565,22 @@ Path Path::pwd()
     }
     return Path();
 }
-struct FilesUserData
-{
-    unsigned int filter;
-    int max;
-    bool recurse;
-    List<Path> paths;
-};
-static Path::VisitResult filesVisitor(const Path &path, void *userData)
-{
-    FilesUserData &u = *reinterpret_cast<FilesUserData*>(userData);
-    if (u.max > 0)
-        --u.max;
-    if (path.type() & u.filter) {
-        u.paths.append(path);
-    }
-    if (!u.max)
-        return Path::Abort;
-    return u.recurse ? Path::Recurse : Path::Continue;
-}
-
 List<Path> Path::files(unsigned int filter, int max, bool recurse) const
 {
     assert(max != 0);
-    FilesUserData userData = { filter, max, recurse, List<Path>() };
-    visit(::filesVisitor, &userData);
-    return userData.paths;
+
+    List<Path> paths;
+    visit([filter, &max, recurse, &paths](const Path &path) {
+            if (max > 0)
+                --max;
+            if (path.type() & filter) {
+                paths.append(path);
+            }
+            if (!max)
+                return Path::Abort;
+            return recurse ? Path::Recurse : Path::Continue;
+        });
+    return paths;
 }
 
 uint64_t Path::lastModifiedMs() const

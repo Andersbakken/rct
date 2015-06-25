@@ -19,6 +19,8 @@ public:
             flush();
     }
 
+    Path path() const { return mPath; }
+
     bool flush()
     {
         const int size = ftell(mFile);

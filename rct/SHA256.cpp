@@ -99,20 +99,22 @@ String SHA256::hash(const char* data, unsigned int size, MapType type)
 
 String SHA256::hashFile(const Path& file, MapType type)
 {
-    int fd = ::open(file.nullTerminated(), 0);
-    if (fd < 0) {
-        return "";
+    const int fd = ::open(file.nullTerminated(), 0);
+    if (fd < 0)
+        return String();
+
+    struct stat st;
+    if (fstat(fd, &st)) {
+        ::close(fd);
+        return String();
     }
+    void *mapped = ::mmap(NULL, st.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+    if (mapped == MAP_FAILED)
+        return String();
 
-    int64_t size = file.fileSize();
-    void *mapped = ::mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (mapped == MAP_FAILED) {
-        return "";
-    }
+    const String ret = SHA256::hash(const_cast<const char *>(static_cast<char*>(mapped)), st.st_size, type);
 
-    String ret = SHA256::hash((const char *) mapped, size, type);
-
-    ::munmap(mapped, size);
+    ::munmap(mapped, st.st_size);
     ::close(fd);
 
     return ret;

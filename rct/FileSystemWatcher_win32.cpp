@@ -113,40 +113,6 @@ public:
     FileSystemWatcher* watcher;
 };
 
-static Path::VisitResult initDir(const Path& p, void* user)
-{
-    if (p.isFile()) {
-        WatcherData::PathData* data = static_cast<WatcherData::PathData*>(user);
-        data->modified[p] = p.lastModifiedMs();
-        return Path::Continue;
-    }
-    return Path::Recurse;
-}
-
-static Path::VisitResult updateDir(const Path& p, void* user)
-{
-    if (p.isFile()) {
-        //printf("updateDir %s\n", p.constData());
-        WatcherData::PathData* data = static_cast<WatcherData::PathData*>(user);
-        const auto modif = data->modified.find(p);
-        if (modif == data->modified.end()) {
-            //printf("added\n");
-            // new file
-            data->added.insert(p);
-            return Path::Continue;
-        }
-        data->seen.insert(p);
-        // possibly modified file
-        if (p.lastModifiedMs() != modif->second) {
-            //printf("modified\n");
-            // really modified
-            data->changed.insert(p);
-        }
-        return Path::Continue;
-    }
-    return Path::Recurse;
-}
-
 void WatcherData::updatePaths()
 {
     // printf("updating paths...\n");
@@ -185,7 +151,13 @@ void WatcherData::updatePaths()
             handleToPath[h] = path;
             pathToHandle[path] = h;
             PathData& data = pathData[path];
-            path.visit(initDir, &data);
+            path.visit([&data](const Path &p) {
+                    if (p.isFile()) {
+                        data.modified[p] = p.lastModifiedMs();
+                        return Path::Continue;
+                    }
+                    return Path::Recurse;
+                });
         }
     }
 }
@@ -255,7 +227,27 @@ void WatcherData::run()
             for (const Path& p : changedPaths) {
                 //printf("path was modified... %s\n", p.constData());
                 PathData& data = pathData[p];
-                p.visit(updateDir, &data);
+                p.visit([&data](const Path &p) {
+                        if (p.isFile()) {
+                            //printf("updateDir %s\n", p.constData());
+                            const auto modif = data.modified.find(p);
+                            if (modif == data.modified.end()) {
+                                //printf("added\n");
+                                // new file
+                                data.added.insert(p);
+                                return Path::Continue;
+                            }
+                            data.seen.insert(p);
+                            // possibly modified file
+                            if (p.lastModifiedMs() != modif->second) {
+                                //printf("modified\n");
+                                // really modified
+                                data.changed.insert(p);
+                            }
+                            return Path::Continue;
+                        }
+                        return Path::Recurse;
+                    });
 
                 Set<Path> removed;
                 // calculate the removed files (modified - seen)

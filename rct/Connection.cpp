@@ -9,16 +9,17 @@
 #include "Connection.h"
 
 Connection::Connection(int version)
-    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mFinishStatus(0),
+    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mCheckTimer(0), mFinishStatus(0),
       mVersion(version), mSilent(false), mIsConnected(false), mWarned(false)
 {
 }
 
 Connection::~Connection()
 {
-    if (mTimeoutTimer) {
+    if (mTimeoutTimer)
         EventLoop::eventLoop()->unregisterTimer(mTimeoutTimer);
-    }
+    if (mCheckTimer)
+        EventLoop::eventLoop()->unregisterTimer(mCheckTimer);
 }
 
 void Connection::connect(const SocketClient::SharedPtr &client)
@@ -26,16 +27,11 @@ void Connection::connect(const SocketClient::SharedPtr &client)
     mSocketClient = client;
     mIsConnected = true;
     assert(client->isConnected());
-    auto that = shared_from_this();
-    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, that, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, that, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, that, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->error().connect(std::bind(&Connection::onSocketError, that, std::placeholders::_1, std::placeholders::_2));
-    std::weak_ptr<Connection> weak = that;
-    EventLoop::eventLoop()->callLater([weak]() {
-            if (auto strong = weak.lock())
-                strong->checkData();
-        });
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
+    mCheckTimer = EventLoop::eventLoop()->registerTimer([this](int) { checkData(); }, 0, Timer::SingleShot);
 }
 
 void Connection::checkData()
@@ -47,7 +43,7 @@ void Connection::checkData()
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
     if (timeout > 0) {
-        mTimeoutTimer = EventLoop::eventLoop()->registerTimer([&](int) {
+        mTimeoutTimer = EventLoop::eventLoop()->registerTimer([this](int) {
                 if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(shared_from_this());
@@ -56,12 +52,11 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
         }, timeout, Timer::SingleShot);
     }
     mSocketClient.reset(new SocketClient);
-    auto that = shared_from_this();
-    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, that, std::placeholders::_1));
-    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, that, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, that, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, that, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->error().connect(std::bind(&Connection::onSocketError, that, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
     if (!mSocketClient->connect(socketFile)) {
         mSocketClient.reset();
         return false;
@@ -81,12 +76,11 @@ bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
         }, timeout, Timer::SingleShot);
     }
     mSocketClient.reset(new SocketClient);
-    auto that = shared_from_this();
-    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, that, std::placeholders::_1));
-    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, that, std::placeholders::_1));
-    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, that, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, that, std::placeholders::_1, std::placeholders::_2));
-    mSocketClient->error().connect(std::bind(&Connection::onSocketError, that, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
+    mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
+    mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
+    mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
     if (!mSocketClient->connect(host, port)) {
         mSocketClient.reset();
         return false;

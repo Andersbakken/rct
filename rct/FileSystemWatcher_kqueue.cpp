@@ -183,7 +183,9 @@ bool FileSystemWatcher::watch(const Path &p)
 
     FSUserData data;
     data.watcher = this;
-    path.visit(scanFiles, &data);
+    path.visit([&data](const Path &p) {
+            return scanFiles(p, &data);
+            });
 
     return true;
 }
@@ -281,7 +283,9 @@ void FileSystemWatcher::notifyReadyRead()
                         ++it;
                     }
                     //printf("before updateFiles, path %s, all %d\n", p.nullTerminated(), data.all.size());
-                    p.visit(updateFiles, &data);
+                    p.visit([&data](const Path &p) {
+                            return updateFiles(p, &data);
+                            });
                     //printf("after updateFiles, added %d, modified %d, removed %d\n",
                     //       data.added.size(), data.modified.size(), data.all.size());
 

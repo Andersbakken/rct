@@ -397,6 +397,13 @@ inline Log operator<<(Log stream, const Hash<Key, Value> &map)
     return stream;
 }
 
+template <typename T>
+inline Log operator<<(Log log, Flags<T> f)
+{
+    log << f.toString();
+    return log;
+}
+
 inline Log operator<<(Log stream, const String &byteArray)
 {
     stream.write(byteArray.constData(), byteArray.size());

@@ -1,7 +1,6 @@
 #ifndef Flags_h
 #define Flags_h
 
-#include <rct/Log.h>
 #include <rct/String.h>
 
 template <typename T>
@@ -106,11 +105,6 @@ private:
 
 #define RCT_FLAGS(T)                                                    \
     RCT_FLAGS_OPERATORS(T)                                              \
-    inline Log operator<<(Log log, Flags<T> f)                          \
-    {                                                                   \
-        log << f.toString();                                            \
-        return log;                                                     \
-    }                                                                   \
     inline Serializer &operator<<(Serializer &s, Flags<T> f)            \
     {                                                                   \
         const T t = f.cast<T>();                                        \

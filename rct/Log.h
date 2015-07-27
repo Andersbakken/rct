@@ -140,9 +140,9 @@ public:
 #elif (ULONG_MAX) != (UINT_MAX)
     Log operator<<(uint64_t number) { return addStringStream(number); }
     Log operator<<(int64_t number) { return addStringStream(number); }
+#endif
 #if defined(__i386__)
     Log operator<<(long number) { return addStringStream(number); }
-#endif
 #endif
     Log operator<<(unsigned long long number) { return addStringStream(number); }
     Log operator<<(long long number) { return addStringStream(number); }

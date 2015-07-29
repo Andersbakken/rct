@@ -97,6 +97,7 @@ public:
 
 private:
     Connection(int version);
+    void disconnect();
     void connect(const SocketClient::SharedPtr &client);
     void onClientConnected(const SocketClient::SharedPtr&) { mIsConnected = true; mConnected(shared_from_this()); }
     void onClientDisconnected(const SocketClient::SharedPtr&) { mIsConnected = false; mDisconnected(shared_from_this()); }

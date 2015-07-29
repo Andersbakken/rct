@@ -20,10 +20,23 @@ Connection::~Connection()
         EventLoop::eventLoop()->unregisterTimer(mTimeoutTimer);
     if (mCheckTimer)
         EventLoop::eventLoop()->unregisterTimer(mCheckTimer);
+    disconnect();
+}
+
+void Connection::disconnect()
+{
+    if (mSocketClient) {
+        mSocketClient->disconnected().disconnect();
+        mSocketClient->readyRead().disconnect();
+        mSocketClient->bytesWritten().disconnect();
+        mSocketClient->error().disconnect();
+        mSocketClient.reset();
+    }
 }
 
 void Connection::connect(const SocketClient::SharedPtr &client)
 {
+    assert(!mSocketClient);
     mSocketClient = client;
     mIsConnected = true;
     assert(client->isConnected());
@@ -42,6 +55,7 @@ void Connection::checkData()
 
 bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
+    assert(!mSocketClient);
     if (timeout > 0) {
         mTimeoutTimer = EventLoop::eventLoop()->registerTimer([this](int) {
                 if (!mIsConnected) {
@@ -66,6 +80,7 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
 
 bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
+    assert(!mSocketClient);
     if (timeout > 0) {
         mTimeoutTimer = EventLoop::eventLoop()->registerTimer([this](int) {
                 if (!mIsConnected) {

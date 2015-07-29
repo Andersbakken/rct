@@ -16,7 +16,7 @@ FileSystemWatcher::FileSystemWatcher()
     mFd = inotify_init();
     assert(mFd != -1);
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, [this](int, unsigned int) {
-            mTimer.restart(10, Timer::SingleShot);
+            mTimer.restart(100, Timer::SingleShot);
         });
 }
 

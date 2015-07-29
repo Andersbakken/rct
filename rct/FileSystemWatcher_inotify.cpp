@@ -90,43 +90,42 @@ bool FileSystemWatcher::unwatch(const Path &path)
     }
 }
 
-static inline void dump(unsigned int mask)
+static inline void dump(Log &log, unsigned int mask)
 {
     if (mask & IN_ACCESS)
-        printf("IN_ACCESS ");
+        log << "IN_ACCESS";
     if (mask & IN_MODIFY)
-        printf("IN_MODIFY ");
+        log << "IN_MODIFY";
     if (mask & IN_ATTRIB)
-        printf("IN_ATTRIB ");
+        log << "IN_ATTRIB";
     if (mask & IN_CLOSE_WRITE)
-        printf("IN_CLOSE_WRITE ");
+        log << "IN_CLOSE_WRITE";
     if (mask & IN_CLOSE_NOWRITE)
-        printf("IN_CLOSE_NOWRITE ");
+        log << "IN_CLOSE_NOWRITE";
     if (mask & IN_CLOSE)
-        printf("IN_CLOSE ");
+        log << "IN_CLOSE";
     if (mask & IN_OPEN)
-        printf("IN_OPEN ");
+        log << "IN_OPEN";
     if (mask & IN_MOVED_FROM)
-        printf("IN_MOVED_FROM ");
+        log << "IN_MOVED_FROM";
     if (mask & IN_MOVED_TO)
-        printf("IN_MOVED_TO ");
+        log << "IN_MOVED_TO";
     if (mask & IN_CREATE)
-        printf("IN_CREATE ");
+        log << "IN_CREATE";
     if (mask & IN_DELETE)
-        printf("IN_DELETE ");
+        log << "IN_DELETE";
     if (mask & IN_DELETE_SELF)
-        printf("IN_DELETE_SELF ");
+        log << "IN_DELETE_SELF";
     if (mask & IN_MOVE_SELF)
-        printf("IN_MOVE_SELF ");
+        log << "IN_MOVE_SELF";
 }
-
-static inline void foolishness2();
-static inline void foolishness() { dump(0); foolishness2(); }
-static inline void foolishness2() { foolishness(); }
 
 void FileSystemWatcher::notifyReadyRead()
 {
-    // printf("notifyReadyRead\n");
+    static const bool dumpFS = getenv("RTAGS_DUMP_INOTIFY") && !strcmp(getenv("RTAGS_DUMP_INOTIFY"), "1");
+    if (dumpFS) {
+        error() << "FileSystemWatcher::notifyReadyRead";
+    }
     Changes changes;
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -142,11 +141,11 @@ void FileSystemWatcher::notifyReadyRead()
             inotify_event *event = reinterpret_cast<inotify_event*>(buf + idx);
             idx += sizeof(inotify_event) + event->len;
             Path path = mWatchedById.value(event->wd);
-            // if (event->mask) {
-            //     printf("%s [%s]", path.constData(), event->name);
-            //     dump(event->mask);
-            //     printf("\n");
-            // }
+            if (dumpFS && event->mask) {
+                Log log(LogLevel::Error);
+                log << path << event->name;
+                dump(log, event->mask);
+            }
 
             const bool isDir = path.isDir();
 
@@ -166,6 +165,14 @@ void FileSystemWatcher::notifyReadyRead()
                 changes.add(Changes::Modified, path);
             }
         }
+    }
+    if (dumpFS) {
+        if (!changes.added.isEmpty())
+            error() << "Added" << changes.added;
+        if (!changes.removed.isEmpty())
+            error() << "Removed" << changes.removed;
+        if (!changes.modified.isEmpty())
+            error() << "Modified" << changes.modified;
     }
     processChanges(changes);
 }

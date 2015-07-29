@@ -141,9 +141,12 @@ void FileSystemWatcher::notifyReadyRead()
             inotify_event *event = reinterpret_cast<inotify_event*>(buf + idx);
             idx += sizeof(inotify_event) + event->len;
             Path path = mWatchedById.value(event->wd);
+            if (path.isEmpty())
+                continue;
+
             if (dumpFS && event->mask) {
                 Log log(LogLevel::Error);
-                log << path << event->name;
+                log << (path + event->name);
                 dump(log, event->mask);
             }
 

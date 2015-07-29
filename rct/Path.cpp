@@ -181,6 +181,8 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         operator=(exp_result.we_wordv[0]);
         wordfree(&exp_result);
     }
+    if (*this == ".")
+        clear();
     if (mode == MakeAbsolute) {
         if (isAbsolute())
             return true;

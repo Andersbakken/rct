@@ -14,11 +14,6 @@
 
 #include "Log.h"
 
-#define eintrwrap(VAR, BLOCK)                   \
-    do {                                        \
-        VAR = BLOCK;                            \
-    } while (VAR == -1 && errno == EINTR)
-
 SocketServer::SocketServer()
     : fd(-1), isIPv6(false)
 {}
@@ -130,7 +125,7 @@ bool SocketServer::listen(const Path &p)
 bool SocketServer::listenfd(int fdArg)
 {
     close();
-    
+
     fd = fdArg;
 
     return commonListen();

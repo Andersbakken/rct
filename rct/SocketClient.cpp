@@ -16,11 +16,6 @@
 #include <netdb.h>
 #include <rct-config.h>
 
-#define eintrwrap(VAR, BLOCK)                   \
-    do {                                        \
-        VAR = BLOCK;                            \
-    } while (VAR == -1 && errno == EINTR)
-
 SocketClient::SocketClient(unsigned int mode)
     : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None), wMode(Asynchronous), writeWait(false)
 {

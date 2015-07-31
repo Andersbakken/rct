@@ -8,16 +8,11 @@
 #include "Rct.h"
 #include <errno.h>
 
-FileSystemWatcher::FileSystemWatcher()
+void FileSystemWatcher::init()
 {
-    mTimer.timeout().connect([this](Timer *) {
-            notifyReadyRead(); });
-
     mFd = inotify_init();
     assert(mFd != -1);
-    EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, [this](int, unsigned int) {
-            mTimer.restart(100, Timer::SingleShot);
-        });
+    EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -126,7 +121,6 @@ void FileSystemWatcher::notifyReadyRead()
     if (dumpFS) {
         error() << "FileSystemWatcher::notifyReadyRead";
     }
-    Changes changes;
     {
         std::lock_guard<std::mutex> lock(mMutex);
         int s = 0;
@@ -153,29 +147,29 @@ void FileSystemWatcher::notifyReadyRead()
             const bool isDir = path.isDir();
 
             if (event->mask & (IN_DELETE_SELF|IN_MOVE_SELF|IN_UNMOUNT)) {
-                changes.add(Changes::Remove, path);
+                add(Remove, path);
             } else if (event->mask & (IN_CREATE|IN_MOVED_TO)) {
                 if (isDir)
                     path.append(event->name);
-                changes.add(Changes::Add, path);
+                add(Add, path);
             } else if (event->mask & (IN_DELETE|IN_MOVED_FROM)) {
                 if (isDir)
                     path.append(event->name);
-                changes.add(Changes::Remove, path);
+                add(Remove, path);
             } else if (event->mask & (IN_ATTRIB|IN_CLOSE_WRITE)) {
                 if (isDir)
                     path.append(event->name);
-                changes.add(Changes::Modified, path);
+                add(Modified, path);
             }
         }
     }
     if (dumpFS) {
-        if (!changes.added.isEmpty())
-            error() << "Added" << changes.added;
-        if (!changes.removed.isEmpty())
-            error() << "Removed" << changes.removed;
-        if (!changes.modified.isEmpty())
-            error() << "Modified" << changes.modified;
+        if (!mAddedPaths.isEmpty())
+            error() << "Added" << mAddedPaths;
+        if (!mRemovedPaths.isEmpty())
+            error() << "Removed" << mRemovedPaths;
+        if (!mModifiedPaths.isEmpty())
+            error() << "Modified" << mModifiedPaths;
     }
-    processChanges(changes);
+    processChanges();
 }

@@ -309,9 +309,9 @@ void WatcherData::stop()
     changes.clear();
 }
 
-FileSystemWatcher::FileSystemWatcher()
-    : mWatcher(new WatcherData(this))
+void FileSystemWatcher::init()
 {
+    mWatcher = new WatcherData(this);
     mWatcher->wakeupHandle = CreateEvent(NULL, FALSE, FALSE, NULL);
     mWatcher->thread = std::thread(std::bind(&WatcherData::run, mWatcher));
 }

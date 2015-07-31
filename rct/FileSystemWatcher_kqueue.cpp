@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-FileSystemWatcher::FileSystemWatcher()
+void FileSystemWatcher::init()
 {
     mFd = kqueue();
     assert(mFd != -1);

@@ -28,7 +28,13 @@ class WatcherData;
 class FileSystemWatcher
 {
 public:
-    FileSystemWatcher();
+    struct Options {
+        Options()
+            : removeDelay(1000)
+        {}
+        int removeDelay;
+    };
+    FileSystemWatcher(const Options &option = Options());
     ~FileSystemWatcher();
 
     bool watch(const Path &path);
@@ -43,6 +49,7 @@ public:
     Set<Path> watchedPaths() const { return mWatchedByPath.keys().toSet(); } // ### slow
 #endif
 private:
+    void init();
 #if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
     WatcherData* mWatcher;
     friend class WatcherData;
@@ -53,10 +60,6 @@ private:
     bool isWatching(const Path& path) const;
 #endif
 #else
-#if defined(HAVE_INOTIFY)
-    Timer mTimer;
-#endif
-    std::mutex mMutex;
     void notifyReadyRead();
     int mFd;
     Map<Path, int> mWatchedByPath;
@@ -70,32 +73,39 @@ private:
     bool isWatching(const Path& path) const;
 #endif
 #endif
+    std::mutex mMutex;
     Signal<std::function<void(const Path&)> > mRemoved, mModified, mAdded;
 
-    struct Changes {
-        enum Type {
-            Add,
-            Remove,
-            Modified
-        };
-        void add(Type type, const Path &path)
-        {
-            switch (type) {
-            case Add:
-                if (!removed.remove(path))
-                    added.insert(path);
-                break;
-            case Remove:
-                if (!added.remove(path))
-                    removed.insert(path);
-                break;
-            case Modified:
-                modified.insert(path);
-                break;
-            }
-        }
-        Set<Path> added, removed, modified;
+    enum Type {
+        Add = 0x1,
+        Remove = 0x2,
+        Modified = 0x4
     };
-    void processChanges(const Changes &changes);
+    void add(Type type, const Path &path)
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        switch (type) {
+        case Add:
+            if (mRemovedPaths.remove(path)) {
+                mModifiedPaths.insert(path);
+            } else {
+                mAddedPaths.insert(path);
+            }
+            break;
+        case Remove:
+            if (!mAddedPaths.remove(path))
+                mRemovedPaths.insert(path);
+            break;
+        case Modified:
+            mModifiedPaths.insert(path);
+            break;
+        }
+    }
+    const Options mOptions;
+    Set<Path> mAddedPaths, mRemovedPaths, mModifiedPaths;
+    Timer mTimer;
+    void processChanges();
+    void processChanges(unsigned int types);
 };
+
 #endif

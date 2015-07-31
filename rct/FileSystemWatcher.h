@@ -83,7 +83,6 @@ private:
     };
     void add(Type type, const Path &path)
     {
-        std::lock_guard<std::mutex> lock(mMutex);
         switch (type) {
         case Add:
             if (mRemovedPaths.remove(path)) {

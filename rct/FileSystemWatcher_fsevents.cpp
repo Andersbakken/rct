@@ -229,18 +229,21 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
     char** paths = reinterpret_cast<char**>(eventPaths);
 
     FileSystemWatcher *fsWatcher = watcher->watcher;
-    for (size_t i = 0; i < numEvents; ++i) {
-        const FSEventStreamEventFlags flags = eventFlags[i];
-        if (flags & kFSEventStreamEventFlagHistoryDone)
-            continue;
-        if (flags & kFSEventStreamEventFlagItemIsFile) {
-            const Path path(paths[i]);
-            if (flags & kFSEventStreamEventFlagItemCreated)
-                fsWatcher->add(FileSystemWatcher::Add, path);
-            if (flags & kFSEventStreamEventFlagItemRemoved)
-                fsWatcher->add(FileSystemWatcher::Remove, path);
-            if (flags & (kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod))
-                fsWatcher->add(FileSystemWatcher::Modified, path);
+    {
+        std::lock_guard<std::mutex> locker(fsWatcher->mMutex);
+        for (size_t i = 0; i < numEvents; ++i) {
+            const FSEventStreamEventFlags flags = eventFlags[i];
+            if (flags & kFSEventStreamEventFlagHistoryDone)
+                continue;
+            if (flags & kFSEventStreamEventFlagItemIsFile) {
+                const Path path(paths[i]);
+                if (flags & kFSEventStreamEventFlagItemCreated)
+                    fsWatcher->add(FileSystemWatcher::Add, path);
+                if (flags & kFSEventStreamEventFlagItemRemoved)
+                    fsWatcher->add(FileSystemWatcher::Remove, path);
+                if (flags & (kFSEventStreamEventFlagItemModified | kFSEventStreamEventFlagItemInodeMetaMod))
+                    fsWatcher->add(FileSystemWatcher::Modified, path);
+            }
         }
     }
 

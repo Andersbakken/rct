@@ -162,14 +162,14 @@ void FileSystemWatcher::notifyReadyRead()
                 add(Modified, path);
             }
         }
-    }
-    if (dumpFS) {
-        if (!mAddedPaths.isEmpty())
-            error() << "Added" << mAddedPaths;
-        if (!mRemovedPaths.isEmpty())
-            error() << "Removed" << mRemovedPaths;
-        if (!mModifiedPaths.isEmpty())
-            error() << "Modified" << mModifiedPaths;
+        if (dumpFS) {
+            if (!mAddedPaths.isEmpty())
+                error() << "Added" << mAddedPaths;
+            if (!mRemovedPaths.isEmpty())
+                error() << "Removed" << mRemovedPaths;
+            if (!mModifiedPaths.isEmpty())
+                error() << "Modified" << mModifiedPaths;
+        }
     }
     processChanges();
 }

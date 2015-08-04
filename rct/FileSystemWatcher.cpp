@@ -5,14 +5,14 @@ FileSystemWatcher::FileSystemWatcher(const Options &options)
 {
     init();
     mTimer.timeout().connect([this](Timer *) {
-            processChanges(Add|Remove);
+            processChanges(Remove);
         });
 }
 
 void FileSystemWatcher::processChanges()
 {
     if (mOptions.removeDelay > 0) {
-        processChanges(Modified);
+        processChanges(Add|Modified);
         {
             std::lock_guard<std::mutex> lock(mMutex);
             if (!mRemovedPaths.empty())

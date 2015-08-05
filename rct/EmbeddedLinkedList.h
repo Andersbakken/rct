@@ -158,25 +158,21 @@ public:
     {
         assert(mFirst);
         assert(mCount > 0);
-        remove(mFirst);
-        return mFirst;
+        const T copy = mFirst;
+        remove(copy);
+        return copy;
     }
 
     T removeLast()
     {
         assert(mLast);
-        remove(mLast);
-        return mLast;
+        const T copy = mLast;
+        remove(copy);
+        return copy;
     }
 
-    T takeFirst()
-    {
-        assert(!isEmpty());
-        const T t = first();
-        removeFirst();
-        return t;
-    }
-    T takeLast() { assert(!isEmpty()); const T t = last(); removeLast(); return t; }
+    T takeFirst() { return removeFirst(); }
+    T takeLast() { return removeLast(); }
 
     bool contains(const T &t) const
     {

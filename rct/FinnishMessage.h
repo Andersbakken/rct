@@ -14,6 +14,7 @@ public:
     {
     }
 
+    void perkele() { mStatus = -1; }
     int status() const { return mStatus; }
 
     virtual int encodedSize() const override { return sizeof(mStatus); }

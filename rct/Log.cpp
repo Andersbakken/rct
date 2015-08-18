@@ -264,10 +264,10 @@ void cleanupLogging()
     sOutputs.clear();
 }
 
-Log::Log(String *out)
+Log::Log(String *out, Flags<LogOutput::LogFlag> flags)
 {
     assert(out);
-    mData.reset(new Data(out));
+    mData.reset(new Data(out, flags));
 }
 
 Log::Log(LogLevel level, Flags<LogOutput::LogFlag> flags)

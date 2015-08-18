@@ -62,6 +62,16 @@ public:
             Base::push_back(t.at(i));
     }
 
+    void insert(int idx, const List<T> &list)
+    {
+        Base::insert(Base::begin() + idx, list.begin(), list.end());
+    }
+
+    void insert(int idx, const T &val)
+    {
+        Base::insert(Base::begin() + idx, val);
+    }
+
     void sort()
     {
         std::sort(Base::begin(), Base::end());

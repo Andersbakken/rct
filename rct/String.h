@@ -560,18 +560,20 @@ public:
 
     enum SplitFlag {
         NoSplitFlag = 0x0,
-        SkipEmpty = 0x1
+        SkipEmpty = 0x1,
+        KeepSeparators = 0x2
     };
     List<String> split(char ch, unsigned int flags = NoSplitFlag) const
     {
         List<String> ret;
         int last = 0;
+        const int add = flags & KeepSeparators ? 1 : 0;
         while (1) {
             const int next = indexOf(ch, last);
             if (next == -1)
                 break;
             if (next > last || !(flags & SkipEmpty))
-                ret.append(mid(last, next - last));
+                ret.append(mid(last, next - last + add));
             last = next + 1;
         }
         if (last < size() || !(flags & SkipEmpty))

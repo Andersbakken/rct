@@ -66,6 +66,7 @@ public:
     enum LogFlag {
         None = 0x0,
         TrailingNewLine = 0x1,
+        NoTypename = 0x2,
         DefaultFlags = TrailingNewLine
     };
     virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
@@ -130,7 +131,7 @@ void restartTime();
 class Log
 {
 public:
-    Log(String *out);
+    Log(String *out, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
     Log(LogLevel level = LogLevel::Error, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
     Log(const Log &other);
     Log &operator=(const Log &other);
@@ -218,6 +219,12 @@ public:
         }
         return ret;
     }
+    Flags<LogOutput::LogFlag> flags() const
+    {
+        if (mData)
+            return mData->flags;
+        return Flags<LogOutput::LogFlag>();
+    }
 private:
     template <typename T> Log addStringStream(T t)
     {
@@ -232,8 +239,8 @@ private:
     class Data
     {
     public:
-        Data(String *string)
-            : outPtr(string), level(LogLevel::None), spacing(true), disableSpacingOverride(0)
+        Data(String *string, Flags<LogOutput::LogFlag> f)
+            : outPtr(string), level(LogLevel::None), spacing(true), disableSpacingOverride(0), flags(f)
         {}
         Data(LogLevel lvl, Flags<LogOutput::LogFlag> f)
             : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0), flags(f)
@@ -276,16 +283,23 @@ template <typename T> inline String typeName()
 template <typename T>
 inline Log operator<<(Log stream, const std::shared_ptr<T> &ptr)
 {
-    stream << ("std::shared_ptr<" + typeName<T>() + ">") << ptr.get();
+    if (!(stream.flags() & LogOutput::NoTypename))
+        stream << ("std::shared_ptr<" + typeName<T>() + ">");
+    stream << ptr.get();
     return stream;
 }
 
 template <typename T>
 inline Log operator<<(Log stream, const List<T> &list)
 {
-    stream << "List<";
-    bool old = stream.setSpacing(false);
-    stream << typeName<T>() << ">(";
+    bool old;
+    if (!(stream.flags() & LogOutput::NoTypename)) {
+        stream << "List<";
+        old = stream.setSpacing(false);
+        stream << typeName<T>() << ">(";
+    } else {
+        old = stream.setSpacing(false);
+    }
     bool first = true;
     for (typename List<T>::const_iterator it = list.begin(); it != list.end(); ++it) {
         if (first) {
@@ -299,7 +313,8 @@ inline Log operator<<(Log stream, const List<T> &list)
         old = stream.setSpacing(false);
 
     }
-    stream << ")";
+    if (!(stream.flags() & LogOutput::NoTypename))
+        stream << ")";
     stream.setSpacing(old);
     return stream;
 }
@@ -307,10 +322,17 @@ inline Log operator<<(Log stream, const List<T> &list)
 template <typename T1, typename T2>
 inline Log operator<<(Log stream, const std::pair<T1, T2> &pair)
 {
-    stream << "pair<";
-    const bool old = stream.setSpacing(false);
-    stream << typeName<T1>() << ", " << typeName<T2>() << ">(";
-    stream << pair.first << ", " << pair.second << ")";
+    bool old;
+    if (!(stream.flags() & LogOutput::NoTypename)) {
+        stream << "pair<";
+        old = stream.setSpacing(false);
+        stream << typeName<T1>() << ", " << typeName<T2>() << ">(";
+    } else {
+        old = stream.setSpacing(false);
+    }
+    stream << pair.first << ", " << pair.second;
+    if (!(stream.flags() & LogOutput::NoTypename))
+        stream << ")";
     stream.setSpacing(old);
     return stream;
 }
@@ -318,9 +340,14 @@ inline Log operator<<(Log stream, const std::pair<T1, T2> &pair)
 template <typename T>
 inline Log operator<<(Log stream, const Set<T> &list)
 {
-    stream << "Set<";
-    bool old = stream.setSpacing(false);
-    stream << typeName<T>() << ">(";
+    bool old;
+    if (!(stream.flags() & LogOutput::NoTypename)) {
+        stream << "Set<";
+        old = stream.setSpacing(false);
+        stream << typeName<T>() << ">(";
+    } else {
+        old = stream.setSpacing(false);
+    }
     bool first = true;
     for (typename Set<T>::const_iterator it = list.begin(); it != list.end(); ++it) {
         if (first) {
@@ -334,7 +361,8 @@ inline Log operator<<(Log stream, const Set<T> &list)
         old = stream.setSpacing(false);
 
     }
-    stream << ")";
+    if (!(stream.flags() & LogOutput::NoTypename))
+        stream << ")";
     stream.setSpacing(old);
     return stream;
 }
@@ -342,9 +370,14 @@ inline Log operator<<(Log stream, const Set<T> &list)
 template <typename Key, typename Value>
 inline Log operator<<(Log stream, const Map<Key, Value> &map)
 {
-    stream << "Map<";
-    bool old = stream.setSpacing(false);
-    stream << typeName<Key>() << ", " << typeName<Value>() << ">(";
+    bool old;
+    if (!(stream.flags() & LogOutput::NoTypename)) {
+        stream << "Map<";
+        old = stream.setSpacing(false);
+        stream << typeName<Key>() << ", " << typeName<Value>() << ">(";
+    } else {
+        old = stream.setSpacing(false);
+    }
     bool first = true;
     for (typename Map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
         if (first) {
@@ -363,7 +396,8 @@ inline Log operator<<(Log stream, const Map<Key, Value> &map)
         stream << value;
         old = stream.setSpacing(false);
     }
-    stream << ")";
+    if (!(stream.flags() & LogOutput::NoTypename))
+        stream << ")";
     stream.setSpacing(old);
     return stream;
 }
@@ -371,9 +405,14 @@ inline Log operator<<(Log stream, const Map<Key, Value> &map)
 template <typename Key, typename Value>
 inline Log operator<<(Log stream, const Hash<Key, Value> &map)
 {
-    stream << "Hash<";
-    bool old = stream.setSpacing(false);
-    stream << typeName<Key>() << ", " << typeName<Value>() << ">(";
+    bool old;
+    if (!(stream.flags() & LogOutput::NoTypename)) {
+        stream << "Hash<";
+        old = stream.setSpacing(false);
+        stream << typeName<Key>() << ", " << typeName<Value>() << ">(";
+    } else {
+        old = stream.setSpacing(false);
+    }
     bool first = true;
     for (typename Hash<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
         if (first) {
@@ -392,7 +431,8 @@ inline Log operator<<(Log stream, const Hash<Key, Value> &map)
         stream << value;
         old = stream.setSpacing(false);
     }
-    stream << ")";
+    if (!(stream.flags() & LogOutput::NoTypename))
+        stream << ")";
     stream.setSpacing(old);
     return stream;
 }

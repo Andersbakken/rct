@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <assert.h>
+#include <memory>
 
 template <typename T> class Set;
 
@@ -289,6 +290,21 @@ public:
             ++bit;
         }
         return 0;
+    }
+
+    int remove(std::function<bool(const T &t)> match)
+    {
+        int ret = 0;
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
+            if (match(*it)) {
+                Base::erase(it++);
+                ++ret;
+            } else {
+                ++it;
+            }
+        }
+        return ret;
     }
 
     typename std::vector<T>::const_iterator constBegin() const

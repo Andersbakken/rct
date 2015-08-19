@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <memory>
+#include <functional>
 
 template <typename T> class Set;
 

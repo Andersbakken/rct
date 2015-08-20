@@ -144,6 +144,14 @@ inline int timevalDiff(timeval* a, timeval* b)
     return ams - bms;
 }
 
+inline List<Path> pathEnvironment()
+{
+    const char *path = getenv("PATH");
+    if (path)
+        return String(path).split(':', String::SkipEmpty);
+    return List<Path>();
+}
+
 static inline bool wildCmp(const char *wild, const char *string, String::CaseSensitivity cs = String::CaseSensitive)
 {
     // Written by Jack Handy - Found here: http://www.codeproject.com/Articles/1088/Wildcard-string-compare-globbing

@@ -133,7 +133,7 @@ public:
     {}
 
     Deserializer(const String &string, const char *key = "")
-        : mString(string), mData(string.constData()), mLength(string.size()),
+        : mString(string), mData(mString.constData()), mLength(mString.size()),
           mPos(0), mFile(0), mKey(key)
     {}
 

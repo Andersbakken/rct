@@ -133,7 +133,8 @@ public:
     {}
 
     Deserializer(const String &string, const char *key = "")
-        : mData(string.constData()), mLength(string.size()), mPos(0), mFile(0), mKey(key)
+        : mString(string), mData(string.constData()), mLength(string.size()),
+          mPos(0), mFile(0), mKey(key)
     {}
 
     Deserializer(FILE *file, const char *key = "")
@@ -204,6 +205,7 @@ public:
     template <typename T> bool decodeType() { return true; }
 #endif
 private:
+    String mString;
     const char *mData;
     const int mLength;
     int mPos;

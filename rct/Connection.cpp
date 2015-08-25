@@ -169,7 +169,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
             assert(read == 4);
             mPendingRead = pending;
             assert(mPendingRead > 0);
-            available -= 4;
+            available -= read;
         }
         assert(mPendingRead >= 0);
         if (available < static_cast<unsigned int>(mPendingRead))

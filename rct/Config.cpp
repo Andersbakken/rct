@@ -1,5 +1,6 @@
 #include "Config.h"
 #include "Log.h"
+#include "StackBuffer.h"
 
 List<Config::OptionBase*> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;
@@ -46,11 +47,11 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 
     // ::error() << "parsing" << args;
 
-    char *a[args.size()];
+    StackBuffer<128, char *> a(args.size());
     for (int i=0; i<args.size(); ++i) {
         a[i] = strdup(args.at(i).constData());
     }
-    option *options = new option[sOptions.size() + 1];
+    StackBuffer<128, option> options(sOptions.size() + 1);
 
     List<OptionBase*> optionPointers;
     for (int i=0; i<sOptions.size(); ++i) {
@@ -161,8 +162,6 @@ done:
     for (int i=0; i<args.size(); ++i) {
         free(a[i]);
     }
-
-    delete[] options;
 
     if (!ok) {
         if (!error.isEmpty()) {

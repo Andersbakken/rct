@@ -92,7 +92,7 @@ private:
     T mValue;
 };
 
-#define RCT_FLAGS_OPERATORS(T)                            \
+#define RCT_FLAGS_OPERATORS(T)                                      \
     inline Flags<T> operator|(T l, T r) { return Flags<T>(l) | r; } \
     inline Flags<T> operator&(T l, T r) { return Flags<T>(l) & r; } \
     inline Flags<T> operator^(T l, T r) { return Flags<T>(l) ^ r; } \
@@ -101,10 +101,11 @@ private:
     inline Flags<T> operator*(T l, T r) { return Flags<T>(l) * r; } \
     inline Flags<T> operator%(T l, T r) { return Flags<T>(l) % r; } \
     inline Flags<T> operator/(T l, T r) { return Flags<T>(l) / r; } \
-    inline Flags<T> operator~(T t) { return ~Flags<T>(t); }
+    inline Flags<T> operator~(T t) { return ~Flags<T>(t); }         \
+    struct FlagsHack
 
 #define RCT_FLAGS(T)                                                    \
-    RCT_FLAGS_OPERATORS(T)                                              \
+    RCT_FLAGS_OPERATORS(T);                                             \
     inline Serializer &operator<<(Serializer &s, Flags<T> f)            \
     {                                                                   \
         const T t = f.cast<T>();                                        \
@@ -121,6 +122,7 @@ private:
         s.read(aliased.buf, sizeof(T));                                 \
         f = aliased.val;                                                \
         return s;                                                       \
-    }
+    }                                                                   \
+    struct FlagsHack
 #endif
 

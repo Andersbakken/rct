@@ -80,7 +80,7 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
 
     MessageCreatorBase *base = sFactory.value(id);
     if (!base) {
-        error("Invalid message id %d, data: %d bytes, factory %p", id, size, &sFactory);
+        error("Invalid message id %d, data: %d bytes", id, size);
         return std::shared_ptr<Message>();
     }
     std::shared_ptr<Message> message(base->create(data, size));

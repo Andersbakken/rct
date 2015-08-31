@@ -8,6 +8,7 @@
 #include <rct/String.h>
 #include <rct/Value.h>
 #include <rct/Hash.h>
+#include <rct/SignalSlot.h>
 #include <memory>
 
 class ObjectPrivate;
@@ -64,6 +65,8 @@ public:
         template<typename T>
         T extraData() const;
 
+        Signal<std::function<void(const SharedPtr&)> >& onDestroyed() { return mDestroyed; }
+
         // callAsConstructor
         // handleUnknownProperty
         // deleteHandler
@@ -98,6 +101,9 @@ public:
         };
 
         ExtraDataBase* mData;
+        Signal<std::function<void(const SharedPtr&)> > mDestroyed;
+
+        friend struct ObjectData;
     };
 
     class Class : public std::enable_shared_from_this<Class>
@@ -164,6 +170,7 @@ public:
     Object::SharedPtr toObject(const Value &value) const;
     bool isFunction(const Value &value) const;
     Object::SharedPtr globalObject() const { return mGlobalObject; }
+
 private:
     void throwExceptionInternal(const Value &exception);
     static ScriptEngine *sInstance;

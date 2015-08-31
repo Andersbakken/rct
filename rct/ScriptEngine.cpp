@@ -102,9 +102,19 @@ public:
 
 struct ObjectData
 {
+    ~ObjectData();
+
     String name;
     std::weak_ptr<ScriptEngine::Object> weak, parent;
 };
+
+ObjectData::~ObjectData()
+{
+    ScriptEngine::Object::SharedPtr obj = weak.lock();
+    if (obj) {
+        obj->mDestroyed(obj);
+    }
+}
 
 static inline ScriptEngine::Object::SharedPtr objectFromV8Object(const v8::Local<v8::Object>& holder);
 static void functionCallback(const v8::FunctionCallbackInfo<v8::Value>& info)

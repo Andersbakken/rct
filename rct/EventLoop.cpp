@@ -61,8 +61,7 @@ static pthread_key_t eventLoopKey;
 // sadly GCC < 4.8 doesn't support thread_local
 // fall back to pthread instead in order to support 4.7
 
-// ### static leak, one EventLoop::WeakPtr for each thread
-// ### that calls EventLoop::eventLoop()
+static int count = 0;
 static EventLoop::WeakPtr& localEventLoop()
 {
     EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(eventLoopKey));
@@ -90,6 +89,7 @@ EventLoop::EventLoop()
     nextTimerId(0), stop(false), timeout(false), flgs(0), inactivityTimeout(0)
 {
     std::call_once(mainOnce, [](){
+            atexit(&EventLoop::cleanupLocalEventLoop);
             mainEventPipe = -1;
             pthread_key_create(&eventLoopKey, 0);
             signal(SIGPIPE, SIG_IGN);
@@ -99,6 +99,15 @@ EventLoop::EventLoop()
 EventLoop::~EventLoop()
 {
     cleanup();
+}
+
+void EventLoop::cleanupLocalEventLoop()
+{
+    EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(eventLoopKey));
+    if (!ptr) {
+        delete ptr;
+        pthread_setspecific(eventLoopKey, 0);
+    }
 }
 
 void EventLoop::init(unsigned int flags)

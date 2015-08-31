@@ -1,5 +1,6 @@
 #include "Thread.h"
 #include "Log.h"
+#include "EventLoop.h"
 #include "rct-config.h"
 
 Thread::Thread()
@@ -17,6 +18,7 @@ void* Thread::localStart(void* arg)
 {
     Thread* t = static_cast<Thread*>(arg);
     t->run();
+    EventLoop::cleanupLocalEventLoop();
     if (t->isAutoDelete()) {
         if (EventLoop::SharedPtr loop = t->mLoop.lock())
             loop->callLater(std::bind(&Thread::finish, t));

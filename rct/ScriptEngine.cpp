@@ -69,7 +69,8 @@ public:
     {
     }
 
-    void init(CustomType type, ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o);
+    enum InitMode { Weak, Persistent };
+    void init(CustomType type, ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o, InitMode = Weak);
 
     struct PropertyData
     {
@@ -249,13 +250,15 @@ static void ObjectWeak(const v8::WeakCallbackData<v8::Object, ObjectPrivate>& da
     delete objData;
 }
 
-void ObjectPrivate::init(CustomType type, ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o)
+void ObjectPrivate::init(CustomType type, ScriptEnginePrivate* e, const v8::Handle<v8::Object>& o, InitMode mode)
 {
     customType = type;
     engine = e;
     object.Reset(e->isolate, o);
-    object.SetWeak(this, ObjectWeak);
-    object.MarkIndependent();
+    if (mode == Weak) {
+        object.SetWeak(this, ObjectWeak);
+        object.MarkIndependent();
+    }
 }
 
 static inline ScriptEngine::Object::SharedPtr objectFromV8Object(const v8::Local<v8::Object>& holder)
@@ -502,7 +505,7 @@ bool ScriptEngine::Object::isFunction() const
 
 ScriptEngine::Object::SharedPtr ScriptEngine::Object::registerFunction(const String &name, Function &&func)
 {
-    ScriptEngine::Object::SharedPtr obj = createObject(shared_from_this(), CustomType_Function, name);
+    ScriptEngine::Object::SharedPtr obj = ::createObject(shared_from_this(), CustomType_Function, name);
     assert(obj);
     obj->mPrivate->func = std::move(func);
     return obj;
@@ -529,7 +532,7 @@ ScriptEngine::Object::SharedPtr ScriptEngine::Object::child(const String &name)
     if (ch != mPrivate->children.end())
         return ch->second;
 
-    return createObject(shared_from_this(), CustomType_Object, name);
+    return ::createObject(shared_from_this(), CustomType_Object, name);
 }
 
 Value ScriptEngine::Object::property(const String &propertyName, String *error)
@@ -786,6 +789,31 @@ public:
 
     ScriptEngine::Object::SharedPtr create();
 };
+
+ScriptEngine::Object::SharedPtr ScriptEngine::createObject() const
+{
+    v8::Isolate* iso = mPrivate->isolate;
+
+    const v8::Isolate::Scope isolateScope(iso);
+    v8::HandleScope handleScope(iso);
+    v8::Local<v8::Context> ctx = v8::Local<v8::Context>::New(iso, mPrivate->context);
+    v8::Context::Scope contextScope(ctx);
+
+    v8::Local<v8::ObjectTemplate> otempl = v8::ObjectTemplate::New(iso);
+    otempl->SetInternalFieldCount(1);
+
+    v8::Handle<v8::Object> obj = otempl->NewInstance();
+    ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
+
+    ObjectData* data = new ObjectData({ String(), o });
+    obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
+    obj->SetInternalField(0, v8::External::New(iso, data));
+
+    ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
+    priv->init(CustomType_ClassObject, mPrivate, obj, ObjectPrivate::Persistent);
+
+    return o;
+}
 
 ScriptEngine::Object::SharedPtr ClassPrivate::create()
 {

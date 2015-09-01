@@ -170,6 +170,7 @@ public:
     Object::SharedPtr toObject(const Value &value) const;
     bool isFunction(const Value &value) const;
     Object::SharedPtr globalObject() const { return mGlobalObject; }
+    Object::SharedPtr createObject() const;
 
 private:
     void throwExceptionInternal(const Value &exception);

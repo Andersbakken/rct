@@ -659,7 +659,7 @@ static Value fromV8(v8::Isolate *isolate, v8::Handle<v8::Value> value)
         return toString(value);
     } else if (value->IsDate()) {
         v8::Handle<v8::Date> date = v8::Handle<v8::Date>::Cast(value);
-        return Date(static_cast<uint64_t>(date->ValueOf()));
+        return Date(static_cast<uint64_t>(date->ValueOf() / 1000));
     } else if (value->IsArray()) {
         v8::Handle<v8::Array> array = v8::Handle<v8::Array>::Cast(value);
         List<Value> result(array->Length());
@@ -742,7 +742,7 @@ static inline v8::Local<v8::Value> toV8_helper(v8::Isolate* isolate, const Value
         result = v8::Undefined(isolate);
         break;
     case Value::Type_Date:
-        result = v8::Date::New(isolate, static_cast<double>(value.toInt64()));
+        result = v8::Date::New(isolate, static_cast<double>(value.toInt64() * 1000));
         break;
     default:
         break;

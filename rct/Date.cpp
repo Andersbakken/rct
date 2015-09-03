@@ -3,7 +3,24 @@
 
 static std::once_flag tzFlag;
 
+Date::Date()
+    : mTime(0)
+{
+}
+
 Date::Date(time_t time, Mode mode)
+{
+    setTime(time, mode);
+}
+
+static struct tm* modetime(const time_t& clock, struct tm* result, Date::Mode mode)
+{
+    if (mode == Date::UTC)
+        return gmtime_r(&clock, result);
+    return localtime_r(&clock, result);
+}
+
+void Date::setTime(time_t time, Mode mode)
 {
     std::call_once(tzFlag, []() {
             tzset();
@@ -13,13 +30,6 @@ Date::Date(time_t time, Mode mode)
         mTime = time;
     else
         mTime = time + timezone;
-}
-
-static struct tm* modetime(const time_t& clock, struct tm* result, Date::Mode mode)
-{
-    if (mode == Date::UTC)
-        return gmtime_r(&clock, result);
-    return localtime_r(&clock, result);
 }
 
 int Date::date(Mode mode) const

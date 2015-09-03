@@ -7,7 +7,11 @@ class Date
 {
 public:
     enum Mode { Local, UTC };
+
+    Date();
     Date(time_t time, Mode mode = UTC);
+
+    bool isEpoch() const { return !mTime; }
 
     int date(Mode mode = UTC) const; // day of month, 1-31
     int day(Mode mode = UTC) const; // day of week, 0-6
@@ -18,6 +22,7 @@ public:
     int seconds(Mode mode = UTC) const; // seconds, 0-59. Does this need Mode?
 
     time_t time(Mode mode = UTC) const;
+    void setTime(time_t time, Mode mode = UTC);
 
 private:
     time_t mTime; // Stored as UTC

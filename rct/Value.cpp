@@ -97,6 +97,7 @@ cJSON *Value::toCJSON(const Value &value)
 {
     switch (value.type()) {
     case Value::Type_Boolean: return value.toBool() ? cJSON_CreateTrue() : cJSON_CreateFalse();
+    case Value::Type_Date:
     case Value::Type_Integer: return cJSON_CreateNumber(value.toInteger());
     case Value::Type_Double: return cJSON_CreateNumber(value.toDouble());
     case Value::Type_String: return cJSON_CreateString(value.toString().constData());

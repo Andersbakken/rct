@@ -6,6 +6,7 @@
 #include <rct/Serializer.h>
 #include <rct/Map.h>
 #include <rct/List.h>
+#include <rct/Date.h>
 #include <math.h>
 
 struct cJSON;
@@ -21,6 +22,7 @@ public:
     inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     inline Value(const std::shared_ptr<Custom> &custom) : mType(Type_Custom) { new (mData.customBuf) std::shared_ptr<Custom>(custom); }
     inline Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
+    inline Value(const Date& date) : mType(Type_Date) { mData.int64 = date.time(); }
 
     struct Custom : std::enable_shared_from_this<Custom>
     {
@@ -69,7 +71,8 @@ public:
         Type_String,
         Type_Custom,
         Type_Map,
-        Type_List
+        Type_List,
+        Type_Date
     };
 
     inline bool isInvalid() const { return mType == Type_Invalid; }
@@ -81,6 +84,7 @@ public:
     inline bool isCustom() const { return mType == Type_Custom; }
     inline bool isMap() const { return mType == Type_Map; }
     inline bool isList() const { return mType == Type_List; }
+    inline bool isDate() const { return mType == Type_Date; }
 
     inline static const char *typeToString(Type type);
     inline Type type() const { return mType; }
@@ -90,6 +94,7 @@ public:
     inline uint64_t toUInt64() const;
     inline double toDouble() const;
     inline String toString() const;
+    inline Date toDate(Date::Mode mode = Date::UTC) const;
     inline std::shared_ptr<Custom> toCustom() const;
     inline Map<String, Value> toMap() const;
     template <typename T>
@@ -174,6 +179,7 @@ const char *Value::typeToString(Type type)
     case Type_Boolean: return "boolean";
     case Type_Integer: return "integer";
     case Type_Double: return "double";
+    case Type_Date: return "date";
     case Type_String: return "string";
     case Type_Custom: return "custom";
     case Type_Map: return "list";
@@ -187,6 +193,7 @@ template <> inline int Value::convert<int>(bool *ok) const
     if (ok)
         *ok = true;
     switch (mType) {
+    case Type_Date: return static_cast<int>(mData.int64);
     case Type_Integer: return mData.integer;
     case Type_Double: return static_cast<int>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
@@ -212,6 +219,7 @@ template <> inline int64_t Value::convert<int64_t>(bool *ok) const
     if (ok)
         *ok = true;
     switch (mType) {
+    case Type_Date:
     case Type_Integer: return mData.int64;
     case Type_Double: return static_cast<int64_t>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
@@ -237,6 +245,7 @@ template <> inline uint64_t Value::convert<uint64_t>(bool *ok) const
     if (ok)
         *ok = true;
     switch (mType) {
+    case Type_Date:
     case Type_Integer: return mData.uint64;
     case Type_Double: return static_cast<uint64_t>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
@@ -262,6 +271,7 @@ template <> inline std::shared_ptr<Value::Custom> Value::convert<std::shared_ptr
     if (ok)
         *ok = true;
     switch (mType) {
+    case Type_Date: break;
     case Type_Integer: break;
     case Type_Double: break;
     case Type_Boolean: break;
@@ -283,6 +293,7 @@ template <> inline bool Value::convert<bool>(bool *ok) const
         *ok = true;
 
     switch (mType) {
+    case Type_Date: break;
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
     case Type_Boolean: return mData.boolean;
@@ -313,6 +324,7 @@ template <> inline double Value::convert<double>(bool *ok) const
         *ok = true;
 
     switch (mType) {
+    case Type_Date: return static_cast<double>(mData.int64);
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
     case Type_Boolean: return mData.boolean;
@@ -340,6 +352,7 @@ template <> inline String Value::convert<String>(bool *ok) const
         *ok = true;
 
     switch (mType) {
+    case Type_Date: return String::number(mData.int64);
     case Type_Integer: return String::number(mData.integer);
     case Type_Double: return String::number(mData.dbl);
     case Type_Boolean: return mData.boolean ? "true" : "false";
@@ -359,6 +372,7 @@ template <> inline List<Value> Value::convert<List<Value> >(bool *ok) const
         *ok = true;
 
     switch (mType) {
+    case Type_Date: break;
     case Type_Integer: break;
     case Type_Double: break;
     case Type_Boolean: break;
@@ -381,6 +395,7 @@ template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *
         *ok = true;
 
     switch (mType) {
+    case Type_Date: break;
     case Type_Integer: break;
     case Type_Double: break;
     case Type_Boolean: break;
@@ -400,6 +415,7 @@ template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *
 inline Value Value::convert(Type type, bool *ok) const
 {
     switch (type) {
+    case Type_Date: return convert<int64_t>(ok);
     case Type_Integer: return convert<int>(ok);
     case Type_Double: return convert<double>(ok);
     case Type_Boolean: return convert<bool>(ok);
@@ -420,6 +436,7 @@ inline int Value::toInteger() const { return convert<int>(0); }
 inline int64_t Value::toInt64() const { return convert<int64_t>(0); }
 inline uint64_t Value::toUInt64() const { return convert<uint64_t>(0); }
 inline double Value::toDouble() const { return convert<double>(0); }
+inline Date Value::toDate(Date::Mode mode) const { return Date(convert<int64_t>(0), mode); }
 inline String Value::toString() const { return convert<String>(0); }
 inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(0); }
 inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
@@ -580,6 +597,7 @@ inline Log operator<<(Log log, const Value &value)
     {
         Log l(&str);
         switch (value.type()) {
+        case Value::Type_Date: l << value.toInt64(); break;
         case Value::Type_Integer: l << value.toInteger(); break;
         case Value::Type_Double: l << value.toDouble(); break;
         case Value::Type_Boolean: l << value.toBool(); break;
@@ -607,6 +625,7 @@ inline Serializer& operator<<(Serializer& serializer, const Value& value)
 {
     serializer << static_cast<int>(value.type());
     switch (value.type()) {
+    case Value::Type_Date: serializer << value.toInt64(); break;
     case Value::Type_Integer: serializer << value.toInteger(); break;
     case Value::Type_Double: serializer << value.toDouble(); break;
     case Value::Type_Boolean: serializer << value.toBool(); break;
@@ -626,6 +645,7 @@ inline Deserializer& operator>>(Deserializer& deserializer, Value& value)
     deserializer >> t;
     Value::Type type = static_cast<Value::Type>(t);
     switch (type) {
+    case Value::Type_Date: { int64_t v; deserializer >> v; value = v; break; }
     case Value::Type_Integer: { int v; deserializer >> v; value = v; break; }
     case Value::Type_Double: { double v; deserializer >> v; value = v; break; }
     case Value::Type_Boolean: { bool v; deserializer >> v; value = v; break; }

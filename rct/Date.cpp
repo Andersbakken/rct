@@ -24,7 +24,6 @@ void Date::setTime(time_t time, Mode mode)
 {
     std::call_once(tzFlag, []() {
             tzset();
-            tzsetwall();
         });
     if (mode == UTC)
         mTime = time;

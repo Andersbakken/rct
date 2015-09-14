@@ -101,6 +101,7 @@ public:
         std::map<Key, Value, Compare>::clear();
     }
 
+    using std::map<Key, Value>::insert;
     bool insert(const Key &key, const Value &value)
     {
         return std::map<Key, Value, Compare>::insert(std::make_pair(key, value)).second;
@@ -320,9 +321,10 @@ public:
         std::multimap<Key, Value, Compare>::clear();
     }
 
-    bool insert(const Key &key, const Value &value)
+    using std::multimap<Key, Value>::insert;
+    void insert(const Key &key, const Value &value)
     {
-        return std::multimap<Key, Value, Compare>::insert(std::make_pair(key, value)).second;
+        std::multimap<Key, Value, Compare>::insert(std::make_pair<Key, Value>(key, value));
     }
 
     Value &operator[](const Key &key)

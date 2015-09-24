@@ -20,7 +20,6 @@ const LogLevel LogLevel::Error(0);
 const LogLevel LogLevel::Warning(1);
 const LogLevel LogLevel::Debug(2);
 const LogLevel LogLevel::VerboseDebug(3);
-const LogLevel LogLevel::Max(INT_MAX);
 
 static inline void writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
@@ -35,8 +34,8 @@ static inline void writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::
 class FileOutput : public LogOutput
 {
 public:
-    FileOutput(FILE *f)
-        : LogOutput(LogLevel::Max), file(f)
+    FileOutput(LogLevel level, FILE *f)
+        : LogOutput(level), file(f)
     {
     }
     ~FileOutput()
@@ -223,7 +222,8 @@ LogLevel logLevel()
     return sLevel;
 }
 
-bool initLogging(const char* ident, Flags<LogMode> mode, LogLevel level, const Path &file, Flags<LogFileFlag> flags)
+bool initLogging(const char* ident, Flags<LogMode> mode, LogLevel level,
+                 const Path &file, Flags<LogFileFlag> flags, LogLevel logFileLogLevel)
 {
     sStart.start();
     sFlags = flags;
@@ -252,7 +252,7 @@ bool initLogging(const char* ident, Flags<LogMode> mode, LogLevel level, const P
         FILE *f = fopen(file.constData(), flags & Append ? "a" : "w");
         if (!f)
             return false;
-        std::shared_ptr<FileOutput> out(new FileOutput(f));
+        std::shared_ptr<FileOutput> out(new FileOutput(logFileLogLevel, f));
         out->add();
     }
     return true;

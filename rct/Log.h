@@ -43,7 +43,6 @@ public:
     static const LogLevel Warning;
     static const LogLevel Debug;
     static const LogLevel VerboseDebug;
-    static const LogLevel Max;
 private:
     int mValue;
 };
@@ -124,7 +123,8 @@ bool initLogging(const char* ident,
                  Flags<LogMode> mode = LogStderr,
                  LogLevel logLevel = LogLevel::Error,
                  const Path &logFile = Path(),
-                 Flags<LogFileFlag> = Flags<LogFileFlag>());
+                 Flags<LogFileFlag> = Flags<LogFileFlag>(),
+                 LogLevel logFileLogLevel = LogLevel::VerboseDebug);
 void cleanupLogging();
 LogLevel logLevel();
 void restartTime();

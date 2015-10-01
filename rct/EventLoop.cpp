@@ -61,7 +61,6 @@ static pthread_key_t eventLoopKey;
 // sadly GCC < 4.8 doesn't support thread_local
 // fall back to pthread instead in order to support 4.7
 
-static int count = 0;
 static EventLoop::WeakPtr& localEventLoop()
 {
     EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(eventLoopKey));

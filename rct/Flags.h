@@ -6,7 +6,9 @@
 template <typename T>
 class Flags
 {
+    static void safeBool();
 public:
+    typedef void (*SafeBool)();
     Flags(T t) : mValue(t) {}
     Flags() : mValue(static_cast<T>(0)) {}
     Flags(const Flags<T> &other) : mValue(other.mValue) {}
@@ -50,7 +52,7 @@ public:
 
     Flags<T> operator~() const { return static_cast<T>(~static_cast<unsigned long long>(mValue)); }
     bool operator!() const { return !mValue; }
-    operator T() const { return mValue; }
+    operator SafeBool() const { return mValue ? &safeBool : 0; }
 
     bool test(T flag) const { return mValue & flag; }
     Flags<T> test(Flags<T> flags) const { return mValue & flags; }

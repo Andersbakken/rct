@@ -6,7 +6,7 @@
 template <typename T>
 class Flags
 {
-    static void safeBool();
+    static void safeBool() {}
 public:
     typedef void (*SafeBool)();
     Flags(T t) : mValue(t) {}

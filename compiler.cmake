@@ -12,8 +12,10 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 else ()
   if (NOT CMAKE_SYSTEM_NAME MATCHES "CYGWIN")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")
+    # Use pic instead of PIC, which produces faster and smaller code,
+    # but could eventully lead to linker problems.
+    set(CMAKE_CXX_COMPILE_OPTIONS_PIC  "-fpic")
+    set(CMAKE_C_COMPILE_OPTIONS_PIC  "-fpic")
   endif ()
   if (RCT_USE_LIBCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")

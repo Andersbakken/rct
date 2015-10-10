@@ -1,4 +1,6 @@
 include(CheckCXXCompilerFlag)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpointer-arith -Wnon-virtual-dtor -fno-rtti")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpointer-arith")
 if (CMAKE_SYSTEM_NAME MATCHES "CYGWIN")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")

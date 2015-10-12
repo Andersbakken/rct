@@ -71,6 +71,7 @@ set(RCT_DEFINITIONS "")
 find_package(ZLIB)
 if (ZLIB_FOUND)
     set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_HAVE_ZLIB)
+    include_directories(${ZLIB_INCLUDE_DIRS})
 else ()
     message("ZLIB Can't be found. Rct configured without zlib support")
 endif ()
@@ -78,11 +79,12 @@ find_package(OpenSSL)
 if (OPENSSL_FOUND)
     set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_HAVE_OPENSSL)
     list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/AES256CBC.cpp ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp)
+    include_directories(${OPENSSL_INCLUDE_DIR})
 else ()
     message("OPENSSL Can't be found. Rct configured without zlib support")
 endif ()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/.. ${ZLIB_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/..)
 set(RCT_SOURCES
   ${RCT_SOURCES}
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp

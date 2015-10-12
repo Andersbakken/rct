@@ -74,12 +74,17 @@ if (ZLIB_FOUND)
 else ()
     message("ZLIB Can't be found. Rct configured without zlib support")
 endif ()
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL)
+if (OPENSSL_FOUND)
+    set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DRCT_HAVE_OPENSSL)
+    list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/AES256CBC.cpp ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp)
+else ()
+    message("OPENSSL Can't be found. Rct configured without zlib support")
+endif ()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR} ${RCT_INCLUDE_DIR}/.. ${ZLIB_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 set(RCT_SOURCES
   ${RCT_SOURCES}
-  ${CMAKE_CURRENT_LIST_DIR}/rct/AES256CBC.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
@@ -96,7 +101,6 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/SHA256.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SharedMemory.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/SocketClient.cpp

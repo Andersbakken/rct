@@ -191,6 +191,11 @@ if (RCT_USE_LIBCXX)
   set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_EXE_LINKER_FLAGS}")
 endif ()
 
+if (ASAN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
+endif ()
+
 check_cxx_source_compiles("
   #include <memory>
   #include <mutex>

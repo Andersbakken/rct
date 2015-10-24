@@ -23,7 +23,10 @@ public:
 
     bool flush()
     {
+        if (!mFile)
+            return false;
         const int size = ftell(mFile);
+        assert(mSizeOffset != -1);
         fseek(mFile, mSizeOffset, SEEK_SET);
         operator<<(size);
 

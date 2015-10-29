@@ -122,7 +122,7 @@ bool SocketServer::listen(const Path &p)
     return false;
 }
 
-bool SocketServer::listenfd(int fdArg)
+bool SocketServer::listenFD(int fdArg)
 {
     close();
 

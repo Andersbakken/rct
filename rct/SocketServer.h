@@ -23,7 +23,7 @@ public:
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
     bool listen(const Path &path); // UNIX
-    bool listenfd(int fd);         // UNIX
+    bool listenFD(int fd);         // UNIX
     bool isListening() const { return fd != -1; }
 
     SocketClient::SharedPtr nextConnection();

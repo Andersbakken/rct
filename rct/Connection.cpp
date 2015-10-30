@@ -238,7 +238,7 @@ bool Connection::send(const Message &message)
     if (!mSocketClient || !mSocketClient->isConnected()) {
         if (!mWarned) {
             mWarned = true;
-            ::error("Trying to send message to unconnected client (%d)", message.messageId());
+            warning("Trying to send message to unconnected client (%d)", message.messageId());
         }
         return false;
     }

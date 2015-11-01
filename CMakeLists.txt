@@ -11,5 +11,7 @@ include(rct.cmake)
 # add_executable(dbtest rct/dbtest.cpp)
 # target_link_libraries(dbtest rct)
 
-
+if (WITH_TESTS)
+    add_subdirectory(tests)
+endif ()
 

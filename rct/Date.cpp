@@ -1,5 +1,6 @@
 #include "Date.h"
 #include <mutex>
+#include <iostream>
 
 static std::once_flag tzFlag;
 
@@ -29,7 +30,7 @@ void Date::setTime(time_t time, Mode mode)
         mTime = time;
     else {
         struct tm ltime;
-        if (!modetime(time, &ltime, mode)) {
+        if (modetime(time, &ltime, mode)) {
             mTime = time + ltime.tm_gmtoff;
         }
     }

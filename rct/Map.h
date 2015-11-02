@@ -8,39 +8,40 @@
 template <typename Key, typename Value, typename Compare = std::less<Key> >
 class Map : public std::map<Key, Value, Compare>
 {
+    typedef std::map<Key, Value, Compare> Base;
 public:
     Map() {}
-    Map(std::initializer_list<typename std::map<Key, Value>::value_type> init, const Compare& comp = Compare())
-        : std::map<Key, Value, Compare>(init, comp)
+    Map(std::initializer_list<typename Base::value_type> init, const Compare& comp = Compare())
+        : Base(init, comp)
     {
     }
 
     Map<Key, Value, Compare>& operator=(const Map<Key, Value, Compare>& other)
     {
-        std::map<Key, Value, Compare>::operator=(other);
+        Base::operator=(other);
         return *this;
     }
 
-    Map<Key, Value, Compare>& operator=(std::initializer_list<typename std::map<Key, Value>::value_type> init)
+    Map<Key, Value, Compare>& operator=(std::initializer_list<typename Base::value_type> init)
     {
-        std::map<Key, Value, Compare>::operator=(init);
+        Base::operator=(init);
         return *this;
     }
 
     bool contains(const Key &t) const
     {
-        return std::map<Key, Value, Compare>::find(t) != std::map<Key, Value, Compare>::end();
+        return Base::find(t) != Base::end();
     }
 
     bool isEmpty() const
     {
-        return !std::map<Key, Value, Compare>::size();
+        return !Base::size();
     }
 
     Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = 0) const
     {
-        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::find(key);
-        if (it == std::map<Key, Value, Compare>::end()) {
+        typename Base::const_iterator it = Base::find(key);
+        if (it == Base::end()) {
             if (ok)
                 *ok = false;
             return defaultValue;
@@ -64,11 +65,11 @@ public:
 
     bool remove(const Key &t, Value *value = 0)
     {
-        typename std::map<Key, Value, Compare>::iterator it = std::map<Key, Value, Compare>::find(t);
-        if (it != std::map<Key, Value, Compare>::end()) {
+        typename Base::iterator it = Base::find(t);
+        if (it != Base::end()) {
             if (value)
                 *value = it->second;
-            std::map<Key, Value, Compare>::erase(it);
+            Base::erase(it);
             return true;
         }
         if (value)
@@ -79,10 +80,10 @@ public:
     int remove(std::function<bool(const Key &key)> match)
     {
         int ret = 0;
-        typename std::map<Key, Value, Compare>::iterator it = std::map<Key, Value, Compare>::begin();
-        while (it != std::map<Key, Value, Compare>::end()) {
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
             if (match(it->first)) {
-                std::map<Key, Value, Compare>::erase(it++);
+                Base::erase(it++);
                 ++ret;
             } else {
                 ++it;
@@ -93,46 +94,46 @@ public:
 
     void deleteAll()
     {
-        typename std::map<Key, Value, Compare>::iterator it = std::map<Key, Value, Compare>::begin();
-        while (it != std::map<Key, Value, Compare>::end()) {
+        typename Base::iterator it = Base::begin();
+        while (it != Base::end()) {
             delete it.second;
             ++it;
         }
-        std::map<Key, Value, Compare>::clear();
+        Base::clear();
     }
 
-    using std::map<Key, Value>::insert;
+    using Base::insert;
     bool insert(const Key &key, const Value &value)
     {
-        return std::map<Key, Value, Compare>::insert(std::make_pair(key, value)).second;
+        return Base::insert(std::make_pair(key, value)).second;
     }
 
     Value &operator[](const Key &key)
     {
-        return std::map<Key, Value, Compare>::operator[](key);
+        return Base::operator[](key);
     }
 
     const Value &operator[](const Key &key) const
     {
         assert(contains(key));
-        return std::map<Key, Value, Compare>::find(key)->second;
+        return Base::find(key)->second;
     }
 
     Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, int *count = 0)
     {
-        typename std::map<Key, Value, Compare>::const_iterator it = other.begin();
+        typename Base::const_iterator it = other.begin();
         const auto end = other.end();
         while (it != end) {
             const Key &key = it->first;
             const Value &val = it->second;
             if (count) {
-                auto cur = std::map<Key, Value, Compare>::find(key);
+                auto cur = Base::find(key);
                 if (cur == end || cur->second != val) {
                     ++*count;
-                    std::map<Key, Value, Compare>::operator[](key) = val;
+                    Base::operator[](key) = val;
                 }
             } else {
-                std::map<Key, Value, Compare>::operator[](key) = val;
+                Base::operator[](key) = val;
             }
             ++it;
         }
@@ -141,9 +142,9 @@ public:
 
     Map<Key, Value, Compare> &subtract(const Map<Key, Value, Compare> &other)
     {
-        typename std::map<Key, Value, Compare>::iterator it = other.begin();
+        typename Base::iterator it = other.begin();
         while (it != other.end()) {
-            std::map<Key, Value, Compare>::erase(*it);
+            Base::erase(*it);
             ++it;
         }
         return *this;
@@ -161,24 +162,24 @@ public:
 
     int size() const
     {
-        return std::map<Key, Value, Compare>::size();
+        return Base::size();
     }
 
-    typename std::map<Key, Value, Compare>::const_iterator constBegin() const
+    typename Base::const_iterator constBegin() const
     {
-        return std::map<Key, Value, Compare>::begin();
+        return Base::begin();
     }
 
-    typename std::map<Key, Value, Compare>::const_iterator constEnd() const
+    typename Base::const_iterator constEnd() const
     {
-        return std::map<Key, Value, Compare>::end();
+        return Base::end();
     }
 
     List<Key> keys() const
     {
         List<Key> keys;
-        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::begin();
-        while (it != std::map<Key, Value, Compare>::end()) {
+        typename Base::const_iterator it = Base::begin();
+        while (it != Base::end()) {
             keys.append(it->first);
             ++it;
         }
@@ -188,8 +189,8 @@ public:
     Set<Key> keysAsSet() const
     {
         Set<Key> keys;
-        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::begin();
-        while (it != std::map<Key, Value, Compare>::end()) {
+        typename Base::const_iterator it = Base::begin();
+        while (it != Base::end()) {
             keys.insert(it->first);
             ++it;
         }
@@ -199,8 +200,8 @@ public:
     List<Value> values() const
     {
         List<Value> values;
-        typename std::map<Key, Value, Compare>::const_iterator it = std::map<Key, Value, Compare>::begin();
-        while (it != std::map<Key, Value, Compare>::end()) {
+        typename Base::const_iterator it = Base::begin();
+        while (it != Base::end()) {
             values.append(it->second);
             ++it;
         }

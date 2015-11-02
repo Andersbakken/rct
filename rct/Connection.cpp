@@ -108,47 +108,6 @@ int Connection::pendingWrite() const
     return mPendingWrite;
 }
 
-static inline unsigned int bufferSize(const LinkedList<Buffer>& buffers)
-{
-    unsigned int sz = 0;
-    for (const Buffer& buffer: buffers) {
-        sz += buffer.size();
-    }
-    return sz;
-}
-
-static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned int size)
-{
-    if (!size)
-        return 0;
-    size_t num = 0, rem = size, cur;
-    LinkedList<Buffer>::iterator it = buffers.begin();
-    while (it != buffers.end()) {
-        cur = std::min(it->size(), rem);
-        memcpy(out + num, it->data(), cur);
-        rem -= cur;
-        num += cur;
-        if (cur == it->size()) {
-            // we've read the entire buffer, remove it
-            it = buffers.erase(it);
-        } else {
-            assert(!rem);
-            assert(it->size() > cur);
-            assert(cur > 0);
-            // we need to shrink & memmove the front buffer at this point
-            Buffer& front = *it;
-            memmove(front.data(), front.data() + cur, front.size() - cur);
-            front.resize(front.size() - cur);
-        }
-        if (!rem) {
-            assert(num == size);
-            return size;
-        }
-        assert(rem > 0);
-    }
-    return num;
-}
-
 void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
 {
     while (true) {

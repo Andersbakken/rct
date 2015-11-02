@@ -131,14 +131,14 @@ private:
 
     static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);
-    String *stringPtr() { return reinterpret_cast<String*>(mData.stringBuf); }
-    const String *stringPtr() const { return reinterpret_cast<const String*>(mData.stringBuf); }
-    Map<String, Value> *mapPtr() { return reinterpret_cast<Map<String, Value>*>(mData.mapBuf); }
-    const Map<String, Value> *mapPtr() const { return reinterpret_cast<const Map<String, Value>*>(mData.mapBuf); }
-    List<Value> *listPtr() { return reinterpret_cast<List<Value>*>(mData.listBuf); }
-    const List<Value> *listPtr() const { return reinterpret_cast<const List<Value>*>(mData.listBuf); }
-    std::shared_ptr<Custom> *customPtr() { return reinterpret_cast<std::shared_ptr<Custom>*>(mData.customBuf); }
-    const std::shared_ptr<Custom> *customPtr() const { return reinterpret_cast<const std::shared_ptr<Custom>*>(mData.customBuf); }
+    String *stringPtr() { return reinterpret_cast<String*>(&mData.voidPtr); }
+    const String *stringPtr() const { return reinterpret_cast<const String*>(&mData.voidPtr); }
+    Map<String, Value> *mapPtr() { return reinterpret_cast<Map<String, Value>*>(&mData.voidPtr); }
+    const Map<String, Value> *mapPtr() const { return reinterpret_cast<const Map<String, Value>*>(&mData.voidPtr); }
+    List<Value> *listPtr() { return reinterpret_cast<List<Value>*>(&mData.voidPtr); }
+    const List<Value> *listPtr() const { return reinterpret_cast<const List<Value>*>(&mData.voidPtr); }
+    std::shared_ptr<Custom> *customPtr() { return reinterpret_cast<std::shared_ptr<Custom>*>(&mData.voidPtr); }
+    const std::shared_ptr<Custom> *customPtr() const { return reinterpret_cast<const std::shared_ptr<Custom>*>(&mData.voidPtr); }
 
     Type mType;
     union {
@@ -151,6 +151,7 @@ private:
         char mapBuf[sizeof(Map<String, Value>)];
         char listBuf[sizeof(List<Value>)];
         char customBuf[sizeof(std::shared_ptr<Custom>)];
+        void *voidPtr;
     } mData;
 };
 

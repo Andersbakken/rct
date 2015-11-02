@@ -57,6 +57,16 @@ public:
         Base::insert(Base::begin(), t);
     }
 
+    void append(T &&t)
+    {
+        Base::push_back(std::forward<T>(t));
+    }
+
+    void prepend(T &&t)
+    {
+        Base::insert(Base::begin(), std::forward<T>(t));
+    }
+
     void append(const List<T> &t)
     {
         const int size = t.size();

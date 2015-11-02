@@ -121,7 +121,7 @@ static inline int bufferRead(LinkedList<Buffer>& buffers, char* out, unsigned in
 {
     if (!size)
         return 0;
-    unsigned int num = 0, rem = size, cur;
+    size_t num = 0, rem = size, cur;
     LinkedList<Buffer>::iterator it = buffers.begin();
     while (it != buffers.end()) {
         cur = std::min(it->size(), rem);
@@ -153,19 +153,19 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
 {
     while (true) {
         if (!buf.isEmpty())
-            mBuffers.push_back(std::move(buf));
+            mBuffers.push(std::forward<Buffer>(buf));
 
-        unsigned int available = bufferSize(mBuffers);
+        unsigned int available = mBuffers.size();
         if (!available)
             break;
         if (!mPendingRead) {
             if (available < static_cast<int>(sizeof(uint32_t)))
                 break;
             union {
-                char buf[sizeof(uint32_t)];
+                unsigned char buf[sizeof(uint32_t)];
                 int pending;
             };
-            const int read = bufferRead(mBuffers, buf, 4);
+            const int read = mBuffers.read(buf, 4);
             assert(read == 4);
             mPendingRead = pending;
             assert(mPendingRead > 0);
@@ -176,7 +176,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
             break;
 
         StackBuffer<1024 * 16> buffer(mPendingRead);
-        const int read = bufferRead(mBuffers, buffer, mPendingRead);
+        const int read = mBuffers.read(buffer.buffer(), mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
         std::shared_ptr<Message> message = Message::create(mVersion, buffer, read);

@@ -17,13 +17,15 @@
 #include <rct-config.h>
 
 SocketClient::SocketClient(unsigned int mode)
-    : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None), wMode(Asynchronous), writeWait(false)
+    : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None),
+      wMode(Asynchronous), writeWait(false), writeOffset(0)
 {
     blocking = (mode & Blocking);
 }
 
 SocketClient::SocketClient(int f, unsigned int mode)
-    : fd(f), socketPort(0), socketState(Connected), socketMode(mode), wMode(Asynchronous), writeWait(false)
+    : fd(f), socketPort(0), socketState(Connected), socketMode(mode),
+      wMode(Asynchronous), writeWait(false), writeOffset(0)
 {
     assert(fd >= 0);
 #ifdef HAVE_NOSIGPIPE
@@ -386,23 +388,27 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
 
     if (!writeWait) {
         if (!writeBuffer.isEmpty()) {
-            while (total < writeBuffer.size()) {
+            assert(writeOffset < writeBuffer.size());
+            const size_t writeBufferSize = writeBuffer.size() - writeOffset;
+            while (total < writeBufferSize) {
                 assert(writeBuffer.size() > total);
                 if (resolver.addr) {
-                    eintrwrap(e, ::sendto(fd, writeBuffer.data() + total, writeBuffer.size() - total,
+                    eintrwrap(e, ::sendto(fd, writeBuffer.data() + total + writeOffset, writeBufferSize - total,
                                           sendFlags, resolver.addr, resolver.size));
                 } else {
-                    eintrwrap(e, ::write(fd, writeBuffer.data() + total, writeBuffer.size() - total));
+                    eintrwrap(e, ::write(fd, writeBuffer.data() + total + writeOffset, writeBufferSize - total));
                 }
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         if (wMode == Synchronous) {
                             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                                 if (total) {
-                                    if (total < writeBuffer.size()) {
-                                        memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
+                                    if (total < writeBufferSize) {
+                                        writeOffset += total;
+                                    } else {
+                                        writeOffset = 0;
+                                        writeBuffer.clear();
                                     }
-                                    writeBuffer.resize(writeBuffer.size() - total);
                                     total = 0;
                                 }
                                 if (loop->processSocket(fd) & EventLoop::SocketWrite)
@@ -428,11 +434,13 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 total += e;
             }
             if (total) {
-                assert(total <= writeBuffer.size());
-                if (total < writeBuffer.size()) {
-                    memmove(writeBuffer.data(), writeBuffer.data() + total, writeBuffer.size() - total);
+                assert(total <= writeBufferSize);
+                if (total < writeBufferSize) {
+                    writeOffset += total;
+                } else {
+                    writeOffset = 0;
+                    writeBuffer.clear();
                 }
-                writeBuffer.resize(writeBuffer.size() - total);
             }
         }
 
@@ -461,6 +469,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                                 writeBuffer.reserve(writeBuffer.size() + rem);
                                 memcpy(writeBuffer.end(), data + total, rem);
                                 writeBuffer.resize(writeBuffer.size() + rem);
+                                assert(!writeOffset);
 
                                 (void)loop->processSocket(fd);
                                 return isConnected();

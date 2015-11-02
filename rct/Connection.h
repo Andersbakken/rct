@@ -112,7 +112,7 @@ private:
     void checkData();
 
     SocketClient::SharedPtr mSocketClient;
-    LinkedList<Buffer> mBuffers;
+    Buffers mBuffers;
     int mPendingRead, mPendingWrite, mTimeoutTimer, mCheckTimer, mFinishStatus, mVersion;
 
     bool mSilent, mIsConnected, mWarned;

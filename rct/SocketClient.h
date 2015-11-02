@@ -130,6 +130,7 @@ private:
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> > signalError;
     Signal<std::function<void(const SocketClient::SharedPtr&, int)> > signalBytesWritten;
     Buffer readBuffer, writeBuffer;
+    size_t writeOffset;
 
     int writeData(const unsigned char *data, int size);
     void socketCallback(int, int);

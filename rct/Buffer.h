@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <rct/String.h>
+#include <rct/LinkedList.h>
 
 class Buffer
 {
@@ -51,7 +52,7 @@ public:
         bufferSize = 0;
     }
 
-    void reserve(unsigned int sz)
+    void reserve(size_t sz)
     {
         if (sz <= bufferReserved)
             return;
@@ -61,7 +62,7 @@ public:
         bufferReserved = sz;
     }
 
-    void resize(unsigned int sz)
+    void resize(size_t sz)
     {
         if (!sz) {
             clear();
@@ -77,8 +78,8 @@ public:
         bufferSize = bufferReserved = sz;
     }
 
-    unsigned int size() const { return bufferSize; }
-    unsigned int capacity() const { return bufferReserved; }
+    size_t size() const { return bufferSize; }
+    size_t capacity() const { return bufferReserved; }
 
     unsigned char* data() { return bufferData; }
     unsigned char* end() { return bufferData + bufferSize; }
@@ -88,11 +89,67 @@ public:
 
 private:
     unsigned char* bufferData;
-    unsigned int bufferSize, bufferReserved;
+    size_t bufferSize, bufferReserved;
 
 private:
     Buffer(const Buffer& other) = delete;
     Buffer& operator=(const Buffer& other) = delete;
+};
+
+class Buffers
+{
+public:
+    Buffers()
+        : mBufferOffset(0)
+    {}
+    void push(Buffer &&buf)
+    {
+        mBuffers.append(std::forward<Buffer>(buf));
+    }
+    size_t size() const
+    {
+        size_t ret = 0;
+        for (const auto &buf : mBuffers)
+            ret += buf.size();
+        return ret - mBufferOffset;
+    }
+    size_t read(void *outPtr, size_t size)
+    {
+        if (!size)
+            return 0;
+
+        unsigned char *out = static_cast<unsigned char *>(outPtr);
+        size_t read = 0, remaining = size;
+        while (!mBuffers.empty()) {
+            const auto &buf = mBuffers.front();
+            const size_t bufferSize = buf.size() - mBufferOffset;
+
+            if (remaining <= bufferSize) {
+                memcpy(out + read, buf.data() + mBufferOffset, remaining);
+                if (remaining == bufferSize) {
+                    mBufferOffset = 0;
+                    mBuffers.pop_front();
+                } else {
+                    mBufferOffset = remaining + mBufferOffset;
+                }
+                read += remaining;
+                break;
+            }
+            memcpy(out + read, buf.data() + mBufferOffset, bufferSize);
+            read += bufferSize;
+            mBufferOffset = 0;
+            remaining -= bufferSize;
+            assert(!mBuffers.isEmpty());
+            mBuffers.pop_front();
+        }
+        return read;
+    }
+private:
+    Buffers(const Buffers &) = delete;
+    Buffers &operator=(const Buffers &) = delete;
+
+    LinkedList<Buffer> mBuffers;
+    size_t mBufferOffset;
 };
 
 #endif

@@ -1,12 +1,14 @@
 #ifndef Config_h
 #define Config_h
 
-#include <stdio.h>
-#include <rct/Path.h>
-#include <rct/Rct.h>
-#include <rct/Value.h>
-#include <rct/String.h>
 #include <getopt.h>
+#include <stdio.h>
+
+#include "rct/Path.h"
+#include "rct/Rct.h"
+#include "rct/String.h"
+#include "rct/Value.h"
+
 
 class Config
 {

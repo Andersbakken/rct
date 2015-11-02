@@ -2,8 +2,9 @@
 #define Set_h
 
 #include <set>
-#include <rct/List.h>
 #include <memory>
+
+#include "rct/List.h"
 
 template <typename T>
 class Set : public std::set<T>

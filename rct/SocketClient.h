@@ -1,10 +1,11 @@
 #ifndef TCPSOCKET_H
 #define TCPSOCKET_H
 
-#include "SignalSlot.h"
-#include "Buffer.h"
-#include "String.h"
 #include <memory>
+
+#include "Buffer.h"
+#include "SignalSlot.h"
+#include "String.h"
 
 class SocketClient : public std::enable_shared_from_this<SocketClient>
 {

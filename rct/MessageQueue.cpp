@@ -1,16 +1,18 @@
 #include "MessageQueue.h"
-#include "Thread.h"
-#include "EventLoop.h"
-#include "Log.h"
-#include <signal.h>
-#include <unistd.h>
-#include <errno.h>
+
 #include <assert.h>
-#include <sys/types.h>
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include <pthread.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <mutex>
+
+#include "EventLoop.h"
+#include "Log.h"
+#include "Thread.h"
 
 class MessageThread : public Thread, public std::enable_shared_from_this<MessageThread>
 {

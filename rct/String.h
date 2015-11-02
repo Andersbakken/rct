@@ -1,16 +1,18 @@
 #ifndef String_h
 #define String_h
 
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
 #include <errno.h>
-#include <string>
 #include <stdarg.h>
-#include <time.h>
-#include <rct/List.h>
 #include <strings.h>
+#include <time.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+#include "rct/List.h"
+
 
 class String
 {

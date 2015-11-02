@@ -1,4 +1,5 @@
 #include "Plugin.h"
+
 #include <dlfcn.h>
 
 namespace Rct {

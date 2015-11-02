@@ -1,19 +1,21 @@
 #include "MemoryMonitor.h"
-#include "String.h"
-#include "List.h"
-#include "Log.h"
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
+
 #include <assert.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #ifdef OS_Darwin
-# include <mutex>
-# include <mach/mach_traps.h>
 # include <mach/mach_init.h>
 # include <mach/mach_port.h>
+# include <mach/mach_traps.h>
 # include <mach/mach_vm.h>
+# include <mutex>
 #endif
+
+#include "List.h"
+#include "Log.h"
+#include "String.h"
 
 
 MemoryMonitor::MemoryMonitor()

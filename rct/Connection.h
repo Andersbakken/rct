@@ -1,15 +1,15 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include <rct/Buffer.h>
-#include <rct/Message.h>
-#include <rct/SocketClient.h>
-#include <rct/String.h>
-#include <rct/LinkedList.h>
-#include <rct/Map.h>
-#include <rct/ResponseMessage.h>
-#include <rct/SignalSlot.h>
-#include <rct/FinishMessage.h>
+#include "rct/Buffer.h"
+#include "rct/FinishMessage.h"
+#include "rct/LinkedList.h"
+#include "rct/Map.h"
+#include "rct/Message.h"
+#include "rct/ResponseMessage.h"
+#include "rct/SignalSlot.h"
+#include "rct/SocketClient.h"
+#include "rct/String.h"
 
 class ConnectionPrivate;
 class SocketClient;

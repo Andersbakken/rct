@@ -1,13 +1,5 @@
-#include "rct-config.h"
 #include "Process.h"
-#include "Rct.h"
-#include "EventLoop.h"
-#include "Log.h"
-#include "SocketClient.h"
-#include "StopWatch.h"
-#include "Thread.h"
-#include <map>
-#include <unordered_map>
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -17,6 +9,17 @@
 #ifdef OS_Darwin
 #include <crt_externs.h>
 #endif
+#include <map>
+#include <unordered_map>
+
+#include "EventLoop.h"
+#include "Log.h"
+#include "rct-config.h"
+#include "Rct.h"
+#include "SocketClient.h"
+#include "StopWatch.h"
+#include "Thread.h"
+
 
 static std::once_flag sProcessHandler;
 

@@ -1,27 +1,29 @@
 #include "Rct.h"
-#include "Log.h"
-#include "rct-config.h"
-#include <sys/time.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <limits.h>
-#include <sys/fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+
 #include <arpa/inet.h>
-#include "StackBuffer.h"
+#include <dirent.h>
+#include <limits.h>
+#include <netdb.h>
+#include <sys/fcntl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 #ifdef OS_Darwin
 # include <mach-o/dyld.h>
 #elif OS_FreeBSD
-# include <sys/sysctl.h>
 # include <netinet/in.h>
+# include <sys/sysctl.h>
 #endif
 
+#include "rct-config.h"
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #endif
+
+#include "Log.h"
+#include "StackBuffer.h"
 
 #if !defined(HOST_NAME_MAX) && defined(_POSIX_HOST_NAME_MAX)
 #define HOST_NAME_MAX _POSIX_HOST_NAME_MAX

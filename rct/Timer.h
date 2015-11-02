@@ -1,8 +1,9 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include "SignalSlot.h"
 #include <memory>
+
+#include "SignalSlot.h"
 
 class EventLoop;
 class Timer

@@ -1,12 +1,14 @@
 #include "AES256CBC.h"
-#include "SHA256.h"
-#include <rct/Log.h>
+
 #ifdef OS_Darwin
 #include <CommonCrypto/CommonCryptor.h>
 #else
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #endif
+
+#include "rct/Log.h"
+#include "SHA256.h"
 
 class AES256CBCPrivate
 {

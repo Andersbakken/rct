@@ -1,4 +1,5 @@
 #include "Buffer.h"
+
 #include <stdio.h>
 
 bool Buffer::load(const String& filename)

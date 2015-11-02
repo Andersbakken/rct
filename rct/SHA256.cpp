@@ -1,4 +1,5 @@
 #include "SHA256.h"
+
 #include <stdio.h>
 #ifdef OS_Darwin
 #include "CommonCrypto/CommonDigest.h"

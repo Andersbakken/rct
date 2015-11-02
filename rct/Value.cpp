@@ -1,4 +1,5 @@
 #include "Value.h"
+
 #include "../cJSON/cJSON.h"
 
 void Value::clear()

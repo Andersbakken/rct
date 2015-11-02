@@ -1,9 +1,10 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H
 
-#include <rct/Path.h>
-#include <rct/String.h>
 #include <assert.h>
+
+#include "rct/Path.h"
+#include "rct/String.h"
 
 namespace Rct {
 void* loadPlugin(const Path& fileName);

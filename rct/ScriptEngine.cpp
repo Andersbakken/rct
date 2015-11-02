@@ -3,7 +3,8 @@
 #ifdef HAVE_SCRIPTENGINE
 
 #include <v8.h>
-#include <rct/EventLoop.h>
+
+#include "rct/EventLoop.h"
 
 static String toString(v8::Handle<v8::Value> value);
 static v8::Handle<v8::Value> toV8(v8::Isolate* isolate, const Value& value);

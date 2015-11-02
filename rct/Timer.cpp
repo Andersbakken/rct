@@ -1,4 +1,5 @@
 #include "Timer.h"
+
 #include "EventLoop.h"
 
 Timer::Timer()

@@ -1,9 +1,10 @@
 #ifndef SIGNALSLOT_H
 #define SIGNALSLOT_H
 
+#include <assert.h>
 #include <map>
 #include <mutex>
-#include <assert.h>
+
 #include "EventLoop.h"
 
 template<typename Signature>

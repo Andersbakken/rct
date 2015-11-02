@@ -1,4 +1,5 @@
 #include "ReadWriteLock.h"
+
 #include <assert.h>
 #include <chrono>
 

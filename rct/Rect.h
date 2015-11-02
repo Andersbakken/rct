@@ -1,8 +1,8 @@
 #ifndef Rect_h
 #define Rect_h
 
-#include <rct/Size.h>
-#include <rct/Point.h>
+#include "rct/Point.h"
+#include "rct/Size.h"
 
 struct Rect
 {

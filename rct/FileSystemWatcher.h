@@ -1,15 +1,17 @@
 #ifndef FileSystemWatcher_h
 #define FileSystemWatcher_h
 
-#include "rct-config.h"
-#include <rct/Path.h>
-#include <rct/Map.h>
-#include <rct/Set.h>
-#include <rct/SignalSlot.h>
 #include <stdint.h>
 #include <mutex>
-#include <rct/Log.h>
-#include <rct/Timer.h>
+
+#include "rct-config.h"
+#include "rct/Log.h"
+#include "rct/Map.h"
+#include "rct/Path.h"
+#include "rct/Set.h"
+#include "rct/SignalSlot.h"
+#include "rct/Timer.h"
+
 #ifdef HAVE_FSEVENTS
 #include <CoreServices/CoreServices.h>
 #ifdef check

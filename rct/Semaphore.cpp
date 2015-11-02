@@ -1,9 +1,11 @@
 #include "Semaphore.h"
-#include "Rct.h"
-#include <sys/types.h>
+
+#include <errno.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
-#include <errno.h>
+#include <sys/types.h>
+
+#include "Rct.h"
 
 #ifndef RCT_PROJID
 #define RCT_PROJID 3945

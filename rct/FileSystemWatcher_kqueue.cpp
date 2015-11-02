@@ -1,14 +1,17 @@
 #include "FileSystemWatcher.h"
+
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/event.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
+
 #include "EventLoop.h"
 #include "Log.h"
-#include "Rct.h"
 #include "rct-config.h"
-#include <sys/types.h>
-#include <sys/event.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
+#include "Rct.h"
 
 void FileSystemWatcher::init()
 {

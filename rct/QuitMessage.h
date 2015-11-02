@@ -1,7 +1,7 @@
 #ifndef QuitMessage_h
 #define QuitMessage_h
 
-#include <rct/Message.h>
+#include "rct/Message.h"
 
 class QuitMessage : public Message
 {

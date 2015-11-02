@@ -1,12 +1,12 @@
 #include "ThreadPool.h"
-#include "Thread.h"
-#include "Log.h"
-#include "rct-config.h"
+
 #include <algorithm>
 #include <assert.h>
+
+#include "rct-config.h"
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
-#   include <sys/types.h>
 #   include <sys/sysctl.h>
+#   include <sys/types.h>
 #elif defined (OS_Linux)
 #   include <unistd.h>
 #elif defined (OS_Darwin)
@@ -15,6 +15,9 @@
 #elif defined (HAVE_PROCESSORINFORMATION)
 #   include <windows.h>
 #endif
+
+#include "Log.h"
+#include "Thread.h"
 
 using std::shared_ptr;
 

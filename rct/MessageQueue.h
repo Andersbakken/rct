@@ -1,11 +1,12 @@
 #ifndef MESSAGEQUEUE_H
 #define MESSAGEQUEUE_H
 
-#include "Path.h"
-#include "String.h"
-#include "SignalSlot.h"
-#include "Buffer.h"
 #include <memory>
+
+#include "Buffer.h"
+#include "Path.h"
+#include "SignalSlot.h"
+#include "String.h"
 
 class MessageThread;
 

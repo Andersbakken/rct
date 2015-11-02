@@ -1,11 +1,12 @@
 #ifndef TCPSERVER_H
 #define TCPSERVER_H
 
+#include <memory>
+#include <queue>
+
+#include "rct/Path.h"
 #include "SignalSlot.h"
 #include "SocketClient.h"
-#include <memory>
-#include <rct/Path.h>
-#include <queue>
 
 struct sockaddr;
 

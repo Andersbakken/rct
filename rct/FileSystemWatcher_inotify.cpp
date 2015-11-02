@@ -1,12 +1,15 @@
 #include "FileSystemWatcher.h"
+
+#include <errno.h>
+#include <sys/inotify.h>
+#include <sys/ioctl.h>
+
 #include "EventLoop.h"
 #include "Log.h"
 #include "rct-config.h"
-#include <sys/inotify.h>
-#include <sys/ioctl.h>
-#include "StackBuffer.h"
 #include "Rct.h"
-#include <errno.h>
+#include "StackBuffer.h"
+
 
 void FileSystemWatcher::init()
 {

@@ -4,20 +4,21 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <thread>
-#include <tuple>
 #include <queue>
 #include <set>
+#include <thread>
+#include <tuple>
 #include <unordered_set>
 #include <vector>
+
 #include "Apply.h"
 #include "rct-config.h"
 #if defined(HAVE_EPOLL)
 #  include <sys/epoll.h>
 #elif defined(HAVE_KQUEUE)
-#  include <sys/types.h>
 #  include <sys/event.h>
 #  include <sys/time.h>
+#  include <sys/types.h>
 #elif defined(HAVE_SELECT)
 #  include <sys/select.h>
 #endif

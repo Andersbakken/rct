@@ -1,13 +1,14 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <rct/String.h>
-#include <rct/Path.h>
-#include <rct/List.h>
-#include <rct/SignalSlot.h>
 #include <signal.h>
 #include <deque>
 #include <mutex>
+
+#include "rct/List.h"
+#include "rct/Path.h"
+#include "rct/SignalSlot.h"
+#include "rct/String.h"
 
 class Process
 {

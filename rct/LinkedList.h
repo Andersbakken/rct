@@ -1,8 +1,8 @@
 #ifndef LinkedList_h
 #define LinkedList_h
 
-#include <list>
 #include <algorithm>
+#include <list>
 
 template<typename T>
 class LinkedList : public std::list<T>

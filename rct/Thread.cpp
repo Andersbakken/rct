@@ -1,6 +1,7 @@
 #include "Thread.h"
-#include "Log.h"
+
 #include "EventLoop.h"
+#include "Log.h"
 #include "rct-config.h"
 
 Thread::Thread()

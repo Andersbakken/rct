@@ -1,18 +1,20 @@
 #include "SocketServer.h"
-#include "EventLoop.h"
-#include "Rct.h"
-#include <rct-config.h>
-#include <assert.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <netinet/in.h>
-#include <netdb.h>
 
+#include <assert.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+
+#include "EventLoop.h"
 #include "Log.h"
+#include "rct-config.h"
+#include "Rct.h"
 
 SocketServer::SocketServer()
     : fd(-1), isIPv6(false)

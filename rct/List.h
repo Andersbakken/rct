@@ -1,11 +1,11 @@
 #ifndef List_h
 #define List_h
 
-#include <vector>
-#include <algorithm>
 #include <assert.h>
-#include <memory>
+#include <algorithm>
 #include <functional>
+#include <memory>
+#include <vector>
 
 template <typename T> class Set;
 

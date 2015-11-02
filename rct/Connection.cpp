@@ -1,12 +1,13 @@
 #include "Connection.h"
-#include "EventLoop.h"
-#include "Serializer.h"
-#include "Message.h"
-#include "Timer.h"
-#include "StackBuffer.h"
+
 #include <assert.h>
 
 #include "Connection.h"
+#include "EventLoop.h"
+#include "Message.h"
+#include "Serializer.h"
+#include "StackBuffer.h"
+#include "Timer.h"
 
 Connection::Connection(int version)
     : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mCheckTimer(0), mFinishStatus(0),
@@ -225,4 +226,3 @@ bool Connection::send(const Message &message)
         return !serializer.hasError();
     }
 }
-

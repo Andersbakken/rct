@@ -1,11 +1,13 @@
 #include "SharedMemory.h"
-#include "Log.h"
-#include "Rct.h"
-#include <rct-config.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
+
 #include <assert.h>
 #include <errno.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+#include "Log.h"
+#include "Rct.h"
+#include "rct-config.h"
 
 #define PROJID 3946
 

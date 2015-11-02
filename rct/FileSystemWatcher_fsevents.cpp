@@ -1,12 +1,15 @@
 #include "FileSystemWatcher.h"
+
+#include <CoreFoundation/CoreFoundation.h>
+#include <errno.h>
+#include <mutex>
+#include <string.h>
+#include <thread>
+
+
 #include "EventLoop.h"
 #include "Log.h"
 #include "rct-config.h"
-#include <string.h>
-#include <errno.h>
-#include <mutex>
-#include <thread>
-#include <CoreFoundation/CoreFoundation.h>
 
 class WatcherData
 {

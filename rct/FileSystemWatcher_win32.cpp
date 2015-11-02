@@ -1,10 +1,12 @@
 #include "FileSystemWatcher.h"
-#include <windows.h>
+
 #include <assert.h>
-#include <thread>
+#include <windows.h>
 #ifdef HAVE_CYGWIN
 #include <sys/cygwin.h>
 #endif
+#include <thread>
+
 
 class WatcherSlice
 {

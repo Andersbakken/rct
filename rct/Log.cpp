@@ -1,12 +1,14 @@
 #include "Log.h"
-#include "Path.h"
-#include <mutex>
-#include <stdio.h>
+
 #include <errno.h>
-#include "StopWatch.h"
 #include <stdarg.h>
+#include <stdio.h>
 #include <syslog.h>
+#include <mutex>
+
+#include "Path.h"
 #include "StackBuffer.h"
+#include "StopWatch.h"
 
 static Flags<LogFileFlag> sFlags;
 static StopWatch sStart;

@@ -1,29 +1,31 @@
 #include "EventLoop.h"
-#include "SocketClient.h"
-#include "Timer.h"
-#include "Rct.h"
+
+#include <assert.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
 #include <algorithm>
 #include <atomic>
 #include <set>
-#include <unistd.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <pthread.h>
-#include <stdlib.h>
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #  include <mach/mach.h>
 #  include <mach/mach_time.h>
 #endif
+
+#include "Rct.h"
+#include "SocketClient.h"
+#include "Timer.h"
 #if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
-#  include "StopWatch.h"
 #  include "Log.h"
+#  include "StopWatch.h"
 #define CALLBACK(op)                                                \
     do {                                                            \
         StopWatch sw;                                               \

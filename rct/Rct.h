@@ -1,14 +1,15 @@
 #ifndef Rct_h
 #define Rct_h
 
-#include <stdio.h>
-#include <getopt.h>
 #include <errno.h>
-#include <rct/String.h>
-#include <rct/Path.h>
-#include <rct/List.h>
+#include <getopt.h>
+#include <stdio.h>
 #include <sys/select.h>
 #include <regex>
+
+#include "rct/List.h"
+#include "rct/Path.h"
+#include "rct/String.h"
 
 namespace Rct {
 

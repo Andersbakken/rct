@@ -1,7 +1,7 @@
 #ifndef Flags_h
 #define Flags_h
 
-#include <rct/String.h>
+#include "rct/String.h"
 
 template <typename T>
 class Flags
@@ -127,4 +127,3 @@ private:
     }                                                                   \
     struct FlagsHack
 #endif
-

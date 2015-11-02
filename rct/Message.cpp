@@ -1,10 +1,12 @@
 #include "Message.h"
-#include "ResponseMessage.h"
-#include "FinishMessage.h"
-#include "Serializer.h"
-#include "QuitMessage.h"
+
 #include <assert.h>
 #include <cstdlib>
+
+#include "FinishMessage.h"
+#include "QuitMessage.h"
+#include "ResponseMessage.h"
+#include "Serializer.h"
 
 std::mutex Message::sMutex;
 Map<uint8_t, Message::MessageCreatorBase *> Message::sFactory;

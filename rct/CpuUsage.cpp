@@ -1,19 +1,21 @@
 #include "CpuUsage.h"
-#include "Rct.h"
-#include <thread>
-#include <mutex>
-#include <unistd.h>
+
 #include <assert.h>
+#include <mutex>
+#include <thread>
+#include <unistd.h>
 #ifdef OS_Darwin
+#include <mach/mach.h>
+#include <mach/mach_host.h>
+#include <mach/processor_info.h>
 #include <sys/sysctl.h>
 #include <sys/types.h>
-#include <mach/mach.h>
-#include <mach/processor_info.h>
-#include <mach/mach_host.h>
 #endif
 #ifdef OS_FreeBSD
 #include <sys/sysctl.h>
 #endif
+
+#include "Rct.h"
 
 #define SLEEP_TIME 1000000 // one second
 
@@ -82,7 +84,7 @@ static int64_t currentUsage()
         int cpu_usage_mib[cpu_usage_mib_len];
         int cpu_usage = 0;
         const char *cpu_usage_sysctl_name_fmt = "dev.cpu.%d.cx_usage";
-        
+
         size_t sysctl_entry_name_len = snprintf(NULL, 0, cpu_usage_sysctl_name_fmt, cpu_id) + 1;
         char *mib_name = (char*)malloc(sysctl_entry_name_len);
         snprintf(mib_name, sysctl_entry_name_len, cpu_usage_sysctl_name_fmt, cpu_id);

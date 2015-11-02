@@ -4,12 +4,14 @@
 #include "rct-config.h"
 
 #ifdef HAVE_SCRIPTENGINE
-#include <rct/Log.h>
-#include <rct/String.h>
-#include <rct/Value.h>
-#include <rct/Hash.h>
-#include <rct/SignalSlot.h>
 #include <memory>
+
+#include "rct/Log.h"
+#include "rct/String.h"
+#include "rct/Value.h"
+#include "rct/Hash.h"
+#include "rct/SignalSlot.h"
+
 
 class ObjectPrivate;
 class ClassPrivate;

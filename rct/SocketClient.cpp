@@ -1,20 +1,22 @@
 #include "SocketClient.h"
-#include "Rct.h"
+
+#include <arpa/inet.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <unistd.h>
+
 #include "EventLoop.h"
 #include "Log.h"
-#include <assert.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/select.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <rct-config.h>
+#include "rct-config.h"
+#include "Rct.h"
 
 SocketClient::SocketClient(unsigned int mode)
     : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None),

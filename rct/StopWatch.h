@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 #include <sys/time.h>
-#include <rct/Rct.h>
+
+#include "rct/Rct.h"
 
 class StopWatch
 {
@@ -56,4 +57,3 @@ private:
     unsigned long long mStart;
 };
 #endif
-

@@ -27,9 +27,9 @@ void Date::setTime(time_t time, Mode mode)
     std::call_once(tzFlag, []() {
             tzset();
         });
-    if (mode == UTC)
+    if (mode == UTC) {
         mTime = time;
-    else {
+    } else {
         struct tm ltime;
         if (modetime(time, &ltime, mode)) {
             mTime = time + ltime.tm_gmtoff;

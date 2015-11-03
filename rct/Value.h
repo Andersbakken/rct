@@ -130,16 +130,26 @@ public:
 private:
     explicit Value(Type type) : mType(type) {}
 
+    template <typename T> T *pun() const
+    {
+        union {
+            T *ret;
+            const void *voidPtr;
+        };
+        voidPtr = &mData.voidPtr;
+        return ret;
+    }
+
     static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);
-    String *stringPtr() { return reinterpret_cast<String*>(&mData.voidPtr); }
-    const String *stringPtr() const { return reinterpret_cast<const String*>(&mData.voidPtr); }
-    Map<String, Value> *mapPtr() { return reinterpret_cast<Map<String, Value>*>(&mData.voidPtr); }
-    const Map<String, Value> *mapPtr() const { return reinterpret_cast<const Map<String, Value>*>(&mData.voidPtr); }
-    List<Value> *listPtr() { return reinterpret_cast<List<Value>*>(&mData.voidPtr); }
-    const List<Value> *listPtr() const { return reinterpret_cast<const List<Value>*>(&mData.voidPtr); }
-    std::shared_ptr<Custom> *customPtr() { return reinterpret_cast<std::shared_ptr<Custom>*>(&mData.voidPtr); }
-    const std::shared_ptr<Custom> *customPtr() const { return reinterpret_cast<const std::shared_ptr<Custom>*>(&mData.voidPtr); }
+    String *stringPtr() { return pun<String>(); }
+    const String *stringPtr() const { return pun<const String>(); }
+    Map<String, Value> *mapPtr() { return pun<Map<String, Value> >(); }
+    const Map<String, Value> *mapPtr() const { return pun<const Map<String, Value> >(); }
+    List<Value> *listPtr() { return pun<List<Value> >(); }
+    const List<Value> *listPtr() const { return pun<const List<Value> >(); }
+    std::shared_ptr<Custom> *customPtr() { return pun<std::shared_ptr<Custom> >(); }
+    const std::shared_ptr<Custom> *customPtr() const { return pun<const std::shared_ptr<Custom> >(); }
 
     Type mType;
     union {

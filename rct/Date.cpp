@@ -1,6 +1,7 @@
 #include "Date.h"
 
 #include <mutex>
+#include <iostream>
 
 static std::once_flag tzFlag;
 
@@ -28,8 +29,12 @@ void Date::setTime(time_t time, Mode mode)
         });
     if (mode == UTC)
         mTime = time;
-    else
-        mTime = time + timezone;
+    else {
+        struct tm ltime;
+        if (modetime(time, &ltime, mode)) {
+            mTime = time + ltime.tm_gmtoff;
+        }
+    }
 }
 
 int Date::date(Mode mode) const

@@ -42,16 +42,7 @@ public:
 
     bool send(const Message &message);
     template <int StaticBufSize>
-    bool write(const char *format, ...)
-    {
-        if (mSilent)
-            return isConnected();
-        va_list args;
-        va_start(args, format);
-        const String ret = String::format<StaticBufSize>(format, args);
-        va_end(args);
-        return send(ResponseMessage(ret));
-    }
+    bool write(const char *format, ...); //RCT_PRINTF_WARNING(1, 2);
     bool write(const String &out, ResponseMessage::Type type = ResponseMessage::Stdout)
     {
         if (mSilent)
@@ -61,18 +52,7 @@ public:
 
     void finish(int status = 0) { send(FinishMessage(status)); }
     template <int StaticBufSize>
-    void finish(const char *format, ...)
-    {
-        if (!mSilent) {
-            va_list args;
-            va_start(args, format);
-            const String ret = String::format<StaticBufSize>(format, args);
-            va_end(args);
-            send(ResponseMessage(ret));
-        }
-        send(FinishMessage(0));
-    }
-
+    void finish(const char *format, ...); //RCT_PRINTF_WARNING(1, 2);
     void finish(const String &msg, int status = 0)
     {
         if (!mSilent)
@@ -121,7 +101,32 @@ private:
     Signal<std::function<void(std::shared_ptr<Connection>)> > mConnected, mDisconnected, mError, mSendFinished;
     Signal<std::function<void(std::shared_ptr<Connection>, int)> > mFinished;
     Signal<std::function<void(std::shared_ptr<Connection>, const Message *)> > mAboutToSend;
-
 };
+
+template <int StaticBufSize>
+bool Connection::write(const char *format, ...)
+{
+    if (mSilent)
+        return isConnected();
+    va_list args;
+    va_start(args, format);
+    const String ret = String::format<StaticBufSize>(format, args);
+    va_end(args);
+    return send(ResponseMessage(ret));
+}
+
+template <int StaticBufSize>
+void Connection::finish(const char *format, ...)
+{
+    if (!mSilent) {
+        va_list args;
+        va_start(args, format);
+        const String ret = String::format<StaticBufSize>(format, args);
+        va_end(args);
+        send(ResponseMessage(ret));
+    }
+    send(FinishMessage(0));
+}
+
 
 #endif // CONNECTION_H

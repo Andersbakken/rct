@@ -88,7 +88,7 @@ public:
     bool operator<=(T other) const { return mValue <= other; }
     bool operator>=(T other) const { return mValue >= other; }
 
-    String toString() const { return String::format<16>("0x%x", cast<unsigned long long>()); }
+    String toString() const { return String::format<16>("0x%llx", cast<unsigned long long>()); }
     template <typename Type> Type cast() const { return static_cast<Type>(mValue); }
 private:
     T mValue;

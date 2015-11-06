@@ -73,34 +73,28 @@ public:
     virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
     void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
     template <int StaticBufSize = 256>
-    void log(const char *format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        log(String::format<StaticBufSize>(format, args));
-        va_end(args);
-    }
-
+    void log(const char *format, ...); //RCT_PRINTF_WARNING(1, 2);
     LogLevel logLevel() const { return mLogLevel; }
 private:
     LogLevel mLogLevel;
 };
 
+template <int StaticBufSize>
+inline void LogOutput::log(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    log(String::format<StaticBufSize>(format, args));
+    va_end(args);
+}
+
 RCT_FLAGS_OPERATORS(LogOutput::LogFlag);
 
-#ifdef __GNUC__
-void log(LogLevel level, const char *format, ...) __attribute__ ((format (printf, 2, 3)));
-void debug(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-void verboseDebug(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-void warning(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-void error(const char *format, ...) __attribute__ ((format (printf, 1, 2)));
-#else
-void log(LogLevel level, const char *format, ...);
-void debug(const char *format, ...);
-void verboseDebug(const char *format, ...);
-void warning(const char *format, ...);
-void error(const char *format, ...);
-#endif
+void log(LogLevel level, const char *format, ...) RCT_PRINTF_WARNING(2, 3);
+void debug(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
+void verboseDebug(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
+void warning(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
+void error(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
 void logDirect(LogLevel level, const char *str, int length, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
 inline void logDirect(LogLevel level, const String &out, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags)
 {

@@ -13,7 +13,7 @@
 
 #include "rct/List.h"
 
-
+#define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
 class String
 {
 public:
@@ -753,14 +753,7 @@ public:
         return ret;
     }
     template <int StaticBufSize = 4096>
-    static String format(const char *format, ...)
-    {
-        va_list args;
-        va_start(args, format);
-        const String ret = String::format<StaticBufSize>(format, args);
-        va_end(args);
-        return ret;
-    }
+    static String format(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
 
     template <int StaticBufSize = 4096>
     static String format(const char *format, va_list args)
@@ -784,6 +777,16 @@ public:
 private:
     std::string mString;
 };
+
+template <int StaticBufSize>
+String String::format(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    const String ret = String::format<StaticBufSize>(format, args);
+    va_end(args);
+    return ret;
+}
 
 inline bool operator==(const char *l, const String &r)
 {
@@ -824,7 +827,6 @@ inline const String operator+(char l, const String &r)
     ret += r;
     return ret;
 }
-
 
 inline const String operator+(const String &l, const String &r)
 {

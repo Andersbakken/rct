@@ -42,7 +42,7 @@ public:
 
     bool send(const Message &message);
     template <int StaticBufSize>
-    bool write(const char *format, ...); //RCT_PRINTF_WARNING(1, 2);
+    bool write(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     bool write(const String &out, ResponseMessage::Type type = ResponseMessage::Stdout)
     {
         if (mSilent)
@@ -52,7 +52,7 @@ public:
 
     void finish(int status = 0) { send(FinishMessage(status)); }
     template <int StaticBufSize>
-    void finish(const char *format, ...); //RCT_PRINTF_WARNING(1, 2);
+    void finish(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     void finish(const String &msg, int status = 0)
     {
         if (!mSilent)

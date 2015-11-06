@@ -73,7 +73,7 @@ public:
     virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
     void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
     template <int StaticBufSize = 256>
-    void log(const char *format, ...); //RCT_PRINTF_WARNING(1, 2);
+    void log(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     LogLevel logLevel() const { return mLogLevel; }
 private:
     LogLevel mLogLevel;

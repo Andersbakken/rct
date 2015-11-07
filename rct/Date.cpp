@@ -11,6 +11,7 @@ Date::Date()
 }
 
 Date::Date(time_t time, Mode mode)
+    : Date()
 {
     setTime(time, mode);
 }

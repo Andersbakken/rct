@@ -27,3 +27,5 @@ link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR})
 set(BINARY_NAME "rct_tests")
 add_executable(${BINARY_NAME} ${UNIT_TESTS_SRCS})
 target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct)
+
+add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})

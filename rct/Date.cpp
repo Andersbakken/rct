@@ -11,6 +11,7 @@ Date::Date()
 }
 
 Date::Date(time_t time, Mode mode)
+    : Date()
 {
     setTime(time, mode);
 }
@@ -33,8 +34,6 @@ void Date::setTime(time_t time, Mode mode)
         struct tm ltime;
         if (modetime(time, &ltime, mode)) {
             mTime = time + ltime.tm_gmtoff;
-        } else {
-            mTime += timezone;
         }
     }
 }

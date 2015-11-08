@@ -18,6 +18,7 @@ matrix:
                       - ubuntu-toolchain-r-test
                   packages:
                       - g++-4.8
+                      - libcppunit-dev
 
         - env: COMPILER_VERSION=4.9
           os: linux
@@ -28,6 +29,7 @@ matrix:
                       - ubuntu-toolchain-r-test
                   packages:
                       - g++-4.9
+                      - libcppunit-dev
 
         - env: COMPILER_VERSION=3.5
           os: linux
@@ -39,6 +41,7 @@ matrix:
                       - llvm-toolchain-precise-3.5
                   packages:
                       - clang-3.5
+                      - libcppunit-dev
 
         - env: COMPILER_VERSION=3.6
           os: linux
@@ -50,6 +53,7 @@ matrix:
                       - llvm-toolchain-precise-3.6
                   packages:
                       - clang-3.6
+                      - libcppunit-dev
 
 #        - env: COMPILER_VERSION=3.7
 #          os: linux
@@ -66,8 +70,11 @@ before_script:
     - mkdir build
     - cd build
     - echo "Using compilers $CXX-${COMPILER_VERSION} and $CC-${COMPILER_VERSION}"
-    - cmake -DCMAKE_CXX_COMPILER=$CXX-${COMPILER_VERSION} -DCMAKE_C_COMPILER=$CC-${COMPILER_VERSION} ..
+    - cmake -DCMAKE_CXX_COMPILER=$CXX-${COMPILER_VERSION} -DCMAKE_C_COMPILER=$CC-${COMPILER_VERSION} -DWITH_TESTS=1 ..
 
 
-script: make
+script:
+    - make
+    - make test
+
 

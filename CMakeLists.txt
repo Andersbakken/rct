@@ -12,6 +12,7 @@ include(rct.cmake)
 # target_link_libraries(dbtest rct)
 
 if (WITH_TESTS)
+    enable_testing()
     add_subdirectory(tests)
 endif ()
 

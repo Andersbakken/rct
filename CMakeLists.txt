@@ -54,7 +54,7 @@ if (WITH_TESTS)
             VERBATIM
         )
 
-        set(GCOV_TOOL GCOV_EXECUTABLE)
+        set(GCOV_TOOL ${GCOV_EXECUTABLE})
     endif ()
 
     find_program(LCOV_EXECUTABLE NAMES lcov)

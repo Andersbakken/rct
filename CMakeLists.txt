@@ -48,6 +48,12 @@ if (WITH_TESTS)
             gcov48
         )
 
+        add_custom_target(
+            gen_llvm_cov_wrapper_script
+            COMMAND true
+            VERBATIM
+        )
+
         set(GCOV_TOOL GCOV_EXECUTABLE)
     endif ()
 

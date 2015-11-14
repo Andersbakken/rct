@@ -18,6 +18,12 @@
 #include "rct-config.h"
 #include "Rct.h"
 
+#ifdef NDEBUG
+#define DEBUG() if (false) debug()
+#else
+#define DEBUG() debug()
+#endif
+
 SocketClient::SocketClient(unsigned int mode)
     : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None),
       wMode(Asynchronous), writeWait(false), writeOffset(0)
@@ -400,6 +406,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 } else {
                     eintrwrap(e, ::write(fd, writeBuffer.data() + total + writeOffset, writeBufferSize - total));
                 }
+                DEBUG() << "SENT(1)" << (writeBufferSize - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         if (wMode == Synchronous) {
@@ -462,6 +469,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 } else {
                     eintrwrap(e, ::write(fd, data + total, size - total));
                 }
+                DEBUG() << "SENT(2)" << (size - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
                         if (wMode == Synchronous) {
@@ -591,6 +599,7 @@ void SocketClient::socketCallback(int f, int mode)
             } else {
                 eintrwrap(e, ::read(fd, readBuffer.end(), rem));
             }
+            DEBUG() << "RECEIVED(2)" << rem << "BYTES" << e << errno;
             if (e == -1) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     break;

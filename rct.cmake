@@ -11,6 +11,7 @@ if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
+set(CMAKE_OLD_MODULE_PATH ${CMAKE_MODULE_PATH})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/")
 
 include(CheckSymbolExists)
@@ -19,6 +20,7 @@ include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
 
 include(${CMAKE_CURRENT_LIST_DIR}/compiler.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_OLD_MODULE_PATH})
 
 check_cxx_symbol_exists(backtrace "execinfo.h" HAVE_BACKTRACE)
 check_cxx_symbol_exists(CLOCK_MONOTONIC_RAW "time.h" HAVE_CLOCK_MONOTONIC_RAW)

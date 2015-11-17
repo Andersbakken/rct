@@ -170,13 +170,15 @@ void removeDirectory(const Path &path)
 {
     DIR *d = opendir(path.constData());
     size_t path_len = path.size();
-    char buf[PATH_MAX];
-    dirent *dbuf = reinterpret_cast<dirent*>(buf);
+    union {
+        char buf[PATH_MAX];
+        dirent dbuf;
+    };
 
     if (d) {
         dirent *p;
 
-        while (!readdir_r(d, dbuf, &p) && p) {
+        while (!readdir_r(d, &dbuf, &p) && p) {
             /* Skip the names "." and ".." as we don't want to recurse on them. */
             if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
                 continue;
@@ -457,55 +459,59 @@ String colorize(const String &string, AnsiColor color, int from, int len)
 
 bool isIP(const String& addr, LookupMode mode)
 {
-    sockaddr_storage sockaddr;
+    union {
+        sockaddr_storage sockaddr;
+        sockaddr_in6 sockaddr6;
+        sockaddr_in sockaddr4;
+    };
     memset(&sockaddr, 0, sizeof(sockaddr_storage));
     if (mode == Auto)
         mode = addr.contains(':') ? IPv6 : IPv4;
     if (mode == IPv6) {
-        sockaddr_in6* sockaddr6 = reinterpret_cast<sockaddr_in6*>(&sockaddr);
-        if (inet_pton(AF_INET6, addr.constData(), &sockaddr6->sin6_addr) != 1)
+        if (inet_pton(AF_INET6, addr.constData(), &sockaddr6.sin6_addr) != 1)
             return false;
     } else {
-        sockaddr_in* sockaddr4 = reinterpret_cast<sockaddr_in*>(&sockaddr);
-        if (inet_pton(AF_INET, addr.constData(), &sockaddr4->sin_addr) != 1)
+        if (inet_pton(AF_INET, addr.constData(), &sockaddr4.sin_addr) != 1)
             return false;
     }
     return true;
 }
 
-String addrLookup(const String& addr, LookupMode mode, bool *ok)
+String addrLookup(const String &address, LookupMode mode, bool *ok)
 {
-    sockaddr_storage sockaddr;
-    memset(&sockaddr, 0, sizeof(sockaddr_storage));
+    union {
+        sockaddr_storage sockaddrStorage;
+        sockaddr_in6 sockaddr6;
+        sockaddr_in sockaddr4;
+        sockaddr addr;
+    };
+    memset(&sockaddrStorage, 0, sizeof(sockaddr_storage));
     size_t sz;
     if (mode == Auto)
-        mode = addr.contains(':') ? IPv6 : IPv4;
+        mode = address.contains(':') ? IPv6 : IPv4;
     if (mode == IPv6) {
-        sockaddr_in6* sockaddr6 = reinterpret_cast<sockaddr_in6*>(&sockaddr);
-        if (inet_pton(AF_INET6, addr.constData(), &sockaddr6->sin6_addr) != 1) {
+        if (inet_pton(AF_INET6, address.constData(), &sockaddr6.sin6_addr) != 1) {
             if (ok)
                 *ok = false;
-            return addr;
+            return address;
         }
-        sockaddr.ss_family = AF_INET6;
+        sockaddrStorage.ss_family = AF_INET6;
         sz = sizeof(sockaddr_in6);
     } else {
-        sockaddr_in* sockaddr4 = reinterpret_cast<sockaddr_in*>(&sockaddr);
-        if (inet_pton(AF_INET, addr.constData(), &sockaddr4->sin_addr) != 1) {
+        if (inet_pton(AF_INET, address.constData(), &sockaddr4.sin_addr) != 1) {
             if (ok)
                 *ok = false;
-            return addr;
+            return address;
         }
-        sockaddr.ss_family = AF_INET;
+        sockaddrStorage.ss_family = AF_INET;
         sz = sizeof(sockaddr_in);
     }
     String out(NI_MAXHOST, '\0');
-    const struct sockaddr* sa = reinterpret_cast<struct sockaddr*>(&sockaddr);
-    if (getnameinfo(sa, sz, out.data(), NI_MAXHOST, 0, 0, 0) != 0) {
+    if (getnameinfo(&addr, sz, out.data(), NI_MAXHOST, 0, 0, 0) != 0) {
         if (ok)
             *ok = false;
         // bad
-        return addr;
+        return address;
     }
     out.resize(strlen(out.constData()));
     if (ok)

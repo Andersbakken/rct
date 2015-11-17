@@ -125,20 +125,20 @@ public:
 
         bool operator==(const Type &other) { return t == other.t; }
         bool operator!=(const Type &other) { return t != other.t; }
-    // private:
+    private:
         T t;
     };
 
     struct iterator : public iterator_base<iterator>
     {
-        iterator(const T &t)
-            : iterator_base<iterator>(t)
+        iterator(const T &val)
+            : iterator_base<iterator>(val)
         {}
     };
     struct const_iterator : public iterator_base<const_iterator>
     {
-        const_iterator(const T &t)
-            : iterator_base<const_iterator>(t)
+        const_iterator(const T &val)
+            : iterator_base<const_iterator>(val)
         {}
     };
 

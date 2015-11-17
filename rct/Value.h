@@ -562,7 +562,7 @@ inline Value &Value::operator[](int idx)
     return (*listPtr())[idx];
 }
 
-inline void Value::push_back(const Value &value)
+inline void Value::push_back(const Value &val)
 {
     if (mType == Type_Invalid) {
         new (mData.listBuf) List<Value>;
@@ -570,7 +570,7 @@ inline void Value::push_back(const Value &value)
     } else {
         assert(mType == Type_List);
     }
-    listPtr()->push_back(value);
+    listPtr()->push_back(val);
 }
 
 inline const Value &Value::operator[](const String &key) const

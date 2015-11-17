@@ -232,15 +232,18 @@ bool SocketClient::connect(const String& path)
     if (!init(Unix))
         return false;
 
-    sockaddr_un addr;
-    memset(&addr, '\0', sizeof(sockaddr_un));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path.constData(), sizeof(addr.sun_path));
+    union {
+        sockaddr_un addr_un;
+        sockaddr addr;
+    };
+    memset(&addr_un, '\0', sizeof(addr_un));
+    addr_un.sun_family = AF_UNIX;
+    strncpy(addr_un.sun_path, path.constData(), sizeof(addr_un.sun_path));
 
     SocketClient::SharedPtr unixSocket = shared_from_this();
 
     int e;
-    eintrwrap(e, ::connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un)));
+    eintrwrap(e, ::connect(fd, &addr, sizeof(addr_un)));
     address = path;
     if (e == 0) { // we're done
         socketState = Connected;
@@ -266,19 +269,19 @@ bool SocketClient::bind(uint16_t port)
 {
     if (!init(Udp))
         return false;
-    sockaddr_in addr4;
-    sockaddr_in6 addr6;
-    sockaddr* addr = 0;
+    union {
+        sockaddr_in addr4;
+        sockaddr_in6 addr6;
+        sockaddr addr;
+    };
     int size = 0;
     if (socketMode & IPv6) {
-        addr = reinterpret_cast<sockaddr*>(&addr6);
         size = sizeof(sockaddr_in6);
         memset(&addr6, '\0', size);
         addr6.sin6_family = AF_INET6;
         addr6.sin6_addr = in6addr_any;
         addr6.sin6_port = htons(port);
     } else {
-        addr = reinterpret_cast<sockaddr*>(&addr4);
         size = sizeof(sockaddr_in);
         memset(&addr4, '\0', size);
         addr4.sin_family = AF_INET;
@@ -294,7 +297,7 @@ bool SocketClient::bind(uint16_t port)
         close();
         return false;
     }
-    e = ::bind(fd, addr, size);
+    e = ::bind(fd, &addr, size);
     if (!e) {
         socketPort = port;
         return true;
@@ -340,24 +343,27 @@ void SocketClient::setMulticastTTL(unsigned char ttl)
 typedef int (*GetNameFunc)(int, sockaddr*, socklen_t*);
 static inline String getNameHelper(int fd, GetNameFunc func, uint16_t* port)
 {
-    sockaddr_storage addr;
-    socklen_t size = sizeof(addr);
-    if (func(fd, reinterpret_cast<sockaddr*>(&addr), &size) == -1)
+    union {
+        sockaddr_storage storage;
+        sockaddr_in6 addr6;
+        sockaddr_in addr4;
+        sockaddr addr;
+    };
+    socklen_t size = sizeof(storage);
+    if (func(fd, &addr, &size) == -1)
         return String();
     String name(INET6_ADDRSTRLEN, '\0');
-    if (addr.ss_family == AF_INET6) {
-        sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&addr);
-        inet_ntop(AF_INET6, &addr6->sin6_addr, name.data(), name.size());
+    if (storage.ss_family == AF_INET6) {
+        inet_ntop(AF_INET6, &addr6.sin6_addr, name.data(), name.size());
         name.resize(strlen(name.constData()));
         if (port)
-            *port = ntohs(addr6->sin6_port);
+            *port = ntohs(addr6.sin6_port);
     } else {
-        assert(addr.ss_family == AF_INET);
-        sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&addr);
-        inet_ntop(AF_INET, &addr4->sin_addr, name.data(), name.size());
+        assert(storage.ss_family == AF_INET);
+        inet_ntop(AF_INET, &addr4.sin_addr, name.data(), name.size());
         name.resize(strlen(name.constData()));
         if (port)
-            *port = ntohs(addr4->sin_port);
+            *port = ntohs(addr4.sin_port);
     }
     return name;
 }
@@ -565,9 +571,12 @@ void SocketClient::socketCallback(int f, int mode)
         }
     }
 
-    sockaddr_in fromAddr4;
-    sockaddr_in6 fromAddr6;
-    sockaddr* fromAddr = 0;
+    union {
+        sockaddr_in fromAddr4;
+        sockaddr_in6 fromAddr6;
+        sockaddr fromAddr;
+    };
+
     socklen_t fromLen = 0;
     const bool isIPv6 = socketMode & IPv6;
 
@@ -589,12 +598,10 @@ void SocketClient::socketCallback(int f, int mode)
             if (socketMode & Udp) {
                 if (isIPv6) {
                     fromLen = sizeof(fromAddr6);
-                    fromAddr = reinterpret_cast<sockaddr*>(&fromAddr6);
-                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, fromAddr, &fromLen));
+                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, &fromAddr, &fromLen));
                 } else {
                     fromLen = sizeof(fromAddr4);
-                    fromAddr = reinterpret_cast<sockaddr*>(&fromAddr4);
-                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, fromAddr, &fromLen));
+                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, &fromAddr, &fromLen));
                 }
             } else {
                 eintrwrap(e, ::read(fd, readBuffer.end(), rem));
@@ -620,7 +627,7 @@ void SocketClient::socketCallback(int f, int mode)
                 return;
             } else if (fromLen) {
                 readBuffer.resize(e);
-                signalReadyReadFrom(socketPtr, addrToString(fromAddr, isIPv6), addrToPort(fromAddr, isIPv6), std::move(readBuffer));
+                signalReadyReadFrom(socketPtr, addrToString(&fromAddr, isIPv6), addrToPort(&fromAddr, isIPv6), std::move(readBuffer));
                 readBuffer.clear();
             } else {
                 total += e;

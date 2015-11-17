@@ -323,7 +323,7 @@ String backtrace(int maxFrames)
     enum { SIZE = 1024 };
     void *stack[SIZE];
 
-    int frameCount = ::backtrace(stack, sizeof(stack) / sizeof(void*));
+    const int frameCount = backtrace(stack, sizeof(stack) / sizeof(void*));
     if (frameCount <= 0)
         return String("Couldn't get stack trace");
     String ret;

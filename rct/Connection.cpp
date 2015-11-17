@@ -17,10 +17,12 @@ Connection::Connection(int version)
 
 Connection::~Connection()
 {
-    if (mTimeoutTimer)
-        EventLoop::eventLoop()->unregisterTimer(mTimeoutTimer);
-    if (mCheckTimer)
-        EventLoop::eventLoop()->unregisterTimer(mCheckTimer);
+    if (std::shared_ptr<EventLoop> eventLoop = EventLoop::eventLoop()) {
+        if (mTimeoutTimer)
+            eventLoop->unregisterTimer(mTimeoutTimer);
+        if (mCheckTimer)
+            eventLoop->unregisterTimer(mCheckTimer);
+    }
     disconnect();
 }
 

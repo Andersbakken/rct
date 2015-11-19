@@ -423,8 +423,10 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
     if (!d)
         return;
 
-    char buf[PATH_MAX + sizeof(dirent) + 1];
-    dirent *dbuf = reinterpret_cast<dirent*>(buf);
+    union {
+        char buf[PATH_MAX + sizeof(dirent) + 1];
+        dirent dbuf;
+    };
 
     dirent *p;
     if (!path.endsWith('/'))
@@ -432,7 +434,7 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
     const int s = path.size();
     path.reserve(s + 128);
     List<String> recurseDirs;
-    while (!readdir_r(d, dbuf, &p) && p) {
+    while (!readdir_r(d, &dbuf, &p) && p) {
         if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
             continue;
         path.truncate(s);

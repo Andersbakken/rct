@@ -75,19 +75,19 @@ bool SocketServer::listen(uint16_t port, Mode mode)
 #endif
 
     // ### support specific interfaces
-    sockaddr_in addr4;
-    sockaddr_in6 addr6;
-    sockaddr* addr = 0;
+    union {
+        sockaddr_in addr4;
+        sockaddr_in6 addr6;
+        sockaddr addr;
+    };
     size_t size = 0;
     if (isIPv6) {
-        addr = reinterpret_cast<sockaddr*>(&addr6);
         size = sizeof(sockaddr_in6);
         memset(&addr6, '\0', sizeof(sockaddr_in6));
         addr6.sin6_family = AF_INET6;
         addr6.sin6_addr = in6addr_any;
         addr6.sin6_port = htons(port);
     } else {
-        addr = reinterpret_cast<sockaddr*>(&addr4);
         size = sizeof(sockaddr_in);
         memset(&addr4, '\0', sizeof(sockaddr_in));
         addr4.sin_family = AF_INET;
@@ -95,7 +95,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
         addr4.sin_port = htons(port);
     }
 
-    return commonBindAndListen(addr, size);
+    return commonBindAndListen(&addr, size);
 }
 
 bool SocketServer::listen(const Path &p)
@@ -112,12 +112,15 @@ bool SocketServer::listen(const Path &p)
     SocketClient::setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
 
-    sockaddr_un addr;
-    memset(&addr, '\0', sizeof(sockaddr_un));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, p.constData(), sizeof(addr.sun_path));
+    union {
+        sockaddr_un addr_un;
+        sockaddr addr;
+    };
+    memset(&addr_un, '\0', sizeof(sockaddr_un));
+    addr_un.sun_family = AF_UNIX;
+    strncpy(addr_un.sun_path, p.constData(), sizeof(addr_un.sun_path));
 
-    if (commonBindAndListen(reinterpret_cast<sockaddr*>(&addr), sizeof(sockaddr_un))) {
+    if (commonBindAndListen(&addr, sizeof(sockaddr_un))) {
         path = p;
         return true;
     }
@@ -185,24 +188,24 @@ SocketClient::SharedPtr SocketServer::nextConnection()
 
 void SocketServer::socketCallback(int /*fd*/, int mode)
 {
-    sockaddr_in client4;
-    sockaddr_in6 client6;
-    sockaddr* client = 0;
+    union {
+        sockaddr_in client4;
+        sockaddr_in6 client6;
+        sockaddr client;
+    };
     socklen_t size = 0;
     if (isIPv6) {
         size = sizeof(client6);
-        client = reinterpret_cast<sockaddr*>(&client6);
     } else {
         size = sizeof(client4);
-        client = reinterpret_cast<sockaddr*>(&client4);
     }
     int e;
 
-    if (! ( mode & EventLoop::SocketRead ) )
+    if (!(mode & EventLoop::SocketRead))
         return;
 
     for (;;) {
-        eintrwrap(e, ::accept(fd, client, &size));
+        eintrwrap(e, ::accept(fd, &client, &size));
         if (e == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 return;

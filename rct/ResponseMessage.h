@@ -1,8 +1,8 @@
 #ifndef ResponseMessage_h
 #define ResponseMessage_h
 
-#include "rct/Message.h"
-#include "rct/String.h"
+#include <rct/Message.h>
+#include <rct/String.h>
 
 class ResponseMessage : public Message
 {

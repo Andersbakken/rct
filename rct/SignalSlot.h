@@ -5,7 +5,7 @@
 #include <map>
 #include <mutex>
 
-#include "EventLoop.h"
+#include <rct/EventLoop.h>
 
 template<typename Signature>
 class Signal

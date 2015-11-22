@@ -1,7 +1,7 @@
 #ifndef Flags_h
 #define Flags_h
 
-#include "rct/String.h"
+#include "String.h"
 
 template <typename T>
 class Flags

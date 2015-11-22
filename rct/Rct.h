@@ -7,9 +7,9 @@
 #include <sys/select.h>
 #include <regex>
 
-#include "rct/List.h"
-#include "rct/Path.h"
-#include "rct/String.h"
+#include <rct/List.h>
+#include <rct/Path.h>
+#include <rct/String.h>
 
 namespace Rct {
 

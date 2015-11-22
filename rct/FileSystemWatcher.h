@@ -4,13 +4,12 @@
 #include <stdint.h>
 #include <mutex>
 
-#include "rct-config.h"
-#include "rct/Log.h"
-#include "rct/Map.h"
-#include "rct/Path.h"
-#include "rct/Set.h"
-#include "rct/SignalSlot.h"
-#include "rct/Timer.h"
+#include <rct/rct-config.h>
+#include <rct/Map.h>
+#include <rct/Path.h>
+#include <rct/Set.h>
+#include <rct/SignalSlot.h>
+#include <rct/Timer.h>
 
 #ifdef HAVE_FSEVENTS
 #include <CoreServices/CoreServices.h>

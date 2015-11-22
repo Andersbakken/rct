@@ -6,6 +6,7 @@
 #include <sys/types.h>
 
 #include "Rct.h"
+#include "Path.h"
 
 #ifndef RCT_PROJID
 #define RCT_PROJID 3945

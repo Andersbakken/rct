@@ -3,12 +3,12 @@
 
 #include <math.h>
 
-#include "rct/String.h"
-#include "rct/Log.h"
-#include "rct/Serializer.h"
-#include "rct/Map.h"
-#include "rct/List.h"
-#include "rct/Date.h"
+#include "Date.h" // FIXME(andersbakken): This header isn't going to be installed is this correct?
+#include <rct/List.h>
+#include <rct/Log.h>
+#include <rct/Map.h>
+#include <rct/Serializer.h>
+#include <rct/String.h>
 
 struct cJSON;
 class Value

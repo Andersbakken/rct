@@ -3,13 +3,12 @@
 
 #include <memory>
 
-#include "Buffer.h"
-#include "Path.h"
-#include "SignalSlot.h"
-#include "String.h"
+#include <rct/Buffer.h>
+#include <rct/SignalSlot.h>
+#include <rct/String.h>
 
 class MessageThread;
-
+class Path;
 class MessageQueue
 {
 public:

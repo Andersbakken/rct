@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <assert.h>
 
-#include "rct-config.h"
+#include "rct/rct-config.h"
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
 #   include <sys/sysctl.h>
 #   include <sys/types.h>

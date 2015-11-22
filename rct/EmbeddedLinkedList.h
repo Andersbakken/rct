@@ -1,6 +1,8 @@
 #ifndef EmbeddedLinkedList_h
 #define EmbeddedLinkedList_h
 
+#include <assert.h>
+
 template<typename T>
 class EmbeddedLinkedList
 {

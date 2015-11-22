@@ -16,7 +16,7 @@
 # include <sys/sysctl.h>
 #endif
 
-#include "rct-config.h"
+#include "rct/rct-config.h"
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #include <mach/mach.h>
 #include <mach/mach_time.h>

@@ -4,7 +4,7 @@
 #include <mutex>
 #include <pthread.h>
 
-#include "EventLoop.h"
+#include <rct/EventLoop.h>
 
 class Thread
 {

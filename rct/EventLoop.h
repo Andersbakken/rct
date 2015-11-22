@@ -11,8 +11,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Apply.h"
-#include "rct-config.h"
+#include <rct/Apply.h>
+#include <rct/rct-config.h>
 #if defined(HAVE_EPOLL)
 #  include <sys/epoll.h>
 #elif defined(HAVE_KQUEUE)

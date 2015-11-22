@@ -4,8 +4,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "rct-config.h"
-#include "rct/List.h"
+#include "List.h"
 
 template <typename Key, typename Value>
 class Hash : public std::unordered_map<Key, Value>

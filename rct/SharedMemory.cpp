@@ -6,8 +6,9 @@
 #include <sys/shm.h>
 
 #include "Log.h"
+#include "rct/rct-config.h"
 #include "Rct.h"
-#include "rct-config.h"
+#include "Path.h"
 
 #define PROJID 3946
 

@@ -1,7 +1,7 @@
 #ifndef WRITELOCKER_H
 #define WRITELOCKER_H
 
-#include "rct/ReadWriteLock.h"
+#include <rct/ReadWriteLock.h>
 
 class WriteLocker
 {

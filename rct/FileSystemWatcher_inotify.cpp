@@ -6,7 +6,7 @@
 
 #include "EventLoop.h"
 #include "Log.h"
-#include "rct-config.h"
+#include "rct/rct-config.h"
 #include "Rct.h"
 #include "StackBuffer.h"
 

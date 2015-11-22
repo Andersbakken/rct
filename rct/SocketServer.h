@@ -4,9 +4,9 @@
 #include <memory>
 #include <queue>
 
-#include "rct/Path.h"
-#include "SignalSlot.h"
-#include "SocketClient.h"
+#include <rct/Path.h>
+#include <rct/SignalSlot.h>
+#include <rct/SocketClient.h>
 
 struct sockaddr;
 

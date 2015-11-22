@@ -68,7 +68,7 @@ check_cxx_source_compiles("
   }" HAVE_STATMTIM)
 
 if (NOT DEFINED RCT_INCLUDE_DIR)
-  set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/rct")
+  set(RCT_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/include")
 endif ()
 
 set(RCT_DEFINITIONS "")
@@ -90,6 +90,7 @@ else ()
 endif ()
 
 list(APPEND RCT_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})
+
 set(RCT_SOURCES
   ${RCT_SOURCES}
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
@@ -141,17 +142,17 @@ if (RCT_BUILD_SCRIPTENGINE)
 endif ()
 endif ()
 
-configure_file(${CMAKE_CURRENT_LIST_DIR}/rct/rct-config.h.in ${RCT_INCLUDE_DIR}/rct-config.h.gen)
-if (EXISTS "${RCT_INCLUDE_DIR}/rct-config.h")
-  file(READ "${RCT_INCLUDE_DIR}/rct-config.h" cfif_output)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/rct/rct-config.h.in ${RCT_INCLUDE_DIR}/rct/rct-config.h.gen)
+if (EXISTS "${RCT_INCLUDE_DIR}/rct/rct-config.h")
+  file(READ "${RCT_INCLUDE_DIR}/rct/rct-config.h" cfif_output)
 else()
   set(cfif_output "")
 endif ()
-file(READ "${RCT_INCLUDE_DIR}/rct-config.h.gen" cfif_output_gen)
+file(READ "${RCT_INCLUDE_DIR}/rct/rct-config.h.gen" cfif_output_gen)
 if (NOT "${cfif_output}" STREQUAL "${cfif_output_gen}")
-  file (WRITE "${RCT_INCLUDE_DIR}/rct-config.h" "${cfif_output_gen}")
+  file (WRITE "${RCT_INCLUDE_DIR}/rct/rct-config.h" "${cfif_output_gen}")
 endif ()
-file(REMOVE "${RCT_INCLUDE_DIR}/rct-config.h.gen")
+file(REMOVE "${RCT_INCLUDE_DIR}/rct/rct-config.h.gen")
 
 set(RCT_DEFINITIONS ${RCT_DEFINITIONS} -DOS_${CMAKE_SYSTEM_NAME})
 if (RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE)

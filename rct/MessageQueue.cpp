@@ -12,6 +12,7 @@
 
 #include "EventLoop.h"
 #include "Log.h"
+#include "Path.h"
 #include "Thread.h"
 
 class MessageThread : public Thread, public std::enable_shared_from_this<MessageThread>

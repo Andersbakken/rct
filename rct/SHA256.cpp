@@ -11,6 +11,7 @@
 #else
 #include <openssl/sha.h>
 #endif
+#include "rct/Path.h"
 
 class SHA256Private
 {

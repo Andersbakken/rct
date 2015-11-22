@@ -14,7 +14,7 @@
 
 #include "EventLoop.h"
 #include "Log.h"
-#include "rct-config.h"
+#include "rct/rct-config.h"
 #include "Rct.h"
 #include "SocketClient.h"
 #include "StopWatch.h"

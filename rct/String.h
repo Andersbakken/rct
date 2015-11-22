@@ -11,7 +11,7 @@
 #include <cstring>
 #include <string>
 
-#include "rct/List.h"
+#include <rct/List.h>
 
 #define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
 class String

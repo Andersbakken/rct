@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "SignalSlot.h"
+#include <rct/SignalSlot.h>
 
 class EventLoop;
 class Timer

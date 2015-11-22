@@ -1,8 +1,8 @@
 #include "Thread.h"
 
-#include "EventLoop.h"
-#include "Log.h"
-#include "rct-config.h"
+#include <rct/EventLoop.h>
+#include <rct/Log.h>
+#include <rct/rct-config.h>
 
 Thread::Thread()
     : mAutoDelete(false), mRunning(false), mLoop(EventLoop::eventLoop())

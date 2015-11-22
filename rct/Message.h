@@ -3,7 +3,7 @@
 
 #include <mutex>
 
-#include "rct/Serializer.h"
+#include <rct/Serializer.h>
 
 class Message
 {

@@ -3,8 +3,8 @@
 
 #include <assert.h>
 
-#include "rct/Path.h"
-#include "rct/String.h"
+#include <rct/Path.h>
+#include <rct/String.h>
 
 namespace Rct {
 void* loadPlugin(const Path& fileName);

@@ -10,8 +10,7 @@
 #include <unistd.h>
 #include <string>
 
-#include "rct/Set.h"
-#include "rct/String.h"
+#include <rct/String.h>
 
 class Path : public String
 {

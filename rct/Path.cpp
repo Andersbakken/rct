@@ -9,8 +9,8 @@
 #include <wordexp.h>
 
 #include "Log.h"
-#include "rct-config.h"
 #include "Rct.h"
+#include "rct/rct-config.h"
 
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const

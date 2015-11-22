@@ -1,16 +1,14 @@
 #ifndef ScriptEngine_h
 #define ScriptEngine_h
 
-#include "rct-config.h"
+#include <rct/rct-config.h>
 
 #ifdef HAVE_SCRIPTENGINE
 #include <memory>
 
-#include "rct/Log.h"
-#include "rct/String.h"
-#include "rct/Value.h"
-#include "rct/Hash.h"
-#include "rct/SignalSlot.h"
+#include <rct/String.h>
+#include <rct/Value.h>
+#include <rct/SignalSlot.h>
 
 
 class ObjectPrivate;

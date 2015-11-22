@@ -5,10 +5,10 @@
 #include <deque>
 #include <mutex>
 
-#include "rct/List.h"
-#include "rct/Path.h"
-#include "rct/SignalSlot.h"
-#include "rct/String.h"
+#include <rct/List.h>
+#include <rct/Path.h>
+#include <rct/SignalSlot.h>
+#include <rct/String.h>
 
 class Process
 {

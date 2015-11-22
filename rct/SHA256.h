@@ -1,11 +1,10 @@
 #ifndef SHA256_H
 #define SHA256_H
 
-#include "rct/Path.h"
-#include "rct/String.h"
+#include <rct/String.h>
 
+class Path;
 class SHA256Private;
-
 class SHA256
 {
 public:

@@ -1,8 +1,7 @@
 #ifndef FinishMessage_h
 #define FinishMessage_h
 
-#include "rct/Message.h"
-#include "rct/String.h"
+#include <rct/Message.h>
 
 class FinishMessage : public Message
 {

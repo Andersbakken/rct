@@ -4,7 +4,7 @@
 #include <set>
 #include <memory>
 
-#include "rct/List.h"
+#include <rct/List.h>
 
 template <typename T>
 class Set : public std::set<T>

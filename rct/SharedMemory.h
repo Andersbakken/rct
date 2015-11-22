@@ -3,8 +3,7 @@
 
 #include <sys/types.h>
 
-#include "rct/Path.h"
-
+class Path;
 class SharedMemory
 {
 public:

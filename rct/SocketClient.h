@@ -3,9 +3,9 @@
 
 #include <memory>
 
-#include "Buffer.h"
-#include "SignalSlot.h"
-#include "String.h"
+#include <rct/Buffer.h>
+#include <rct/SignalSlot.h>
+#include <rct/String.h>
 
 class SocketClient : public std::enable_shared_from_this<SocketClient>
 {

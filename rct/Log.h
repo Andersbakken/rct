@@ -7,16 +7,13 @@
 #include <memory>
 #include <sstream>
 
-#include "rct/Flags.h"
-#include "rct/Hash.h"
-#include "rct/List.h"
-#include "rct/Map.h"
-#include "rct/Path.h"
-#include "rct/Set.h"
-#include "rct/String.h"
-
-
-class Path;
+#include "Flags.h"
+#include "Hash.h"
+#include <rct/List.h>
+#include <rct/Map.h>
+#include <rct/Path.h>
+#include <rct/Set.h>
+#include <rct/String.h>
 
 class LogLevel
 {

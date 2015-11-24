@@ -18,7 +18,7 @@ void FileSystemWatcher::init()
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
-FileSystemWatcher::~FileSystemWatcher()
+void FileSystemWatcher::shutdown()
 {
     EventLoop::eventLoop()->unregisterSocket(mFd);
     for (Map<Path, int>::const_iterator it = mWatchedByPath.begin(); it != mWatchedByPath.end(); ++it) {

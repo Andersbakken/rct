@@ -20,7 +20,7 @@ void FileSystemWatcher::init()
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 
-FileSystemWatcher::~FileSystemWatcher()
+void FileSystemWatcher::destroy()
 {
     struct kevent change;
     struct timespec nullts = { 0, 0 };

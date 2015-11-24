@@ -269,7 +269,7 @@ void FileSystemWatcher::init()
     mWatcher->waitForStarted();
 }
 
-FileSystemWatcher::~FileSystemWatcher()
+void FileSystemWatcher::shutdown()
 {
     delete mWatcher;
 }

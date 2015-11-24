@@ -318,7 +318,7 @@ void FileSystemWatcher::init()
     mWatcher->thread = std::thread(std::bind(&WatcherData::run, mWatcher));
 }
 
-FileSystemWatcher::~FileSystemWatcher()
+void FileSystemWatcher::shutdown()
 {
     mWatcher->stop();
     CloseHandle(mWatcher->wakeupHandle);

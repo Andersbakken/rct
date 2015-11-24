@@ -9,6 +9,12 @@ FileSystemWatcher::FileSystemWatcher(const Options &options)
         });
 }
 
+FileSystemWatcher::~FileSystemWatcher()
+{
+    mTimer.stop();
+    shutdown();
+}
+
 void FileSystemWatcher::processChanges()
 {
     if (mOptions.removeDelay > 0) {

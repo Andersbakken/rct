@@ -52,6 +52,7 @@ public:
 #endif
 private:
     void init();
+    void shutdown();
 #if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
     WatcherData* mWatcher;
     friend class WatcherData;

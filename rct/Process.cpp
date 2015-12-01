@@ -752,7 +752,8 @@ void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::funct
             break;
         } else if (r == 0) { // file descriptor closed, remove it
             //printf("Process::handleOutput %d returning 0\n", fd);
-            EventLoop::eventLoop()->unregisterSocket(fd);
+            if (auto eventLoop = EventLoop::eventLoop())
+                eventLoop->unregisterSocket(fd);
             break;
         } else {
             //printf("Process::handleOutput in loop %d\n", fd);

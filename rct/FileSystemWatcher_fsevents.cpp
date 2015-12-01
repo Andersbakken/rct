@@ -8,6 +8,7 @@
 
 
 #include "EventLoop.h"
+#include "StackBuffer.h"
 #include "Log.h"
 #include "rct/rct-config.h"
 
@@ -167,16 +168,14 @@ void WatcherData::perform(void* thread)
     FSEventStreamRef newfss = 0;
 
     if (pathSize) {
-        List<CFStringRef> refs(pathSize);
+        StackBuffer<1024, CFStringRef> refs(pathSize);
         int i = 0;
-        Set<Path>::const_iterator path = watcher->paths.begin();
-        const Set<Path>::const_iterator end = watcher->paths.end();
-        while (path != end) {
+        const Set<Path> copy = watcher->paths;
+        for (const Path &path : copy) {
             refs[i++] = CFStringCreateWithCStringNoCopy(kCFAllocatorDefault,
-                                                        path->constData(),
+                                                        path.constData(),
                                                         kCFStringEncodingUTF8,
                                                         kCFAllocatorNull);
-            ++path;
         }
 
         // don't need to hold the mutex beyond this point

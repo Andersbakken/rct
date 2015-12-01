@@ -1,5 +1,5 @@
-#ifndef TCPSERVER_H
-#define TCPSERVER_H
+#ifndef SOCKETSERVER_H
+#define SOCKETSERVER_H
 
 #include <memory>
 #include <queue>

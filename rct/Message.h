@@ -2,6 +2,7 @@
 #define MESSAGE_H
 
 #include <mutex>
+#include <memory>
 
 #include <rct/Serializer.h>
 

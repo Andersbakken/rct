@@ -2,6 +2,7 @@
 #define String_h
 
 #include <errno.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <strings.h>
 #include <time.h>

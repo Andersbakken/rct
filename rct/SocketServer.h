@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <queue>
+#include <stdint.h>
 
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>

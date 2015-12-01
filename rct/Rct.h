@@ -1,6 +1,7 @@
 #ifndef Rct_h
 #define Rct_h
 
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>

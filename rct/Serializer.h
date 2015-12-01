@@ -4,6 +4,10 @@
 // #define RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
 #include <assert.h>
 #include <stdint.h>
+#include <string.h>
+
+#include <utility>
+#include <string>
 
 #include <rct/Hash.h>
 #include <rct/List.h>

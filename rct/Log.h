@@ -4,8 +4,11 @@
 #include <assert.h>
 #include <cxxabi.h>
 #include <climits>
+#include <ctype.h>
 #include <memory>
 #include <sstream>
+#include <stdio.h>
+#include <string.h>
 
 #include "Flags.h"
 #include "Hash.h"

@@ -384,6 +384,10 @@ String SocketClient::sockName(uint16_t* port) const
 
 bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int size)
 {
+    if (size) {
+        mWrites.append(size);
+    }
+
     assert((!size) == (!data));
     SocketClient::SharedPtr socketPtr = shared_from_this();
 
@@ -729,3 +733,40 @@ bool SocketClient::setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode m
     eintrwrap(e, ::fcntl(fd, setcmd, flg));
     return e != -1;
 }
+
+double SocketClient::mbpsWritten() const
+{
+    uint64_t bytes = 0, currentStart = 0, currentEnd = 0;
+    uint64_t elapsed = 0;
+
+    for (const auto &t : mWrites) {
+        // assert(t.isCompleted());
+        bytes += t.bytes;
+        if (t.startTime > currentEnd) {
+            elapsed += currentEnd - currentStart;
+            currentStart = t.startTime;
+        }
+        assert(currentEnd >= currentStart);
+        currentEnd = t.endTime;
+    }
+    elapsed += currentEnd - currentStart;
+    return ((static_cast<double>(bytes) / (1024 * 1024)) / (static_cast<double>(elapsed) / 1000.0));
+}
+
+
+void SocketClient::bytesWritten(const SocketClient::SharedPtr &socket, uint64_t bytes)
+{
+    const uint64_t copy = bytes;
+    List<TimeData>::iterator it = mPendingWrites.begin();
+    while (bytes && it != mPendingWrites.end()) {
+        if (it->add(bytes)) {
+            mWrites.append(*it);
+            it = mPendingWrites.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    assert(!bytes);
+    signalBytesWritten(socket, copy);
+}
+

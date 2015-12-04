@@ -3,9 +3,10 @@
 
 #include <memory>
 
-#include <rct/Buffer.h>
-#include <rct/SignalSlot.h>
-#include <rct/String.h>
+#include "Buffer.h"
+#include "Rct.h"
+#include "SignalSlot.h"
+#include "String.h"
 
 class SocketClient : public std::enable_shared_from_this<SocketClient>
 {
@@ -113,6 +114,7 @@ public:
     enum FlagMode { FlagAppend, FlagOverwrite };
     static bool setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode = FlagAppend);
 
+    double mbpsWritten() const;
 private:
     bool init(unsigned int mode);
 
@@ -130,11 +132,48 @@ private:
     Signal<std::function<void(const SocketClient::SharedPtr&)> >signalConnected, signalDisconnected;
     Signal<std::function<void(const SocketClient::SharedPtr&, Error)> > signalError;
     Signal<std::function<void(const SocketClient::SharedPtr&, int)> > signalBytesWritten;
+    void bytesWritten(const SocketClient::SharedPtr &socket, uint64_t bytes);
     Buffer readBuffer, writeBuffer;
     size_t writeOffset;
 
     int writeData(const unsigned char *data, int size);
     void socketCallback(int, int);
+
+    struct TimeData {
+        TimeData(uint64_t b = 0)
+            : startTime(Rct::monoMs()), endTime(0), bytes(b), completed(0)
+        {}
+
+        bool add(uint64_t &available)
+        {
+            assert(completed < bytes);
+            const uint64_t needed = bytes - completed;
+            const uint64_t provided = std::min(needed, available);
+            completed += provided;
+            available -= provided;
+            assert(available >= 0);
+            if (needed == provided) {
+                endTime = Rct::monoMs();
+                return true;
+            }
+            return false;
+        }
+
+        bool isCompleted() const
+        {
+            return bytes == completed;
+        }
+        uint64_t startTime, endTime, bytes, completed;
+    };
+
+    void compactWrites(int maxSize)
+    {
+        if (mWrites.size() > maxSize) {
+            mWrites.remove(0, mWrites.size() - maxSize);
+        }
+    }
+
+    List<TimeData> mWrites, mPendingWrites;
 
     friend class Resolver;
 };

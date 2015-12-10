@@ -12,7 +12,7 @@
 #include "Log.h"
 #include "rct/rct-config.h"
 
-class WatcherData
+class WatcherData : public std::enable_shared_from_this<WatcherData>
 {
 public:
     WatcherData(FileSystemWatcher* fsw);
@@ -259,18 +259,23 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
         }
     }
 
-    EventLoop::eventLoop()->callLater([fsWatcher] { fsWatcher->processChanges(); });
+    std::weak_ptr<WatcherData> that = watcher->shared_from_this();
+    EventLoop::eventLoop()->callLater([that] {
+            if (std::shared_ptr<WatcherData> watcherData = that.lock()) {
+                watcherData->watcher->processChanges();
+            }
+        });
 }
 
 void FileSystemWatcher::init()
 {
-    mWatcher = new WatcherData(this);
+    mWatcher.reset(new WatcherData(this));
     mWatcher->waitForStarted();
 }
 
 void FileSystemWatcher::shutdown()
 {
-    delete mWatcher;
+    mWatcher.reset();
 }
 
 void FileSystemWatcher::clear()

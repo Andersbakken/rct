@@ -53,7 +53,7 @@ private:
     void init();
     void shutdown();
 #if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
-    WatcherData* mWatcher;
+    std::shared_ptr<WatcherData> mWatcher;
     friend class WatcherData;
     void pathsAdded(const Set<Path>& paths);
     void pathsRemoved(const Set<Path>& paths);

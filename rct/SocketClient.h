@@ -150,8 +150,8 @@ private:
             const uint64_t needed = bytes - completed;
             const uint64_t provided = std::min(needed, available);
             completed += provided;
+            assert(available > provided);
             available -= provided;
-            assert(available >= 0);
             if (needed == provided) {
                 endTime = Rct::monoMs();
                 return true;

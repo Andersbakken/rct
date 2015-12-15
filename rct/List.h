@@ -89,6 +89,11 @@ public:
         std::sort(Base::begin(), Base::end());
     }
 
+    void sort(std::function<bool(const T &, const T &r)> func)
+    {
+        std::sort(Base::begin(), Base::end(), func);
+    }
+
     int indexOf(const T &t) const
     {
         const typename Base::const_iterator beg = Base::begin();

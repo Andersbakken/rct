@@ -3,12 +3,14 @@
 
 #include "String.h"
 
+enum NullFlagsType { NullFlags };
 template <typename T>
 class Flags
 {
     static void safeBool() {}
 public:
     typedef void (*SafeBool)();
+    Flags(NullFlagsType) : mValue(static_cast<T>(0)) {}
     Flags(T t) : mValue(t) {}
     Flags() : mValue(static_cast<T>(0)) {}
     Flags(const Flags<T> &other) : mValue(other.mValue) {}

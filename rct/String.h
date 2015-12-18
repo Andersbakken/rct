@@ -28,13 +28,13 @@ public:
         if (data) {
             if (len == -1)
                 len = strlen(data);
-            mString = std::string(data, len);
+            mString.assign(data, len);
         }
     }
     String(const char *start, const char *end)
     {
         if (start) {
-            mString = std::string(start, end);
+            mString.assign(start, end);
         }
     }
     String(int len, char fillChar)

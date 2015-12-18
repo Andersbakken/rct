@@ -1,7 +1,7 @@
 #ifndef Value_h
 #define Value_h
 
-#include <math.h>
+#include <cmath>
 
 #include "Date.h" // FIXME(andersbakken): This header isn't going to be installed is this correct?
 #include <rct/List.h>

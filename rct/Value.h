@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-#include "Date.h" // FIXME(andersbakken): This header isn't going to be installed is this correct?
+#include <rct/Date.h>
 #include <rct/List.h>
 #include <rct/Log.h>
 #include <rct/Map.h>

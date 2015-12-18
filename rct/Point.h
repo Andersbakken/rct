@@ -1,7 +1,7 @@
 #ifndef Point_h
 #define Point_h
 
-#include <math.h>
+#include <cmath>
 
 struct Point
 {

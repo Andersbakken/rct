@@ -23,15 +23,20 @@ const LogLevel LogLevel::Warning(1);
 const LogLevel LogLevel::Debug(2);
 const LogLevel LogLevel::VerboseDebug(3);
 
-static inline void writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
+static inline int writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
+    int ret = 0;
     if (sTimedLogs) {
         const String time = String::formatTime(::time(0), String::Time);
-        fwrite(time.constData(), time.size(), 1, f);
+        ret += fwrite(time.constData(), 1, time.size(), f);
     }
-    fwrite(msg, len, 1, f);
-    if (flags & LogOutput::TrailingNewLine)
-        fwrite("\n", 1, 1, f);
+    ret += fwrite(msg, 1, len, f);
+    if (flags & LogOutput::TrailingNewLine) {
+        ret += fwrite("\n", 1, 1, f);
+    } else {
+        fflush(f);
+    }
+    return ret;
 }
 class FileOutput : public LogOutput
 {
@@ -58,12 +63,25 @@ class StderrOutput : public LogOutput
 {
 public:
     StderrOutput(LogLevel lvl)
-        : LogOutput(lvl)
+        : LogOutput(lvl), mReplaceableLength(0)
     {}
     virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
-        writeLog(stderr, msg, len, flags);
+        if (flags & Replaceable) {
+            if (mReplaceableLength) {
+                fwrite("\r", 1, 1, stderr);
+                while (mReplaceableLength--)
+                    fwrite(" ", 1, 1, stderr);
+                fwrite("\r", 1, 1, stderr);
+            }
+            mReplaceableLength = writeLog(stderr, msg, len, flags);
+        } else {
+            mReplaceableLength = 0;
+            writeLog(stderr, msg, len, flags);
+        }
     }
+private:
+    int mReplaceableLength;
 };
 
 class SyslogOutput : public LogOutput

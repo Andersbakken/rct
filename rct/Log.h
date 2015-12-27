@@ -68,6 +68,7 @@ public:
         None = 0x0,
         TrailingNewLine = 0x1,
         NoTypename = 0x2,
+        Replaceable = 0x4,
         DefaultFlags = TrailingNewLine
     };
     virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }

@@ -187,6 +187,8 @@ public:
         }
         return *this;
     }
+    template <int StaticBufSize = 256>
+    Log log(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     void disableNextSpacing()
     {
         if (mData)
@@ -260,6 +262,19 @@ private:
 
     std::shared_ptr<Data> mData;
 };
+
+template <int StaticBufSize>
+inline Log Log::log(const char *format, ...)
+{
+    if (mData) {
+        va_list args;
+        va_start(args, format);
+        const String str = String::format<StaticBufSize>(format, args);
+        write(str.constData(), str.size());
+        va_end(args);
+    }
+    return *this;
+}
 
 template <typename T> inline String typeName()
 {

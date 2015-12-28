@@ -76,6 +76,8 @@ public:
             }
             mReplaceableLength = writeLog(stderr, msg, len, flags);
         } else {
+            if (mReplaceableLength)
+                fwrite("\n", 1, 1, stderr);
             mReplaceableLength = 0;
             writeLog(stderr, msg, len, flags);
         }

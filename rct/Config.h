@@ -155,7 +155,7 @@ private:
         Value defaultValue;
         Value value;
         Value::Type type;
-        int count, listCount;
+        size_t count, listCount;
         virtual bool validate(String &err) = 0;
     };
     template <typename T>
@@ -201,7 +201,7 @@ private:
     {
         assert(name);
         const int len = strlen(name);
-        for (int i=0; i<sOptions.size(); ++i) {
+        for (size_t i=0; i<sOptions.size(); ++i) {
             if (!strcmp(sOptions.at(i)->name, name) || (len == 1 && *name == sOptions.at(i)->shortOption)) {
                 return sOptions.at(i);
             }

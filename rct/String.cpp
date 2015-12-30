@@ -48,7 +48,7 @@ String String::compress() const
 #endif
 }
 
-String String::uncompress(const char *data, int size)
+String String::uncompress(const char *data, size_t size)
 {
 #ifndef RCT_HAVE_ZLIB
     (void)data;
@@ -94,7 +94,7 @@ String String::uncompress(const char *data, int size)
 #endif
 }
 
-String String::toHex(const void *pAddressIn, int lSize)
+String String::toHex(const void *pAddressIn, size_t lSize)
 {
     String ret;
     char szBuf[100];

@@ -15,7 +15,7 @@ public:
 
     int status() const { return mStatus; }
 
-    virtual int encodedSize() const override { return sizeof(mStatus); }
+    virtual size_t encodedSize() const override { return sizeof(mStatus); }
     virtual void encode(Serializer &s) const override { s << mStatus; }
     virtual void decode(Deserializer &d) override { d >> mStatus; }
 private:

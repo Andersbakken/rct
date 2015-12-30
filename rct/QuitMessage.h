@@ -14,7 +14,7 @@ public:
     }
 
     int exitCode() const { return mExitCode; }
-    virtual int encodedSize() const override { return sizeof(int); }
+    virtual size_t encodedSize() const override { return sizeof(int); }
     void encode(Serializer &s) const override { s << mExitCode; }
     void decode(Deserializer &s) override { s >> mExitCode; }
 private:

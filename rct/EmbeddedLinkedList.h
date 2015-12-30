@@ -18,8 +18,8 @@ public:
 
     bool isEmpty() const { return !mCount; }
 
-    int size() const { return mCount; }
-    int count() const { return mCount; }
+    size_t size() const { return mCount; }
+    size_t count() const { return mCount; }
     void insert(const T &t, T after = T()) // no reference here
     {
         assert(t);
@@ -230,7 +230,7 @@ private:
     }
 
     T mFirst, mLast;
-    int mCount;
+    size_t mCount;
 };
 
 #endif

@@ -88,8 +88,8 @@ public:
             }
             int fs;
             (*mDeserializer) >> fs;
-            if (fs != mContents.size()) {
-                mError = String::format<128>("%s seems to be corrupted. Size should have been %d but was %d",
+            if (static_cast<size_t>(fs) != mContents.size()) {
+                mError = String::format<128>("%s seems to be corrupted. Size should have been %zu but was %d",
                                              mPath.constData(), mContents.size(), fs);
                 return false;
             }

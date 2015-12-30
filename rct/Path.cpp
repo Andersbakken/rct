@@ -117,11 +117,11 @@ Path Path::resolved(const String &path, ResolveMode mode, const Path &cwd, bool 
     return ret;
 }
 
-int Path::canonicalize()
+size_t Path::canonicalize()
 {
-    int len = size();
+    size_t len = size();
     char *path = data();
-    for (int i=0; i<len - 1; ++i) {
+    for (size_t i=0; i<len - 1; ++i) {
         if (path[i] == '/') {
             if (i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') {
                 for (int j=i - 1; j>=0; --j) {
@@ -149,7 +149,7 @@ int Path::canonicalize()
 Path Path::canonicalized() const
 {
     Path ret = *this;
-    const int c = ret.canonicalize();
+    const size_t c = ret.canonicalize();
     if (c != size())
         return ret;
     return *this; // better chance of being implicity shared :-)
@@ -226,10 +226,10 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     return false;
 }
 
-const char * Path::fileName(int *len) const
+const char *Path::fileName(size_t *len) const
 {
     const int length = size();
-    int idx = 0;
+    size_t idx = 0;
     if (length > 1)
         idx = lastIndexOf('/', length - 2) + 1;
 
@@ -238,23 +238,25 @@ const char * Path::fileName(int *len) const
     return constData() + idx;
 }
 
-const char * Path::extension(int *len) const
+const char *Path::extension(size_t *len) const
 {
-    const int s = size();
-    int dot = s - 1;
-    const char *data = constData();
-    while (dot >= 0) {
-        switch (data[dot]) {
-        case '.':
-            if (len)
-                *len = s - (dot + 1);
-            return data + dot + 1;
-        case '/':
-            break;
-        default:
-            break;
+    const size_t s = size();
+    if (s) {
+        int dot = s - 1;
+        const char *data = constData();
+        while (dot >= 0) {
+            switch (data[dot]) {
+            case '.':
+                if (len)
+                    *len = s - (dot + 1);
+                return data + dot + 1;
+            case '/':
+                break;
+            default:
+                break;
+            }
+            --dot;
         }
-        --dot;
     }
     if (len)
         *len = 0;
@@ -264,7 +266,7 @@ const char * Path::extension(int *len) const
 bool Path::isSource(const char *ext)
 {
     const char *sources[] = { "c", "cc", "cpp", "cxx", "c++", "moc", "mm", "m", 0 };
-    for (int i=0; sources[i]; ++i) {
+    for (size_t i=0; sources[i]; ++i) {
         if (!strcasecmp(ext, sources[i]))
             return true;
     }
@@ -294,7 +296,7 @@ bool Path::isHeader() const
 bool Path::isHeader(const char *ext)
 {
     const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", 0 };
-    for (int i=0; headers[i]; ++i) {
+    for (size_t i=0; headers[i]; ++i) {
         if (!strcasecmp(ext, headers[i]))
             return true;
     }
@@ -348,13 +350,13 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
 
     char buf[PATH_MAX + 2];
     strcpy(buf, path.constData());
-    int len = path.size();
+    size_t len = path.size();
     if (!path.endsWith('/')) {
         buf[len++] = '/';
         buf[len] = '\0';
     }
 
-    for (int i = 1; i < len; ++i) {
+    for (size_t i = 1; i < len; ++i) {
         if (buf[i] == '/') {
             buf[i] = 0;
             const int r = ::mkdir(buf, permissions);
@@ -432,7 +434,7 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
     dirent *p;
     if (!path.endsWith('/'))
         path.append('/');
-    const int s = path.size();
+    const size_t s = path.size();
     path.reserve(s + 128);
     List<String> recurseDirs;
     while (!readdir_r(d, &dbuf, &p) && p) {
@@ -460,8 +462,8 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
         }
     }
     closedir(d);
-    const int count = recurseDirs.size();
-    for (int i=0; i<count; ++i) {
+    const size_t count = recurseDirs.size();
+    for (size_t i=0; i<count; ++i) {
         path.truncate(s);
         path.append(recurseDirs.at(i));
         visitorWrapper(path, callback, seen);
@@ -480,7 +482,7 @@ Path Path::followLink(bool *ok) const
 {
     if (isSymLink()) {
         char buf[PATH_MAX];
-        int w = readlink(constData(), buf, sizeof(buf) - 1);
+        const int w = readlink(constData(), buf, sizeof(buf) - 1);
         if (w != -1) {
             if (ok)
                 *ok = true;
@@ -494,7 +496,7 @@ Path Path::followLink(bool *ok) const
     return *this;
 }
 
-int Path::readAll(char *&buf, int max) const
+size_t Path::readAll(char *&buf, size_t max) const
 {
     FILE *f = fopen(constData(), "r");
     buf = 0;
@@ -502,7 +504,7 @@ int Path::readAll(char *&buf, int max) const
         return -1;
     fseek(f, 0, SEEK_END);
     int size = ftell(f);
-    if (max > 0 && max < size)
+    if (max > 0 && max < static_cast<size_t>(size))
         size = max;
     if (size) {
         fseek(f, 0, SEEK_SET);
@@ -519,7 +521,7 @@ int Path::readAll(char *&buf, int max) const
     return size;
 }
 
-String Path::readAll(int max) const
+String Path::readAll(size_t max) const
 {
     FILE *f = fopen(constData(), "r");
     if (!f)
@@ -534,7 +536,7 @@ bool Path::write(const Path& path, const String& data, WriteMode mode)
     FILE* f = fopen(path.constData(), mode == Overwrite ? "w" : "a");
     if (!f)
         return false;
-    const int ret = fwrite(data.constData(), sizeof(char), data.size(), f);
+    const size_t ret = fwrite(data.constData(), sizeof(char), data.size(), f);
     fclose(f);
     return ret == data.size();
 }
@@ -572,7 +574,7 @@ Path Path::pwd()
     }
     return Path();
 }
-List<Path> Path::files(unsigned int filter, int max, bool recurse) const
+List<Path> Path::files(unsigned int filter, size_t max, bool recurse) const
 {
     assert(max != 0);
 
@@ -621,8 +623,8 @@ const char *Path::typeName(Type type)
 String Path::name() const
 {
     if (endsWith('/')) {
-        const int secondLastSlash = lastIndexOf('/', size() - 2);
-        if (secondLastSlash != -1) {
+        const size_t secondLastSlash = lastIndexOf('/', size() - 2);
+        if (secondLastSlash != String::npos) {
             return mid(secondLastSlash + 1, size() - secondLastSlash - 2);
         }
         return String();

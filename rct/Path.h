@@ -25,7 +25,7 @@ public:
     Path(const char *path)
         : String(path)
     {}
-    Path(const char *path, int size)
+    Path(const char *path, size_t size)
         : String(path, size)
     {}
     Path() {}
@@ -72,8 +72,8 @@ public:
     bool isSymLink() const;
     Path followLink(bool *ok = 0) const;
     String name() const;
-    const char *fileName(int *len = 0) const;
-    const char *extension(int *len = 0) const;
+    const char *fileName(size_t *len = 0) const;
+    const char *extension(size_t *len = 0) const;
     static bool exists(const Path &path) { return path.exists(); }
     enum MkDirMode {
         Single,
@@ -112,7 +112,7 @@ public:
     };
     Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0) const;
     bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *changed = 0);
-    int canonicalize();
+    size_t canonicalize();
     Path canonicalized() const;
     static Path canonicalized(const Path &path);
     time_t lastModified() const; // returns time_t ... no shit
@@ -124,8 +124,8 @@ public:
     static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);
     static Path canonicalized(const String &path);
     static Path pwd();
-    int readAll(char *&, int max = -1) const;
-    String readAll(int max = -1) const;
+    size_t readAll(char *&, size_t max = -1) const;
+    String readAll(size_t max = -1) const;
 
     bool touch() const
     {
@@ -151,7 +151,7 @@ public:
         Recurse
     };
     void visit(const std::function<VisitResult(const Path &path)> &callback) const;
-    List<Path> files(unsigned int filter = All, int max = -1, bool recurse = false) const;
+    List<Path> files(unsigned int filter = All, size_t max = String::npos, bool recurse = false) const;
 };
 
 namespace std

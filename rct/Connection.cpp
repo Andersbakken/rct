@@ -208,16 +208,16 @@ bool Connection::send(const Message &message)
     mAboutToSend(shared_from_this(), &message);
 
 #ifdef RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
-    const int size = -1;
+    const size_t size = String::npos;
 #else
-    const int size = message.encodedSize();
+    const size_t size = message.encodedSize();
 #endif
 
-    if (size == -1 || message.mFlags & Message::MessageCache) {
+    if (size == String::npos || message.mFlags & Message::MessageCache) {
         String header, value;
         message.prepare(mVersion, header, value);
         mPendingWrite += header.size() + value.size();
-        assert(size == -1 || size == (header.size() + value.size() - 4));
+        assert(size == String::npos || size == (header.size() + value.size() - 4));
         return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
     } else {
         assert(size >= 0);

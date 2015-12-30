@@ -166,7 +166,7 @@ private:
         uint64_t startTime, endTime, bytes, completed;
     };
 
-    void compactWrites(int maxSize)
+    void compactWrites(size_t maxSize)
     {
         if (mWrites.size() > maxSize) {
             mWrites.remove(0, mWrites.size() - maxSize);

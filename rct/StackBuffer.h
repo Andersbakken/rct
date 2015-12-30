@@ -1,11 +1,11 @@
 #ifndef StackBuffer_h
 #define StackBuffer_h
 
-template <int Size, typename T = char>
+template <size_t Size, typename T = char>
 class StackBuffer
 {
 public:
-    StackBuffer(int size)
+    StackBuffer(size_t size)
         : mBuffer(0), mSize(size)
     {
         if (size > Size) {
@@ -19,7 +19,7 @@ public:
         if (mSize > Size)
             delete[] mBuffer;
     }
-    void resize(int size)
+    void resize(size_t size)
     {
         if (mSize > Size)
             delete[] mBuffer;
@@ -32,9 +32,9 @@ public:
     }
     const T *buffer() const { return mBuffer; }
     T *buffer() { return mBuffer; }
-    int size() const { return mSize; }
-    T &operator[](int idx) { return mBuffer[idx]; }
-    const T &operator[](int idx) const { return mBuffer[idx]; }
+    size_t size() const { return mSize; }
+    T &operator[](size_t idx) { return mBuffer[idx]; }
+    const T &operator[](size_t idx) const { return mBuffer[idx]; }
     operator T *() { return mBuffer; }
     operator const T *() const { return mBuffer; }
 private:
@@ -42,7 +42,7 @@ private:
     StackBuffer &operator=(const StackBuffer &) = delete;
     T mStackBuffer[Size];
     T *mBuffer;
-    int mSize;
+    size_t mSize;
 };
 
 #endif

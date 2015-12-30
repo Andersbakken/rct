@@ -9,11 +9,11 @@ class LinkedList : public std::list<T>
 {
 public:
     LinkedList() : std::list<T>() { }
-    LinkedList(int size) : std::list<T>(size) { }
+    LinkedList(size_t size) : std::list<T>(size) { }
 
     bool isEmpty() const { return std::list<T>::empty(); }
 
-    int size() const { return std::list<T>::size(); }
+    size_t size() const { return std::list<T>::size(); }
     void append(const T &t) { std::list<T>::push_back(t); }
     void append(T &&t) { std::list<T>::push_back(std::move(t)); }
     void prepend(const T &t) { std::list<T>::push_front(t); }

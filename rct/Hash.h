@@ -88,9 +88,9 @@ public:
     }
 
 
-    int remove(std::function<bool(const Key &key)> match)
+    size_t remove(std::function<bool(const Key &key)> match)
     {
-        int ret = 0;
+        size_t ret = 0;
         typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::begin();
         while (it != std::unordered_map<Key, Value>::end()) {
             if (match(it->first)) {
@@ -119,7 +119,7 @@ public:
         return std::unordered_map<Key, Value>::find(key)->second;
     }
 
-    Hash<Key, Value> &unite(const Hash<Key, Value> &other, int *count = 0)
+    Hash<Key, Value> &unite(const Hash<Key, Value> &other, size_t *count = 0)
     {
         typename std::unordered_map<Key, Value>::const_iterator it = other.begin();
         const auto end = other.end();
@@ -160,7 +160,7 @@ public:
         return subtract(other);
     }
 
-    int size() const
+    size_t size() const
     {
         return std::unordered_map<Key, Value>::size();
     }

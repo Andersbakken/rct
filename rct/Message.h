@@ -33,7 +33,7 @@ public:
     virtual void encode(Serializer &/* serializer */) const = 0;
     virtual void decode(Deserializer &/* deserializer */) = 0;
 
-    virtual int encodedSize() const { return -1; }
+    virtual size_t encodedSize() const { return -1; }
     static std::shared_ptr<Message> create(int version, const char *data, int size);
     template<typename T> static void registerMessage()
     {

@@ -231,7 +231,7 @@ void findExecutablePath(const char *argv0)
     }
     const char *path = getenv("PATH");
     const List<String> paths = String(path).split(':');
-    for (int i=0; i<paths.size(); ++i) {
+    for (size_t i=0; i<paths.size(); ++i) {
         const Path p = (paths.at(i) + "/") + argv0;
         if (p.isFile()) {
             sExecutablePath = p;
@@ -429,11 +429,10 @@ const char *colors[] = {
     "\x1b[37;1m" // BrightWhite
 };
 
-String colorize(const String &string, AnsiColor color, int from, int len)
+String colorize(const String &string, AnsiColor color, size_t from, size_t len)
 {
     assert(from <= string.size());
-    assert(from >= 0);
-    if (len == -1) {
+    if (len == String::npos) {
         len = string.size() - from;
     }
     assert(from + len <= string.size());

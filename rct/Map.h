@@ -79,9 +79,9 @@ public:
         return false;
     }
 
-    int remove(std::function<bool(const Key &key)> match)
+    size_t remove(std::function<bool(const Key &key)> match)
     {
-        int ret = 0;
+        size_t ret = 0;
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(it->first)) {
@@ -121,7 +121,7 @@ public:
         return Base::find(key)->second;
     }
 
-    Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, int *count = 0)
+    Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, size_t *count = 0)
     {
         typename Base::const_iterator it = other.begin();
         const auto end = other.end();
@@ -162,7 +162,7 @@ public:
         return subtract(other);
     }
 
-    int size() const
+    size_t size() const
     {
         return Base::size();
     }
@@ -299,9 +299,9 @@ public:
         return false;
     }
 
-    int remove(std::function<bool(const Key &key)> match)
+    size_t remove(std::function<bool(const Key &key)> match)
     {
-        int ret = 0;
+        size_t ret = 0;
         typename std::multimap<Key, Value, Compare>::iterator it = std::multimap<Key, Value, Compare>::begin();
         while (it != std::multimap<Key, Value, Compare>::end()) {
             if (match(it->first)) {
@@ -341,7 +341,7 @@ public:
         return std::multimap<Key, Value, Compare>::find(key)->second;
     }
 
-    MultiMap<Key, Value, Compare> &unite(const MultiMap<Key, Value, Compare> &other, int *count = 0)
+    MultiMap<Key, Value, Compare> &unite(const MultiMap<Key, Value, Compare> &other, size_t *count = 0)
     {
         typename std::multimap<Key, Value, Compare>::const_iterator it = other.begin();
         const auto end = other.end();
@@ -382,7 +382,7 @@ public:
         return subtract(other);
     }
 
-    int size() const
+    size_t size() const
     {
         return std::multimap<Key, Value, Compare>::size();
     }

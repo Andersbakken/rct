@@ -18,7 +18,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     Rct::findExecutablePath(argv[0]);
     List<String> args;
     args << argv[0];
-    for (int i=0; i<rcFiles.size(); ++i) {
+    for (size_t i=0; i<rcFiles.size(); ++i) {
         FILE *f = fopen(rcFiles.at(i).constData(), "r");
         if (f) {
             char line[1024];
@@ -49,13 +49,13 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     // ::error() << "parsing" << args;
 
     StackBuffer<128, char *> a(args.size());
-    for (int i=0; i<args.size(); ++i) {
+    for (size_t i=0; i<args.size(); ++i) {
         a[i] = strdup(args.at(i).constData());
     }
     StackBuffer<128, option> options(sOptions.size() + 1);
 
     List<OptionBase*> optionPointers;
-    for (int i=0; i<sOptions.size(); ++i) {
+    for (size_t i=0; i<sOptions.size(); ++i) {
         OptionBase *opt = sOptions.at(i);
         if (opt->name) {
             option &o = options[optionPointers.size()];
@@ -90,7 +90,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
         if (idx != -1) {
             opt = optionPointers[idx];
         } else {
-            for (int i = 0; i < optionPointers.size(); ++i) {
+            for (size_t i=0; i<optionPointers.size(); ++i) {
                 if (optionPointers[i]->shortOption == ret) {
                     opt = optionPointers[i];
                     break;
@@ -119,7 +119,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
             if (opt->defaultValue.type() == Value::Type_List) {
                 List<Value> vals;
                 vals << val;
-                while (optind < args.size() && a[optind][0] != '-' && (!opt->listCount || vals.size() < opt->listCount)) {
+                while (static_cast<size_t>(optind) < args.size() && a[optind][0] != '-' && (!opt->listCount || vals.size() < opt->listCount)) {
                     vals << createValue(opt->type, a[optind], &ok);
                     if (!ok) {
                         error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s",
@@ -132,7 +132,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
                 opt->value = vals;
                 if (opt->listCount && vals.size() != opt->listCount) {
                     ok = false;
-                    error = String::format<128>("Too few values specified for %s. Wanted %d, got %d",
+                    error = String::format<128>("Too few values specified for %s. Wanted %zu, got %zu",
                                                 opt->name, opt->listCount, vals.size());
 
                     goto done;
@@ -152,7 +152,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     }
 
 done:
-    while (optind < args.size()) {
+    while (static_cast<size_t>(optind) < args.size()) {
         sFreeArgs << a[optind++];
     }
     if (!sAllowsFreeArgs && !sFreeArgs.isEmpty()) {
@@ -160,7 +160,7 @@ done:
         ok = false;
     }
 
-    for (int i=0; i<args.size(); ++i) {
+    for (size_t i=0; i<args.size(); ++i) {
         free(a[i]);
     }
 
@@ -177,7 +177,7 @@ void Config::showHelp(FILE *f)
 {
     List<String> out;
     int longest = 0;
-    for (int i=0; i<sOptions.size(); ++i) {
+    for (size_t i=0; i<sOptions.size(); ++i) {
         const OptionBase *option = sOptions.at(i);
         if (!option->name && !option->shortOption) {
             out.append(String());

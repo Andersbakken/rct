@@ -28,7 +28,7 @@ public:
     String data() const { return mData; }
     void setData(const String &data) { mData = data; }
 
-    virtual int encodedSize() const override { return mData.size() + sizeof(int); }
+    virtual size_t encodedSize() const override { return mData.size() + sizeof(int); }
     virtual void encode(Serializer &serializer) const override { serializer << mData; }
     virtual void decode(Deserializer &deserializer) override { deserializer >> mData; }
 private:

@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <string>
 
 template <typename T> class Set;
 
@@ -14,7 +15,8 @@ class List : public std::vector<T>
 {
     typedef std::vector<T> Base;
 public:
-    explicit List(int count = 0, const T &defaultValue = T())
+    static const size_t npos = std::string::npos;
+    explicit List(size_t count = 0, const T &defaultValue = T())
         : Base(count, defaultValue)
     {}
 
@@ -22,8 +24,8 @@ public:
     List(const std::vector<CompatibleType> &other)
         : Base(other.size(), T())
     {
-        const int size = other.size();
-        for (int i=0; i<size; ++i) {
+        const size_t size = other.size();
+        for (size_t i=0; i<size; ++i) {
             std::vector<T>::operator[](i) = other.at(i);
         }
     }
@@ -69,17 +71,17 @@ public:
 
     void append(const List<T> &t)
     {
-        const int size = t.size();
-        for (int i=0; i<size; ++i)
+        const size_t size = t.size();
+        for (size_t i=0; i<size; ++i)
             Base::push_back(t.at(i));
     }
 
-    void insert(int idx, const List<T> &list)
+    void insert(size_t idx, const List<T> &list)
     {
         Base::insert(Base::begin() + idx, list.begin(), list.end());
     }
 
-    void insert(int idx, const T &val)
+    void insert(size_t idx, const T &val)
     {
         Base::insert(Base::begin() + idx, val);
     }
@@ -94,21 +96,23 @@ public:
         std::sort(Base::begin(), Base::end(), func);
     }
 
-    int indexOf(const T &t) const
+    size_t indexOf(const T &t) const
     {
         const typename Base::const_iterator beg = Base::begin();
         const typename Base::const_iterator end = Base::end();
         const typename Base::const_iterator it = std::find(beg, end, t);
-        return it == end ? -1 : (it - beg);
+        return it == end ? npos : (it - beg);
     }
 
-    int lastIndexOf(const T &t, int from = -1) const
+    size_t lastIndexOf(const T &t, int from = -1) const
     {
-        const int s = size();
+        const size_t s = size();
+        if (!s)
+            return npos;
         if (from < 0) {
             from += s;
         }
-        from = std::min(s - 1, from);
+        from = std::min<int>(s - 1, from);
         if (from >= 0) {
             const T *haystack = Base::constData();
             const T *needle = haystack + from + 1;
@@ -117,12 +121,12 @@ public:
                     return needle - haystack;
             }
         }
-        return -1;
+        return npos;
     }
 
-    int remove(const T &t)
+    size_t remove(const T &t)
     {
-        int ret = 0;
+        size_t ret = 0;
         while (true) {
             typename Base::iterator it = std::find(Base::begin(), Base::end(), t);
             if (it == Base::end())
@@ -133,12 +137,12 @@ public:
         return ret;
     }
 
-    void removeAt(int idx)
+    void removeAt(size_t idx)
     {
         Base::erase(Base::begin() + idx);
     }
 
-    void remove(int idx, int count)
+    void remove(size_t idx, size_t count)
     {
         Base::erase(Base::begin() + idx, Base::begin() + idx + count);
     }
@@ -153,14 +157,14 @@ public:
         Base::erase(Base::begin());
     }
 
-    int size() const
+    size_t size() const
     {
         return Base::size();
     }
 
-    T value(int idx, const T &defaultValue = T()) const
+    T value(size_t idx, const T &defaultValue = T()) const
     {
-        return static_cast<unsigned int>(idx) < Base::size() ? Base::at(idx) : defaultValue;
+        return idx < Base::size() ? Base::at(idx) : defaultValue;
     }
 
     void deleteAll()
@@ -184,15 +188,15 @@ public:
     }
 
 
-    void chop(int count)
+    void chop(size_t count)
     {
         assert(count <= size());
         Base::resize(size() - count);
     }
 
-    int truncate(int count)
+    size_t truncate(size_t count)
     {
-        const int s = size();
+        const size_t s = size();
         if (s > count) {
             Base::resize(count);
             return s - count;
@@ -236,16 +240,16 @@ public:
         return Base::at(size() - 1);
     }
 
-    List<T> mid(int from, int size = -1) const
+    List<T> mid(size_t from, int size = -1) const
     {
         assert(from >= 0);
-        const int count = Base::size();
+        const size_t count = Base::size();
         if (from >= count)
             return List<T>();
         if (size < 0) {
             size = count - from;
         } else {
-            size = std::min(count - from, size);
+            size = std::min<int>(count - from, size);
         }
         return List<T>(Base::begin() + from, Base::begin() + from + size);
     }
@@ -254,7 +258,7 @@ public:
     {
         if (size() < t.size())
             return false;
-        for (int i = 0; i < t.size(); ++i) {
+        for (size_t i = 0; i < t.size(); ++i) {
             if (Base::at(i) != t.Base::at(i))
                 return false;
         }
@@ -263,9 +267,9 @@ public:
 
     List<T> operator+(const T &t) const
     {
-        const int s = Base::size();
+        const size_t s = Base::size();
         List<T> ret(s + 1);
-        for (int i=0; i<s; ++i)
+        for (size_t i=0; i<s; ++i)
             ret[i] = Base::at(i);
         ret[s] = t;
         return ret;
@@ -276,10 +280,10 @@ public:
         if (t.isEmpty())
             return *this;
 
-        int s = Base::size();
+        size_t s = Base::size();
         List<T> ret(s + t.size());
 
-        for (int i=0; i<s; ++i)
+        for (size_t i=0; i<s; ++i)
             ret[i] = Base::at(i);
 
         for (typename List<T>::const_iterator it = t.begin(); it != t.end(); ++it)
@@ -291,8 +295,8 @@ public:
     template <typename K>
     int compare(const List<K> &other) const
     {
-        const int me = size();
-        const int him = other.size();
+        const size_t me = size();
+        const size_t him = other.size();
         if (me < him) {
             return -1;
         } else if (me > him) {
@@ -308,9 +312,9 @@ public:
         return 0;
     }
 
-    int remove(std::function<bool(const T &t)> match)
+    size_t remove(std::function<bool(const T &t)> match)
     {
-        int ret = 0;
+        size_t ret = 0;
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(*it)) {

@@ -32,9 +32,9 @@ public:
         }
         return false;
     }
-    int remove(std::function<bool(const T &t)> match)
+    size_t remove(std::function<bool(const T &t)> match)
     {
-        int ret = 0;
+        size_t ret = 0;
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(*it)) {
@@ -51,7 +51,7 @@ public:
     {
         List<T> ret(size());
         typename Base::const_iterator it = Base::begin();
-        int i = 0;
+        size_t i = 0;
         while (it != Base::end()) {
             ret[i++] = *it;
             ++it;
@@ -74,9 +74,9 @@ public:
         return Base::insert(t).second;
     }
 
-    Set<T> &unite(const Set<T> &other, int *count = 0)
+    Set<T> &unite(const Set<T> &other, size_t *count = 0)
     {
-        int c = 0;
+        size_t c = 0;
         if (isEmpty()) {
             *this = other;
             c = other.size();
@@ -118,9 +118,9 @@ public:
         return ret;
     }
 
-    Set<T> &unite(const List<T> &other, int *count = 0)
+    Set<T> &unite(const List<T> &other, size_t *count = 0)
     {
-        int c = 0;
+        size_t c = 0;
         typename std::vector<T>::const_iterator it = other.begin();
         while (it != other.end()) {
             if (insert(*it))
@@ -132,9 +132,9 @@ public:
         return *this;
     }
 
-    Set<T> &subtract(const Set<T> &other, int *count = 0)
+    Set<T> &subtract(const Set<T> &other, size_t *count = 0)
     {
-        int c = 0;
+        size_t c = 0;
         if (!isEmpty()) {
             typename Base::const_iterator it = other.begin();
             while (it != other.end()) {
@@ -183,7 +183,7 @@ public:
         return subtract(other);
     }
 
-    int size() const
+    size_t size() const
     {
         return Base::size();
     }
@@ -199,10 +199,10 @@ public:
     }
 
     template <typename K>
-    int compare(const Set<K> &other) const
+    size_t compare(const Set<K> &other) const
     {
-        const int me = size();
-        const int him = other.size();
+        const size_t me = size();
+        const size_t him = other.size();
         if (me < him) {
             return -1;
         } else if (me > him) {
@@ -210,7 +210,7 @@ public:
         }
         typename Set<K>::const_iterator bit = other.begin();
         for (typename Set<T>::const_iterator it = Base::begin(); it != Base::end(); ++it) {
-            const int cmp = it->compare(*bit);
+            const size_t cmp = it->compare(*bit);
             if (cmp)
                 return cmp;
             ++bit;
@@ -263,8 +263,8 @@ template <typename T>
 Set<T> List<T>::toSet() const
 {
     Set<T> ret;
-    const int s = size();
-    for (int i=0; i<s; ++i) {
+    const size_t s = size();
+    for (size_t i=0; i<s; ++i) {
         ret.insert(std::vector<T>::at(i));
     }
     return ret;

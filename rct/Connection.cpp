@@ -220,7 +220,6 @@ bool Connection::send(const Message &message)
         assert(size == String::npos || size == (header.size() + value.size() - 4));
         return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
     } else {
-        assert(size >= 0);
         mPendingWrite += (size + Message::HeaderExtra) + sizeof(int);
         Serializer serializer(std::unique_ptr<SocketClientBuffer>(new SocketClientBuffer(mSocketClient)));
         message.encodeHeader(serializer, size, mVersion);

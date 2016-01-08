@@ -76,7 +76,7 @@ void WatcherSlice::run()
     }
 }
 
-class WatcherData
+class WatcherData : public std::enable_shared_from_this<WatcherData> 
 {
 public:
     WatcherData(FileSystemWatcher* w)
@@ -313,7 +313,7 @@ void WatcherData::stop()
 
 void FileSystemWatcher::init()
 {
-    mWatcher = new WatcherData(this);
+    mWatcher.reset(new WatcherData(this));
     mWatcher->wakeupHandle = CreateEvent(NULL, FALSE, FALSE, NULL);
     mWatcher->thread = std::thread(std::bind(&WatcherData::run, mWatcher));
 }
@@ -322,7 +322,7 @@ void FileSystemWatcher::shutdown()
 {
     mWatcher->stop();
     CloseHandle(mWatcher->wakeupHandle);
-    delete mWatcher;
+    mWatcher.reset();
 }
 
 void FileSystemWatcher::clear()

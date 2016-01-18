@@ -76,7 +76,7 @@ void WatcherSlice::run()
     }
 }
 
-class WatcherData : public std::enable_shared_from_this<WatcherData> 
+class WatcherData : public std::enable_shared_from_this<WatcherData>
 {
 public:
     WatcherData(FileSystemWatcher* w)

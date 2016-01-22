@@ -294,6 +294,11 @@ public:
         return mString.operator[](i);
     }
 
+    const char *c_str() const
+    {
+        return mString.c_str();
+    }
+
     const char *constData() const
     {
         return mString.data();

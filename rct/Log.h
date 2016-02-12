@@ -104,23 +104,20 @@ inline void logDirect(LogLevel level, const String &out, Flags<LogOutput::LogFla
 void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func);
 
 bool testLog(LogLevel level);
-enum LogMode {
-    LogStderr = 0x1,
-    LogSyslog = 0x2
-};
-RCT_FLAGS_OPERATORS(LogMode);
 
-enum LogFileFlag {
-    Append = 0x1,
-    DontRotate = 0x2
+enum LogFlag {
+    Append = 0x01,
+    DontRotate = 0x02,
+    LogStderr = 0x04,
+    LogSyslog = 0x08,
+    LogTimeStamp = 0x10
 };
-RCT_FLAGS_OPERATORS(LogFileFlag);
+RCT_FLAGS_OPERATORS(LogFlag);
 
 bool initLogging(const char* ident,
-                 Flags<LogMode> mode = LogStderr,
+                 Flags<LogFlag> flags = LogStderr,
                  LogLevel logLevel = LogLevel::Error,
                  const Path &logFile = Path(),
-                 Flags<LogFileFlag> = Flags<LogFileFlag>(),
                  LogLevel logFileLogLevel = LogLevel::VerboseDebug);
 void cleanupLogging();
 LogLevel logLevel();

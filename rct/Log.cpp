@@ -10,12 +10,11 @@
 #include "StackBuffer.h"
 #include "StopWatch.h"
 
-static Flags<LogFileFlag> sFlags;
+static Flags<LogFlag> sFlags;
 static StopWatch sStart;
 static Set<std::shared_ptr<LogOutput> > sOutputs;
 static std::mutex sOutputsMutex;
 static LogLevel sLevel = LogLevel::Error;
-static const bool sTimedLogs = getenv("RCT_LOG_TIME");
 
 const LogLevel LogLevel::None(-1);
 const LogLevel LogLevel::Error(0);
@@ -23,12 +22,31 @@ const LogLevel LogLevel::Warning(1);
 const LogLevel LogLevel::Debug(2);
 const LogLevel LogLevel::VerboseDebug(3);
 
+static inline size_t prettyTimeSinceStarted(char *buf, size_t max)
+{
+    uint64_t elapsed = sStart.elapsed();
+    enum {
+        MS = 1,
+        Second = 1000,
+        Minute = Second * 60,
+        Hour = Minute * 60
+    };
+    const int ratios[] = { Hour, Minute, Second, MS };
+    int values[] = { 0, 0, 0, 0 };
+    for (int i=0; i<4; ++i) {
+        values[i] = elapsed / ratios[i];
+        elapsed %= ratios[i];
+    }
+    return snprintf(buf, max, "%02d:%02d:%02d:%03d: ", values[0], values[1], values[2], values[3]);
+}
+
 static inline int writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
     int ret = 0;
-    if (sTimedLogs) {
-        const String time = String::formatTime(::time(0), String::Time);
-        ret += fwrite(time.constData(), 1, time.size(), f);
+    if (sFlags & LogTimeStamp && flags & LogOutput::TrailingNewLine) {
+        char buf[32];
+        ret += prettyTimeSinceStarted(buf, sizeof(buf));
+        ret += fwrite(buf, 1, ret, f);
     }
     ret += fwrite(msg, 1, len, f);
     if (flags & LogOutput::TrailingNewLine) {
@@ -108,27 +126,6 @@ void restartTime()
 {
     sStart.restart();
 }
-
-#if 0
-static inline String prettyTimeSinceStarted()
-{
-    uint64_t elapsed = sStart.elapsed();
-    char buf[128];
-    enum { MS = 1,
-           Second = 1000,
-           Minute = Second * 60,
-           Hour = Minute * 60
-    };
-    const int ratios[] = { Hour, Minute, Second, MS };
-    int values[] = { 0, 0, 0, 0 };
-    for (int i=0; i<4; ++i) {
-        values[i] = elapsed / ratios[i];
-        elapsed %= ratios[i];
-    }
-    snprintf(buf, sizeof(buf), "%02d:%02d:%02d:%03d: ", values[0], values[1], values[2], values[3]);
-    return buf;
-}
-#endif
 
 static void log(LogLevel level, const char *format, va_list v)
 {
@@ -244,17 +241,20 @@ LogLevel logLevel()
     return sLevel;
 }
 
-bool initLogging(const char* ident, Flags<LogMode> mode, LogLevel level,
-                 const Path &file, Flags<LogFileFlag> flags, LogLevel logFileLogLevel)
+bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
+                 const Path &file, LogLevel logFileLogLevel)
 {
+    if (getenv("RCT_LOG_TIME"))
+        flags |= LogTimeStamp;
+
     sStart.start();
     sFlags = flags;
     sLevel = level;
-    if (mode & LogStderr) {
+    if (flags & LogStderr) {
         std::shared_ptr<StderrOutput> out(new StderrOutput(level));
         out->add();
     }
-    if (mode & LogSyslog) {
+    if (flags & LogSyslog) {
         std::shared_ptr<SyslogOutput> out(new SyslogOutput(ident, level));
         out->add();
     }

@@ -22,7 +22,7 @@ Path Path::parentDir() const
         return Path();
     Path copy = *this;
     int i = copy.size() - 1;
-    while (copy.at(i) == '/')
+    while (i >= 0 && copy.at(i) == '/')
         --i;
     while (i >= 0 && copy.at(i) != '/')
         --i;

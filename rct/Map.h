@@ -40,7 +40,7 @@ public:
         return !Base::size();
     }
 
-    Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = 0) const
+    Value value(const Key &key, const Value &defaultValue, bool *ok = 0) const
     {
         typename Base::const_iterator it = Base::find(key);
         if (it == Base::end()) {
@@ -51,6 +51,11 @@ public:
         if (ok)
             *ok = true;
         return it->second;
+    }
+
+    Value value(const Key &key) const
+    {
+        return value(key, Value());
     }
 
     Value take(const Key &key, bool *ok = 0)

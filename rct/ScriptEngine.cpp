@@ -319,7 +319,7 @@ static void SetterCallback(v8::Local<v8::String> property, v8::Local<v8::Value> 
     it->second.setter(obj, fromV8(iso, value));
 }
 
-void ObjectPrivate::initProperty(const String& name, PropertyData& data, unsigned int mode)
+void ObjectPrivate::initProperty(const String& name, PropertyData& /*data*/, unsigned int mode)
 {
     v8::Isolate* iso = engine->isolate;
     const v8::Isolate::Scope isolateScope(iso);
@@ -348,7 +348,11 @@ ScriptEngine::ScriptEngine()
 
     v8::V8::Initialize();
 
+#if V8_MAJOR_VERSION > 4 || (V8_MAJOR_VERSION == 4 && V8_MINOR_VERSION >= 9)
+    mPrivate->isolate = v8::Isolate::New(v8::Isolate::CreateParams());
+#else
     mPrivate->isolate = v8::Isolate::New();
+#endif
     const v8::Isolate::Scope isolateScope(mPrivate->isolate);
     v8::HandleScope handleScope(mPrivate->isolate);
     v8::Handle<v8::ObjectTemplate> globalObjectTemplate = v8::ObjectTemplate::New();
@@ -577,7 +581,7 @@ void ScriptEngine::Object::setProperty(const String &propertyName, const Value &
 }
 
 Value ScriptEngine::Object::call(std::initializer_list<Value> arguments,
-                                 const ScriptEngine::Object::SharedPtr &thisObject,
+                                 const ScriptEngine::Object::SharedPtr &/*thisObject*/,
                                  String *error)
 {
     assert(mPrivate->customType == CustomType_Function || mPrivate->customType == CustomType_AdoptedFunction);
@@ -812,7 +816,7 @@ ScriptEngine::Object::SharedPtr ScriptEngine::createObject() const
     v8::Handle<v8::Object> obj = otempl->NewInstance();
     ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
 
-    ObjectData* data = new ObjectData({ String(), o });
+    ObjectData* data = new ObjectData({ String(), o, ScriptEngine::Object::SharedPtr() });
     obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
     obj->SetInternalField(0, v8::External::New(iso, data));
 
@@ -837,7 +841,7 @@ ScriptEngine::Object::SharedPtr ClassPrivate::create()
     v8::Handle<v8::Object> obj = templ->GetFunction()->NewInstance();
     ScriptEngine::Object::SharedPtr o = ObjectPrivate::makeObject();
 
-    ObjectData* data = new ObjectData({ String(), o });
+    ObjectData* data = new ObjectData({ String(), o, ScriptEngine::Object::SharedPtr() });
     obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
     obj->SetInternalField(0, v8::External::New(iso, data));
 
@@ -912,7 +916,7 @@ static void ClassSetterCallback(v8::Local<v8::String> property, v8::Local<v8::Va
     it->second.setter(obj, fromV8(iso, value));
 }
 
-void ClassPrivate::initProperty(const String& name, PropertyData& data, unsigned int mode)
+void ClassPrivate::initProperty(const String& name, PropertyData& /*data*/, unsigned int mode)
 {
     v8::Isolate* iso = engine->isolate;
     const v8::Isolate::Scope isolateScope(iso);
@@ -1227,7 +1231,7 @@ static void ClassInterceptEnumerator(const v8::PropertyCallbackInfo<v8::Array>& 
         return;
     const List<Value> l = r.toList();
     v8::Local<v8::Array> array = v8::Array::New(iso, l.size());
-    for (int idx = 0; idx < l.size(); ++idx)
+    for (size_t idx = 0; idx < l.size(); ++idx)
         array->Set(idx, toV8(iso, l[idx]));
     info.GetReturnValue().Set(array);
 }

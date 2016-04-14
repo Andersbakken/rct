@@ -17,6 +17,7 @@ public:
     struct Custom;
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
+    inline Value(unsigned int i) : mType(Type_Integer) { mData.integer = i; }
     inline Value(int64_t i) : mType(Type_Integer) { mData.int64 = i; }
     inline Value(uint64_t i) : mType(Type_Integer) { mData.uint64 = i; }
     inline Value(double d) : mType(Type_Double) { mData.dbl = d; }

@@ -580,18 +580,20 @@ public:
     List<String> split(char ch, unsigned int flags = NoSplitFlag) const
     {
         List<String> ret;
-        size_t last = 0;
-        const size_t add = flags & KeepSeparators ? 1 : 0;
-        while (1) {
-            const size_t next = indexOf(ch, last);
-            if (next == npos)
-                break;
-            if (next > last || !(flags & SkipEmpty))
-                ret.append(mid(last, next - last + add));
-            last = next + 1;
+        if (!isEmpty()) {
+            size_t last = 0;
+            const size_t add = flags & KeepSeparators ? 1 : 0;
+            while (1) {
+                const size_t next = indexOf(ch, last);
+                if (next == npos)
+                    break;
+                if (next > last || !(flags & SkipEmpty))
+                    ret.append(mid(last, next - last + add));
+                last = next + 1;
+            }
+            if (last < size() || !(flags & SkipEmpty))
+                ret.append(mid(last));
         }
-        if (last < size() || !(flags & SkipEmpty))
-            ret.append(mid(last));
         return ret;
     }
 

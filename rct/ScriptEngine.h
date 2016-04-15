@@ -61,9 +61,10 @@ public:
                    String *error = 0);
 
         template<typename T>
-        void setExtraData(const T& t);
+        void setExtraData(const T& t, int type = -1);
         template<typename T>
-        T extraData() const;
+        T extraData(int type = -1, bool *ok = 0) const;
+        int extraDataType() const;
 
         Signal<std::function<void(const SharedPtr&)> >& onDestroyed() { return mDestroyed; }
 
@@ -82,6 +83,8 @@ public:
         class ExtraDataBase
         {
         public:
+            int type;
+            ExtraDataBase(int t) : type(t) {}
             virtual ~ExtraDataBase() { };
         };
 
@@ -89,15 +92,15 @@ public:
         class ExtraData : public ExtraDataBase
         {
         public:
-            ExtraData(const T& ot)
-                : t(new T(ot))
+            ExtraData(int type, const T& ot)
+                : ExtraDataBase(type), t(new T(ot))
             {
             }
             ~ExtraData()
             {
                 delete t;
             }
-            T* t;
+            T *t;
         };
 
         ExtraDataBase* mData;
@@ -182,18 +185,28 @@ private:
 };
 
 template<typename T>
-inline void ScriptEngine::Object::setExtraData(const T& t)
+inline void ScriptEngine::Object::setExtraData(const T& t, int type)
 {
     delete mData;
-    mData = new ExtraData<T>(t);
+    mData = new ExtraData<T>(type, t);
 }
 
 template<typename T>
-T ScriptEngine::Object::extraData() const
+T ScriptEngine::Object::extraData(int type, bool *ok) const
 {
-    if (!mData)
+    if (!mData || (type != -1 && mData->type != type)) {
+        if (!ok)
+            *ok = false;
         return T();
+    } else if (ok) {
+        *ok = false;
+    }
     return *(static_cast<ExtraData<T>*>(mData)->t);
+}
+
+inline int ScriptEngine::Object::extraDataType() const
+{
+    return mData ? mData->type : -1;
 }
 
 template<>

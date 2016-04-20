@@ -3,6 +3,7 @@
 #ifdef HAVE_SCRIPTENGINE
 
 #include <v8.h>
+#include "libplatform/libplatform.h"
 
 #include "rct/EventLoop.h"
 
@@ -23,6 +24,14 @@ struct ScriptEnginePrivate
 {
     v8::Persistent<v8::Context> context;
     v8::Isolate *isolate;
+#if V8_MAJOR_VERSION > 4 || (V8_MAJOR_VERSION == 4 && V8_MINOR_VERSION >= 9)
+    struct ArrayBufferAllocator : public v8::ArrayBuffer::Allocator
+    {
+        virtual void* Allocate(size_t length) { return calloc(length, 1); }
+        virtual void* AllocateUninitialized(size_t length) { return malloc(length); }
+        virtual void Free(void* data, size_t /*length*/) { free(data); }
+    } arrayBufferAllocator;
+#endif
 
     static ScriptEnginePrivate *get(ScriptEngine *engine) { return engine->mPrivate; }
 };
@@ -346,10 +355,19 @@ ScriptEngine::ScriptEngine()
     assert(!sInstance);
     sInstance = this;
 
+#if V8_MAJOR_VERSION > 4 || (V8_MAJOR_VERSION == 4 && V8_MINOR_VERSION >= 9)
+    v8::V8::InitializeICU();
+    const Path exec = Rct::executablePath();
+    v8::V8::InitializeExternalStartupData(exec.constData());
+    v8::Platform *platform = v8::platform::CreateDefaultPlatform();
+    v8::V8::InitializePlatform(platform);
+#endif
     v8::V8::Initialize();
 
 #if V8_MAJOR_VERSION > 4 || (V8_MAJOR_VERSION == 4 && V8_MINOR_VERSION >= 9)
-    mPrivate->isolate = v8::Isolate::New(v8::Isolate::CreateParams());
+    v8::Isolate::CreateParams params;
+    params.array_buffer_allocator = &mPrivate->arrayBufferAllocator;
+    mPrivate->isolate = v8::Isolate::New(params);
 #else
     mPrivate->isolate = v8::Isolate::New();
 #endif
@@ -373,8 +391,15 @@ ScriptEngine::ScriptEngine()
 
 ScriptEngine::~ScriptEngine()
 {
+    mPrivate->isolate->Dispose();
+    delete mPrivate;
     assert(sInstance == this);
     sInstance = 0;
+
+    v8::V8::Dispose();
+#if V8_MAJOR_VERSION > 4 || (V8_MAJOR_VERSION == 4 && V8_MINOR_VERSION >= 9)
+    v8::V8::ShutdownPlatform();
+#endif
 }
 
 static inline bool catchError(v8::TryCatch &tryCatch, const char *header, String *error)

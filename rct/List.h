@@ -162,9 +162,14 @@ public:
         return Base::size();
     }
 
-    T value(size_t idx, const T &defaultValue = T()) const
+    T value(size_t idx, const T &defaultValue) const
     {
         return idx < Base::size() ? Base::at(idx) : defaultValue;
+    }
+
+    T value(size_t idx) const
+    {
+        return idx < Base::size() ? Base::at(idx) : T();
     }
 
     void deleteAll()

@@ -440,13 +440,17 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
     while (!readdir_r(d, &dbuf, &p) && p) {
         if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
             continue;
+        bool isDir = false;
         path.truncate(s);
         path.append(p->d_name);
 #if defined(_DIRENT_HAVE_D_TYPE) && defined(_BSD_SOURCE)
-        if (p->d_type == DT_DIR)
+        if (p->d_type == DT_DIR) {
+            isDir = true;
             path.append('/');
+        }
 #else
-        if (path.isDir())
+        isDir = path.isDir();
+        if (isDir)
             path.append('/');
 #endif
         switch (callback(path)) {
@@ -454,7 +458,7 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
             p = 0;
             break;
         case Path::Recurse:
-            if (path.isDir())
+            if (isDir)
                 recurseDirs.append(p->d_name);
             break;
         case Path::Continue:

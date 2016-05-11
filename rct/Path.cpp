@@ -285,16 +285,13 @@ bool Path::isSource() const
 
 bool Path::isHeader() const
 {
-    if (exists()) {
-        const char *ext = extension();
-        if (ext)
-            return isHeader(ext);
-    }
-    return false;
+    return exists() && isHeader(extension());
 }
 
 bool Path::isHeader(const char *ext)
 {
+    if (!ext)
+        return true;
     const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", 0 };
     for (size_t i=0; headers[i]; ++i) {
         if (!strcasecmp(ext, headers[i]))

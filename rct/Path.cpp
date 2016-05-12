@@ -240,6 +240,8 @@ const char *Path::fileName(size_t *len) const
 
 const char *Path::extension(size_t *len) const
 {
+    if (len)
+        *len = 0;
     const size_t s = size();
     if (s) {
         int dot = s - 1;
@@ -251,15 +253,13 @@ const char *Path::extension(size_t *len) const
                     *len = s - (dot + 1);
                 return data + dot + 1;
             case '/':
-                break;
+                return 0;
             default:
                 break;
             }
             --dot;
         }
     }
-    if (len)
-        *len = 0;
     return 0;
 }
 

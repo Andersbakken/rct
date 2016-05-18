@@ -511,16 +511,19 @@ public:
         mString.replace(idx, len, with.mString);
     }
 
-    void replace(const String &from, const String &to)
+    size_t replace(const String &from, const String &to)
     {
         size_t idx = 0;
+        size_t ret = 0;
         while (true) {
             idx = indexOf(from, idx);
             if (idx == npos)
                 break;
+            ++ret;
             replace(idx, from.size(), to);
             idx += to.size();
         }
+        return ret;
     }
 
     size_t replace(char from, char to)

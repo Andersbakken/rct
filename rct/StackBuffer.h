@@ -21,14 +21,24 @@ public:
     }
     void resize(size_t size)
     {
-        if (mSize > Size)
-            delete[] mBuffer;
+        T *old = 0;
+        if (mSize > Size) {
+            old = mBuffer;
+        } else {
+            old = mStackBuffer;
+        }
+        const size_t oldSize = mSize;
         mSize = size;
         if (mSize > Size) {
             mBuffer = new T[mSize];
         } else {
             mBuffer = mStackBuffer;
         }
+        for (size_t i=0; i<oldSize; ++i) {
+            mBuffer[i] = old[i];
+        }
+        if (old != mStackBuffer)
+            delete[] old;
     }
     const T *buffer() const { return mBuffer; }
     T *buffer() { return mBuffer; }

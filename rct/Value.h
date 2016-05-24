@@ -18,8 +18,9 @@ public:
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
     inline Value(unsigned int i) : mType(Type_Integer) { mData.integer = i; }
-    inline Value(int64_t i) : mType(Type_Integer) { mData.int64 = i; }
-    inline Value(uint64_t i) : mType(Type_Integer) { mData.uint64 = i; }
+    inline Value(long long i) : mType(Type_Integer) { mData.int64 = i; }
+    inline Value(unsigned long long i) : mType(Type_Integer) { mData.uint64 = i; }
+    inline Value(size_t size) : mType(Type_Integer) { mData.uint64 = size; }
     inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
     inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     inline Value(const std::shared_ptr<Custom> &custom) : mType(Type_Custom) { new (mData.customBuf) std::shared_ptr<Custom>(custom); }
@@ -127,7 +128,23 @@ public:
     static Value fromJSON(const String &json, bool *ok = 0) { return fromJSON(json.constData(), ok); }
     static Value fromJSON(const char *json, bool *ok = 0);
     String toJSON(bool pretty = false) const;
+    String format() const;
     static Value undefined() { return Value(Type_Undefined); }
+
+    class Formatter
+    {
+    public:
+        Formatter() {}
+        virtual ~Formatter() {}
+
+        virtual void format(const Value &value, std::function<void(const char *, size_t)> output) const = 0;
+        String toString(const Value &value) const
+        {
+            String ret;
+            format(value, [&ret](const char *str, size_t len) { ret.append(str, len); });
+            return ret;
+        }
+    };
 private:
     explicit Value(Type type) : mType(type) {}
 

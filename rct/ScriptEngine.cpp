@@ -760,7 +760,7 @@ static inline v8::Local<v8::Value> toV8_helper(v8::Isolate* isolate, const Value
         }
         break; }
     case Value::Type_Integer:
-        result = v8::Int32::New(isolate, value.toInt64());
+        result = v8::Int32::New(isolate, value.toLongLong());
         break;
     case Value::Type_Double:
         result = v8::Number::New(isolate, value.toDouble());
@@ -772,7 +772,7 @@ static inline v8::Local<v8::Value> toV8_helper(v8::Isolate* isolate, const Value
         result = v8::Undefined(isolate);
         break;
     case Value::Type_Date:
-        result = v8::Date::New(isolate, static_cast<double>(value.toInt64() * 1000));
+        result = v8::Date::New(isolate, static_cast<double>(value.toLongLong() * 1000));
         break;
     default:
         break;

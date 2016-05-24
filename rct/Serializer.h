@@ -271,24 +271,18 @@ struct FixedSize
 
 DECLARE_NATIVE_TYPE(bool);
 DECLARE_NATIVE_TYPE(char);
+DECLARE_NATIVE_TYPE(signed char);
 DECLARE_NATIVE_TYPE(unsigned char);
-DECLARE_NATIVE_TYPE(double);
-DECLARE_NATIVE_TYPE(int8_t);
-DECLARE_NATIVE_TYPE(uint16_t);
-DECLARE_NATIVE_TYPE(int16_t);
-DECLARE_NATIVE_TYPE(uint32_t);
-DECLARE_NATIVE_TYPE(int32_t);
-DECLARE_NATIVE_TYPE(uint64_t);
-DECLARE_NATIVE_TYPE(int64_t);
-#ifdef OS_Darwin
+DECLARE_NATIVE_TYPE(short);
+DECLARE_NATIVE_TYPE(unsigned short);
+DECLARE_NATIVE_TYPE(int);
+DECLARE_NATIVE_TYPE(unsigned int);
 DECLARE_NATIVE_TYPE(long);
 DECLARE_NATIVE_TYPE(unsigned long);
-#endif
-#if !defined(__x86_64__) && !defined(__PPC64__) && !defined(OS_Darwin)
-DECLARE_NATIVE_TYPE(time_t);
-#elif defined(OS_Linux)
+DECLARE_NATIVE_TYPE(long long);
 DECLARE_NATIVE_TYPE(unsigned long long);
-#endif
+DECLARE_NATIVE_TYPE(float);
+DECLARE_NATIVE_TYPE(double);
 
 template <>
 inline Serializer &operator<<(Serializer &s, const String &string)

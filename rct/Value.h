@@ -18,14 +18,16 @@ public:
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
     inline Value(unsigned int i) : mType(Type_Integer) { mData.integer = i; }
-    inline Value(long long i) : mType(Type_Integer) { mData.int64 = i; }
-    inline Value(unsigned long long i) : mType(Type_Integer) { mData.uint64 = i; }
-    inline Value(size_t size) : mType(Type_Integer) { mData.uint64 = size; }
+    inline Value(long i) : mType(Type_Integer) { mData.llong = i; }
+    inline Value(unsigned long i) : mType(Type_Integer) { mData.llong = i; }
+    inline Value(long long i) : mType(Type_Integer) { mData.llong = i; }
+    inline Value(unsigned long long i) : mType(Type_Integer) { mData.ullong = i; }
+    inline Value(float d) : mType(Type_Double) { mData.dbl = d; }
     inline Value(double d) : mType(Type_Double) { mData.dbl = d; }
     inline Value(bool b) : mType(Type_Boolean) { mData.boolean = b; }
     inline Value(const std::shared_ptr<Custom> &custom) : mType(Type_Custom) { new (mData.customBuf) std::shared_ptr<Custom>(custom); }
     inline Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
-    inline Value(const Date& date) : mType(Type_Date) { mData.int64 = date.time(); }
+    inline Value(const Date &date) : mType(Type_Date) { mData.llong = date.time(); }
 
     struct Custom : std::enable_shared_from_this<Custom>
     {
@@ -93,8 +95,8 @@ public:
     inline Type type() const { return mType; }
     inline bool toBool() const;
     inline int toInteger() const;
-    inline int64_t toInt64() const;
-    inline uint64_t toUInt64() const;
+    inline long long toLongLong() const;
+    inline unsigned long long toULongLong() const;
     inline double toDouble() const;
     inline String toString() const;
     inline Date toDate(Date::Mode mode = Date::UTC) const;
@@ -172,8 +174,8 @@ private:
     Type mType;
     union {
         int integer;
-        int64_t int64;
-        uint64_t uint64;
+        long long llong;
+        unsigned long long ullong;
         double dbl;
         bool boolean;
         char stringBuf[sizeof(String)];
@@ -223,7 +225,7 @@ template <> inline int Value::convert<int>(bool *ok) const
     if (ok)
         *ok = true;
     switch (mType) {
-    case Type_Date: return static_cast<int>(mData.int64);
+    case Type_Date: return static_cast<int>(mData.llong);
     case Type_Integer: return mData.integer;
     case Type_Double: return static_cast<int>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
@@ -244,18 +246,18 @@ template <> inline int Value::convert<int>(bool *ok) const
     return 0;
 }
 
-template <> inline int64_t Value::convert<int64_t>(bool *ok) const
+template <> inline long long Value::convert<long long>(bool *ok) const
 {
     if (ok)
         *ok = true;
     switch (mType) {
     case Type_Date:
-    case Type_Integer: return mData.int64;
-    case Type_Double: return static_cast<int64_t>(round(mData.dbl));
+    case Type_Integer: return mData.llong;
+    case Type_Double: return static_cast<long long>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
     case Type_String: {
         char *end;
-        const int64_t ret = strtoll(stringPtr()->constData(), &end, 10);
+        const long long ret = strtoll(stringPtr()->constData(), &end, 0);
         if (!*end)
             return ret;
         break; }
@@ -270,18 +272,18 @@ template <> inline int64_t Value::convert<int64_t>(bool *ok) const
     return 0;
 }
 
-template <> inline uint64_t Value::convert<uint64_t>(bool *ok) const
+template <> inline unsigned long long Value::convert<unsigned long long>(bool *ok) const
 {
     if (ok)
         *ok = true;
     switch (mType) {
     case Type_Date:
-    case Type_Integer: return mData.uint64;
-    case Type_Double: return static_cast<uint64_t>(round(mData.dbl));
+    case Type_Integer: return mData.ullong;
+    case Type_Double: return static_cast<unsigned long long>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
     case Type_String: {
         char *end;
-        const uint64_t ret = strtoull(stringPtr()->constData(), &end, 10);
+        const unsigned long long ret = strtoull(stringPtr()->constData(), &end, 0);
         if (!*end)
             return ret;
         break; }
@@ -354,7 +356,7 @@ template <> inline double Value::convert<double>(bool *ok) const
         *ok = true;
 
     switch (mType) {
-    case Type_Date: return static_cast<double>(mData.int64);
+    case Type_Date: return static_cast<double>(mData.llong);
     case Type_Integer: return mData.integer;
     case Type_Double: return mData.dbl;
     case Type_Boolean: return mData.boolean;
@@ -382,7 +384,7 @@ template <> inline String Value::convert<String>(bool *ok) const
         *ok = true;
 
     switch (mType) {
-    case Type_Date: return String::number(mData.int64);
+    case Type_Date: return String::number(mData.llong);
     case Type_Integer: return String::number(mData.integer);
     case Type_Double: return String::number(mData.dbl);
     case Type_Boolean: return mData.boolean ? "true" : "false";
@@ -445,7 +447,7 @@ template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *
 inline Value Value::convert(Type type, bool *ok) const
 {
     switch (type) {
-    case Type_Date: return convert<int64_t>(ok);
+    case Type_Date: return convert<long long>(ok);
     case Type_Integer: return convert<int>(ok);
     case Type_Double: return convert<double>(ok);
     case Type_Boolean: return convert<bool>(ok);
@@ -463,10 +465,10 @@ inline Value Value::convert(Type type, bool *ok) const
 
 inline bool Value::toBool() const { return convert<bool>(0); }
 inline int Value::toInteger() const { return convert<int>(0); }
-inline int64_t Value::toInt64() const { return convert<int64_t>(0); }
-inline uint64_t Value::toUInt64() const { return convert<uint64_t>(0); }
+inline long long Value::toLongLong() const { return convert<long long>(0); }
+inline unsigned long long Value::toULongLong() const { return convert<unsigned long long>(0); }
 inline double Value::toDouble() const { return convert<double>(0); }
-inline Date Value::toDate(Date::Mode mode) const { return Date(convert<int64_t>(0), mode); }
+inline Date Value::toDate(Date::Mode mode) const { return Date(convert<long long>(0), mode); }
 inline String Value::toString() const { return convert<String>(0); }
 inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(0); }
 inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
@@ -627,7 +629,7 @@ inline Log operator<<(Log log, const Value &value)
     {
         Log l(&str);
         switch (value.type()) {
-        case Value::Type_Date: l << value.toInt64(); break;
+        case Value::Type_Date: l << value.toLongLong(); break;
         case Value::Type_Integer: l << value.toInteger(); break;
         case Value::Type_Double: l << value.toDouble(); break;
         case Value::Type_Boolean: l << value.toBool(); break;
@@ -651,11 +653,11 @@ inline Log operator<<(Log log, const Value &value)
     return log;
 }
 
-inline Serializer& operator<<(Serializer& serializer, const Value& value)
+inline Serializer& operator<<(Serializer& serializer, const Value &value)
 {
     serializer << static_cast<int>(value.type());
     switch (value.type()) {
-    case Value::Type_Date: serializer << value.toInt64(); break;
+    case Value::Type_Date: serializer << value.toLongLong(); break;
     case Value::Type_Integer: serializer << value.toInteger(); break;
     case Value::Type_Double: serializer << value.toDouble(); break;
     case Value::Type_Boolean: serializer << value.toBool(); break;
@@ -669,13 +671,13 @@ inline Serializer& operator<<(Serializer& serializer, const Value& value)
     return serializer;
 }
 
-inline Deserializer& operator>>(Deserializer& deserializer, Value& value)
+inline Deserializer& operator>>(Deserializer& deserializer, Value &value)
 {
     int t;
     deserializer >> t;
     Value::Type type = static_cast<Value::Type>(t);
     switch (type) {
-    case Value::Type_Date: { int64_t v; deserializer >> v; value = v; break; }
+    case Value::Type_Date: { long long v; deserializer >> v; value = v; break; }
     case Value::Type_Integer: { int v; deserializer >> v; value = v; break; }
     case Value::Type_Double: { double v; deserializer >> v; value = v; break; }
     case Value::Type_Boolean: { bool v; deserializer >> v; value = v; break; }

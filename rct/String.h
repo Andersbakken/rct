@@ -617,20 +617,20 @@ public:
         return ret;
     }
 
-    uint64_t toULongLong(bool *ok = 0, size_t base = 10) const
+    unsigned long long toULongLong(bool *ok = 0, size_t base = 10) const
     {
         errno = 0;
         char *end = 0;
-        const uint64_t ret = ::strtoull(constData(), &end, base);
+        const unsigned long long ret = ::strtoull(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
-    int64_t toLongLong(bool *ok = 0, size_t base = 10) const
+    long long toLongLong(bool *ok = 0, size_t base = 10) const
     {
         errno = 0;
         char *end = 0;
-        const int64_t ret = ::strtoll(constData(), &end, base);
+        const long long ret = ::strtoll(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -686,13 +686,15 @@ public:
     static String toHex(const String &hex) { return toHex(hex.constData(), hex.size()); }
     static String toHex(const void *data, size_t len);
 
-    static String number(int8_t num, size_t base = 10) { return String::number(static_cast<int64_t>(num), base); }
-    static String number(uint8_t num, size_t base = 10) { return String::number(static_cast<int64_t>(num), base); }
-    static String number(int16_t num, size_t base = 10) { return String::number(static_cast<int64_t>(num), base); }
-    static String number(uint16_t num, size_t base = 10) { return String::number(static_cast<int64_t>(num), base); }
-    static String number(int32_t num, size_t base = 10) { return String::number(static_cast<int64_t>(num), base); }
-    static String number(uint32_t num, size_t base = 10) { return String::number(static_cast<int64_t>(num), base); }
-    static String number(int64_t num, size_t base = 10)
+    static String number(char num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(unsigned char num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(short num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(unsigned short num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(int num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(unsigned int num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(long num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
+    static String number(unsigned long num, size_t base = 10) { return String::number(static_cast<unsigned long long>(num), base); }
+    static String number(long long num, size_t base = 10)
     {
         const char *format = 0;
         switch (base) {
@@ -715,7 +717,7 @@ public:
         return String(buf, w);
     }
 
-    static String number(uint64_t num, size_t base = 10)
+    static String number(unsigned long long num, size_t base = 10)
     {
         const char *format = 0;
         switch (base) {

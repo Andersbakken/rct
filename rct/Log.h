@@ -130,7 +130,9 @@ public:
     Log(const Log &other);
     Log &operator=(const Log &other);
 #if defined(OS_Darwin)
+#ifndef __i386__
     Log operator<<(long number) { return addStringStream(number); }
+#endif
     Log operator<<(size_t number) { return addStringStream(number); }
 #elif (ULONG_MAX) != (UINT_MAX)
     Log operator<<(uint64_t number) { return addStringStream(number); }

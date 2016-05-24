@@ -43,8 +43,8 @@ public:
     const T *buffer() const { return mBuffer; }
     T *buffer() { return mBuffer; }
     size_t size() const { return mSize; }
-    T &operator[](size_t idx) { return mBuffer[idx]; }
-    const T &operator[](size_t idx) const { return mBuffer[idx]; }
+    T &operator[](int idx) { return mBuffer[idx]; }
+    const T &operator[](int idx) const { return mBuffer[idx]; }
     operator T *() { return mBuffer; }
     operator const T *() const { return mBuffer; }
 private:

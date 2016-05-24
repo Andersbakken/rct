@@ -284,7 +284,7 @@ DECLARE_NATIVE_TYPE(int64_t);
 DECLARE_NATIVE_TYPE(long);
 DECLARE_NATIVE_TYPE(unsigned long);
 #endif
-#if !defined(__x86_64__) && !defined(__PPC64__)
+#if !defined(__x86_64__) && !defined(__PPC64__) && !defined(OS_Darwin)
 DECLARE_NATIVE_TYPE(time_t);
 #elif defined(OS_Linux)
 DECLARE_NATIVE_TYPE(unsigned long long);

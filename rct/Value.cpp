@@ -134,47 +134,6 @@ class JSONFormatter : public Value::Formatter
 public:
     virtual void format(const Value &value, std::function<void(const char *, size_t)> output) const
     {
-        size_t i;
-        auto escape = [&output, &i](const String &str) {
-            output("\"", 1);
-            bool hasEscaped = false;
-            auto put = [&output, &hasEscaped, &i, &str](const char *escaped) {
-                if (!hasEscaped) {
-                    hasEscaped = true;
-                    if (i)
-                        output(str.constData(), i);
-                }
-                output(escaped, strlen(escaped));
-            };
-            const char *stringData = str.constData();
-
-            const size_t length = str.size();
-            for (i = 0; i < length; ++i) {
-                switch (const char ch = stringData[i]) {
-                case 8: put("\\b"); break; // backspace
-                case 12: put("\\f"); break; // Form feed
-                case '\n': put("\\n"); break; // newline
-                case '\t': put("\\t"); break; // tab
-                case '\r': put("\\r"); break; // carriage return
-                case '"': put("\\\""); break; // quote
-                case '\\': put("\\\\"); break; // backslash
-                default:
-                    if (ch < 0x20 || ch == 127) { // escape non printable characters
-                        char buffer[7];
-                        snprintf(buffer, 7, "\\u%04x", ch);
-                        put(buffer);
-                        break;
-                    } else if (hasEscaped) {
-                        output(&ch, 1);
-                    }
-                    break;
-                }
-            }
-
-            if (!hasEscaped)
-                output(stringData, length);
-            output("\"", 1);
-        };
         switch (value.type()) {
         case Value::Type_Invalid:
         case Value::Type_Undefined:
@@ -198,10 +157,10 @@ public:
             output(buf, w);
             break; }
         case Value::Type_String:
-            escape(value.toString());
+            Rct::jsonEscape(value.toString(), output);
             break;
         case Value::Type_Custom:
-            escape(value.toCustom()->toString());
+            Rct::jsonEscape(value.toCustom()->toString(), output);
             break;
         case Value::Type_Map: {
             const auto end = value.end();
@@ -213,7 +172,7 @@ public:
                 } else {
                     first = false;
                 }
-                escape(it->first);
+                Rct::jsonEscape(it->first, output);
                 output(":", 1);
                 format(it->second, output);
             }
@@ -234,7 +193,7 @@ public:
             output("]", 1);
             break; }
         case Value::Type_Date:
-            escape(String::formatTime(value.toDate().time()));
+            Rct::jsonEscape(String::formatTime(value.toDate().time()), output);
             break;
         }
     }

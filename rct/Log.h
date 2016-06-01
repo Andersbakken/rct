@@ -26,12 +26,12 @@ public:
     {}
 
     // operator int() const { return mValue; }
-    bool operator==(const LogLevel &other) const { return mValue == other.mValue; }
-    bool operator!=(const LogLevel &other) const { return mValue != other.mValue; }
-    bool operator<(const LogLevel &other) const { return mValue < other.mValue; }
-    bool operator<=(const LogLevel &other) const { return mValue <= other.mValue; }
-    bool operator>(const LogLevel &other) const { return mValue > other.mValue; }
-    bool operator>=(const LogLevel &other) const { return mValue >= other.mValue; }
+    bool operator==(LogLevel other) const { return mValue == other.mValue; }
+    bool operator!=(LogLevel other) const { return mValue != other.mValue; }
+    bool operator<(LogLevel other) const { return mValue < other.mValue; }
+    bool operator<=(LogLevel other) const { return mValue <= other.mValue; }
+    bool operator>(LogLevel other) const { return mValue > other.mValue; }
+    bool operator>=(LogLevel other) const { return mValue >= other.mValue; }
 
     LogLevel &operator++() { ++mValue; return *this; }
     LogLevel operator++(int) { return LogLevel(mValue++); }
@@ -41,6 +41,7 @@ public:
     int toInt() const { return mValue; }
 
     static const LogLevel None;
+    static const LogLevel StdOut;
     static const LogLevel Error;
     static const LogLevel Warning;
     static const LogLevel Debug;
@@ -71,21 +72,21 @@ public:
         Replaceable = 0x4,
         DefaultFlags = TrailingNewLine
     };
-    virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
-    void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
+    virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/, LogLevel /*level*/) { }
+    void log(LogLevel level, const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length(), level); }
     template <int StaticBufSize = 256>
-    void log(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
+    void log(LogLevel level, const char *format, ...) RCT_PRINTF_WARNING(3, 4);
     LogLevel logLevel() const { return mLogLevel; }
 private:
     LogLevel mLogLevel;
 };
 
 template <int StaticBufSize>
-inline void LogOutput::log(const char *format, ...)
+inline void LogOutput::log(LogLevel level, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    log(String::format<StaticBufSize>(format, args));
+    log(level, String::format<StaticBufSize>(format, args));
     va_end(args);
 }
 

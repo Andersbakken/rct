@@ -41,7 +41,6 @@ public:
     int toInt() const { return mValue; }
 
     static const LogLevel None;
-    static const LogLevel StdOut;
     static const LogLevel Error;
     static const LogLevel Warning;
     static const LogLevel Debug;
@@ -70,23 +69,24 @@ public:
         TrailingNewLine = 0x1,
         NoTypename = 0x2,
         Replaceable = 0x4,
+        StdOut = 0x8,
         DefaultFlags = TrailingNewLine
     };
-    virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/, LogLevel /*level*/) { }
-    void log(LogLevel level, const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length(), level); }
+    virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
+    void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
     template <int StaticBufSize = 256>
-    void log(LogLevel level, const char *format, ...) RCT_PRINTF_WARNING(3, 4);
+    void log(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     LogLevel logLevel() const { return mLogLevel; }
 private:
     LogLevel mLogLevel;
 };
 
 template <int StaticBufSize>
-inline void LogOutput::log(LogLevel level, const char *format, ...)
+inline void LogOutput::log(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    log(level, String::format<StaticBufSize>(format, args));
+    log(String::format<StaticBufSize>(format, args));
     va_end(args);
 }
 

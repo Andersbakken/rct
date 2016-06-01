@@ -18,7 +18,6 @@ static LogLevel sLevel = LogLevel::Error;
 
 const LogLevel LogLevel::None(-1);
 const LogLevel LogLevel::Error(0);
-const LogLevel LogLevel::StdOut(0);
 const LogLevel LogLevel::Warning(1);
 const LogLevel LogLevel::Debug(2);
 const LogLevel LogLevel::VerboseDebug(3);
@@ -70,7 +69,7 @@ public:
             fclose(file);
     }
 
-    virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len, LogLevel) override
+    virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
         writeLog(file, msg, len, flags);
         fflush(file);
@@ -78,15 +77,15 @@ public:
     FILE *file;
 };
 
-class ConsoleOutput : public LogOutput
+class TerminalOutput : public LogOutput
 {
 public:
-    ConsoleOutput(LogLevel lvl)
+    TerminalOutput(LogLevel lvl)
         : LogOutput(lvl), mReplaceableLength(0)
     {}
-    virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len, LogLevel level) override
+    virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
-        FILE *f = level == LogLevel::StdOut ? stdout : stderr;
+        FILE *f = flags & StdOut ? stdout : stderr;
         if (flags & Replaceable) {
             if (mReplaceableLength) {
                 fwrite("\r", 1, 1, f);
@@ -109,7 +108,7 @@ private:
 class SyslogOutput : public LogOutput
 {
 public:
-    SyslogOutput(const char *ident, LogLevel lvl)
+    SyslogOutput(const char* ident, LogLevel lvl)
         : LogOutput(lvl)
     {
         ::openlog(ident, LOG_CONS | LOG_NOWAIT | LOG_PID, LOG_USER);
@@ -118,7 +117,7 @@ public:
     {
         ::closelog();
     }
-    virtual void log(Flags<LogOutput::LogFlag>, const char *msg, int, LogLevel) override
+    virtual void log(Flags<LogOutput::LogFlag>, const char *msg, int) override
     {
         ::syslog(LOG_NOTICE, "%s", msg);
     }
@@ -168,7 +167,7 @@ void logDirect(LogLevel level, const char *msg, int len, Flags<LogOutput::LogFla
     } else {
         for (const auto &output : logs) {
             if (output->testLog(level)) {
-                output->log(flags, msg, len, level);
+                output->log(flags, msg, len);
             }
         }
     }
@@ -243,7 +242,7 @@ LogLevel logLevel()
     return sLevel;
 }
 
-bool initLogging(const char *ident, Flags<LogFlag> flags, LogLevel level,
+bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
                  const Path &file, LogLevel logFileLogLevel)
 {
     if (getenv("RCT_LOG_TIME"))
@@ -253,7 +252,7 @@ bool initLogging(const char *ident, Flags<LogFlag> flags, LogLevel level,
     sFlags = flags;
     sLevel = level;
     if (flags & LogStderr) {
-        std::shared_ptr<ConsoleOutput> out(new ConsoleOutput(level));
+        std::shared_ptr<TerminalOutput> out(new TerminalOutput(level));
         out->add();
     }
     if (flags & LogSyslog) {

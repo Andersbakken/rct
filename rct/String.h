@@ -105,6 +105,61 @@ public:
         return npos;
     }
 
+    size_t lastIndexOf(const char *ch, size_t len, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
+    {
+        switch (len) {
+        case 0: return npos;
+        case 1: return lastIndexOf(*ch, from, cs);
+        default: {
+            if (cs == CaseSensitive)
+                return mString.rfind(ch, from, len);
+            if (from == npos)
+                from = mString.size() - 1;
+            String lowered(ch, len);
+            lowered.lowerCase();
+            const size_t needleSize = lowered.size();
+            size_t matched = 0;
+            int f = static_cast<int>(from);
+            while (f >= 0) {
+                if (lowered.at(needleSize - matched - 1) != tolower(at(f))) {
+                    matched = 0;
+                } else if (++matched == needleSize) {
+                    return f;
+                }
+
+                --f;
+            }
+            break; }
+        }
+        return npos;
+    }
+
+    size_t indexOf(const char *ch, size_t len, size_t from = 0, CaseSensitivity cs = CaseSensitive) const
+    {
+        switch (len) {
+        case 0: return npos;
+        case 1: return indexOf(*ch, from, cs);
+        default: {
+            if (cs == CaseSensitive)
+                return mString.find(ch, from, len);
+
+            String lowered(ch, len);
+            lowered.lowerCase();
+            const size_t count = size();
+            size_t matched = 0;
+
+            for (size_t i=from; i<count; ++i) {
+                if (lowered.at(matched) != tolower(at(i))) {
+                    matched = 0;
+                } else if (++matched == lowered.size()) {
+                    return i - matched + 1;
+                }
+            }
+            break; }
+        }
+        return npos;
+    }
+
     bool contains(const String &other, CaseSensitivity cs = CaseSensitive) const
     {
         return indexOf(other, 0, cs) != npos;
@@ -138,51 +193,12 @@ public:
 
     size_t lastIndexOf(const String &ba, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
     {
-        if (ba.isEmpty())
-            return npos;
-        if (ba.size() == 1)
-            return lastIndexOf(ba.first(), from, cs);
-        if (cs == CaseSensitive)
-            return mString.rfind(ba.mString, from == npos ? std::string::npos : size_t(from));
-        if (from == npos)
-            from = mString.size() - 1;
-        const String lowered = ba.toLower();
-        const size_t needleSize = lowered.size();
-        size_t matched = 0;
-        int f = static_cast<int>(from);
-        while (f >= 0) {
-            if (lowered.at(needleSize - matched - 1) != tolower(at(f))) {
-                matched = 0;
-            } else if (++matched == needleSize) {
-                return f;
-            }
-
-            --f;
-        }
-        return npos;
+        return lastIndexOf(ba.constData(), ba.size(), from, cs);
     }
 
     size_t indexOf(const String &ba, size_t from = 0, CaseSensitivity cs = CaseSensitive) const
     {
-        if (ba.isEmpty())
-            return npos;
-        if (ba.size() == 1)
-            return indexOf(ba.first(), from, cs);
-        if (cs == CaseSensitive)
-            return mString.find(ba.mString, from);
-
-        const String lowered = ba.toLower();
-        const size_t count = size();
-        size_t matched = 0;
-
-        for (size_t i=from; i<count; ++i) {
-            if (lowered.at(matched) != tolower(at(i))) {
-                matched = 0;
-            } else if (++matched == lowered.size()) {
-                return i - matched + 1;
-            }
-        }
-        return npos;
+        return indexOf(ba.constData(), ba.size(), from, cs);
     }
 
     char first() const
@@ -207,6 +223,10 @@ public:
         return operator[](size() - 1);
     }
 
+    void lowerCase()
+    {
+        std::transform(mString.begin(), mString.end(), mString.begin(), ::tolower);
+    }
 
     String toLower() const
     {
@@ -220,6 +240,11 @@ public:
         std::string ret = mString;
         std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
         return ret;
+    }
+
+    void upperCase()
+    {
+        std::transform(mString.begin(), mString.end(), mString.begin(), ::toupper);
     }
 
     String trimmed(const String &trim = " \f\n\r\t\v") const
@@ -391,6 +416,34 @@ public:
             mString.append(str, len);
     }
 
+    size_t remove(const String &str, CaseSensitivity cs = CaseSensitive)
+    {
+        size_t idx = 0;
+        size_t ret = 0;
+        while (true) {
+            idx = indexOf(str, idx, cs);
+            if (idx == npos)
+                break;
+            ++ret;
+            remove(idx, str.size());
+        }
+        return ret;
+    }
+    size_t remove(char ch, CaseSensitivity cs = CaseSensitive)
+    {
+        size_t idx = 0;
+        size_t ret = 0;
+        while (true) {
+            idx = indexOf(ch, idx, cs);
+            if (idx == npos)
+                break;
+            ++ret;
+            remove(idx, 1);
+        }
+        return ret;
+    }
+
+
     void remove(size_t idx, size_t count)
     {
         mString.erase(idx, count);
@@ -511,12 +564,12 @@ public:
         mString.replace(idx, len, with.mString);
     }
 
-    size_t replace(const String &from, const String &to)
+    size_t replace(const String &from, const String &to, CaseSensitivity cs = CaseSensitive)
     {
         size_t idx = 0;
         size_t ret = 0;
         while (true) {
-            idx = indexOf(from, idx);
+            idx = indexOf(from, idx, cs);
             if (idx == npos)
                 break;
             ++ret;
@@ -526,17 +579,29 @@ public:
         return ret;
     }
 
-    size_t replace(char from, char to)
+    size_t replace(char from, char to, CaseSensitivity cs = CaseSensitive)
     {
         size_t count = 0;
         int i = static_cast<int>(size() - 1);
-        while (i >= 0) {
-            char &ch = operator[](i);
-            if (ch == from) {
-                ch = to;
-                ++count;
+        if (cs == CaseSensitive) {
+            while (i >= 0) {
+                char &ch = operator[](i);
+                if (ch == from) {
+                    ch = to;
+                    ++count;
+                }
+                --i;
             }
-            --i;
+        } else {
+            from = tolower(from);
+            while (i >= 0) {
+                char &ch = operator[](i);
+                if (tolower(ch) == from) {
+                    ch = to;
+                    ++count;
+                }
+                --i;
+            }
         }
         return count;
     }

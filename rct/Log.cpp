@@ -128,7 +128,7 @@ void restartTime()
     sStart.restart();
 }
 
-static void log(LogLevel level, const char *format, va_list v)
+static void logHelper(LogLevel level, Flags<LogOutput::LogFlag> flags, const char *format, va_list v)
 {
     if (!testLog(level))
         return;
@@ -149,7 +149,7 @@ static void log(LogLevel level, const char *format, va_list v)
         n = vsnprintf(buf, n + 1, format, v2);
     }
 
-    logDirect(level, buf, n);
+    logDirect(level, buf, n, flags);
     va_end(v2);
 }
 
@@ -189,15 +189,24 @@ void log(LogLevel level, const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(level, format, v);
+    logHelper(level, LogOutput::DefaultFlags, format, v);
     va_end(v);
 }
+
+void log(LogLevel level, Flags<LogOutput::LogFlag> flags, const char *format, ...)
+{
+    va_list v;
+    va_start(v, format);
+    logHelper(level, flags, format, v);
+    va_end(v);
+}
+
 
 void debug(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(LogLevel::Debug, format, v);
+    logHelper(LogLevel::Debug, LogOutput::DefaultFlags, format, v);
     va_end(v);
 }
 
@@ -205,7 +214,7 @@ void verboseDebug(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(LogLevel::VerboseDebug, format, v);
+    logHelper(LogLevel::VerboseDebug, LogOutput::DefaultFlags, format, v);
     va_end(v);
 }
 
@@ -213,7 +222,7 @@ void warning(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(LogLevel::Warning, format, v);
+    logHelper(LogLevel::Warning, LogOutput::DefaultFlags, format, v);
     va_end(v);
 }
 
@@ -221,7 +230,7 @@ void error(const char *format, ...)
 {
     va_list v;
     va_start(v, format);
-    log(LogLevel::Error, format, v);
+    logHelper(LogLevel::Error, LogOutput::DefaultFlags, format, v);
     va_end(v);
 }
 

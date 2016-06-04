@@ -92,6 +92,7 @@ inline void LogOutput::log(const char *format, ...)
 
 RCT_FLAGS_OPERATORS(LogOutput::LogFlag);
 
+void log(LogLevel level, Flags<LogOutput::LogFlag> flags, const char *format, ...) RCT_PRINTF_WARNING(3, 4);
 void log(LogLevel level, const char *format, ...) RCT_PRINTF_WARNING(2, 3);
 void debug(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
 void verboseDebug(const char *format, ...) RCT_PRINTF_WARNING(1, 2);

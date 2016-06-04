@@ -111,6 +111,7 @@ public:
     List<Value>::const_iterator listEnd() const;
     inline int count() const;
     inline bool contains(const String &key) const;
+    void arrayReserve(size_t size);
     inline const Value &at(int idx) const;
     template <typename T> T operator[](int idx) const;
     template <typename T> T operator[](const String &key) const;
@@ -558,6 +559,16 @@ inline bool Value::contains(const String &key) const
     }
     assert(mType == Type_Map);
     return mapPtr()->contains(key);
+}
+
+inline void Value::arrayReserve(size_t size)
+{
+    if (mType == Type_Invalid) {
+        new (mData.listBuf) List<Value>;
+        mType = Type_List;
+    }
+    assert(mType == Type_List);
+    listPtr()->reserve(size);
 }
 
 inline const Value &Value::at(int idx) const

@@ -24,12 +24,12 @@ constexpr size_t countof(T(&)[N])
 
 enum { Max_USec = 1000000 };
 
-inline int indexIn(const String &string, const std::regex &rx)
+inline size_t indexIn(const String &string, const std::regex &rx)
 {
     std::cmatch match;
     if (std::regex_match(string.constData(), match, rx) && !match.empty())
         return match.position(0);
-    return -1;
+    return String::npos;
 }
 
 inline bool contains(const char *str, const std::regex &rx, std::cmatch *match = 0)

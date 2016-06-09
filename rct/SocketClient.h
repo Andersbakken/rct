@@ -115,6 +115,8 @@ public:
     static bool setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode = FlagAppend);
 
     double mbpsWritten() const;
+    bool logsEnabled() const { return mLogsEnabled; }
+    void setLogsEnabled(bool on) { mLogsEnabled = on; }
 private:
     bool init(unsigned int mode);
 
@@ -126,6 +128,7 @@ private:
     bool writeWait;
     String address;
     bool blocking;
+    bool mLogsEnabled;
 
     Signal<std::function<void(const SocketClient::SharedPtr&, Buffer&&)> > signalReadyRead;
     Signal<std::function<void(const SocketClient::SharedPtr&, const String&, uint16_t, Buffer&&)> > signalReadyReadFrom;

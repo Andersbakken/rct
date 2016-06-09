@@ -19,21 +19,22 @@
 #include "Rct.h"
 
 #ifdef NDEBUG
-#define DEBUG() if (false) debug()
+struct Null { template <typename T> Null operator<<(const T &) { return *this; } };
+#define DEBUG() if (false) Null()
 #else
-#define DEBUG() debug()
+#define DEBUG() if (mLogsEnabled) debug()
 #endif
 
 SocketClient::SocketClient(unsigned int mode)
     : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None),
-      wMode(Asynchronous), writeWait(false), writeOffset(0)
+      wMode(Asynchronous), writeWait(false), mLogsEnabled(true), writeOffset(0)
 {
     blocking = (mode & Blocking);
 }
 
 SocketClient::SocketClient(int f, unsigned int mode)
     : fd(f), socketPort(0), socketState(Connected), socketMode(mode),
-      wMode(Asynchronous), writeWait(false), writeOffset(0)
+      wMode(Asynchronous), writeWait(false), mLogsEnabled(true), writeOffset(0)
 {
     assert(fd >= 0);
 #ifdef HAVE_NOSIGPIPE

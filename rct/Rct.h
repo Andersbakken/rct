@@ -96,7 +96,7 @@ enum AnsiColor {
     AnsiColor_BrightCyan,
     AnsiColor_BrightWhite
 };
-String colorize(const String &string, AnsiColor color, int from = 0, int len = -1);
+String colorize(const String &string, AnsiColor color, size_t from = 0, size_t len = -1);
 enum LookupMode { Auto, IPv4, IPv6 };
 String addrLookup(const String& addr, LookupMode mode = Auto, bool *ok = 0);
 String nameLookup(const String& name, LookupMode mode = IPv4, bool *ok = 0);

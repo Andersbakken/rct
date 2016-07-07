@@ -11,6 +11,7 @@
 #include <rct/List.h>
 #include <rct/Path.h>
 #include <rct/String.h>
+extern char **environ;
 
 namespace Rct {
 
@@ -202,6 +203,17 @@ inline List<Path> pathEnvironment()
     if (path)
         return String(path).split(':', String::SkipEmpty);
     return List<Path>();
+}
+
+inline List<String> environment()
+{
+    List<String> environment;
+    char **env = environ;
+    while (*env) {
+        environment.push_back(*env);
+        ++env;
+    }
+    return environment;
 }
 
 static inline bool wildCmp(const char *wild, const char *string, String::CaseSensitivity cs = String::CaseSensitive)

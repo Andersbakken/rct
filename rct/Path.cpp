@@ -275,7 +275,7 @@ bool Path::isSource(const char *ext)
 
 bool Path::isSource() const
 {
-    if (exists()) {
+    if (isFile()) {
         const char *ext = extension();
         if (ext)
             return isSource(ext);
@@ -285,7 +285,7 @@ bool Path::isSource() const
 
 bool Path::isHeader() const
 {
-    return exists() && isHeader(extension());
+    return isFile() && isHeader(extension());
 }
 
 bool Path::isHeader(const char *ext)

@@ -5,7 +5,6 @@
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
-#include <sys/select.h>
 #include <regex>
 
 #include <rct/List.h>

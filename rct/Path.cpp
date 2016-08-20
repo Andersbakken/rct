@@ -1,13 +1,19 @@
 #include "Path.h"
 
 #include <dirent.h>
-#include <fts.h>
+#ifdef _WIN32
+#  include <direct.h>
+#  include <Windows.h>
+#  include <Shellapi.h>
+#else
+#  include <fts.h>
+#  include <wordexp.h>
+#endif
 #include <limits.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utime.h>
-#include <wordexp.h>
 
 #include "Log.h"
 #include "Rct.h"
@@ -46,7 +52,9 @@ Path::Type Path::type() const
     case S_IFDIR: return Directory;
     case S_IFIFO: return NamedPipe;
     case S_IFREG: return File;
+#ifndef _WIN32   // no socket files on windows
     case S_IFSOCK: return Socket;
+#endif
     default:
         break;
     }
@@ -55,12 +63,16 @@ Path::Type Path::type() const
 
 bool Path::isSymLink() const
 {
+#ifdef _WIN32
+    return false;   // no symlinks on windows
+#else
     bool ok;
     struct stat st = stat(&ok);
     if (!ok)
         return Invalid;
 
     return (st.st_mode & S_IFMT) == S_IFLNK;
+#endif
 }
 
 mode_t Path::mode() const
@@ -94,7 +106,7 @@ time_t Path::lastAccess() const
 
 bool Path::setLastModified(time_t lastModified) const
 {
-    const struct utimbuf buf = { lastAccess(), lastModified };
+    struct utimbuf buf = { lastAccess(), lastModified };
     return !utime(constData(), &buf);
 }
 
@@ -180,17 +192,22 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 {
     if (changed)
         *changed = false;
+#ifndef _WIN32
     if (startsWith('~')) {
         wordexp_t exp_result;
         wordexp(constData(), &exp_result, 0);
         operator=(exp_result.we_wordv[0]);
         wordfree(&exp_result);
     }
+#endif
     if (*this == ".")
         clear();
     if (mode == MakeAbsolute) {
         if (isAbsolute())
             return true;
+
+        // we only the relative file name to the cwd/pwd and check if the
+        // result exists.
         const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
         if (copy.exists()) {
             if (changed)
@@ -201,7 +218,10 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         return false;
     }
 
+    // we only get here if mode == RealPath
+
     if (!cwd.isEmpty() && !isAbsolute()) {
+        //resolve relative path as a path relative to cwd
         Path copy = cwd + '/' + *this;
         if (copy.resolve(RealPath, Path(), changed)) {
             operator=(copy);
@@ -211,8 +231,13 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
     {
         char buffer[PATH_MAX + 2];
+#ifdef _WIN32
+        if (_fullpath(buffer, constData(), PATH_MAX)) {
+#else
         if (realpath(constData(), buffer)) {
+#endif
             if (isDir()) {
+                // dirs usually don't have a trailing '/', so we add one
                 const int len = strlen(buffer);
                 assert(buffer[len] != '/');
                 buffer[len] = '/';
@@ -340,12 +365,25 @@ bool Path::mksubdir(const String &path) const
 bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
 {
     errno = 0;
+#ifdef _WIN32
+    (void) permissions;   // unused on windows
+    if (!::_mkdir(path.constData()) || errno == EEXIST)
+#else
     if (!::mkdir(path.constData(), permissions) || errno == EEXIST || errno == EISDIR)
+#endif
+    {
+        // mkdir call succeeded or it failed because the dir already exists
         return true;
+    }
     if (mkdirMode == Single)
         return false;
     if (path.size() > PATH_MAX)
         return false;
+
+    // directory creation failed so far
+    // because mkdirMode == Recursive, we go along the path and create
+    // directories, continuing while dir creation is successful or it failed
+    // only because directories already exist.
 
     char buf[PATH_MAX + 2];
     strcpy(buf, path.constData());
@@ -358,7 +396,11 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
     for (size_t i = 1; i < len; ++i) {
         if (buf[i] == '/') {
             buf[i] = 0;
+#ifdef _WIN32
+            const int r = ::_mkdir(buf);
+#else
             const int r = ::mkdir(buf, permissions);
+#endif
             if (r && errno != EEXIST && errno != EISDIR)
                 return false;
             buf[i] = '/';
@@ -377,6 +419,7 @@ bool Path::rm(const Path &file)
     return !unlink(file.constData());
 }
 
+#ifndef _WIN32
 static inline Path::Type ftsType(uint16_t type)
 {
     if (type & (FTS_F|FTS_SL|FTS_SLNONE))
@@ -385,9 +428,23 @@ static inline Path::Type ftsType(uint16_t type)
         return Path::Directory;
     return Path::Invalid;
 }
+#endif
 
 bool Path::rmdir(const Path& dir)
 {
+#ifdef _WIN32
+    Path absDir = Path::resolved(dir, MakeAbsolute);
+    char absDirDoubleZeroTerminated[absDir.size() + 2];
+    strcpy(absDirDoubleZeroTerminated, absDir.c_str());
+    absDirDoubleZeroTerminated[absDir.size()+1] = 0;
+    SHFILEOPSTRUCT op;
+    memset(&op, 0, sizeof(SHFILEOPSTRUCT));
+    op.wFunc = FO_DELETE;
+    op.pFrom = absDirDoubleZeroTerminated;
+    op.fFlags = FOF_NO_UI;
+    return (SHFileOperation(&op) == 0);
+
+#else
     if (!dir.isDir())
         return false;
     // hva slags drittapi er dette?
@@ -414,6 +471,7 @@ bool Path::rmdir(const Path& dir)
     }
     fts_close(fdir);
     return !::rmdir(dir.constData());
+#endif
 }
 
 static void visitorWrapper(Path path, const std::function<Path::VisitResult(const Path &path)> &callback, Set<Path> &seen)
@@ -436,7 +494,11 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
     const size_t s = path.size();
     path.reserve(s + 128);
     List<String> recurseDirs;
+#ifdef _WIN32
+    while ((p = readdir(d))) {
+#else
     while (!readdir_r(d, &dbuf, &p) && p) {
+#endif
         if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
             continue;
         bool isDir = false;
@@ -483,6 +545,7 @@ void Path::visit(const std::function<VisitResult(const Path &path)> &callback) c
 
 Path Path::followLink(bool *ok) const
 {
+#ifndef _WIN32  //no symlinks on windows
     if (isSymLink()) {
         char buf[PATH_MAX];
         const int w = readlink(constData(), buf, sizeof(buf) - 1);
@@ -493,6 +556,10 @@ Path Path::followLink(bool *ok) const
             return buf;
         }
     }
+#endif
+
+    // could not follow the link (maybe because it's not a link)
+
     if (ok)
         *ok = false;
 

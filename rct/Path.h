@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include <sys/mman.h>
+#ifndef _WIN32
+#  include <sys/mman.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -79,12 +81,22 @@ public:
         Single,
         Recursive
     };
+
+    /**
+     * Create the directory that is represented by this path.
+     *
+     * @param permissions ignored on windows.
+     */
     static bool mkdir(const Path &path,
                       MkDirMode mode = Single,
                       mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
     bool mkdir(MkDirMode mode = Single,
                mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) const;
     static bool rm(const Path &file);
+
+    /**
+     * Recursively delete a directory
+     */
     static bool rmdir(const Path& dir);
     static Path home();
 

@@ -61,6 +61,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   endif ()
 endif ()
 
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+  set(HAVE_CHANGENOTIFICATION 1)
+  set(HAVE_SELECT 1)
+endif ()
+
 check_cxx_source_compiles("
   #include <sys/types.h>
   #include <sys/stat.h>

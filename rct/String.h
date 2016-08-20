@@ -741,9 +741,14 @@ public:
         }
 
         char buf[32];
+#ifdef _WIN32
+        tm *tm = localtime(&t);
+        const size_t w = strftime(buf, sizeof(buf), format, tm);
+#else
         tm tm;
         localtime_r(&t, &tm);
         const size_t w = strftime(buf, sizeof(buf), format, &tm);
+#endif
         return String(buf, w);
     }
 

@@ -8,6 +8,9 @@
 #define SHA256_Final         CC_SHA256_Final
 #define SHA256_CTX           CC_SHA256_CTX
 #define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
+#elif defined _WIN32
+#  include <Windows.h>
+#  include <openssl/sha.h>
 #else
 #include <openssl/sha.h>
 #endif
@@ -101,6 +104,28 @@ String SHA256::hash(const char* data, unsigned int size, MapType type)
 
 String SHA256::hashFile(const Path& file, MapType type)
 {
+#ifdef _WIN32
+    // FIXME only works for small files (<< 4 GiB)
+    const HANDLE hFile =
+        ::CreateFile(file.nullTerminated(), GENERIC_READ, FILE_SHARE_READ,
+                     NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hFile == INVALID_HANDLE_VALUE) return String();
+
+    const DWORD fileSz = ::GetFileSize(hFile, NULL);
+
+    const HANDLE hFm = ::CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+    if(hFm == NULL) return String();
+
+    const void *mapped = ::MapViewOfFile(hFm, FILE_MAP_READ, 0, 0, 0);
+    if(!mapped) return String();
+
+    const String ret = SHA256::hash(static_cast<const char*>(mapped), fileSz, type);
+
+    UnmapViewOfFile(mapped);
+    CloseHandle(hFm);
+    CloseHandle(hFile);
+    return ret;
+#else
     const int fd = ::open(file.nullTerminated(), 0);
     if (fd < 0)
         return String();
@@ -118,6 +143,6 @@ String SHA256::hashFile(const Path& file, MapType type)
 
     ::munmap(mapped, st.st_size);
     ::close(fd);
-
     return ret;
+#endif
 }

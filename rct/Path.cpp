@@ -35,8 +35,9 @@ Path Path::parentDir() const
 
 Path::Type Path::type() const
 {
-    struct stat st;
-    if (stat(constData(), &st) == -1)
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
         return Invalid;
 
     switch (st.st_mode & S_IFMT) {
@@ -54,17 +55,19 @@ Path::Type Path::type() const
 
 bool Path::isSymLink() const
 {
-    struct stat st;
-    if (lstat(constData(), &st) == -1)
-        return false;
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
+        return Invalid;
 
     return (st.st_mode & S_IFMT) == S_IFLNK;
 }
 
 mode_t Path::mode() const
 {
-    struct stat st;
-    if (stat(constData(), &st) == -1)
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
         return 0;
 
     return st.st_mode;
@@ -73,21 +76,19 @@ mode_t Path::mode() const
 
 time_t Path::lastModified() const
 {
-    struct stat st;
-    if (stat(constData(), &st) == -1) {
-        warning("Stat failed for %s", constData());
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
         return 0;
-    }
     return st.st_mtime;
 }
 
 time_t Path::lastAccess() const
 {
-    struct stat st;
-    if (stat(constData(), &st) == -1) {
-        warning("Stat failed for %s", constData());
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
         return 0;
-    }
     return st.st_atime;
 }
 
@@ -99,11 +100,12 @@ bool Path::setLastModified(time_t lastModified) const
 
 int64_t Path::fileSize() const
 {
-    struct stat st;
-    if (!stat(constData(), &st)) {// && st.st_mode == S_IFREG)
-        return st.st_size;
-    }
-    return -1;
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
+        return -1;
+
+    return st.st_size;
 }
 
 Path Path::resolved(const String &path, ResolveMode mode, const Path &cwd, bool *ok)
@@ -275,7 +277,7 @@ bool Path::isSource(const char *ext)
 
 bool Path::isSource() const
 {
-    if (exists()) {
+    if (isFile()) {
         const char *ext = extension();
         if (ext)
             return isSource(ext);
@@ -285,7 +287,7 @@ bool Path::isSource() const
 
 bool Path::isHeader() const
 {
-    return exists() && isHeader(extension());
+    return isFile() && isHeader(extension());
 }
 
 bool Path::isHeader(const char *ext)
@@ -595,10 +597,11 @@ List<Path> Path::files(unsigned int filter, size_t max, bool recurse) const
 
 uint64_t Path::lastModifiedMs() const
 {
-    struct stat st;
-    if (stat(constData(), &st) == -1) {
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
         return 0;
-    }
+
 #ifdef HAVE_STATMTIM
     return st.st_mtim.tv_sec * static_cast<uint64_t>(1000) + st.st_mtim.tv_nsec / static_cast<uint64_t>(1000000);
 #else

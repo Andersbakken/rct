@@ -190,6 +190,7 @@ public:
         T t = mFirst;
         while (t) {
             T next = t->next;
+            t->next = t->prev = T();
             deleteNode(t);
             t = next;
         }

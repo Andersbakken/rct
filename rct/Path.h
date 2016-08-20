@@ -120,6 +120,19 @@ public:
     bool setLastModified(time_t lastModified) const;
     uint64_t lastModifiedMs() const;
 
+    struct stat stat(bool *ok = 0) const
+    {
+        struct stat st;
+        if (::stat(constData(), &st) == -1) {
+            memset(&st, 0, sizeof(st));
+            if (ok)
+                *ok = false;
+        } else if (ok) {
+            *ok = true;
+        }
+        return st;
+    }
+
     int64_t fileSize() const;
     static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);
     static Path canonicalized(const String &path);

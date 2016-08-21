@@ -433,14 +433,19 @@ static inline Path::Type ftsType(uint16_t type)
 bool Path::rmdir(const Path& dir)
 {
 #ifdef _WIN32
+    // SHFileOperation needs an absolute path.
     Path absDir = Path::resolved(dir, MakeAbsolute);
-    char absDirDoubleZeroTerminated[absDir.size() + 2];
-    strcpy(absDirDoubleZeroTerminated, absDir.c_str());
-    absDirDoubleZeroTerminated[absDir.size()+1] = 0;
+
+    // double zero terminate the string. There *should* already be one zero
+    // in c_str(), but better to be safe.
+    absDir.append('\0');
+    absDir.append('\0');
+
+    // Deletion through SHFileOperation is recursive.
     SHFILEOPSTRUCT op;
     memset(&op, 0, sizeof(SHFILEOPSTRUCT));
     op.wFunc = FO_DELETE;
-    op.pFrom = absDirDoubleZeroTerminated;
+    op.pFrom = absDir.c_str();
     op.fFlags = FOF_NO_UI;
     return (SHFileOperation(&op) == 0);
 

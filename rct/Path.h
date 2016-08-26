@@ -177,6 +177,9 @@ public:
     };
     void visit(const std::function<VisitResult(const Path &path)> &callback) const;
     List<Path> files(unsigned int filter = All, size_t max = String::npos, bool recurse = false) const;
+
+    /// ';' on windows, ':' on unix
+    static const char ENV_PATH_SEPARATOR;
 };
 
 namespace std

@@ -19,6 +19,12 @@
 #include "Rct.h"
 #include "rct/rct-config.h"
 
+#ifdef _WIN32
+const char Path::ENV_PATH_SEPARATOR = ';';
+#else
+const char Path::ENV_PATH_SEPARATOR = ':';
+#endif
+
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const
 {

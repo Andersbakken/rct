@@ -813,7 +813,9 @@ public:
     static String number(double num, size_t prec = 2)
     {
         char format[32];
-        snprintf(format, sizeof(format), "%%.%zuf", prec);
+
+        // cast to unsigned because windows doesn't have %z format specifier
+        snprintf(format, sizeof(format), "%%.%uf", (unsigned)prec);
         char buf[32];
         const size_t w = ::snprintf(buf, sizeof(buf), format, num);
         return String(buf, w);

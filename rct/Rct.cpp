@@ -1,11 +1,10 @@
 #include "Rct.h"
 
-#include <arpa/inet.h>
+
 #include <dirent.h>
 #include <limits.h>
-#include <netdb.h>
+
 #include <sys/fcntl.h>
-#include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -14,6 +13,25 @@
 #elif OS_FreeBSD
 # include <netinet/in.h>
 # include <sys/sysctl.h>
+#endif
+#ifdef _WIN32
+#  ifdef _WIN32_WINNT
+#    if _WIN32_WINNT < _WIN32_WINNT_VISTA
+#      warning "need to compile at least for windows vista"
+#    endif
+#  else
+#    define _WIN32_WINNT _WIN32_WINNT_VISTA
+#    define NTDDI_VERSION NTDDI_VISTA
+#  endif
+#  include <Winsock2.h>
+#  include <Ws2tcpip.h>
+#  ifndef HOST_NAME_MAX
+#    define HOST_NAME_MAX 256 //according to gethostname documentation on MSDN
+#  endif
+#else
+#  include <arpa/inet.h>
+#  include <netdb.h>
+#  include <sys/socket.h>
 #endif
 
 #include "rct/rct-config.h"
@@ -168,40 +186,7 @@ String shortOptions(const option *longOptions)
 
 void removeDirectory(const Path &path)
 {
-    DIR *d = opendir(path.constData());
-    size_t path_len = path.size();
-    union {
-        char buf[PATH_MAX];
-        dirent dbuf;
-    };
-
-    if (d) {
-        dirent *p;
-
-        while (!readdir_r(d, &dbuf, &p) && p) {
-            /* Skip the names "." and ".." as we don't want to recurse on them. */
-            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
-                continue;
-            }
-
-            const size_t len = path_len + strlen(p->d_name) + 2;
-            StackBuffer<PATH_MAX> buffer(len);
-
-            if (buffer) {
-                struct stat statbuf;
-                snprintf(buffer, len, "%s/%s", path.constData(), p->d_name);
-                if (!stat(buffer, &statbuf)) {
-                    if (S_ISDIR(statbuf.st_mode)) {
-                        removeDirectory(Path(buffer));
-                    } else {
-                        unlink(buffer);
-                    }
-                }
-            }
-        }
-        closedir(d);
-    }
-    rmdir(path.constData());
+    Path::rmdir(path);
 }
 
 static Path sExecutablePath;
@@ -230,7 +215,8 @@ void findExecutablePath(const char *argv0)
         }
     }
     const char *path = getenv("PATH");
-    const List<String> paths = String(path).split(':');
+
+    const List<String> paths = String(path).split(Path::ENV_PATH_SEPARATOR);
     for (size_t i=0; i<paths.size(); ++i) {
         const Path p = (paths.at(i) + "/") + argv0;
         if (p.isFile()) {
@@ -268,6 +254,8 @@ void findExecutablePath(const char *argv0)
                 return;
         }
     }
+#elif defined _WIN32
+    //nothing here so far.
 #else
 #warning Unknown platform.
 #endif
@@ -576,7 +564,11 @@ String strerror(int error)
 #endif
     char buf[1024];
     buf[0] = '\0';
+#ifdef _WIN32
+    auto foo = strerror_s(buf, sizeof(buf), error);
+#else
     auto foo = strerror_r(error, buf, sizeof(buf));
+#endif
     (void)foo;
     String ret = buf;
     ret << " (" << error << ')';

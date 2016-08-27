@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utime.h>
+#include <algorithm>
 
 #include "Log.h"
 #include "Rct.h"
@@ -65,6 +66,43 @@ Path::Type Path::type() const
         break;
     }
     return Invalid;
+}
+
+bool Path::isAbsolute() const
+{
+#ifdef _WIN32
+
+    // https://msdn.microsoft.com/en-us/library/aa365247(VS.85).aspx#fully_qualified_vs._relative_paths
+    // absolute paths start with either:
+    // - a drive letter, such as c:/
+    // - a single backslash (is replaced by single forward slash by this class)
+    // - double backslashes
+
+    if(size() >= 3)
+    {
+        const char &first  = (*this)[0];
+        const char &second = (*this)[1];
+        const char &third  = (*this)[2];
+
+        // check for regular windows path that starts with a driver letter,
+        // e.g. C:/windows
+
+        if(((first >= 'a' && first <= 'z') ||
+            (first >= 'A' && first <= 'Z')) &&
+           second == ':' && third == '/')
+        {
+            return true;
+        }
+    }
+
+    if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')
+    {
+        // network or unc path
+        return true;
+    }
+#endif
+
+    return (!isEmpty() && at(0) == '/');
 }
 
 bool Path::isSymLink() const
@@ -251,7 +289,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
             }
             if (changed && strcmp(buffer, constData()))
                 *changed = true;
-            String::operator=(buffer);
+            *this = buffer;
             return true;
         }
     }
@@ -712,5 +750,21 @@ String Path::name() const
         return String();
     } else {
         return fileName();
+    }
+}
+
+void Path::replaceBackslashes()
+{
+    std::size_t start = 0;
+
+    // don't replace \\ at the beginning (network path)
+    if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')
+    {
+        start = 2;
+    }
+
+    for(std::size_t i=start; i<size(); i++)
+    {
+        if((*this)[i] == '\\') (*this)[i] = '/';
     }
 }

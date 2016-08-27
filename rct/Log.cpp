@@ -259,6 +259,7 @@ LogLevel logLevel()
 bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
                  const Path &file, LogLevel logFileLogLevel)
 {
+    (void) ident;  //unused
     if (getenv("RCT_LOG_TIME"))
         flags |= LogTimeStamp;
 

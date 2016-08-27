@@ -15,6 +15,14 @@
 
 #include <rct/String.h>
 
+/**
+ * A path is a special string that represents a file system path. This may be a
+ * directory or a file. A path can be absolute or relative.
+ *
+ * Note: On windows, all paths use forward slashes (/) as path separator, just
+ * link on unix.
+ * Paths that are created with backslashes are automatically converted.
+ */
 class Path : public String
 {
 public:
@@ -23,13 +31,25 @@ public:
     {}
     Path(const String &other)
         : String(other)
-    {}
+    {
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+    }
     Path(const char *path)
         : String(path)
-    {}
+    {
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+    }
     Path(const char *path, size_t size)
         : String(path, size)
-    {}
+    {
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+    }
     Path() {}
     Path &operator=(const Path &other)
     {
@@ -39,12 +59,18 @@ public:
     Path &operator=(const String &other)
     {
         String::operator=(other);
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
         return *this;
     }
 
     Path &operator=(const char *path)
     {
         String::operator=(path);
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
         return *this;
     }
 
@@ -69,7 +95,7 @@ public:
     inline bool isFile() const { return type() == File; }
     inline bool isExecutable() const { return !access(constData(), X_OK); }
     inline bool isSocket() const { return type() == Socket; }
-    inline bool isAbsolute() const { return (!isEmpty() && at(0) == '/'); }
+    bool isAbsolute() const;
     static const char *typeName(Type type);
     bool isSymLink() const;
     Path followLink(bool *ok = 0) const;
@@ -115,7 +141,10 @@ public:
     static bool isSystem(const char *path);
     bool isHeader() const;
     static bool isHeader(const char *extension);
+
+    /// Only works if the path is absolute
     Path parentDir() const;
+
     Type type() const;
     mode_t mode() const;
     enum ResolveMode {
@@ -180,6 +209,11 @@ public:
 
     /// ';' on windows, ':' on unix
     static const char ENV_PATH_SEPARATOR;
+
+    /**
+     * For windows. Replace backslashes (\) in the path by forward slashes (/).
+     */
+    void replaceBackslashes();
 };
 
 namespace std

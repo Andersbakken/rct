@@ -94,6 +94,7 @@ class CustomOutputter : public CppUnit::CompilerOutputter
 
 int main(int argc, char* argv[])
 {
+    (void) argc; (void) argv;  // unused
     CppUnit::TestRunner runner;
 
     CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();

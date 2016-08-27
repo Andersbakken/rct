@@ -111,7 +111,9 @@ enum LogFlag {
     Append = 0x01,
     DontRotate = 0x02,
     LogStderr = 0x04,
+#ifndef _WIN32
     LogSyslog = 0x08,
+#endif
     LogTimeStamp = 0x10
 };
 RCT_FLAGS_OPERATORS(LogFlag);

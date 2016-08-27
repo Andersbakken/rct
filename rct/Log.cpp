@@ -3,7 +3,10 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <syslog.h>
+
+#ifndef _WIN32
+#  include <syslog.h>
+#endif
 #include <mutex>
 
 #include "Path.h"
@@ -105,6 +108,7 @@ private:
     int mReplaceableLength;
 };
 
+#ifndef _WIN32  // no syslog on windows
 class SyslogOutput : public LogOutput
 {
 public:
@@ -122,6 +126,7 @@ public:
         ::syslog(LOG_NOTICE, "%s", msg);
     }
 };
+#endif
 
 void restartTime()
 {
@@ -264,10 +269,12 @@ bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
         std::shared_ptr<TerminalOutput> out(new TerminalOutput(level));
         out->add();
     }
+#ifndef _WIN32
     if (flags & LogSyslog) {
         std::shared_ptr<SyslogOutput> out(new SyslogOutput(ident, level));
         out->add();
     }
+#endif
     if (!file.isEmpty()) {
         if (!(flags & (Append|DontRotate)) && file.exists()) {
             int i = 0;

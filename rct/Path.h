@@ -112,6 +112,7 @@ public:
      * Create the directory that is represented by this path.
      *
      * @param permissions ignored on windows.
+     * @return true if the directory was created or already existed
      */
     static bool mkdir(const Path &path,
                       MkDirMode mode = Single,

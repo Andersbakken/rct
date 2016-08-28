@@ -10,6 +10,8 @@ class PathTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(testRelativeToAbsPath_windows);
 #endif
 
+    CPPUNIT_TEST(mkdirAndRmdir);
+
     CPPUNIT_TEST_SUITE_END();
 
     public:
@@ -22,6 +24,7 @@ protected:
     void testPathStatusWindows();
     void testRelativeToAbsPath_windows();
 #endif
+    void mkdirAndRmdir();
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(PathTestSuite);

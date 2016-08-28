@@ -127,8 +127,10 @@ void PathTestSuite::mkdirAndRmdir()
     CPPUNIT_ASSERT(Path::mkdir("temp_subdir3/anotherSubDir", Path::Recursive));
 
     // check if dir was created
-    subdir_file = fopen("temp_subdir3/anotherSubdir/file.txt", "w");
+    subdir_file = fopen("temp_subdir3/anotherSubDir/file.txt", "w");
+
     CPPUNIT_ASSERT(subdir_file);
+
     if(subdir_file) fclose(subdir_file);
 
     CPPUNIT_ASSERT(Path::rmdir("temp_subdir3"));

@@ -17,8 +17,6 @@
 #include <utime.h>
 #include <algorithm>
 
-#include <iostream>  // todo: remove
-
 #include "Log.h"
 #include "Rct.h"
 #include "rct/rct-config.h"
@@ -470,10 +468,10 @@ bool Path::rm(const Path &file)
 #ifndef _WIN32
 static inline Path::Type ftsType(uint16_t type)
 {
-    if (type & (FTS_F|FTS_SL|FTS_SLNONE))
-        return Path::File;
-    if (type & FTS_DP) // omitting FTS_D on purpose here
+    if (type == FTS_DP)   // FTS_D ommitted intentionally
         return Path::Directory;
+    if (type == FTS_F || type==FTS_SL || type==FTS_SLNONE)
+        return Path::File;
     return Path::Invalid;
 }
 #endif
@@ -500,24 +498,25 @@ bool Path::rmdir(const Path& dir)
 
 
 #else
-    if (!dir.isDir())
-        return false;
+    if (!dir.isDir()) return false;
+
     // hva slags drittapi er dette?
     char* const dirs[2] = { const_cast<char*>(dir.constData()), 0 };
     FTS* fdir = fts_open(dirs, FTS_NOCHDIR, 0);
-    if (!fdir)
-        return false;
+    if (!fdir) return false;
     FTSENT *node;
-    while ((node = fts_read(fdir))) {
+    bool error = false;
+
+    while (!error && (node = fts_read(fdir))) {
         if (node->fts_level > 0 && node->fts_name[0] == '.') {
             fts_set(fdir, node, FTS_SKIP);
         } else {
             switch (ftsType(node->fts_info)) {
             case File:
-                unlink(node->fts_path);
+                if(unlink(node->fts_path) != 0) error = true;
                 break;
             case Directory:
-                ::rmdir(node->fts_path);
+                if(::rmdir(node->fts_path) != 0) error = true;
                 break;
             default:
                 break;
@@ -525,7 +524,7 @@ bool Path::rmdir(const Path& dir)
         }
     }
     fts_close(fdir);
-    return !::rmdir(dir.constData());
+    return !error;
 #endif
 }
 

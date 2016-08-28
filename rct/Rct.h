@@ -68,7 +68,6 @@ inline bool addTo(Container &container, const Value &value)
 bool readFile(const Path& path, String &data, mode_t *perm = 0 );
 bool readFile(FILE *f, String &data, mode_t *perm = 0);
 bool writeFile(const Path& path, const String& data, int perm = -1);
-void removeDirectory(const Path &path);
 void findExecutablePath(const char *argv0);
 Path executablePath();
 String backtrace(int maxFrames = -1);

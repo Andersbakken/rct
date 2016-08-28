@@ -166,44 +166,6 @@ String shortOptions(const option *longOptions)
     return ret;
 }
 
-void removeDirectory(const Path &path)
-{
-    DIR *d = opendir(path.constData());
-    size_t path_len = path.size();
-    union {
-        char buf[PATH_MAX];
-        dirent dbuf;
-    };
-
-    if (d) {
-        dirent *p;
-
-        while (!readdir_r(d, &dbuf, &p) && p) {
-            /* Skip the names "." and ".." as we don't want to recurse on them. */
-            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
-                continue;
-            }
-
-            const size_t len = path_len + strlen(p->d_name) + 2;
-            StackBuffer<PATH_MAX> buffer(len);
-
-            if (buffer) {
-                struct stat statbuf;
-                snprintf(buffer, len, "%s/%s", path.constData(), p->d_name);
-                if (!stat(buffer, &statbuf)) {
-                    if (S_ISDIR(statbuf.st_mode)) {
-                        removeDirectory(Path(buffer));
-                    } else {
-                        unlink(buffer);
-                    }
-                }
-            }
-        }
-        closedir(d);
-    }
-    rmdir(path.constData());
-}
-
 static Path sExecutablePath;
 Path executablePath()
 {

@@ -31,5 +31,6 @@ target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct)
 add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
 add_executable("Path_tests"
-  ../rct/Path.cpp ../rct/Rct.cpp ../rct/Log.cpp main.cpp PathTestSuite.cpp)
+  ../rct/Path.cpp ../rct/Rct.cpp ../rct/Log.cpp
+  ../rct/WindowsUnicodeConversion.cpp main.cpp PathTestSuite.cpp)
 target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES} Ws2_32)

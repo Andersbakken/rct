@@ -5,6 +5,7 @@
 #  include <direct.h>
 #  include <Windows.h>
 #  include <Shellapi.h>
+#  include "WindowsUnicodeConversion.h"
 #else
 #  include <fts.h>
 #  include <wordexp.h>
@@ -15,6 +16,8 @@
 #include <sys/types.h>
 #include <utime.h>
 #include <algorithm>
+
+#include <iostream>  // todo: remove
 
 #include "Log.h"
 #include "Rct.h"
@@ -411,7 +414,7 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
     errno = 0;
 #ifdef _WIN32
     (void) permissions;   // unused on windows
-    if (!::_mkdir(path.constData()) || errno == EEXIST)
+    if (!::_wmkdir(Utf8To16(path.c_str())) || errno == EEXIST)
 #else
     if (!::mkdir(path.constData(), permissions) || errno == EEXIST || errno == EISDIR)
 #endif
@@ -441,7 +444,8 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
         if (buf[i] == '/') {
             buf[i] = 0;
 #ifdef _WIN32
-            const int r = ::_mkdir(buf);
+            Utf8To16 tmp2(buf);
+            const int r = ::_wmkdir(tmp2);
 #else
             const int r = ::mkdir(buf, permissions);
 #endif
@@ -479,19 +483,21 @@ bool Path::rmdir(const Path& dir)
 #ifdef _WIN32
     // SHFileOperation needs an absolute path.
     Path absDir = Path::resolved(dir, MakeAbsolute);
+    std::wstring pathU16 = Utf8To16(dir.c_str());
 
     // double zero terminate the string. There *should* already be one zero
     // in c_str(), but better to be safe.
-    absDir.append('\0');
-    absDir.append('\0');
+    pathU16.append(2, 0);
 
     // Deletion through SHFileOperation is recursive.
-    SHFILEOPSTRUCT op;
-    memset(&op, 0, sizeof(SHFILEOPSTRUCT));
+    SHFILEOPSTRUCTW op;
+    memset(&op, 0, sizeof(SHFILEOPSTRUCTW));
     op.wFunc = FO_DELETE;
-    op.pFrom = absDir.c_str();
+    op.pFrom = pathU16.c_str();
     op.fFlags = FOF_NO_UI;
-    return (SHFileOperation(&op) == 0);
+    bool ret = (SHFileOperationW(&op) == 0);
+    return ret;
+
 
 #else
     if (!dir.isDir())
@@ -528,32 +534,44 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
     if (!seen.insert(path.resolved())) {
         return;
     }
+
+#ifdef _WIN32
+    _WDIR *d = _wopendir(Utf8To16(path.c_str()));
+    if(!d)
+        return;
+#else
     DIR *d = opendir(path.constData());
     if (!d)
         return;
+#endif
 
     union {
         char buf[PATH_MAX + sizeof(dirent) + 1];
         dirent dbuf;
     };
 
-    dirent *p;
+
     if (!path.endsWith('/'))
         path.append('/');
     const size_t s = path.size();
     path.reserve(s + 128);
     List<String> recurseDirs;
 #ifdef _WIN32
-    while ((p = readdir(d))) {
+    _wdirent *p;
+    while ((p = _wreaddir(d))) {
+        Utf16To8 u8Data(p->d_name);
+        const char *d_name = u8Data;
 #else
+    dirent *p;
     while (!readdir_r(d, &dbuf, &p) && p) {
+        const char *d_name = p->d_name;
 #endif
-        if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, ".."))
+        if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
             continue;
         bool isDir = false;
         path.truncate(s);
-        path.append(p->d_name);
-#if defined(_DIRENT_HAVE_D_TYPE) && defined(_BSD_SOURCE)
+        path.append(d_name);
+#if !defined(_WIN32) && defined(_DIRENT_HAVE_D_TYPE) && defined(_BSD_SOURCE)
         if (p->d_type == DT_DIR) {
             isDir = true;
             path.append('/');
@@ -569,13 +587,17 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
             break;
         case Path::Recurse:
             if (isDir)
-                recurseDirs.append(p->d_name);
+                recurseDirs.append(d_name);
             break;
         case Path::Continue:
             break;
         }
     }
+#ifdef _WIN32
+    _wclosedir(d);
+#else
     closedir(d);
+#endif
     const size_t count = recurseDirs.size();
     for (size_t i=0; i<count; ++i) {
         path.truncate(s);
@@ -738,6 +760,22 @@ const char *Path::typeName(Type type)
         break;
     }
     return "";
+}
+
+struct stat Path::stat(bool *f_ok) const
+{
+    struct stat st;
+#ifdef _WIN32
+    if (::wstat(Utf8To16(c_str()), &st) == -1) {
+#else
+    if (::stat(constData(), &st) == -1) {
+#endif
+        memset(&st, 0, sizeof(st));
+        if (f_ok) *f_ok = false;
+    } else if (f_ok) {
+        *f_ok = true;
+    }
+    return st;
 }
 
 String Path::name() const

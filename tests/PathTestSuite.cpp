@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <stdio.h>
+#include <functional>
 
 #ifdef _WIN32
 #  include <Windows.h>
@@ -27,6 +28,16 @@ public:
     ~CwdChanger() { chdir(oldCwd); }
 private:
     char oldCwd[_MAX_PATH];
+};
+
+template <class F>
+class OnScopeExit
+{
+public:
+    OnScopeExit(const F &ff) : f(ff) {}
+    ~OnScopeExit() {f();}
+private:
+    F f;
 };
 
 void PathTestSuite::testPathConstructionWindows()
@@ -100,8 +111,6 @@ void PathTestSuite::mkdirAndRmdir()
     CPPUNIT_ASSERT(subdir_file);
     if(subdir_file) fclose(subdir_file);
 
-
-
     CPPUNIT_ASSERT(Path::rmdir("temp_subdir"));
 
     // dir should not exist anymore
@@ -145,4 +154,39 @@ void PathTestSuite::mkdirAndRmdir()
 
     // cleanup
     CPPUNIT_ASSERT(Path::rmdir("temp_subdir4"));
+}
+
+
+void PathTestSuite::unicode()
+{
+    static const char unicodePath[] = u8"Äßéמש最終";
+    // we try some funky utf8-stuff
+    Path p(unicodePath);
+    //OnScopeExit<std::function<void()> > deletePath([&]{Path::rmdir(p);});
+
+    CPPUNIT_ASSERT(p.mkdir());
+    CPPUNIT_ASSERT(p.isDir());
+
+    bool changed = false;
+    CPPUNIT_ASSERT(p.resolve(Path::RealPath, Path(), &changed));
+    CPPUNIT_ASSERT(changed);
+
+    Path parent = p + "/..";
+    // check if the file exists
+    bool exists = false;
+
+    parent.visit([&](const Path &f_p) -> Path::VisitResult
+                 {
+                     if(f_p.name() == unicodePath)
+                     {
+                         exists = true;
+                         return Path::Abort;
+                     }
+                     return Path::Continue;
+                 });
+
+    CPPUNIT_ASSERT(exists);
+
+    CPPUNIT_ASSERT(Path::rmdir(p));
+
 }

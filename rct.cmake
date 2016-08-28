@@ -125,6 +125,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsUnicodeConversion.cpp
   ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c)
 
 if (HAVE_INOTIFY EQUAL 1)

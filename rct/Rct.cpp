@@ -184,11 +184,6 @@ String shortOptions(const option *longOptions)
     return ret;
 }
 
-void removeDirectory(const Path &path)
-{
-    Path::rmdir(path);
-}
-
 static Path sExecutablePath;
 Path executablePath()
 {

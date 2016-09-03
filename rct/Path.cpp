@@ -1,4 +1,5 @@
 #include "Path.h"
+#include "StackBuffer.h"
 
 #include <dirent.h>
 #ifdef _WIN32
@@ -7,7 +8,6 @@
 #  include <Shellapi.h>
 #  include "WindowsUnicodeConversion.h"
 #else
-#  include <fts.h>
 #  include <wordexp.h>
 #endif
 #include <limits.h>
@@ -465,18 +465,7 @@ bool Path::rm(const Path &file)
     return !unlink(file.constData());
 }
 
-#ifndef _WIN32
-static inline Path::Type ftsType(uint16_t type)
-{
-    if (type == FTS_DP)   // FTS_D ommitted intentionally
-        return Path::Directory;
-    if (type == FTS_F || type==FTS_SL || type==FTS_SLNONE)
-        return Path::File;
-    return Path::Invalid;
-}
-#endif
-
-bool Path::rmdir(const Path& dir)
+bool Path::rmdir(const Path &dir)
 {
 #ifdef _WIN32
     // SHFileOperation needs an absolute path.
@@ -496,35 +485,41 @@ bool Path::rmdir(const Path& dir)
     bool ret = (SHFileOperationW(&op) == 0);
     return ret;
 
-
 #else
-    if (!dir.isDir()) return false;
+    DIR *d = opendir(dir.constData());
+    size_t path_len = dir.size();
+    union {
+        char buf[PATH_MAX];
+        dirent dbuf;
+    };
 
-    // hva slags drittapi er dette?
-    char* const dirs[2] = { const_cast<char*>(dir.constData()), 0 };
-    FTS* fdir = fts_open(dirs, FTS_NOCHDIR, 0);
-    if (!fdir) return false;
-    FTSENT *node;
-    bool error = false;
+    if (d) {
+        dirent *p;
 
-    while (!error && (node = fts_read(fdir))) {
-        if (node->fts_level > 0 && node->fts_name[0] == '.') {
-            fts_set(fdir, node, FTS_SKIP);
-        } else {
-            switch (ftsType(node->fts_info)) {
-            case File:
-                if(unlink(node->fts_path) != 0) error = true;
-                break;
-            case Directory:
-                if(::rmdir(node->fts_path) != 0) error = true;
-                break;
-            default:
-                break;
+        while (!readdir_r(d, &dbuf, &p) && p) {
+            /* Skip the names "." and ".." as we don't want to recurse on them. */
+            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
+                continue;
+            }
+
+            const size_t len = path_len + strlen(p->d_name) + 2;
+            StackBuffer<PATH_MAX> buffer(len);
+
+            if (buffer) {
+                struct stat statbuf;
+                snprintf(buffer, len, "%s/%s", dir.constData(), p->d_name);
+                if (!::stat(buffer, &statbuf)) {
+                    if (S_ISDIR(statbuf.st_mode)) {
+                        Path::rmdir(Path(buffer));
+                    } else {
+                        unlink(buffer);
+                    }
+                }
             }
         }
+        closedir(d);
     }
-    fts_close(fdir);
-    return !error;
+    return ::rmdir(dir.constData()) == 0;
 #endif
 }
 
@@ -671,9 +666,9 @@ String Path::readAll(size_t max) const
     return ret;
 }
 
-bool Path::write(const Path& path, const String& data, WriteMode mode)
+bool Path::write(const Path &path, const String &data, WriteMode mode)
 {
-    FILE* f = fopen(path.constData(), mode == Overwrite ? "w" : "a");
+    FILE *f = fopen(path.constData(), mode == Overwrite ? "w" : "a");
     if (!f)
         return false;
     const size_t ret = fwrite(data.constData(), sizeof(char), data.size(), f);
@@ -681,7 +676,7 @@ bool Path::write(const Path& path, const String& data, WriteMode mode)
     return ret == data.size();
 }
 
-bool Path::write(const String& data, WriteMode mode) const
+bool Path::write(const String &data, WriteMode mode) const
 {
     return Path::write(*this, data, mode);
 }

@@ -32,8 +32,18 @@ add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
 ##################################################################
 
-set(WIN_RCT_SOURCES ../rct/Path.cpp ../rct/Rct.cpp ../rct/Log.cpp
-                    ../rct/WindowsUnicodeConversion.cpp ../rct/Buffer.cpp)
+set(WIN_RCT_SOURCES Path.cpp Rct.cpp Log.cpp WindowsUnicodeConversion.cpp
+  Buffer.cpp Config.cpp Value.cpp Date.cpp)
+
+foreach(l IN LISTS WIN_RCT_SOURCES)
+  list(APPEND WIN_RCT_SOURCES_PREPENDED ../rct/${l})
+endforeach()
+set(WIN_RCT_SOURCES ${WIN_RCT_SOURCES_PREPENDED})
+
+list(APPEND WIN_RCT_SOURCES ../cJSON/cJSON.c)
+
+add_definitions(-D_CRTIMP= )
+
 find_package(OpenSSL)
 if (OPENSSL_FOUND)
     add_definitions(-DRCT_HAVE_OPENSSL)
@@ -45,4 +55,4 @@ endif ()
 
 add_executable("Path_tests" main.cpp PathTestSuite.cpp ${WIN_RCT_SOURCES})
 target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES}
-  ${OPENSSL_LIBRARIES} Ws2_32)
+  ${OPENSSL_LIBRARIES} Ws2_32 msvcr100)

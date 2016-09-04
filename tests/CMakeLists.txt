@@ -27,10 +27,22 @@ link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR}
 set(BINARY_NAME "rct_tests")
 add_executable(${BINARY_NAME} main.cpp DateTestSuite.cpp PathTestSuite.cpp)
 target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct)
-
 add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
-add_executable("Path_tests"
-  ../rct/Path.cpp ../rct/Rct.cpp ../rct/Log.cpp
-  ../rct/WindowsUnicodeConversion.cpp main.cpp PathTestSuite.cpp)
-target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES} Ws2_32)
+
+##################################################################
+
+set(WIN_RCT_SOURCES ../rct/Path.cpp ../rct/Rct.cpp ../rct/Log.cpp
+                    ../rct/WindowsUnicodeConversion.cpp ../rct/Buffer.cpp)
+find_package(OpenSSL)
+if (OPENSSL_FOUND)
+    add_definitions(-DRCT_HAVE_OPENSSL)
+    list(APPEND WIN_RCT_SOURCES ../rct/AES256CBC.cpp ../rct/SHA256.cpp)
+    include_directories(${OPENSSL_INCLUDE_DIR})
+else ()
+    message("OPENSSL can't be found. Win test conf'd without openssl support")
+endif ()
+
+add_executable("Path_tests" main.cpp PathTestSuite.cpp ${WIN_RCT_SOURCES})
+target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES}
+  ${OPENSSL_LIBRARIES} Ws2_32)

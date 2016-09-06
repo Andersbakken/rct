@@ -7,7 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
+#ifdef _WIN32
+#  include <Winsock2.h>
+#else
+#  include <sys/socket.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
@@ -26,7 +30,7 @@
 #if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
 #  include "Log.h"
 #  include "StopWatch.h"
-#define CALLBACK(op)                                                \
+#  define RCT_CALLBACK(op)                                          \
     do {                                                            \
         StopWatch sw;                                               \
         op;                                                         \
@@ -35,7 +39,7 @@
                       << "ms\n" << Rct::backtrace();                \
     } while (0)
 #else
-#define CALLBACK(op) op
+#define RCT_CALLBACK(op) op
 #endif
 
 // EPOLL compitability hacks.
@@ -73,6 +77,7 @@ static EventLoop::WeakPtr& localEventLoop()
     return *ptr;
 }
 
+#ifndef _WIN32
 static void signalHandler(int /*sig*/)
 {
     char b = 'q';
@@ -81,6 +86,7 @@ static void signalHandler(int /*sig*/)
     if (pipe != -1)
         eintrwrap(w, ::write(pipe, &b, 1));
 }
+#endif
 
 EventLoop::EventLoop()
     :
@@ -93,7 +99,9 @@ EventLoop::EventLoop()
             atexit(&EventLoop::cleanupLocalEventLoop);
             mainEventPipe = -1;
             pthread_key_create(&eventLoopKey, 0);
+#ifndef _WIN32
             signal(SIGPIPE, SIG_IGN);
+#endif
         });
 }
 
@@ -117,6 +125,8 @@ void EventLoop::init(unsigned int flags)
     flgs = flags;
 
     threadId = std::this_thread::get_id();
+
+#ifndef _WIN32
     int e = ::pipe(eventPipe);
     if (e == -1) {
         eventPipe[0] = -1;
@@ -128,6 +138,7 @@ void EventLoop::init(unsigned int flags)
         cleanup();
         return;
     }
+#endif  // not _WIN32
 
 #if defined(HAVE_EPOLL)
     pollFd = epoll_create1(0);
@@ -160,6 +171,8 @@ void EventLoop::init(unsigned int flags)
     ev.filter = EVFILT_READ;
     eintrwrap(e, kevent(pollFd, &ev, 1, 0, 0, 0));
 #endif
+
+#ifndef _WIN32
     if (e == -1) {
         cleanup();
         return;
@@ -187,6 +200,7 @@ void EventLoop::init(unsigned int flags)
             }
         }
     }
+#endif
 
     std::shared_ptr<EventLoop> that = shared_from_this();
     localEventLoop() = that;
@@ -213,6 +227,7 @@ void EventLoop::cleanup()
     timersByTime.clear();
     nextTimerId = 0;
 
+#ifndef _WIN32
     if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
         struct sigaction act;
         memset(&act, 0, sizeof act);
@@ -226,6 +241,7 @@ void EventLoop::cleanup()
             ::sigaction(SIGTERM, &act, 0);
         }
     }
+#endif
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     if (pollFd != -1)
@@ -418,7 +434,7 @@ inline bool EventLoop::sendTimers()
 
             // fire
             locker.unlock();
-            CALLBACK(func(currentId));
+            RCT_CALLBACK(func(currentId));
             locker.lock();
         } else {
             // silly std::set/multiset doesn't have a way of forcing a resort.
@@ -442,7 +458,7 @@ inline bool EventLoop::sendTimers()
 
             // fire
             locker.unlock();
-            CALLBACK(cb(currentId));
+            RCT_CALLBACK(cb(currentId));
             locker.lock();
         }
     }
@@ -691,7 +707,7 @@ unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
     if (socket != sockets.end()) {
         const auto callback = socket->second.second;
         locker.unlock();
-        CALLBACK(callback(fd, mode));
+        RCT_CALLBACK(callback(fd, mode));
         return mode;
     }
     return 0;
@@ -705,7 +721,9 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 #if defined(HAVE_SELECT)
     std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > local;
     {
-#warning this is not optimal
+#ifndef _WIN32
+#  warning this is not optimal
+#endif
         std::lock_guard<std::mutex> locker(mutex);
         local = sockets;
     }

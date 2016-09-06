@@ -1,16 +1,21 @@
 #include "SocketClient.h"
 
-#include <arpa/inet.h>
+#ifdef _WIN32
+#  include <Winsock2.h>
+#  include <Ws2tcpip.h>
+#else
+#  include <arpa/inet.h>
+#  include <netdb.h>
+#  include <netinet/in.h>
+#  include <sys/select.h>
+#  include <sys/socket.h>
+#  include <sys/un.h>
+#endif
 #include <assert.h>
 #include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/select.h>
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 #include "EventLoop.h"
@@ -50,11 +55,13 @@ SocketClient::SocketClient(int f, unsigned int mode)
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->registerSocket(fd, EventLoop::SocketRead,
                                  std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+#ifndef _WIN32
             if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
                 signalError(shared_from_this(), InitializeError);
                 close();
                 return;
             }
+#endif
         }
     }
 }
@@ -228,6 +235,7 @@ bool SocketClient::connect(const String& host, uint16_t port)
     return true;
 }
 
+#ifndef _WIN32
 bool SocketClient::connect(const String& path)
 {
     if (!init(Unix))
@@ -265,6 +273,7 @@ bool SocketClient::connect(const String& path)
     }
     return true;
 }
+#endif
 
 bool SocketClient::bind(uint16_t port)
 {
@@ -290,8 +299,16 @@ bool SocketClient::bind(uint16_t port)
         addr4.sin_port = htons(port);
     }
 
+#ifdef _WIN32
+    int e;
+    bool in = true;
+    const char *pin = reinterpret_cast<const char*>(&in);
+#else
     int e = 1;
-    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &e, sizeof(int));
+    int in = e;
+    int *pin = &in;
+#endif
+    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, pin, sizeof(in));
     if (e == -1) {
         SocketClient::SharedPtr udpSocket = shared_from_this();
         signalError(udpSocket, BindError);
@@ -313,35 +330,39 @@ bool SocketClient::bind(uint16_t port)
 bool SocketClient::addMembership(const String& ip)
 {
     struct ip_mreq mreq;
-    if (inet_aton(ip.constData(), &mreq.imr_multiaddr) == 0)
+    if (inet_pton(AF_INET, ip.constData(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-    ::setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
+    ::setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
     return true;
 }
 
 bool SocketClient::dropMembership(const String& ip)
 {
     struct ip_mreq mreq;
-    if (inet_aton(ip.constData(), &mreq.imr_multiaddr) == 0)
+    if (inet_pton(AF_INET, ip.constData(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-    ::setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
+    ::setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
     return true;
 }
 
 void SocketClient::setMulticastLoop(bool loop)
 {
-    const unsigned char ena = loop ? 1 : 0;
+    const char ena = loop ? 1 : 0;
     ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, sizeof(ena));
 }
 
 void SocketClient::setMulticastTTL(unsigned char ttl)
 {
-    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, reinterpret_cast<char*>(&ttl), sizeof(ttl));
 }
 
+#ifdef _WIN32
+typedef int (*GetNameFunc)(SOCKET, sockaddr*, socklen_t*);
+#else
 typedef int (*GetNameFunc)(int, sockaddr*, socklen_t*);
+#endif
 static inline String getNameHelper(int fd, GetNameFunc func, uint16_t* port)
 {
     union {
@@ -383,8 +404,14 @@ String SocketClient::sockName(uint16_t* port) const
     return getNameHelper(fd, ::getsockname, port);
 }
 
-bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int size)
+bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* f_data, unsigned int size)
 {
+#ifdef _WIN32
+    const char *data = reinterpret_cast<const char*>(f_data);
+#else
+    const unsigned char *data = f_data;
+#endif
+
     if (size) {
         mWrites.append(size);
     }
@@ -412,7 +439,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
             while (total < writeBufferSize) {
                 assert(writeBuffer.size() > total);
                 if (resolver.addr) {
-                    eintrwrap(e, ::sendto(fd, writeBuffer.data() + total + writeOffset, writeBufferSize - total,
+                    eintrwrap(e, ::sendto(fd, reinterpret_cast<const char*>(writeBuffer.data()) + total + writeOffset, writeBufferSize - total,
                                           sendFlags, resolver.addr, resolver.size));
                 } else {
                     eintrwrap(e, ::write(fd, writeBuffer.data() + total + writeOffset, writeBufferSize - total));
@@ -540,10 +567,24 @@ static String addrToString(const sockaddr* addr, bool IPv6)
     String ip(INET6_ADDRSTRLEN, '\0');
     if (IPv6) {
         const sockaddr_in6* addr6 = reinterpret_cast<const sockaddr_in6*>(addr);
-        inet_ntop(AF_INET6, &addr6->sin6_addr, &ip[0], ip.size());
+#ifdef _WIN32
+        // stupid windows declares inet_ntop wrong: 3rd argument is PVOID,
+        // which is not const -- we have to cast the const away :(
+        PVOID input = const_cast<PVOID>(static_cast<const void*>(&addr6->sin6_addr));
+#else
+        const void *input = &addr6->sin6_addr;
+#endif
+        inet_ntop(AF_INET6, input, &ip[0], ip.size());
     } else {
         const sockaddr_in* addr4 = reinterpret_cast<const sockaddr_in*>(addr);
-        inet_ntop(AF_INET, &addr4->sin_addr, &ip[0], ip.size());
+#ifdef _WIN32
+        // stupid windows declares inet_ntop wrong: 3rd argument is PVOID,
+        // which is not const -- we have to cast the const away :(
+        PVOID input = const_cast<PVOID>(static_cast<const void*>(&addr4->sin_addr));
+#else
+        const void *input = &addr4->sin_addr;
+#endif
+        inet_ntop(AF_INET, input, &ip[0], ip.size());
     }
     ip.resize(strlen(ip.constData()));
     return ip;
@@ -603,10 +644,10 @@ void SocketClient::socketCallback(int f, int mode)
             if (socketMode & Udp) {
                 if (isIPv6) {
                     fromLen = sizeof(fromAddr6);
-                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, &fromAddr, &fromLen));
+                    eintrwrap(e, ::recvfrom(fd, reinterpret_cast<char*>(readBuffer.end()), rem, 0, &fromAddr, &fromLen));
                 } else {
                     fromLen = sizeof(fromAddr4);
-                    eintrwrap(e, ::recvfrom(fd, readBuffer.end(), rem, 0, &fromAddr, &fromLen));
+                    eintrwrap(e, ::recvfrom(fd, reinterpret_cast<char*>(readBuffer.end()), rem, 0, &fromAddr, &fromLen));
                 }
             } else {
                 eintrwrap(e, ::read(fd, readBuffer.end(), rem));
@@ -653,7 +694,9 @@ void SocketClient::socketCallback(int f, int mode)
         if (socketState == Connecting) {
             int err;
             socklen_t size = sizeof(err);
-            int e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
+
+            int e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &size);
+
             if (e == -1) {
                 // bad
                 signalError(socketPtr, ConnectError);
@@ -706,14 +749,17 @@ bool SocketClient::init(unsigned int mode)
 #ifdef HAVE_CLOEXEC
     setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
+
     if (!blocking) {
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
             loop->registerSocket(fd, EventLoop::SocketRead,
                                  std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
+#ifndef _WIN32   // no O_NONBLOCK on windows
             if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
                 close();
                 return false;
             }
+#endif
         }
     }
 
@@ -723,6 +769,10 @@ bool SocketClient::init(unsigned int mode)
 
 bool SocketClient::setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode)
 {
+#ifdef _WIN32
+    (void) fd; (void) flag; (void) getcmd; (void) setcmd; (void) mode;  // unused
+    return false;  // no fcntl() on windows
+#else
     int flg = 0, e;
     if (mode == FlagAppend) {
         eintrwrap(e, ::fcntl(fd, getcmd, 0));
@@ -733,6 +783,7 @@ bool SocketClient::setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode m
     flg |= flag;
     eintrwrap(e, ::fcntl(fd, setcmd, flg));
     return e != -1;
+#endif
 }
 
 double SocketClient::mbpsWritten() const

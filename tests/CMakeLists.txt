@@ -33,7 +33,8 @@ add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 ##################################################################
 
 set(WIN_RCT_SOURCES Path.cpp Rct.cpp Log.cpp WindowsUnicodeConversion.cpp
-  Buffer.cpp Config.cpp Value.cpp Date.cpp)
+  Buffer.cpp Config.cpp Value.cpp Date.cpp Connection.cpp EventLoop.cpp
+  SocketClient.cpp Message.cpp String.cpp)
 
 foreach(l IN LISTS WIN_RCT_SOURCES)
   list(APPEND WIN_RCT_SOURCES_PREPENDED ../rct/${l})

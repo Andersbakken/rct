@@ -20,7 +20,11 @@
 #  include <sys/time.h>
 #  include <sys/types.h>
 #elif defined(HAVE_SELECT)
-#  include <sys/select.h>
+#  ifdef _WIN32
+#    include <Winsock2.h>
+#  else
+#    include <sys/select.h>
+#  endif
 #endif
 
 class Event

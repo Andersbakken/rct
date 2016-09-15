@@ -741,7 +741,7 @@ void Process::handleInput(int fd)
 void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal)
 {
     //printf("Process::handleOutput %d\n", fd);
-    enum { BufSize = 1024, MaxSize = (1024 * 1024 * 16) };
+    enum { BufSize = 1024, MaxSize = (1024 * 1024 * 256) };
     char buf[BufSize];
     int total = 0;
     for (;;) {

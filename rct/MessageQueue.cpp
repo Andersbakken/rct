@@ -4,12 +4,16 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
+#ifdef _WIN32
+
+#else
+#  include <sys/ipc.h>
+#  include <sys/msg.h>
+#endif
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <mutex>
-
 #include "EventLoop.h"
 #include "Log.h"
 #include "Path.h"

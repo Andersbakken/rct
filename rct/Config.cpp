@@ -132,7 +132,12 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
                 opt->value = vals;
                 if (opt->listCount && vals.size() != opt->listCount) {
                     ok = false;
+#ifdef _WIN32
+                    error = String::format<128>("Too few values specified for %s. Wanted %Iu, got %Iu",
+#else
                     error = String::format<128>("Too few values specified for %s. Wanted %zu, got %zu",
+#endif
+
                                                 opt->name, opt->listCount, vals.size());
 
                     goto done;

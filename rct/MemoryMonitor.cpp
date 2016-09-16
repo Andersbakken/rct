@@ -118,6 +118,8 @@ uint64_t MemoryMonitor::usage()
     return usageFreeBSD();
 #elif defined(OS_Darwin)
     return usageOSX();
+#elif defined(_WIN32)
+    return 0;  // let's hope no one notices...
 #else
 #error "MemoryMonitor does not support this system"
 #endif

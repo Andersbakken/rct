@@ -1,5 +1,7 @@
 #include "Semaphore.h"
-
+#ifdef _WIN32
+// todo: Implement on Windows
+#else
 #include <errno.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -62,3 +64,4 @@ void Semaphore::op(short num)
     if (ret == -1 && errno == EIDRM)
         mSem = -1;
 }
+#endif

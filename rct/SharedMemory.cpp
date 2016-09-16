@@ -1,5 +1,7 @@
+#ifdef _WIN32
+// todo: implement on windows
+#else
 #include "SharedMemory.h"
-
 #include <assert.h>
 #include <errno.h>
 #include <sys/ipc.h>
@@ -98,3 +100,4 @@ void SharedMemory::cleanup()
     if (mShm != -1 && mOwner)
         shmctl(mShm, IPC_RMID, 0);
 }
+#endif

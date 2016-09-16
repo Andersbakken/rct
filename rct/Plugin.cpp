@@ -1,5 +1,8 @@
 #include "Plugin.h"
 
+#ifdef _WIN32
+// TODO: Imlement on windows
+#else
 #include <dlfcn.h>
 
 namespace Rct {
@@ -28,3 +31,5 @@ char* pluginError()
 }
 
 } // namespace RctPlugin
+
+#endif

@@ -69,3 +69,4 @@ target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES}
 ###############################################################
 
 add_executable("ChildProcess" ChildProcess.cpp)
+target_link_libraries("ChildProcess" pthread)

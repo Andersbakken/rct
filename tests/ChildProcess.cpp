@@ -6,8 +6,9 @@
  * - stdout <string> : Write <string> to stdout
  * - stderr <string> : Write <string> to stderr
  * - exit <retcode>  : Exit, returning <retcode>
- * - getCwd          : Write the current directory to stdout.
- * - getEnv          : Write the environment to stdout.
+ * - getCwd          : Write the current directory to stdout, followed by
+ *                     a single \n.
+ * - getEnv          : Write the environment to stdout. Format below.
  *
  * Malformed udp packages are ignored.
  *
@@ -15,6 +16,17 @@
  *
  * Additionally, everything that is read from stdin will be sent
  * via UDP (with a slight, configurable delay).
+ *
+ * Output format for getEnv: Because environment variables may contain
+ * newlines, the \n character is not suitable to delimit the environment
+ * list's entries. Rather, each entry is followed by a single binary zero,
+ * followed by a \n char. Additionally, the end of the list is signalled
+ * by a single entry containing only a binary zero and a \n char, like so:
+ * @code
+ * <key1>=<value1>\0\n
+ * <key2>=<value2>\0\n
+ * \0\n
+ * @endcode
  */
 
 #include <stdint.h>
@@ -33,6 +45,8 @@ static const int      stdinDelay_ms = 1000;
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
+#include <mutex>
+#include <thread>
 
 #ifdef _WIN32
 #  include <Windows.h>
@@ -44,6 +58,8 @@ static const int      stdinDelay_ms = 1000;
 #  include <sys/types.h>
 #  include <sys/socket.h>
 #  include <netinet/ip.h>
+#  include <linux/limits.h>
+#  include <unistd.h>
    typedef int sock_t;
    typedef const void *optval_p;
    typedef struct timeval timeout_t;
@@ -59,9 +75,39 @@ static const int      stdinDelay_ms = 1000;
                   << ", errno="  << errno << std::endl; \
     }
 
-void onRecvUdp(void *buf, ssize_t len);
+void onRecvUdp(void *buf, ssize_t len, char **envp);
 
-int main()
+class StdinReader
+{
+public:
+    void operator()();
+    std::string getData();
+private:
+    std::mutex m_mutex;
+    std::string m_data;
+};
+
+void StdinReader::operator()()
+{
+    for(;;)
+    {
+        char c;
+        std::cin.get(c);
+
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_data.push_back(c);
+    }
+}
+
+std::string StdinReader::getData()
+{
+    std::string ret;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    ret.swap(m_data);
+    return ret;
+}
+
+int main(int, char *[], char *env[])
 {
     int res;
     sock_t listenSock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -101,6 +147,9 @@ int main()
     sendAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     sendAddr.sin_port = htons(sendPort);
 
+    StdinReader in;
+    std::thread inThread(std::ref(in));
+
     for(;;)   // endless loop
     {
         sockaddr_in clientAddr;
@@ -127,25 +176,23 @@ int main()
 
         if(recvSize > 0)
         {
-            onRecvUdp(buf, recvSize);
+            onRecvUdp(buf, recvSize, env);
         }
 
-        // send stdin data via udp (reuse buf)
-        // TODO: Doesn't work as expected. Need an extra thread for this.
-        recvSize = std::cin.readsome(buf, BUFFER_SIZE);
-
+        std::string fromStdin = in.getData();
+        recvSize = fromStdin.size();
         if(recvSize > 0)
         {
             std::cout << "read " << recvSize << " from stdin\n";
-            res = sendto(sendSock, buf, recvSize, 0, (sockaddr*)&sendAddr,
-                         sizeof(sendAddr));
+            res = sendto(sendSock, fromStdin.data(), recvSize, 0,
+                         (sockaddr*)&sendAddr, sizeof(sendAddr));
 
             CHECK_RETURN(res != recvSize, "sendto()");
         }
     }
 }
 
-void onRecvUdp(void *f_buf, ssize_t len)
+void onRecvUdp(void *f_buf, ssize_t len, char **envp)
 {
     std::string buf((char*)f_buf, len);
 
@@ -158,12 +205,29 @@ void onRecvUdp(void *f_buf, ssize_t len)
     }
     else if(buf.size() >= 8 && buf.substr(0, 7) == "stdout ")
     {
-        std::cout << buf.substr(7, std::string::npos);
+        std::cout << buf.substr(7, std::string::npos) << std::flush;
         return;
     }
-    else if(buf.size() >= 8 && buf.substr(0,7) == "stderr")
+    else if(buf.size() >= 8 && buf.substr(0,7) == "stderr ")
     {
-        std::cerr << buf.substr(7, std::string::npos);
+        std::cerr << buf.substr(7, std::string::npos) << std::flush;
         return;
+    }
+    else if(buf.size() >= 6 && buf.substr(0,6) == "getCwd")
+    {
+        /// FIXME this is actually wrong.
+        /// See http://tinyurl.com/n6kp7fe (archived: http://archive.is/HgFr4)
+        char buf[PATH_MAX];
+        char *pwd = getcwd(buf, sizeof(buf));
+        std::cout << (pwd ? pwd : "Can't get pwd") << std::endl;
+    }
+    else if(buf.size() >= 6 && buf.substr(0, 6) == "getEnv")
+    {
+        while(*envp)
+        {
+            std::cout << *envp << '\0' << '\n';
+            envp++;
+        }
+        std::cout << '\0' << std::endl;
     }
 }

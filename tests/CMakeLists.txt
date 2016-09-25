@@ -25,7 +25,9 @@ endif ()
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
 set(BINARY_NAME "rct_tests")
-add_executable(${BINARY_NAME} main.cpp DateTestSuite.cpp PathTestSuite.cpp)
+add_executable(${BINARY_NAME}
+  main.cpp
+  DateTestSuite.cpp PathTestSuite.cpp ProcessTestSuite.cpp)
 target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct)
 add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
@@ -62,3 +64,8 @@ endif ()
 add_executable("Path_tests" main.cpp PathTestSuite.cpp ${WIN_RCT_SOURCES})
 target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES}
   ${OPENSSL_LIBRARIES} Ws2_32 msvcr100)
+
+
+###############################################################
+
+add_executable("ChildProcess" ChildProcess.cpp)

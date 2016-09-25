@@ -291,6 +291,7 @@ void Process::setCwd(const Path &cwd)
 
 Path Process::findCommand(const String &command, const char *path)
 {
+    /// @todo use Path::isAbsolute() and check if the file actually exists
     if (command.isEmpty() || command.at(0) == '/')
         return command;
 

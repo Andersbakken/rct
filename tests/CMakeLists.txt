@@ -28,7 +28,7 @@ set(BINARY_NAME "rct_tests")
 add_executable(${BINARY_NAME}
   main.cpp
   DateTestSuite.cpp PathTestSuite.cpp ProcessTestSuite.cpp)
-target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct)
+target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct pthread)
 add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
 

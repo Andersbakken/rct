@@ -12,6 +12,8 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
         void setUp();
         void tearDown();
 
+    static const int recvTimeout_ms = 100;
+
 protected:
     // start a process and examine its return code
     void returnCode();

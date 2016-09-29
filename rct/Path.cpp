@@ -13,6 +13,7 @@
 #include "Rct.h"
 #include "rct/rct-config.h"
 
+bool Path::sRealPathEnabled = true;
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const
 {
@@ -180,6 +181,8 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 {
     if (changed)
         *changed = false;
+    if (isEmpty())
+        return false;
     if (startsWith('~')) {
         wordexp_t exp_result;
         wordexp(constData(), &exp_result, 0);
@@ -188,13 +191,15 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     }
     if (*this == ".")
         clear();
-    if (mode == MakeAbsolute) {
+    if (mode == MakeAbsolute || !sRealPathEnabled) {
         if (isAbsolute())
             return true;
-        const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
+        Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
         if (copy.exists()) {
             if (changed)
                 *changed = true;
+            if (mode == RealPath)
+                copy.canonicalize();
             operator=(copy);
             return true;
         }

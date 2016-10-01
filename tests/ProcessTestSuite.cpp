@@ -5,8 +5,6 @@
 #include <mutex>
 #include "UdpIncludes.h"
 
-sock_t listenSock, sendSock;
-
 void ProcessTestSuite::setUp()
 {
     int res;
@@ -41,7 +39,7 @@ void ProcessTestSuite::setUp()
     CHECK_RETURN(res < 0, "bind");
 }
 
-static std::string recv()
+std::string ProcessTestSuite::udp_recv()
 {
     static const size_t BUFFER_SIZE = 80;
     char buf[BUFFER_SIZE];
@@ -58,7 +56,7 @@ static std::string recv()
     return ret;
 }
 
-static void send(const std::string &data)
+void ProcessTestSuite::udp_send(const std::string &data)
 {
     sockaddr_in sendAddr;
     std::memset(&sendAddr, 0, sizeof(sendAddr));
@@ -78,17 +76,173 @@ void ProcessTestSuite::tearDown()
     close(sendSock);
 }
 
+void ProcessTestSuite::realSleep(int ms)
+{
+#ifdef _WIN32
+    // TODO
+#else
+    timespec s;
+    s.tv_sec = ms/1000;
+    s.tv_nsec = (ms%1000) * 1000 * 1000;
+
+    while(nanosleep(&s, &s) == -1 && errno == EINTR);
+#endif
+}
+
 void ProcessTestSuite::returnCode()
 {
-    // tell child process to exit with code 12 in 1 second from now
-    std::thread t([](){sleep(1); send("exit 12");});
+    // tell child process to exit with code 12 in 100 ms from now
+    std::thread t([this](){realSleep(100); udp_send("exit 12");});
 
     // start process
     Process p;
     p.exec("ChildProcess");
 
     t.join();
+    realSleep(100);
 
     // check exit code
     CPPUNIT_ASSERT(p.returnCode() == 12);
+}
+
+void ProcessTestSuite::startAsync()
+{
+    Process p;
+    p.start("ChildProcess");
+
+    CPPUNIT_ASSERT(!p.isFinished());
+
+    realSleep(100);
+    CPPUNIT_ASSERT(!p.isFinished());
+    udp_send("exit 1");
+    realSleep(100);
+
+    CPPUNIT_ASSERT(p.isFinished());
+    CPPUNIT_ASSERT(p.returnCode() == 1);
+}
+
+void ProcessTestSuite::readFromStdout()
+{
+    Process p;
+    std::vector<String> dataReadFromStdout;
+
+    // execute ChildProcess synchronously, but in another thread, so
+    // that we can monitor its stdout in the main thread.
+    // Note: Calling ChildProcess asynchronously with Process::start()
+    // and polling for stdout does not work because an asynchronous
+    // Process requires a running EventLoop.
+    std::thread t([&](){p.exec("ChildProcess");});
+
+    realSleep(100);
+    CPPUNIT_ASSERT(!p.isFinished());
+    dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
+    udp_send("stdout This is a test");
+    realSleep(100);
+    dataReadFromStdout.push_back(p.readAllStdOut());  // should be "This is a test"
+    dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
+    realSleep(100);
+    dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
+    udp_send("exit 0");
+    realSleep(100);
+    dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
+
+    CPPUNIT_ASSERT(p.isFinished());
+
+    // need to do the test *after* ChildProcess terminates, because
+    // if the check fails, we exit this scope, destroying the Process object
+    // before ChildProcess exits.
+
+    CPPUNIT_ASSERT(dataReadFromStdout[0].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStdout[1] == "This is a test");
+    CPPUNIT_ASSERT(dataReadFromStdout[2].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStdout[3].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStdout[4].isEmpty());
+    t.join();
+}
+
+void ProcessTestSuite::readFromStderr()
+{
+    Process p;
+    std::vector<String> dataReadFromStderr;
+
+    // execute ChildProcess synchronously, but in another thread, so
+    // that we can monitor its stdout in the main thread.
+    // Note: Calling ChildProcess asynchronously with Process::start()
+    // and polling for stdout does not work because an asynchronous
+    // Process requires a running EventLoop.
+    std::thread t([&](){p.exec("ChildProcess");});
+
+    realSleep(100);
+    CPPUNIT_ASSERT(!p.isFinished());
+    dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
+    udp_send("stderr This is a stderr test");
+    realSleep(100);
+    dataReadFromStderr.push_back(p.readAllStdErr());  // should be "This is a stderr test"
+    dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
+    realSleep(100);
+    dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
+    udp_send("exit 0");
+    realSleep(100);
+    dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
+
+    CPPUNIT_ASSERT(p.isFinished());
+
+    // need to do the test *after* ChildProcess terminates, because
+    // if the check fails, we exit this scope, destroying the Process object
+    // before ChildProcess exits.
+
+    CPPUNIT_ASSERT(dataReadFromStderr[0].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStderr[1] == "This is a stderr test");
+    CPPUNIT_ASSERT(dataReadFromStderr[2].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStderr[3].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStderr[4].isEmpty());
+    t.join();
+}
+
+void ProcessTestSuite::signals()
+{
+    EventLoop::SharedPtr loop(new EventLoop);
+    loop->init(EventLoop::MainEventLoop);
+
+    Process p;
+    bool finishedCalled = false;
+    bool wrongProcessObjPassed = false;
+    std::string stdoutData, stderrData;
+
+    p.readyReadStdOut().connect([&](Process* pp)
+                                {
+                                    if(pp != &p) wrongProcessObjPassed = true;
+                                    stdoutData.append(pp->readAllStdOut().c_str());
+                                });
+
+    p.readyReadStdErr().connect([&](Process* pp)
+                                {
+                                    if(pp != &p) wrongProcessObjPassed = true;
+                                    stderrData.append(pp->readAllStdErr().c_str());
+                                });
+
+    p.finished().connect([&](Process* pp)
+                         {
+                             if(pp != &p) wrongProcessObjPassed = true;
+                             finishedCalled = true;
+                         });
+
+    p.start("ChildProcess");  // start asynchronously
+
+    std::thread t([this]()
+        {
+            realSleep(100);
+            udp_send("stdout Hello world");
+            udp_send("stderr Error world");
+            realSleep(100);
+            udp_send("exit 0");
+        });
+
+    loop->exec(300);
+    t.join();
+
+    CPPUNIT_ASSERT(stdoutData == "Hello world");
+    CPPUNIT_ASSERT(stderrData == "Error world");
+    CPPUNIT_ASSERT(!wrongProcessObjPassed);
+    CPPUNIT_ASSERT(finishedCalled);
 }

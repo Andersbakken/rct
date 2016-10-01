@@ -148,14 +148,26 @@ public:
     unsigned int processSocket(int fd, int timeout = -1);
 
     // See Timer.h for the flags
+    /**
+     * @param timeout timeout in ms
+     */
     int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
     void unregisterTimer(int id);
 
-    // Changes to the inactivity timeout while the loop is running may
-    // not be honoured.
+    /**
+     *  Changes to the inactivity timeout while the loop is running may
+     *  not be honoured.
+     *  @param timeout unit: ms
+     */
     void setInactivityTimeout(int timeout);
 
     enum { Success = 0x100, GeneralError = 0x200, Timeout = 0x400 };
+
+    /**
+     *  Run the EventLoop until there are no more pending events or a timeout
+     *  occurs.
+     *  @param timeout Unit: milliseconds. -1 for no timeout.
+     */
     unsigned int exec(int timeout = -1);
     void quit();
 

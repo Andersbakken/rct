@@ -1,10 +1,16 @@
 #include <cppunit/extensions/HelperMacros.h>
 
+#include "UdpIncludes.h"
+
 class ProcessTestSuite : public CPPUNIT_NS::TestFixture
 {
     CPPUNIT_TEST_SUITE(ProcessTestSuite);
 
     CPPUNIT_TEST(returnCode);
+    CPPUNIT_TEST(startAsync);
+    CPPUNIT_TEST(readFromStdout);
+    CPPUNIT_TEST(readFromStderr);
+    CPPUNIT_TEST(signals);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -17,6 +23,35 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
 protected:
     // start a process and examine its return code
     void returnCode();
+
+    // start a process asynchronously
+    void startAsync();
+
+    // read data from stdout while the child process is running
+    void readFromStdout();
+
+    // read data from stderr while the child process is running
+    void readFromStderr();
+
+    // test whether Process sends the correct signals through EventLoop
+    // when the child process writes stuff to stdout, stderr or when it
+    // exits.
+    void signals();
+
+public:
+    /**
+     * A version of sleep that is not interrupted by signals and has
+     * millisecond resolution.
+     */
+    static void realSleep(int ms);
+
+private:
+    sock_t listenSock, sendSock;
+    int finishedCounter = 0;
+
+private:
+    std::string udp_recv();
+    void udp_send(const std::string& data);
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ProcessTestSuite);

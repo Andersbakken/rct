@@ -64,13 +64,13 @@ private:
 
 void StdinReader::operator()()
 {
-    for(;;)
+    while(std::cin)
     {
         char c;
         std::cin.get(c);
 
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_data.push_back(c);
+        if(std::cin) m_data.push_back(c);
     }
 }
 

@@ -40,6 +40,8 @@ public:
 
     /**
      * Run a child process asynchronously.
+     * Processing stdout/stderr from the child process is performed through an
+     * EventLoop, so there needs to be a running event loop for it to work.
      */
     bool start(const Path &command,
                const List<String> &arguments = List<String>(),
@@ -157,6 +159,8 @@ private:
     mutable std::mutex mMutex;
     pid_t mPid;   ///< Child process' pid
     enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
+
+    /// Child process' return value or one of the Return* values above
     int mReturn;
 
     std::deque<String> mStdInBuffer;

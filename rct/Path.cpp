@@ -21,6 +21,8 @@
 #include "Rct.h"
 #include "rct/rct-config.h"
 
+bool Path::sRealPathEnabled = true;
+
 #ifdef _WIN32
 const char Path::ENV_PATH_SEPARATOR = ';';
 #else
@@ -238,6 +240,8 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     if (changed)
         *changed = false;
 #ifndef _WIN32
+    if (isEmpty())
+        return false;
     if (startsWith('~')) {
         wordexp_t exp_result;
         wordexp(constData(), &exp_result, 0);
@@ -247,16 +251,18 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 #endif
     if (*this == ".")
         clear();
-    if (mode == MakeAbsolute) {
+    if (mode == MakeAbsolute || !sRealPathEnabled) {
         if (isAbsolute())
             return true;
 
-        // we only the relative file name to the cwd/pwd and check if the
+        // we only add the relative file name to the cwd/pwd and check if the
         // result exists.
-        const Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
+        Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
         if (copy.exists()) {
             if (changed)
                 *changed = true;
+            if (mode == RealPath)
+                copy.canonicalize();
             operator=(copy);
             return true;
         }

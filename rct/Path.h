@@ -152,6 +152,8 @@ public:
         RealPath,
         MakeAbsolute
     };
+    static bool realPathEnabled() { return sRealPathEnabled; }
+    static void setRealPathEnabled(bool enabled) { sRealPathEnabled = enabled; }
     Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0) const;
     bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *changed = 0);
     size_t canonicalize();
@@ -197,6 +199,8 @@ public:
     void visit(const std::function<VisitResult(const Path &path)> &callback) const;
     List<Path> files(unsigned int filter = All, size_t max = String::npos, bool recurse = false) const;
 
+    static bool sRealPathEnabled;
+    
     /// ';' on windows, ':' on unix
     static const char ENV_PATH_SEPARATOR;
 

@@ -102,7 +102,9 @@ public:
      */
     String readAllStdErr();
 
-    bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn != ReturnUnset; }
+    bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return  mReturn != ReturnUnset; }
+
+    enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
     int returnCode() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn; }
 
     void kill(int signal = SIGTERM);
@@ -158,7 +160,6 @@ private:
 
     mutable std::mutex mMutex;
     pid_t mPid;   ///< Child process' pid
-    enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
 
     /// Child process' return value or one of the Return* values above
     int mReturn;

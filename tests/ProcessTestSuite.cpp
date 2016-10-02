@@ -238,6 +238,7 @@ void ProcessTestSuite::signals()
             udp_send("exit 0");
         });
 
+    // Signals are deliviered by the running event loop.
     loop->exec(300);
     t.join();
 
@@ -245,4 +246,13 @@ void ProcessTestSuite::signals()
     CPPUNIT_ASSERT(stderrData == "Error world");
     CPPUNIT_ASSERT(!wrongProcessObjPassed);
     CPPUNIT_ASSERT(finishedCalled);
+}
+
+void ProcessTestSuite::execTimeout()
+{
+    Process p;
+    p.exec("ChildProcess", List<String>(), 200);  // timeout: 200 ms
+
+    CPPUNIT_ASSERT(p.isFinished());
+    CPPUNIT_ASSERT(p.returnCode() == Process::ReturnKilled);
 }

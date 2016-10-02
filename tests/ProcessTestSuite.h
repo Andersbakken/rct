@@ -11,6 +11,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(readFromStdout);
     CPPUNIT_TEST(readFromStderr);
     CPPUNIT_TEST(signals);
+    CPPUNIT_TEST(execTimeout);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -37,6 +38,10 @@ protected:
     // when the child process writes stuff to stdout, stderr or when it
     // exits.
     void signals();
+
+    // Start a process that does not terminate in the requested time.
+    // Process::exec() should return after the timeout.
+    void execTimeout();
 
 public:
     /**

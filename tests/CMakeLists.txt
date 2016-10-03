@@ -16,6 +16,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CPPUNIT_INCLUDE_DIRS}
+    ${RCT_BINARY_DIR}/include
 )
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")

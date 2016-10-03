@@ -182,17 +182,19 @@ void ProcessThread::run()
                         }
                         // find the process object to this child process
                         auto proc = sProcesses.find(p);
-                        if (proc != sProcesses.end() && proc->second.proc != nullptr) {
+                        if (proc != sProcesses.end()) {
                             Process *process = proc->second.proc;
-                            EventLoop::SharedPtr loop = proc->second.loop.lock();
-                            sProcesses.erase(proc++);
-                            lock.unlock();
-                            if (loop) {
-                                loop->callLater([process, ret]() { process->finish(ret); });
-                            } else {
-                                process->finish(ret);
+                            if(process != nullptr) {
+                                EventLoop::SharedPtr loop = proc->second.loop.lock();
+                                sProcesses.erase(proc++);
+                                lock.unlock();
+                                if (loop) {
+                                    loop->callLater([process, ret]() { process->finish(ret); });
+                                } else {
+                                    process->finish(ret);
+                                }
+                                lock.lock();
                             }
-                            lock.lock();
                         } else {
                             if (sPending) {
                                 assert(sPendingPids.find(p) == sPendingPids.end());

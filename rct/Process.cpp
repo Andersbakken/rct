@@ -490,12 +490,11 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
             }
         } else {
             // select and stuff
-            timeval started, now, *selecttime = 0;
+            timeval started, now, timeoutForSelect;
             if (timeout > 0) {
                 Rct::gettime(&started);
-                now = started;
-                selecttime = &now;
-                Rct::timevalAdd(selecttime, timeout);
+                timeoutForSelect.tv_sec = timeout / 1000;
+                timeoutForSelect.tv_usec = (timeout % 1000) * 1000;
             }
             if (!(execFlags & NoCloseStdIn)) {
                 closeStdIn(CloseForce);
@@ -518,7 +517,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                     max = std::max(max, mStdIn[1]);
                 }
                 int ret;
-                eintrwrap(ret, ::select(max + 1, &rfds, &wfds, 0, selecttime));
+                eintrwrap(ret, ::select(max + 1, &rfds, &wfds, 0, &timeoutForSelect));
                 if (ret == -1) { // ow
                     mErrorString = "Sync select failed: ";
                     mErrorString += Rct::strerror();
@@ -552,17 +551,21 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                     return Done;
                 }
                 if (timeout) {
-                    assert(selecttime);
-                    Rct::gettime(selecttime);
-                    const int lasted = Rct::timevalDiff(selecttime, &started);
+                    Rct::gettime(&now);
+
+                    // lasted is the amount of time we spent until now in ms
+                    const int lasted = Rct::timevalDiff(&now, &started);
                     if (lasted >= timeout) {
                         // timeout, we're done
                         kill(); // attempt to kill
                         mErrorString = "Timed out";
                         return TimedOut;
                     }
-                    *selecttime = started;
-                    Rct::timevalAdd(selecttime, timeout);
+
+                    // (timeout - lasted) is guaranteed to be > 0 because of
+                    // the check above.
+                    timeoutForSelect.tv_sec = (timeout - lasted) / 1000;
+                    timeoutForSelect.tv_usec = ((timeout - lasted) % 1000) * 1000;
                 }
             }
         }

@@ -251,8 +251,9 @@ void ProcessTestSuite::signals()
 void ProcessTestSuite::execTimeout()
 {
     Process p;
-    p.exec("ChildProcess", List<String>(), 200);  // timeout: 200 ms
-
+    auto res = p.exec("ChildProcess", List<String>(), 200);  // timeout: 200 ms
+    CPPUNIT_ASSERT(res == Process::TimedOut);
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == Process::ReturnKilled);
+    CPPUNIT_ASSERT(p.errorString() == "Timed out");
 }

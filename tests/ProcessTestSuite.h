@@ -13,6 +13,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(signals);
     CPPUNIT_TEST(execTimeout);
     CPPUNIT_TEST(env);
+    CPPUNIT_TEST(writeToStdin);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -46,6 +47,8 @@ protected:
 
     // Test whether setting the environment for the child process works.
     void env();
+
+    void writeToStdin();
 
 public:
     /**

@@ -239,7 +239,7 @@ void ProcessTestSuite::signals()
         });
 
     // Signals are deliviered by the running event loop.
-    loop->exec(300);
+    loop->exec(150);
     t.join();
 
     CPPUNIT_ASSERT(stdoutData == "Hello world");
@@ -280,4 +280,32 @@ void ProcessTestSuite::env()
     String expected("TESTVALUE=foo\0\n\0\n", 17);
 
     CPPUNIT_ASSERT(readEnv == expected);
+}
+
+void ProcessTestSuite::writeToStdin()
+{
+    EventLoop::SharedPtr loop(new EventLoop);
+    loop->init(EventLoop::MainEventLoop);
+
+    Process p;
+    std::string whatWeRead;
+
+    p.start("ChildProcess");
+
+    std::thread t([&]()
+                  {
+                      realSleep(50);
+                      p.write("stdin write test");
+                      realSleep(50);
+                      whatWeRead = udp_recv();
+                      udp_send("exit 0");
+                      realSleep(50);
+                  });
+
+    loop->exec(200);
+
+    t.join();
+
+    CPPUNIT_ASSERT(p.isFinished());
+    CPPUNIT_ASSERT(whatWeRead == "stdin write test");
 }

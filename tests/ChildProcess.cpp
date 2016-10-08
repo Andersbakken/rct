@@ -35,7 +35,7 @@
 
 static const uint16_t listenPort = 1337;
 static const uint16_t sendPort   = 1338;
-static const int      stdinDelay_ms = 1000;
+static const int      stdinDelay_ms = 20;
 
 //////////////////////////////////////////////
 

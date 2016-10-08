@@ -12,6 +12,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(readFromStderr);
     CPPUNIT_TEST(signals);
     CPPUNIT_TEST(execTimeout);
+    CPPUNIT_TEST(env);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -42,6 +43,9 @@ protected:
     // Start a process that does not terminate in the requested time.
     // Process::exec() should return after the timeout.
     void execTimeout();
+
+    // Test whether setting the environment for the child process works.
+    void env();
 
 public:
     /**

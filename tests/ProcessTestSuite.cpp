@@ -92,14 +92,14 @@ void ProcessTestSuite::realSleep(int ms)
 void ProcessTestSuite::returnCode()
 {
     // tell child process to exit with code 12 in 100 ms from now
-    std::thread t([this](){realSleep(100); udp_send("exit 12");});
+    std::thread t([this](){realSleep(50); udp_send("exit 12");});
 
     // start process
     Process p;
     p.exec("ChildProcess");
 
     t.join();
-    realSleep(100);
+    realSleep(50);
 
     // check exit code
     CPPUNIT_ASSERT(p.returnCode() == 12);
@@ -112,10 +112,10 @@ void ProcessTestSuite::startAsync()
 
     CPPUNIT_ASSERT(!p.isFinished());
 
-    realSleep(100);
+    realSleep(50);
     CPPUNIT_ASSERT(!p.isFinished());
     udp_send("exit 1");
-    realSleep(100);
+    realSleep(50);
 
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == 1);
@@ -133,17 +133,17 @@ void ProcessTestSuite::readFromStdout()
     // Process requires a running EventLoop.
     std::thread t([&](){p.exec("ChildProcess");});
 
-    realSleep(100);
+    realSleep(50);
     CPPUNIT_ASSERT(!p.isFinished());
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
     udp_send("stdout This is a test");
-    realSleep(100);
+    realSleep(50);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be "This is a test"
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
-    realSleep(100);
+    realSleep(50);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
     udp_send("exit 0");
-    realSleep(100);
+    realSleep(50);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
 
     CPPUNIT_ASSERT(p.isFinished());
@@ -172,17 +172,17 @@ void ProcessTestSuite::readFromStderr()
     // Process requires a running EventLoop.
     std::thread t([&](){p.exec("ChildProcess");});
 
-    realSleep(100);
+    realSleep(50);
     CPPUNIT_ASSERT(!p.isFinished());
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
     udp_send("stderr This is a stderr test");
-    realSleep(100);
+    realSleep(50);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be "This is a stderr test"
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
-    realSleep(100);
+    realSleep(50);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
     udp_send("exit 0");
-    realSleep(100);
+    realSleep(50);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
 
     CPPUNIT_ASSERT(p.isFinished());
@@ -231,10 +231,10 @@ void ProcessTestSuite::signals()
 
     std::thread t([this]()
         {
-            realSleep(100);
+            realSleep(50);
             udp_send("stdout Hello world");
             udp_send("stderr Error world");
-            realSleep(100);
+            realSleep(50);
             udp_send("exit 0");
         });
 
@@ -256,4 +256,28 @@ void ProcessTestSuite::execTimeout()
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == Process::ReturnKilled);
     CPPUNIT_ASSERT(p.errorString() == "Timed out");
+}
+
+void ProcessTestSuite::env()
+{
+    Process p;
+
+    List<String> env;
+    env.push_back("TESTVALUE=foo");
+
+    std::thread t([&](){p.exec("ChildProcess", List<String>(), env);});
+
+    realSleep(50);
+    udp_send("getEnv");
+    realSleep(50);
+    String readEnv = p.readAllStdOut();
+    udp_send("exit 0");
+
+    t.join();
+
+    //               0        1
+    //               12345678901234 5 6 7
+    String expected("TESTVALUE=foo\0\n\0\n", 17);
+
+    CPPUNIT_ASSERT(readEnv == expected);
 }

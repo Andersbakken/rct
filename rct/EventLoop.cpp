@@ -630,7 +630,7 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     ev.data.fd = fd;
     epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
 
-    eintrwrap(eventCount, epoll_wait(processFd, events, MaxEvents, timeout));
+    eintrwrap(eventCount, epoll_wait(processFd, &ev, MaxEvents, timeout));
 #elif defined(HAVE_KQUEUE)
     int processFd = kqueue(), e;
 
@@ -719,11 +719,11 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
     for (int i = 0; i < eventCount; ++i) {
         unsigned int mode = 0;
 #if defined(HAVE_EPOLL)
-        const uint32_t ev = events[i].events;
-        const int fd = events[i].data.fd;
+        const uint32_t ev = evs[i].events;
+        const int fd = evs[i].data.fd;
         if (ev & (EPOLLERR|EPOLLHUP) && !(ev & EPOLLRDHUP)) {
             // bad, take the fd out
-            epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &events[i]);
+            epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &evs[i]);
             {
                 std::lock_guard<std::mutex> locker(mutex);
                 sockets.erase(fd);
@@ -892,7 +892,7 @@ unsigned int EventLoop::exec(int timeoutTime)
         }
         int eventCount;
 #if defined(HAVE_EPOLL)
-        eintrwrap(eventCount, epoll_wait(pollFd, events, MaxEvents, waitUntil));
+        eintrwrap(eventCount, epoll_wait(pollFd, evs, MaxEvents, waitUntil));
 #elif defined(HAVE_KQUEUE)
         timespec to;
         timespec* timeptr = 0;

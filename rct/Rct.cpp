@@ -211,10 +211,10 @@ void findExecutablePath(const char *argv0)
     }
 #elif defined(OS_Darwin)
     {
-        char path[PATH_MAX];
-        uint32_t size = sizeof(path);
-        if (_NSGetExecutablePath(path, &size) == 0) {
-            sExecutablePath = Path(path, size).followLink();
+        char buf[PATH_MAX];
+        uint32_t size = sizeof(buf);
+        if (_NSGetExecutablePath(buf, &size) == 0) {
+            sExecutablePath = Path(buf, size).followLink();
             if (sExecutablePath.isFile())
                 return;
         }
@@ -222,10 +222,10 @@ void findExecutablePath(const char *argv0)
 #elif defined(OS_FreeBSD)
     {
         int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
-        char path[PATH_MAX];
-        size_t size = sizeof(path);
-        if (!sysctl(mib, 4, path, &size, 0, 0)) {
-            sExecutablePath = Path(path, size).followLink();
+        char buf[PATH_MAX];
+        size_t size = sizeof(buf);
+        if (!sysctl(mib, 4, buf, &size, 0, 0)) {
+            sExecutablePath = Path(buf, size).followLink();
             if (sExecutablePath.isFile())
                 return;
         }

@@ -191,7 +191,7 @@ void EventLoop::init(unsigned int flags)
     std::shared_ptr<EventLoop> that = shared_from_this();
     localEventLoop() = that;
     if (flags & MainEventLoop) {
-        std::lock_guard<std::mutex> locker(mainMutex);
+        std::lock_guard<std::mutex> l(mainMutex);
         mainLoop = that;
     }
 }
@@ -330,7 +330,7 @@ static inline uint64_t currentTime()
     return t;
 }
 
-int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags)
+int EventLoop::registerTimer(std::function<void(int)>&& func, int to, unsigned int flags)
 {
     std::lock_guard<std::mutex> locker(mutex);
     {
@@ -339,7 +339,7 @@ int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, unsig
             data.id = ++nextTimerId;
         } while (timersById.count(&data));
     }
-    TimerData* timer = new TimerData(currentTime() + timeout, nextTimerId, flags, timeout, std::forward<std::function<void(int)> >(func));
+    TimerData* timer = new TimerData(currentTime() + to, nextTimerId, flags, to, std::forward<std::function<void(int)> >(func));
     timersByTime.insert(timer);
     timersById.insert(timer);
     assert(timersById.count(timer) == 1);
@@ -613,12 +613,12 @@ void EventLoop::unregisterSocket(int fd)
     }
 }
 
-unsigned int EventLoop::processSocket(int fd, int timeout)
+unsigned int EventLoop::processSocket(int fd, int maxTime)
 {
     int eventCount;
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     enum { MaxEvents = 2 };
-    NativeEvent events[MaxEvents];
+    NativeEvent evs[MaxEvents];
 #endif
 
 #if defined(HAVE_EPOLL)
@@ -649,11 +649,11 @@ unsigned int EventLoop::processSocket(int fd, int timeout)
     }
 
     timespec time;
-    if (timeout != -1) {
-        time.tv_sec = timeout / 1000;
-        time.tv_nsec = (timeout % 1000LLU) * 1000000;
+    if (maxTime != -1) {
+        time.tv_sec = maxTime / 1000;
+        time.tv_nsec = (maxTime % 1000LLU) * 1000000;
     }
-    eintrwrap(eventCount, kevent(processFd, 0, 0, events, MaxEvents, (timeout == -1) ? 0 : &time));
+    eintrwrap(eventCount, kevent(processFd, 0, 0, evs, MaxEvents, (maxTime == -1) ? 0 : &time));
 #elif defined(HAVE_SELECT)
     fd_set rdfd, wrfd;
     FD_ZERO(&rdfd);
@@ -681,7 +681,7 @@ unsigned int EventLoop::processSocket(int fd, int timeout)
     event.wrfd = &wrfd;
     NativeEvent* events = &event;
 #endif
-    return processSocketEvents(events, eventCount);
+    return processSocketEvents(evs, eventCount);
 }
 
 unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
@@ -697,7 +697,7 @@ unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
     return 0;
 }
 
-unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
+unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
 {
     unsigned int all = 0;
     int e;
@@ -762,12 +762,12 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
             mode |= SocketWrite;
         }
 #elif defined(HAVE_KQUEUE)
-        const int16_t filter = events[i].filter;
-        const uint16_t flags = events[i].flags;
-        const int fd = events[i].ident;
+        const int16_t filter = evs[i].filter;
+        const uint16_t flags = evs[i].flags;
+        const int fd = evs[i].ident;
         if (flags & EV_ERROR) {
             // bad, take the fd out
-            struct kevent& kev = events[i];
+            struct kevent& kev = evs[i];
             const int err = kev.data;
             kev.flags = EV_DELETE|EV_DISABLE;
             kevent(pollFd, &kev, 1, 0, 0, 0);
@@ -837,9 +837,9 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
     return all;
 }
 
-void EventLoop::setInactivityTimeout(int timeout)
+void EventLoop::setInactivityTimeout(int value)
 {
-    inactivityTimeout = timeout;
+    inactivityTimeout = value;
 }
 
 unsigned int EventLoop::exec(int timeoutTime)
@@ -852,7 +852,7 @@ unsigned int EventLoop::exec(int timeoutTime)
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     enum { MaxEvents = 64 };
-    NativeEvent events[MaxEvents];
+    NativeEvent evs[MaxEvents];
 #endif
 
     for (;;) {
@@ -894,14 +894,14 @@ unsigned int EventLoop::exec(int timeoutTime)
 #if defined(HAVE_EPOLL)
         eintrwrap(eventCount, epoll_wait(pollFd, events, MaxEvents, waitUntil));
 #elif defined(HAVE_KQUEUE)
-        timespec timeout;
+        timespec to;
         timespec* timeptr = 0;
         if (waitUntil != -1) {
-            timeout.tv_sec = waitUntil / 1000;
-            timeout.tv_nsec = (waitUntil % 1000LLU) * 1000000;
-            timeptr = &timeout;
+            to.tv_sec = waitUntil / 1000;
+            to.tv_nsec = (waitUntil % 1000LLU) * 1000000;
+            timeptr = &to;
         }
-        eintrwrap(eventCount, kevent(pollFd, 0, 0, events, MaxEvents, timeptr));
+        eintrwrap(eventCount, kevent(pollFd, 0, 0, evs, MaxEvents, timeptr));
 #elif defined(HAVE_SELECT)
         timeval timeout;
         timeval* timeptr = 0;
@@ -948,7 +948,7 @@ unsigned int EventLoop::exec(int timeoutTime)
             event.wrfd = wrfdp;
             NativeEvent* events = &event;
 #endif
-            ret = processSocketEvents(events, eventCount);
+            ret = processSocketEvents(evs, eventCount);
             if (ret & (Success|GeneralError|Timeout))
                 break;
         } else if (eventCount == 0 && waitingForInactivityTimeout) {

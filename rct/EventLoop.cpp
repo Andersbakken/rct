@@ -54,21 +54,21 @@
 #  endif
 #endif
 
-EventLoop::WeakPtr EventLoop::mainLoop;
-std::mutex EventLoop::mainMutex;
-static std::atomic<int> mainEventPipe;
-static std::once_flag mainOnce;
-static pthread_key_t eventLoopKey;
+EventLoop::WeakPtr EventLoop::sMainLoop;
+std::mutex EventLoop::mMainMutex;
+static std::atomic<int> sMainEventPipe;
+static std::once_flag sMainOnce;
+static pthread_key_t sEventLoopKey;
 
 // sadly GCC < 4.8 doesn't support thread_local
 // fall back to pthread instead in order to support 4.7
 
 static EventLoop::WeakPtr& localEventLoop()
 {
-    EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(eventLoopKey));
+    EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(sEventLoopKey));
     if (!ptr) {
         ptr = new EventLoop::WeakPtr;
-        pthread_setspecific(eventLoopKey, ptr);
+        pthread_setspecific(sEventLoopKey, ptr);
     }
     return *ptr;
 }
@@ -77,7 +77,7 @@ static void signalHandler(int /*sig*/)
 {
     char b = 'q';
     int w;
-    const int pipe = mainEventPipe;
+    const int pipe = sMainEventPipe;
     if (pipe != -1)
         eintrwrap(w, ::write(pipe, &b, 1));
 }
@@ -85,14 +85,14 @@ static void signalHandler(int /*sig*/)
 EventLoop::EventLoop()
     :
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
-    pollFd(-1),
+    mPollFd(-1),
 #endif
-    nextTimerId(0), stop(false), timeout(false), flgs(0), inactivityTimeout(0)
+    mNextTimerId(0), mStop(false), mTimeout(false), mFlags(0), mInactivityTimeout(0)
 {
-    std::call_once(mainOnce, [this](){
+    std::call_once(sMainOnce, [this](){
             atexit(&EventLoop::cleanupLocalEventLoop);
-            mainEventPipe = -1;
-            pthread_key_create(&eventLoopKey, 0);
+            sMainEventPipe = -1;
+            pthread_key_create(&sEventLoopKey, 0);
             signal(SIGPIPE, SIG_IGN);
         });
 }
@@ -104,42 +104,42 @@ EventLoop::~EventLoop()
 
 void EventLoop::cleanupLocalEventLoop()
 {
-    EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(eventLoopKey));
+    EventLoop::WeakPtr* ptr = static_cast<EventLoop::WeakPtr*>(pthread_getspecific(sEventLoopKey));
     if (!ptr) {
         delete ptr;
-        pthread_setspecific(eventLoopKey, 0);
+        pthread_setspecific(sEventLoopKey, 0);
     }
 }
 
 void EventLoop::init(unsigned int flags)
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    flgs = flags;
+    std::lock_guard<std::mutex> locker(mMutex);
+    mFlags = flags;
 
     threadId = std::this_thread::get_id();
-    int e = ::pipe(eventPipe);
+    int e = ::pipe(mEventPipe);
     if (e == -1) {
-        eventPipe[0] = -1;
-        eventPipe[1] = -1;
+        mEventPipe[0] = -1;
+        mEventPipe[1] = -1;
         cleanup();
         return;
     }
-    if (!SocketClient::setFlags(eventPipe[0], O_NONBLOCK, F_GETFL, F_SETFL)) {
+    if (!SocketClient::setFlags(mEventPipe[0], O_NONBLOCK, F_GETFL, F_SETFL)) {
         cleanup();
         return;
     }
 
 #if defined(HAVE_EPOLL)
-    pollFd = epoll_create1(0);
+    mPollFd = epoll_create1(0);
 #elif defined(HAVE_KQUEUE)
-    pollFd = kqueue();
+    mPollFd = kqueue();
 #elif defined(HAVE_SELECT)
     // just to avoid the #error below
 #else
 #error No supported event polling mechanism
 #endif
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
-    if (pollFd == -1) {
+    if (mPollFd == -1) {
         cleanup();
         return;
     }
@@ -151,36 +151,36 @@ void EventLoop::init(unsigned int flags)
 #if defined(HAVE_EPOLL)
     memset(&ev, 0, sizeof(ev));
     ev.events = EPOLLIN | EPOLLET;
-    ev.data.fd = eventPipe[0];
-    e = epoll_ctl(pollFd, EPOLL_CTL_ADD, eventPipe[0], &ev);
+    ev.data.fd = mEventPipe[0];
+    e = epoll_ctl(mPollFd, EPOLL_CTL_ADD, mEventPipe[0], &ev);
 #elif defined(HAVE_KQUEUE)
     memset(&ev, '\0', sizeof(struct kevent));
-    ev.ident = eventPipe[0];
+    ev.ident = mEventPipe[0];
     ev.flags = EV_ADD|EV_ENABLE;
     ev.filter = EVFILT_READ;
-    eintrwrap(e, kevent(pollFd, &ev, 1, 0, 0, 0));
+    eintrwrap(e, kevent(mPollFd, &ev, 1, 0, 0, 0));
 #endif
     if (e == -1) {
         cleanup();
         return;
     }
 
-    if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
-        assert(mainEventPipe == -1);
-        mainEventPipe = eventPipe[1];
+    if (mFlags & (EnableSigIntHandler | EnableSigTermHandler)) {
+        assert(sMainEventPipe == -1);
+        sMainEventPipe = mEventPipe[1];
 
         struct sigaction act;
         memset (&act, '\0', sizeof(act));
         act.sa_handler = signalHandler;
 
-        if (flgs & EnableSigIntHandler) {
+        if (mFlags & EnableSigIntHandler) {
             if (::sigaction(SIGINT, &act, 0) == -1) {
                 cleanup();
                 return;
             }
         }
 
-        if (flgs & EnableSigTermHandler) {
+        if (mFlags & EnableSigTermHandler) {
             if (::sigaction(SIGTERM, &act, 0) == -1) {
                 cleanup();
                 return;
@@ -191,56 +191,56 @@ void EventLoop::init(unsigned int flags)
     std::shared_ptr<EventLoop> that = shared_from_this();
     localEventLoop() = that;
     if (flags & MainEventLoop) {
-        std::lock_guard<std::mutex> l(mainMutex);
-        mainLoop = that;
+        std::lock_guard<std::mutex> l(mMainMutex);
+        sMainLoop = that;
     }
 }
 
 void EventLoop::cleanup()
 {
-    std::lock_guard<std::mutex> locker(mutex);
+    std::lock_guard<std::mutex> locker(mMutex);
     localEventLoop().reset();
 
-    while (!events.empty()) {
-        delete events.front();
-        events.pop();
+    while (!mEvents.empty()) {
+        delete mEvents.front();
+        mEvents.pop();
     }
 
-    for (auto timer : timersById) {
+    for (auto timer : mTimersById) {
         delete timer;
     }
-    timersById.clear();
-    timersByTime.clear();
-    nextTimerId = 0;
+    mTimersById.clear();
+    mTimersByTime.clear();
+    mNextTimerId = 0;
 
-    if (flgs & (EnableSigIntHandler | EnableSigTermHandler)) {
+    if (mFlags & (EnableSigIntHandler | EnableSigTermHandler)) {
         struct sigaction act;
         memset(&act, 0, sizeof act);
         act.sa_handler = SIG_DFL;
 
-        if (flgs & EnableSigIntHandler) {
+        if (mFlags & EnableSigIntHandler) {
             ::sigaction(SIGINT, &act, 0);
         }
 
-        if (flgs & EnableSigTermHandler) {
+        if (mFlags & EnableSigTermHandler) {
             ::sigaction(SIGTERM, &act, 0);
         }
     }
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
-    if (pollFd != -1)
-        ::close(pollFd);
+    if (mPollFd != -1)
+        ::close(mPollFd);
 #endif
 
-    if (eventPipe[0] != -1)
-        ::close(eventPipe[0]);
-    if (eventPipe[1] != -1)
-        ::close(eventPipe[1]);
-    if (flgs & MainEventLoop)
-        mainLoop.reset();
-    if (flgs & EnableSigIntHandler) {
-        assert(mainEventPipe >= 0);
-        mainEventPipe = -1;
+    if (mEventPipe[0] != -1)
+        ::close(mEventPipe[0]);
+    if (mEventPipe[1] != -1)
+        ::close(mEventPipe[1]);
+    if (mFlags & MainEventLoop)
+        sMainLoop.reset();
+    if (mFlags & EnableSigIntHandler) {
+        assert(sMainEventPipe >= 0);
+        sMainEventPipe = -1;
     }
 }
 
@@ -248,8 +248,8 @@ EventLoop::SharedPtr EventLoop::eventLoop()
 {
     EventLoop::SharedPtr loop = localEventLoop().lock();
     if (!loop) {
-        std::lock_guard<std::mutex> locker(mainMutex);
-        loop = mainLoop.lock();
+        std::lock_guard<std::mutex> locker(mMainMutex);
+        loop = sMainLoop.lock();
     }
     return loop;
 }
@@ -263,8 +263,8 @@ void EventLoop::error(const char* err)
 
 void EventLoop::post(Event* event)
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    events.push(event);
+    std::lock_guard<std::mutex> locker(mMutex);
+    mEvents.push(event);
     wakeup();
 }
 
@@ -275,24 +275,24 @@ void EventLoop::wakeup()
 
     char b = 'w';
     int w;
-    eintrwrap(w, ::write(eventPipe[1], &b, 1));
+    eintrwrap(w, ::write(mEventPipe[1], &b, 1));
 }
 
 void EventLoop::quit()
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    stop = true;
+    std::lock_guard<std::mutex> locker(mMutex);
+    mStop = true;
     wakeup();
 }
 
 inline bool EventLoop::sendPostedEvents()
 {
-    std::unique_lock<std::mutex> locker(mutex);
-    if (events.empty())
+    std::unique_lock<std::mutex> locker(mMutex);
+    if (mEvents.empty())
         return false;
-    while (!events.empty()) {
-        auto event = events.front();
-        events.pop();
+    while (!mEvents.empty()) {
+        auto event = mEvents.front();
+        mEvents.pop();
         locker.unlock();
         event->exec();
         delete event;
@@ -330,27 +330,27 @@ static inline uint64_t currentTime()
     return t;
 }
 
-int EventLoop::registerTimer(std::function<void(int)>&& func, int to, unsigned int flags)
+int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags)
 {
-    std::lock_guard<std::mutex> locker(mutex);
+    std::lock_guard<std::mutex> locker(mMutex);
     {
         TimerData data;
         do {
-            data.id = ++nextTimerId;
-        } while (timersById.count(&data));
+            data.id = ++mNextTimerId;
+        } while (mTimersById.count(&data));
     }
-    TimerData* timer = new TimerData(currentTime() + to, nextTimerId, flags, to, std::forward<std::function<void(int)> >(func));
-    timersByTime.insert(timer);
-    timersById.insert(timer);
-    assert(timersById.count(timer) == 1);
+    TimerData* timer = new TimerData(currentTime() + timeout, mNextTimerId, flags, timeout, std::forward<std::function<void(int)> >(func));
+    mTimersByTime.insert(timer);
+    mTimersById.insert(timer);
+    assert(mTimersById.count(timer) == 1);
     wakeup();
-    return nextTimerId;
+    return mNextTimerId;
 }
 
 void EventLoop::unregisterTimer(int id)
 {
     // rather slow
-    std::lock_guard<std::mutex> locker(mutex);
+    std::lock_guard<std::mutex> locker(mMutex);
     clearTimer(id);
 }
 
@@ -360,24 +360,24 @@ void EventLoop::clearTimer(int id)
     {
         TimerData data;
         data.id = id;
-        auto timer = timersById.find(&data);
-        if (timer == timersById.end()) {
+        auto timer = mTimersById.find(&data);
+        if (timer == mTimersById.end()) {
             // no such timer
             return;
         }
         t = *timer;
-        assert(timersById.count(t) == 1);
-        timersById.erase(timer);
-        assert(timersById.count(t) == 0);
+        assert(mTimersById.count(t) == 1);
+        mTimersById.erase(timer);
+        assert(mTimersById.count(t) == 0);
     }
     assert(t);
-    const auto range = timersByTime.equal_range(t);
+    const auto range = mTimersByTime.equal_range(t);
     auto timer = range.first;
     const auto end = range.second;
     while (timer != end) {
         if (*timer == t) {
             // got it
-            timersByTime.erase(timer);
+            mTimersByTime.erase(timer);
             delete t;
             return;
         }
@@ -390,18 +390,18 @@ void EventLoop::clearTimer(int id)
 inline bool EventLoop::sendTimers()
 {
     std::set<uint64_t> fired;
-    std::unique_lock<std::mutex> locker(mutex);
+    std::unique_lock<std::mutex> locker(mMutex);
     const uint64_t now = currentTime();
     for (;;) {
-        auto timer = timersByTime.begin();
-        if (timer == timersByTime.end())
+        auto timer = mTimersByTime.begin();
+        if (timer == mTimersByTime.end())
             return !fired.empty();
         TimerData* timerData = *timer;
         int currentId = timerData->id;
         while (fired.count(currentId)) {
             // already fired this round, ignore for now
             ++timer;
-            if (timer == timersByTime.end())
+            if (timer == mTimersByTime.end())
                 return !fired.empty();
             timerData = *timer;
             currentId = timerData->id;
@@ -411,8 +411,8 @@ inline bool EventLoop::sendTimers()
         if (timerData->flags & Timer::SingleShot) {
             // remove the timer before firing
             std::function<void(int)> func = std::move(timerData->callback);
-            timersByTime.erase(timer);
-            timersById.erase(timerData);
+            mTimersByTime.erase(timer);
+            mTimersById.erase(timerData);
             delete timerData;
             fired.insert(currentId);
 
@@ -425,14 +425,14 @@ inline bool EventLoop::sendTimers()
             // take the item out and reinsert it
 
             // luckily we have the exact iterator
-            timersByTime.erase(timer);
+            mTimersByTime.erase(timer);
 
             // update the fire time
             const int64_t overtime = now - timerData->when;
             timerData->when = (now - overtime) + timerData->interval;
 
             // reinsert with the updated time
-            timersByTime.insert(timerData);
+            mTimersByTime.insert(timerData);
 
             // take a copy of the callback in case the timer gets
             // removed before we get a chance to call it
@@ -451,8 +451,8 @@ inline bool EventLoop::sendTimers()
 
 bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func)
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    sockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, unsigned int)> >(func));
+    std::lock_guard<std::mutex> locker(mMutex);
+    mSockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, unsigned int)> >(func));
 
     int e;
 #if defined(HAVE_EPOLL)
@@ -468,7 +468,7 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
     if (mode & SocketOneShot)
         ev.events |= EPOLLONESHOT;
     ev.data.fd = fd;
-    e = epoll_ctl(pollFd, EPOLL_CTL_ADD, fd, &ev);
+    e = epoll_ctl(mPollFd, EPOLL_CTL_ADD, fd, &ev);
 #elif defined(HAVE_KQUEUE)
     e = 0;
     const struct { int rf; int kf; } flags[] = {
@@ -486,7 +486,7 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
         if (mode & SocketOneShot)
             ev.flags |= EV_ONESHOT;
         ev.filter = flags[i].kf;
-        eintrwrap(e, kevent(pollFd, &ev, 1, 0, 0, 0));
+        eintrwrap(e, kevent(mPollFd, &ev, 1, 0, 0, 0));
     }
 #elif defined(HAVE_SELECT)
     e = 0; // fake ok
@@ -504,9 +504,9 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
 
 bool EventLoop::updateSocket(int fd, unsigned int mode)
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    auto socket = sockets.find(fd);
-    if (socket == sockets.end()) {
+    std::lock_guard<std::mutex> locker(mMutex);
+    auto socket = mSockets.find(fd);
+    if (socket == mSockets.end()) {
         fprintf(stderr, "Unable to find socket to update %d\n", fd);
         return false;
     }
@@ -529,7 +529,7 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
     if (mode & SocketOneShot)
         ev.events |= EPOLLONESHOT;
     ev.data.fd = fd;
-    e = epoll_ctl(pollFd, EPOLL_CTL_MOD, fd, &ev);
+    e = epoll_ctl(mPollFd, EPOLL_CTL_MOD, fd, &ev);
 #elif defined(HAVE_KQUEUE)
     e = 0;
     const struct { int rf; int kf; } flags[] = {
@@ -552,7 +552,7 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
             ev.flags = EV_DELETE|EV_DISABLE;
         }
         ev.filter = flags[i].kf;
-        eintrwrap(e, kevent(pollFd, &ev, 1, 0, 0, 0));
+        eintrwrap(e, kevent(mPollFd, &ev, 1, 0, 0, 0));
     }
 #elif defined(HAVE_SELECT)
     e = 0; // fake ok
@@ -570,20 +570,20 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
 
 void EventLoop::unregisterSocket(int fd)
 {
-    std::lock_guard<std::mutex> locker(mutex);
-    auto socket = sockets.find(fd);
-    if (socket == sockets.end())
+    std::lock_guard<std::mutex> locker(mMutex);
+    auto socket = mSockets.find(fd);
+    if (socket == mSockets.end())
         return;
 #ifdef HAVE_KQUEUE
     const int mode = socket->second.first;
 #endif
-    sockets.erase(socket);
+    mSockets.erase(socket);
 
     int e;
 #if defined(HAVE_EPOLL)
     epoll_event ev;
     memset(&ev, 0, sizeof(ev));
-    e = epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &ev);
+    e = epoll_ctl(mPollFd, EPOLL_CTL_DEL, fd, &ev);
 #elif defined(HAVE_KQUEUE)
     e = 0;
     const struct { int rf; int kf; } flags[] = {
@@ -599,7 +599,7 @@ void EventLoop::unregisterSocket(int fd)
         ev.ident = fd;
         ev.flags = EV_DELETE|EV_DISABLE;
         ev.filter = flags[i].kf;
-        eintrwrap(e, kevent(pollFd, &ev, 1, 0, 0, 0));
+        eintrwrap(e, kevent(mPollFd, &ev, 1, 0, 0, 0));
     }
 #elif defined(HAVE_SELECT)
     e = 0; // fake ok
@@ -613,12 +613,12 @@ void EventLoop::unregisterSocket(int fd)
     }
 }
 
-unsigned int EventLoop::processSocket(int fd, int maxTime)
+unsigned int EventLoop::processSocket(int fd, int timeout)
 {
     int eventCount;
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     enum { MaxEvents = 2 };
-    NativeEvent evs[MaxEvents];
+    NativeEvent events[MaxEvents];
 #endif
 
 #if defined(HAVE_EPOLL)
@@ -630,7 +630,7 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     ev.data.fd = fd;
     epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
 
-    eintrwrap(eventCount, epoll_wait(processFd, evs, MaxEvents, maxTime));
+    eintrwrap(eventCount, epoll_wait(processFd, events, MaxEvents, timeout));
 #elif defined(HAVE_KQUEUE)
     int processFd = kqueue(), e;
 
@@ -649,11 +649,11 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     }
 
     timespec time;
-    if (maxTime != -1) {
-        time.tv_sec = maxTime / 1000;
-        time.tv_nsec = (maxTime % 1000LLU) * 1000000;
+    if (timeout != -1) {
+        time.tv_sec = timeout / 1000;
+        time.tv_nsec = (timeout % 1000LLU) * 1000000;
     }
-    eintrwrap(eventCount, kevent(processFd, 0, 0, evs, MaxEvents, (maxTime == -1) ? 0 : &time));
+    eintrwrap(eventCount, kevent(processFd, 0, 0, events, MaxEvents, (timeout == -1) ? 0 : &time));
 #elif defined(HAVE_SELECT)
     fd_set rdfd, wrfd;
     FD_ZERO(&rdfd);
@@ -662,11 +662,11 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     FD_SET(fd, &wrfd);
 
     timeval time;
-    if (maxTime != -1) {
-        time.tv_sec = maxTime / 1000;
-        time.tv_usec = (maxTime % 1000LLU) * 1000;
+    if (timeout != -1) {
+        time.tv_sec = timeout / 1000;
+        time.tv_usec = (timeout % 1000LLU) * 1000;
     }
-    eintrwrap(eventCount, select(fd + 1, &rdfd, &wrfd, 0, (maxTime == -1) ? 0 : &time));
+    eintrwrap(eventCount, select(fd + 1, &rdfd, &wrfd, 0, (timeout == -1) ? 0 : &time));
 #endif
     if (eventCount == -1)
         fprintf(stderr, "processSocket returned -1 (%d)\n", errno);
@@ -679,16 +679,16 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     NativeEvent event;
     event.rdfd = &rdfd;
     event.wrfd = &wrfd;
-    NativeEvent* evs = &event;
+    NativeEvent* events = &event;
 #endif
-    return processSocketEvents(evs, eventCount);
+    return processSocketEvents(events, eventCount);
 }
 
 unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
 {
-    std::unique_lock<std::mutex> locker(mutex);
-    const auto socket = sockets.find(fd);
-    if (socket != sockets.end()) {
+    std::unique_lock<std::mutex> locker(mMutex);
+    const auto socket = mSockets.find(fd);
+    if (socket != mSockets.end()) {
         const auto callback = socket->second.second;
         locker.unlock();
         CALLBACK(callback(fd, mode));
@@ -697,7 +697,7 @@ unsigned int EventLoop::fireSocket(int fd, unsigned int mode)
     return 0;
 }
 
-unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
+unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
 {
     unsigned int all = 0;
     int e;
@@ -706,8 +706,8 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
     std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > local;
     {
 #warning this is not optimal
-        std::lock_guard<std::mutex> locker(mutex);
-        local = sockets;
+        std::lock_guard<std::mutex> locker(mMutex);
+        local = mSockets;
     }
     auto socket = local.begin();
     if (socket == local.end()) {
@@ -719,14 +719,14 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
     for (int i = 0; i < eventCount; ++i) {
         unsigned int mode = 0;
 #if defined(HAVE_EPOLL)
-        const uint32_t ev = evs[i].events;
-        const int fd = evs[i].data.fd;
+        const uint32_t ev = events[i].events;
+        const int fd = events[i].data.fd;
         if (ev & (EPOLLERR|EPOLLHUP) && !(ev & EPOLLRDHUP)) {
             // bad, take the fd out
-            epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &evs[i]);
+            epoll_ctl(mPollFd, EPOLL_CTL_DEL, fd, &events[i]);
             {
-                std::lock_guard<std::mutex> locker(mutex);
-                sockets.erase(fd);
+                std::lock_guard<std::mutex> locker(mMutex);
+                mSockets.erase(fd);
             }
             if (ev & EPOLLERR) {
                 int err;
@@ -762,18 +762,18 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
             mode |= SocketWrite;
         }
 #elif defined(HAVE_KQUEUE)
-        const int16_t filter = evs[i].filter;
-        const uint16_t flags = evs[i].flags;
-        const int fd = evs[i].ident;
+        const int16_t filter = events[i].filter;
+        const uint16_t flags = events[i].flags;
+        const int fd = events[i].ident;
         if (flags & EV_ERROR) {
             // bad, take the fd out
-            struct kevent& kev = evs[i];
+            struct kevent& kev = events[i];
             const int err = kev.data;
             kev.flags = EV_DELETE|EV_DISABLE;
-            kevent(pollFd, &kev, 1, 0, 0, 0);
+            kevent(mPollFd, &kev, 1, 0, 0, 0);
             {
-                std::lock_guard<std::mutex> locker(mutex);
-                sockets.erase(fd);
+                std::lock_guard<std::mutex> locker(mMutex);
+                mSockets.erase(fd);
             }
             fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, Rct::strerror().constData());
 
@@ -789,14 +789,14 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
         int fd = -1;
         //assert(socket != local.end());
         while (socket != local.end()) {
-            if (FD_ISSET(socket->first, evs->rdfd)) {
+            if (FD_ISSET(socket->first, events->rdfd)) {
                 // go
                 fd = socket->first;
                 mode |= SocketRead;
                 ++socket;
                 break;
             }
-            if (evs->wrfd && FD_ISSET(socket->first, evs->wrfd)) {
+            if (events->wrfd && FD_ISSET(socket->first, events->wrfd)) {
                 // go
                 fd = socket->first;
                 mode |= SocketWrite;
@@ -806,19 +806,19 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
             ++socket;
         }
         if (fd == -1) {
-            if (FD_ISSET(eventPipe[0], evs->rdfd)) {
-                fd = eventPipe[0];
+            if (FD_ISSET(mEventPipe[0], events->rdfd)) {
+                fd = mEventPipe[0];
                 mode |= SocketRead;
             }
         }
         //printf("firing %d (%d/%d)\n", fd, i, eventCount);
 #endif
         if (mode) {
-            if (fd == eventPipe[0]) {
+            if (fd == mEventPipe[0]) {
                 // drain the pipe
                 char q;
                 do {
-                    eintrwrap(e, ::read(eventPipe[0], &q, 1));
+                    eintrwrap(e, ::read(mEventPipe[0], &q, 1));
                     if (e == 1 && q == 'q') {
                         // signal caught, we need to shut down
                         return Success;
@@ -837,22 +837,17 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
     return all;
 }
 
-void EventLoop::setInactivityTimeout(int value)
-{
-    inactivityTimeout = value;
-}
-
 unsigned int EventLoop::exec(int timeoutTime)
 {
     int quitTimerId = -1;
     if (timeoutTime != -1)
-        quitTimerId = registerTimer([=](int) { timeout = true; quit(); }, timeoutTime, Timer::SingleShot);
+        quitTimerId = registerTimer([=](int) { mTimeout = true; quit(); }, timeoutTime, Timer::SingleShot);
 
     unsigned int ret = 0;
 
 #if defined(HAVE_EPOLL) || defined(HAVE_KQUEUE)
     enum { MaxEvents = 64 };
-    NativeEvent evs[MaxEvents];
+    NativeEvent events[MaxEvents];
 #endif
 
     for (;;) {
@@ -863,13 +858,13 @@ unsigned int EventLoop::exec(int timeoutTime)
         int waitUntil = -1;
         bool waitingForInactivityTimeout = false;
         {
-            std::lock_guard<std::mutex> locker(mutex);
+            std::lock_guard<std::mutex> locker(mMutex);
 
             // check if we're stopped
-            if (stop) {
-                stop = false;
-                if (timeout) {
-                    timeout = false;
+            if (mStop) {
+                mStop = false;
+                if (mTimeout) {
+                    mTimeout = false;
                     ret = Timeout;
                 } else {
                     ret = Success;
@@ -877,31 +872,31 @@ unsigned int EventLoop::exec(int timeoutTime)
                 break;
             }
 
-            const auto timer = timersByTime.begin();
-            if (timer != timersByTime.end()) {
+            const auto timer = mTimersByTime.begin();
+            if (timer != mTimersByTime.end()) {
                 const uint64_t now = currentTime();
                 waitUntil = std::max<int>((*timer)->when - now, 0);
             }
 
-            if (inactivityTimeout > 0) {
+            if (mInactivityTimeout > 0) {
                 if (waitUntil < 0) {
-                    waitUntil = inactivityTimeout;
+                    waitUntil = mInactivityTimeout;
                     waitingForInactivityTimeout = true;
                 }
             }
         }
         int eventCount;
 #if defined(HAVE_EPOLL)
-        eintrwrap(eventCount, epoll_wait(pollFd, evs, MaxEvents, waitUntil));
+        eintrwrap(eventCount, epoll_wait(mPollFd, events, MaxEvents, waitUntil));
 #elif defined(HAVE_KQUEUE)
-        timespec to;
+        timespec timeout;
         timespec* timeptr = 0;
         if (waitUntil != -1) {
-            to.tv_sec = waitUntil / 1000;
-            to.tv_nsec = (waitUntil % 1000LLU) * 1000000;
-            timeptr = &to;
+            timeout.tv_sec = waitUntil / 1000;
+            timeout.tv_nsec = (waitUntil % 1000LLU) * 1000000;
+            timeptr = &timeout;
         }
-        eintrwrap(eventCount, kevent(pollFd, 0, 0, evs, MaxEvents, timeptr));
+        eintrwrap(eventCount, kevent(mPollFd, 0, 0, events, MaxEvents, timeptr));
 #elif defined(HAVE_SELECT)
         timeval timeout;
         timeval* timeptr = 0;
@@ -915,12 +910,12 @@ unsigned int EventLoop::exec(int timeoutTime)
         fd_set* wrfdp = 0;
         FD_ZERO(&rdfd);
         FD_ZERO(&wrfd);
-        int max = eventPipe[0];
+        int max = mEventPipe[0];
         FD_SET(max, &rdfd);
         {
-            std::lock_guard<std::mutex> locker(mutex);
-            auto s = sockets.begin();
-            const auto e = sockets.end();
+            std::lock_guard<std::mutex> locker(mMutex);
+            auto s = mSockets.begin();
+            const auto e = mSockets.end();
             while (s != e) {
                 if (s->second.first & SocketRead) {
                     FD_SET(s->first, &rdfd);
@@ -946,13 +941,13 @@ unsigned int EventLoop::exec(int timeoutTime)
             NativeEvent event;
             event.rdfd = &rdfd;
             event.wrfd = wrfdp;
-            NativeEvent* evs = &event;
+            NativeEvent* events = &event;
 #endif
-            ret = processSocketEvents(evs, eventCount);
+            ret = processSocketEvents(events, eventCount);
             if (ret & (Success|GeneralError|Timeout))
                 break;
         } else if (eventCount == 0 && waitingForInactivityTimeout) {
-            this->timeout = true;
+            mTimeout = true;
             quit();
         }
     }

@@ -630,7 +630,7 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     ev.data.fd = fd;
     epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
 
-    eintrwrap(eventCount, epoll_wait(processFd, evs, MaxEvents, timeout));
+    eintrwrap(eventCount, epoll_wait(processFd, evs, MaxEvents, maxTime));
 #elif defined(HAVE_KQUEUE)
     int processFd = kqueue(), e;
 
@@ -662,11 +662,11 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     FD_SET(fd, &wrfd);
 
     timeval time;
-    if (timeout != -1) {
-        time.tv_sec = timeout / 1000;
-        time.tv_usec = (timeout % 1000LLU) * 1000;
+    if (maxTime != -1) {
+        time.tv_sec = maxTime / 1000;
+        time.tv_usec = (maxTime % 1000LLU) * 1000;
     }
-    eintrwrap(eventCount, select(fd + 1, &rdfd, &wrfd, 0, (timeout == -1) ? 0 : &time));
+    eintrwrap(eventCount, select(fd + 1, &rdfd, &wrfd, 0, (maxTime == -1) ? 0 : &time));
 #endif
     if (eventCount == -1)
         fprintf(stderr, "processSocket returned -1 (%d)\n", errno);
@@ -719,11 +719,11 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
     for (int i = 0; i < eventCount; ++i) {
         unsigned int mode = 0;
 #if defined(HAVE_EPOLL)
-        const uint32_t ev = events[i].events;
-        const int fd = events[i].data.fd;
+        const uint32_t ev = evs[i].events;
+        const int fd = evs[i].data.fd;
         if (ev & (EPOLLERR|EPOLLHUP) && !(ev & EPOLLRDHUP)) {
             // bad, take the fd out
-            epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &events[i]);
+            epoll_ctl(pollFd, EPOLL_CTL_DEL, fd, &evs[i]);
             {
                 std::lock_guard<std::mutex> locker(mutex);
                 sockets.erase(fd);
@@ -789,14 +789,14 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
         int fd = -1;
         //assert(socket != local.end());
         while (socket != local.end()) {
-            if (FD_ISSET(socket->first, events->rdfd)) {
+            if (FD_ISSET(socket->first, evs->rdfd)) {
                 // go
                 fd = socket->first;
                 mode |= SocketRead;
                 ++socket;
                 break;
             }
-            if (events->wrfd && FD_ISSET(socket->first, events->wrfd)) {
+            if (evs->wrfd && FD_ISSET(socket->first, evs->wrfd)) {
                 // go
                 fd = socket->first;
                 mode |= SocketWrite;
@@ -806,7 +806,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* evs, int eventCount)
             ++socket;
         }
         if (fd == -1) {
-            if (FD_ISSET(eventPipe[0], events->rdfd)) {
+            if (FD_ISSET(eventPipe[0], evs->rdfd)) {
                 fd = eventPipe[0];
                 mode |= SocketRead;
             }
@@ -892,7 +892,7 @@ unsigned int EventLoop::exec(int timeoutTime)
         }
         int eventCount;
 #if defined(HAVE_EPOLL)
-        eintrwrap(eventCount, epoll_wait(pollFd, events, MaxEvents, waitUntil));
+        eintrwrap(eventCount, epoll_wait(pollFd, evs, MaxEvents, waitUntil));
 #elif defined(HAVE_KQUEUE)
         timespec to;
         timespec* timeptr = 0;
@@ -946,7 +946,7 @@ unsigned int EventLoop::exec(int timeoutTime)
             NativeEvent event;
             event.rdfd = &rdfd;
             event.wrfd = wrfdp;
-            NativeEvent* events = &event;
+            NativeEvent* evs = &event;
 #endif
             ret = processSocketEvents(evs, eventCount);
             if (ret & (Success|GeneralError|Timeout))

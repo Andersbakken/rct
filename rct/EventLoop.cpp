@@ -630,7 +630,7 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     ev.data.fd = fd;
     epoll_ctl(processFd, EPOLL_CTL_ADD, fd, &ev);
 
-    eintrwrap(eventCount, epoll_wait(processFd, events, MaxEvents, timeout));
+    eintrwrap(eventCount, epoll_wait(processFd, evs, MaxEvents, timeout));
 #elif defined(HAVE_KQUEUE)
     int processFd = kqueue(), e;
 
@@ -679,7 +679,7 @@ unsigned int EventLoop::processSocket(int fd, int maxTime)
     NativeEvent event;
     event.rdfd = &rdfd;
     event.wrfd = &wrfd;
-    NativeEvent* events = &event;
+    NativeEvent* evs = &event;
 #endif
     return processSocketEvents(evs, eventCount);
 }

@@ -75,14 +75,14 @@ public:
     virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
     void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
     template <int StaticBufSize = 256>
-    void log(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
+    void vlog(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     LogLevel logLevel() const { return mLogLevel; }
 private:
     LogLevel mLogLevel;
 };
 
 template <int StaticBufSize>
-inline void LogOutput::log(const char *format, ...)
+inline void LogOutput::vlog(const char *format, ...)
 {
     va_list args;
     va_start(args, format);

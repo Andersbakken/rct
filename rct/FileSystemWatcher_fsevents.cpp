@@ -232,7 +232,7 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef,
 
     FileSystemWatcher *fsWatcher = watcher->watcher;
     {
-        std::lock_guard<std::mutex> locker(fsWatcher->mMutex);
+        std::lock_guard<std::mutex> l(fsWatcher->mMutex);
         for (size_t i = 0; i < numEvents; ++i) {
             const FSEventStreamEventFlags flags = eventFlags[i];
             if (flags & kFSEventStreamEventFlagHistoryDone)

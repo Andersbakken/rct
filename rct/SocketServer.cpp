@@ -181,9 +181,9 @@ SocketClient::SharedPtr SocketServer::nextConnection()
 {
     if (accepted.empty())
         return 0;
-    const int fd = accepted.front();
+    const int sock = accepted.front();
     accepted.pop();
-    return SocketClient::SharedPtr(new SocketClient(fd, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));
+    return SocketClient::SharedPtr(new SocketClient(sock, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));
 }
 
 void SocketServer::socketCallback(int /*fd*/, int mode)

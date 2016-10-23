@@ -59,7 +59,7 @@ void WatcherSlice::run()
     for (;;) {
         const DWORD ret = WaitForMultipleObjects(changes.size(), &changes[0], FALSE, INFINITE);
         if (ret == WAIT_FAILED) {
-            fprintf(stderr, "Wait failed in WatcherSlice::run() %lu\n", GetLastError());
+            fprintf(stderr, "Wait failed in WatcherSlice::run() %lu\n", static_cast<unsigned long>(GetLastError()));
             break;
         }
         const unsigned int idx = ret - WAIT_OBJECT_0;
@@ -145,7 +145,8 @@ void WatcherData::updatePaths()
                                                      FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 #endif
         if (h == INVALID_HANDLE_VALUE) {
-            fprintf(stderr, "Unable to watch: %lu (%s)\n", GetLastError(), path.constData());
+            fprintf(stderr, "Unable to watch: %lu (%s)\n",
+                    static_cast<unsigned long>(GetLastError()), path.constData());
         } else {
             changes.push_back(h);
 
@@ -213,7 +214,8 @@ void WatcherData::run()
         }
         const DWORD res = WaitForSingleObject(wakeupHandle, INFINITE);
         if (res == WAIT_FAILED) {
-            fprintf(stderr, "Wait failed in WatcherData::run() %lu\n", GetLastError());
+            fprintf(stderr, "Wait failed in WatcherData::run() %lu\n",
+                    static_cast<unsigned long>(GetLastError()));
             break;
         }
         assert(res - WAIT_OBJECT_0 == 0);
@@ -229,22 +231,22 @@ void WatcherData::run()
             for (const Path& p : changedPaths) {
                 //printf("path was modified... %s\n", p.constData());
                 PathData& data = pathData[p];
-                p.visit([&data](const Path &p) {
-                        if (p.isFile()) {
+                p.visit([&data](const Path &pp) {
+                        if (pp.isFile()) {
                             //printf("updateDir %s\n", p.constData());
-                            const auto modif = data.modified.find(p);
+                            const auto modif = data.modified.find(pp);
                             if (modif == data.modified.end()) {
                                 //printf("added\n");
                                 // new file
-                                data.added.insert(p);
+                                data.added.insert(pp);
                                 return Path::Continue;
                             }
-                            data.seen.insert(p);
+                            data.seen.insert(pp);
                             // possibly modified file
-                            if (p.lastModifiedMs() != modif->second) {
+                            if (pp.lastModifiedMs() != modif->second) {
                                 //printf("modified\n");
                                 // really modified
-                                data.changed.insert(p);
+                                data.changed.insert(pp);
                             }
                             return Path::Continue;
                         }

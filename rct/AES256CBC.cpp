@@ -10,6 +10,23 @@
 #include "rct/Log.h"
 #include "SHA256.h"
 
+#if defined OS_Darwin && defined OPENSSL_VERSION_NUMBER && OPENSSL_VERSION_NUMBER < 0x10100000L
+static EVP_CIPHER_CTX *EVP_CIPHER_CTX_new(void)
+{
+   EVP_CIPHER_CTX *ctx = OPENSSL_malloc(sizeof *ctx);
+   if (ctx)
+      EVP_CIPHER_CTX_init(ctx);
+   return ctx;
+}
+static void EVP_CIPHER_CTX_free(EVP_CIPHER_CTX *ctx)
+{
+   if (ctx) {
+       EVP_CIPHER_CTX_cleanup(ctx);
+      OPENSSL_free(ctx);
+   }
+}
+#endif
+
 class AES256CBCPrivate
 {
 public:
@@ -21,7 +38,7 @@ public:
 #ifdef OS_Darwin
     CCCryptorRef ectx, dctx;
 #else
-    EVP_CIPHER_CTX ectx, dctx;
+    EVP_CIPHER_CTX *ectx, *dctx;
 #endif
 };
 
@@ -33,8 +50,8 @@ AES256CBCPrivate::~AES256CBCPrivate()
     CCCryptorRelease(ectx);
     CCCryptorRelease(dctx);
 #else
-    EVP_CIPHER_CTX_cleanup(&ectx);
-    EVP_CIPHER_CTX_cleanup(&dctx);
+    EVP_CIPHER_CTX_free(ectx);
+    EVP_CIPHER_CTX_free(dctx);
 #endif
 }
 
@@ -74,10 +91,10 @@ AES256CBC::AES256CBC(const String& key, const unsigned char* salt)
     CCCryptorCreate(kCCDecrypt, kCCAlgorithmAES128, kCCOptionPKCS7Padding,
                     outkey, kCCKeySizeAES256, priv->iv, &priv->dctx);
 #else
-    EVP_CIPHER_CTX_init(&priv->ectx);
-    EVP_EncryptInit_ex(&priv->ectx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
-    EVP_CIPHER_CTX_init(&priv->dctx);
-    EVP_DecryptInit_ex(&priv->dctx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
+    priv->ectx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(priv->ectx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
+    priv->dctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(priv->dctx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
 #endif
 
     priv->inited = true;
@@ -102,10 +119,10 @@ String AES256CBC::encrypt(const String& data)
 #else
     int elen = data.size() + AES_BLOCK_SIZE, flen;
     String out(elen, '\0');
-    EVP_EncryptInit_ex(&priv->ectx, NULL, NULL, NULL, NULL);
-    EVP_EncryptUpdate(&priv->ectx, reinterpret_cast<unsigned char*>(out.data()), &elen,
+    EVP_EncryptInit_ex(priv->ectx, NULL, NULL, NULL, NULL);
+    EVP_EncryptUpdate(priv->ectx, reinterpret_cast<unsigned char*>(out.data()), &elen,
                       reinterpret_cast<const unsigned char*>(data.constData()), data.size());
-    EVP_EncryptFinal_ex(&priv->ectx, reinterpret_cast<unsigned char*>(out.data()) + elen, &flen);
+    EVP_EncryptFinal_ex(priv->ectx, reinterpret_cast<unsigned char*>(out.data()) + elen, &flen);
     out.resize(elen + flen);
 #endif
     return out;
@@ -125,10 +142,10 @@ String AES256CBC::decrypt(const String& data)
 #else
     int dlen = data.size(), flen;
     String out(dlen + AES_BLOCK_SIZE, '\0');
-    EVP_DecryptInit_ex(&priv->dctx, NULL, NULL, NULL, NULL);
-    EVP_DecryptUpdate(&priv->dctx, reinterpret_cast<unsigned char*>(out.data()), &dlen,
+    EVP_DecryptInit_ex(priv->dctx, NULL, NULL, NULL, NULL);
+    EVP_DecryptUpdate(priv->dctx, reinterpret_cast<unsigned char*>(out.data()), &dlen,
                       reinterpret_cast<const unsigned char*>(data.constData()), data.size());
-    EVP_DecryptFinal_ex(&priv->dctx, reinterpret_cast<unsigned char*>(out.data()) + dlen, &flen);
+    EVP_DecryptFinal_ex(priv->dctx, reinterpret_cast<unsigned char*>(out.data()) + dlen, &flen);
     out.resize(dlen + flen);
 #endif
     return out;

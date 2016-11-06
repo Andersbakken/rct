@@ -62,7 +62,7 @@ public:
 
     void close() { assert(mSocketClient); mSocketClient->close(); }
 
-    bool isConnected() const { return mSocketClient->isConnected(); }
+    bool isConnected() const { return mSocketClient && mSocketClient->isConnected(); }
 
     Signal<std::function<void(std::shared_ptr<Connection>)> > &sendFinished() { return mSendFinished; }
     Signal<std::function<void(std::shared_ptr<Connection>)> > &connected() { return mConnected; }

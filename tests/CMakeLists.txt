@@ -51,8 +51,6 @@ set(WIN_RCT_SOURCES ${WIN_RCT_SOURCES_PREPENDED})
 
 list(APPEND WIN_RCT_SOURCES ../cJSON/cJSON.c)
 
-add_definitions(-D_CRTIMP= )
-
 find_package(OpenSSL)
 if (OPENSSL_FOUND)
     add_definitions(-DRCT_HAVE_OPENSSL)
@@ -64,7 +62,7 @@ endif ()
 
 add_executable("Path_tests" main.cpp PathTestSuite.cpp ${WIN_RCT_SOURCES})
 target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES}
-  ${OPENSSL_LIBRARIES} Ws2_32 msvcr100)
+  ${OPENSSL_LIBRARIES} Ws2_32)
 
 
 ###############################################################

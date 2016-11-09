@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <iostream>
+#include <windows.h>
 
 static std::once_flag tzFlag;
 
@@ -49,9 +50,17 @@ void Date::setTime(time_t time, Mode mode)
         struct tm ltime;
         if (modetime(time, &ltime, mode)) {
 #ifdef _WIN32
-            long tz;
-            _get_timezone(&tz);
+            long tz = 0;
+
+            // The following does NOT work because of linker errors:
+            // _get_timezone(&tz);
+            // user GetTimeZoneInformation() instead:
+            TIME_ZONE_INFORMATION inf;
+            GetTimeZoneInformation(&inf);
+            tz = inf.Bias;
+
             mTime = time + tz;
+
 #else
             mTime = time + ltime.tm_gmtoff;
 #endif

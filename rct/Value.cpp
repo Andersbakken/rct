@@ -250,11 +250,11 @@ public:
             ++indent;
             for (auto it = value.begin(); it != end; ++it) {
                 // printf("%*s" "%s", indent, " ", string);
-                String str = String::format<128>("%*s%s: ", indent - 1, " ", it->first.constData());
-                format(it->second, [&str](const char *ch, size_t len) {
-                        str.append(ch, len);
+                String s = String::format<128>("%*s%s: ", indent - 1, " ", it->first.constData());
+                format(it->second, [&s](const char *ch, size_t len) {
+                        s.append(ch, len);
                     });
-                output(str.constData(), str.size());
+                output(s.constData(), s.size());
                 output("\n", 1);
             }
             --indent;

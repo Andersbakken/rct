@@ -334,13 +334,13 @@ Path Process::findCommand(const String &command, const char *path)
     return Path();
 }
 
-Process::ExecState Process::startInternal(const Path &command, const List<String> &a, const List<String> &environ,
+Process::ExecState Process::startInternal(const Path &command, const List<String> &a, const List<String> &environment,
                                           int timeout, unsigned int execFlags)
 {
     mErrorString.clear();
 
     const char *path = 0;
-    for (const auto &it : environ) {
+    for (const auto &it : environment) {
         if (it.startsWith("PATH=")) {
             path = it.constData() + 5;
             break;
@@ -384,15 +384,15 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
         ++pos;
     }
 
-    const bool hasEnviron = !environ.empty();
+    const bool hasEnviron = !environment.empty();
 
-    const char **env = new const char*[environ.size() + 1];
-    env[environ.size()] = 0;
+    const char **env = new const char*[environment.size() + 1];
+    env[environment.size()] = 0;
 
     if (hasEnviron) {
         pos = 0;
         //printf("fork, about to exec '%s'\n", cmd.nullTerminated());
-        for (List<String>::const_iterator it = environ.begin(); it != environ.end(); ++it) {
+        for (List<String>::const_iterator it = environment.begin(); it != environment.end(); ++it) {
             env[pos] = it->nullTerminated();
             //printf("env: '%s'\n", env[pos]);
             ++pos;
@@ -606,10 +606,10 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
     return Done;
 }
 
-bool Process::start(const Path &command, const List<String> &a, const List<String> &environ)
+bool Process::start(const Path &command, const List<String> &a, const List<String> &environment)
 {
     mMode = Async;
-    return startInternal(command, a, environ) == Done;
+    return startInternal(command, a, environment) == Done;
 }
 
 Process::ExecState Process::exec(const Path &command, const List<String> &arguments, int timeout, unsigned int flags)
@@ -618,11 +618,11 @@ Process::ExecState Process::exec(const Path &command, const List<String> &argume
     return startInternal(command, arguments, List<String>(), timeout, flags);
 }
 
-Process::ExecState Process::exec(const Path &command, const List<String> &a, const List<String> &environ,
-                                 int timeout, unsigned int flags)
+Process::ExecState Process::exec(const Path &command, const List<String> &a,
+                                 const List<String> &environment, int timeout, unsigned int flags)
 {
     mMode = Sync;
-    return startInternal(command, a, environ, timeout, flags);
+    return startInternal(command, a, environment, timeout, flags);
 }
 
 void Process::write(const String &data)

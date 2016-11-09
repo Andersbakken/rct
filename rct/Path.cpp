@@ -706,7 +706,9 @@ Path Path::toTilde() const
 Path Path::pwd()
 {
     char buf[PATH_MAX];
-    char *pwd = getcwd(buf, sizeof(buf));
+    char *pwd = getenv("PWD");
+    if (!pwd)
+        pwd = getcwd(buf, sizeof(buf));
     if (pwd) {
         Path ret(pwd);
         if (!ret.endsWith('/'))

@@ -542,7 +542,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                     max = std::max(max, mStdIn[1]);
                 }
                 int ret;
-                eintrwrap(ret, ::select(max + 1, &rfds, &wfds, 0, &timeoutForSelect));
+                eintrwrap(ret, ::select(max + 1, &rfds, &wfds, 0, timeout > 0 ? &timeoutForSelect : 0));
                 if (ret == -1) { // ow
                     mErrorString = "Sync select failed: ";
                     mErrorString += Rct::strerror();

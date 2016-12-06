@@ -841,7 +841,7 @@ unsigned int EventLoop::exec(int timeoutTime)
 {
     int quitTimerId = -1;
     if (timeoutTime != -1)
-        quitTimerId = registerTimer([=](int) { mTimeout = true; quit(); }, timeoutTime, Timer::SingleShot);
+        quitTimerId = registerTimer([this](int) { mTimeout = true; quit(); }, timeoutTime, Timer::SingleShot);
 
     unsigned int ret = 0;
 

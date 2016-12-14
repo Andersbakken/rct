@@ -112,7 +112,8 @@ enum LogFlag {
     DontRotate = 0x02,
     LogStderr = 0x04,
     LogSyslog = 0x08,
-    LogTimeStamp = 0x10
+    LogTimeStamp = 0x10,
+    LogFlush = 0x20
 };
 RCT_FLAGS_OPERATORS(LogFlag);
 

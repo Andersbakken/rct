@@ -80,8 +80,8 @@ public:
 class TerminalOutput : public LogOutput
 {
 public:
-    TerminalOutput(LogLevel lvl)
-        : LogOutput(lvl), mReplaceableLength(0)
+    TerminalOutput(LogLevel lvl, Flags<::LogFlag> flags)
+        : LogOutput(lvl), mReplaceableLength(0), mFlags(flags)
     {}
     virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
@@ -99,10 +99,14 @@ public:
                 fwrite("\n", 1, 1, f);
             mReplaceableLength = 0;
             writeLog(f, msg, len, flags);
+            if (mFlags & ::LogFlush) {
+                fflush(f);
+            }
         }
     }
 private:
     int mReplaceableLength;
+    Flags<::LogFlag> mFlags;
 };
 
 class SyslogOutput : public LogOutput
@@ -261,7 +265,7 @@ bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
     sFlags = flags;
     sLevel = level;
     if (flags & LogStderr) {
-        std::shared_ptr<TerminalOutput> out(new TerminalOutput(level));
+        std::shared_ptr<TerminalOutput> out(new TerminalOutput(level, flags));
         out->add();
     }
     if (flags & LogSyslog) {

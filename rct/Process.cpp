@@ -489,6 +489,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 mErrorString = "Failed to read from closePipe during process start";
                 mPid = -1;
                 ProcessThread::setPending(-1);
+                mReturn = ReturnCrashed;
                 return Error;
             } else if (err == 0) {
                 // process has started successfully
@@ -497,6 +498,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 // process start failed
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Process failed to start";
+                mReturn = ReturnCrashed;
                 mPid = -1;
                 ProcessThread::setPending(-1);
                 return Error;

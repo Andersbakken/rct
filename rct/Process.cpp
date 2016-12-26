@@ -20,7 +20,6 @@
 #include "StopWatch.h"
 #include "Thread.h"
 
-
 static std::once_flag sProcessHandler;
 
 class ProcessThread : public Thread
@@ -52,6 +51,7 @@ private:
     static void wakeup(Signal sig);
 
     static void processSignalHandler(int sig);
+
 private:
     static ProcessThread* sProcessThread;
     static int sProcessPipe[2];
@@ -136,8 +136,7 @@ void ProcessThread::removePid(pid_t f_pid)
     std::lock_guard<std::mutex> lock(sProcessMutex);
 
     auto it = sProcesses.find(f_pid);
-    if(it != sProcesses.end())
-    {
+    if (it != sProcesses.end()) {
         it->second.proc = nullptr;
         it->second.loop = EventLoop::SharedPtr();
     }
@@ -160,7 +159,7 @@ void ProcessThread::run()
                 do {
                     // find out which process we're waking up on
                     eintrwrap(p, ::waitpid(0, &ret, WNOHANG));
-                    switch(p) {
+                    switch (p) {
                     case 0:
                         // we're done
                         done = true;
@@ -173,7 +172,7 @@ void ProcessThread::run()
                         error() << "waitpid error" << errno;
                         break;
                     default:
-                        //printf("successfully waited for pid (got %d)\n", p);
+                        // printf("successfully waited for pid (got %d)\n", p);
                         // child process with pid=p just exited.
                         if (WIFEXITED(ret)) {
                             ret = WEXITSTATUS(ret);
@@ -184,7 +183,7 @@ void ProcessThread::run()
                         auto proc = sProcesses.find(p);
                         if (proc != sProcesses.end()) {
                             Process *process = proc->second.proc;
-                            if(process != nullptr) {
+                            if (process != nullptr) {
                                 EventLoop::SharedPtr loop = proc->second.loop.lock();
                                 sProcesses.erase(proc++);
                                 lock.unlock();
@@ -208,7 +207,7 @@ void ProcessThread::run()
             }
         }
     }
-    //printf("process thread died for some reason\n");
+    // printf("process thread died for some reason\n");
 }
 
 void ProcessThread::shutdown()
@@ -225,12 +224,12 @@ void ProcessThread::shutdown()
 void ProcessThread::wakeup(Signal sig)
 {
     const char b = sig == Stop ? 's' : 'c';
-    //printf("sending pid %d\n", pid);
+    // printf("sending pid %d\n", pid);
     do {
         if (::write(sProcessPipe[1], &b, sizeof(char)) >= 0)
             break;
     } while (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK);
-    //printf("sent pid %ld\n", written);
+    // printf("sent pid %ld\n", written);
 }
 
 void ProcessThread::processSignalHandler(int sig)
@@ -379,7 +378,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
     int pos = 1;
     for (List<String>::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {
         args[pos] = it->nullTerminated();
-        //printf("arg: '%s'\n", args[pos]);
+        // printf("arg: '%s'\n", args[pos]);
         ++pos;
     }
 

@@ -111,7 +111,7 @@ int Connection::pendingWrite() const
     return mPendingWrite;
 }
 
-void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
+void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&& buf)
 {
     while (true) {
         if (!buf.isEmpty())
@@ -141,7 +141,8 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
         const int read = mBuffers.read(buffer.buffer(), mPendingRead);
         assert(read == mPendingRead);
         mPendingRead = 0;
-        std::shared_ptr<Message> message = Message::create(mVersion, buffer, read);
+        Message::MessageError error;
+        std::shared_ptr<Message> message = Message::create(mVersion, buffer, read, &error);
         if (message) {
             auto that = shared_from_this();
             if (message->messageId() == FinishMessage::MessageId) {
@@ -150,11 +151,13 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buf)
             } else {
                 newMessage()(message, that);
             }
+        } else if (mErrorHandler) {
+            mErrorHandler(client, std::move(error));
         } else {
-            ::error() << "Unable to create message from data" << read;
+            ::error() << "Unable to create message from data" << error.type << error.text << read;
         }
         if (!message)
-            mSocketClient->close();
+            client->close();
     // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);
     }
 }

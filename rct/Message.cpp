@@ -33,27 +33,36 @@ void Message::prepare(int version, String &header, String &value) const
     header = mHeader;
 }
 
-std::shared_ptr<Message> Message::create(int version, const char *data, int size)
+std::shared_ptr<Message> Message::create(int version, const char *data, int size, MessageError *errorPtr)
 {
+    auto sendError = [errorPtr](MessageErrorType type, const String &text) {
+        if (errorPtr) {
+            errorPtr->text = text;
+            errorPtr->type = type;
+        } else {
+            logDirect(LogLevel::Error, text);
+        }
+    };
     if (!size || !data) {
-        error("Can't create message from empty data");
+        sendError(Message_LengthError, "Can't create message from empty data");
         return std::shared_ptr<Message>();
     }
     Deserializer ds(data, Serializer::sizeOf<int>() + Serializer::sizeOf<uint8_t>() + Serializer::sizeOf<uint8_t>());
     int ver;
     ds >> ver;
     if (ver != version) {
+        String text;
         size -= Serializer::sizeOf(ver);
         if (size > 1) {
             uint8_t id;
             ds >> id;
-            error("Invalid message version. Got %d, expected %d id: %d", ver, version, id);
-            error() << String::toHex(data, std::min(size, 1024));
-            // error() << Rct::backtrace();
+            text = String::format<1024>("Invalid message version. Got %d, expected %d id: %d", ver, version, id);
+            text += String::toHex(data, std::min(size, 1024));
         } else {
-            error("Invalid message version. Got %d, expected %d", ver, version);
-            error() << String::toHex(data, std::min(size, 1024));
+            text = String::format<1024>("Invalid message version. Got %d, expected %d", ver, version);
+            text += String::toHex(data, std::min(size, 1024));
         }
+        sendError(Message_VersionError, text);
         return std::shared_ptr<Message>();
     }
     size -= Serializer::sizeOf(version);
@@ -82,12 +91,12 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
 
     MessageCreatorBase *base = sFactory.value(id);
     if (!base) {
-        error("Invalid message id %d, data: %d bytes", id, size);
+        sendError(Message_IdError, String::format<128>("Invalid message id %d, data: %d bytes", id, size));
         return std::shared_ptr<Message>();
     }
     std::shared_ptr<Message> message(base->create(data, size));
     if (!message) {
-        error("Can't create message from data id: %d, data: %d bytes", id, size);
+        sendError(Message_CreateError, String::format<128>("Can't create message from data id: %d, data: %d bytes", id, size));
     }
     return message;
 }

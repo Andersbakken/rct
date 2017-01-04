@@ -15,8 +15,8 @@ public:
         QuitMessageId = 3
     };
 
-    Message(uint8_t id, uint8_t flags = None)
-        : mMessageId(id), mFlags(flags), mVersion(0)
+    Message(uint8_t id, uint8_t f = None)
+        : mMessageId(id), mFlags(f), mVersion(0)
     {}
     virtual ~Message()
     {}

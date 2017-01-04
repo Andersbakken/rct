@@ -25,8 +25,8 @@ public:
     Path(const char *path)
         : String(path)
     {}
-    Path(const char *path, size_t size)
-        : String(path, size)
+    Path(const char *path, size_t len)
+        : String(path, len)
     {}
     Path() {}
     Path &operator=(const Path &other)

@@ -149,7 +149,7 @@ public:
         }
     };
 private:
-    explicit Value(Type type) : mType(type) {}
+    explicit Value(Type t) : mType(t) {}
 
     template <typename T> T *pun() const
     {
@@ -231,9 +231,9 @@ template <> inline int Value::convert<int>(bool *ok) const
     case Type_Double: return static_cast<int>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
     case Type_String: {
-        char *end;
-        const int ret = strtol(stringPtr()->constData(), &end, 10);
-        if (!*end)
+        char *endPtr;
+        const int ret = strtol(stringPtr()->constData(), &endPtr, 10);
+        if (!*endPtr)
             return ret;
         break; }
     case Type_Invalid: break;
@@ -257,9 +257,9 @@ template <> inline long long Value::convert<long long>(bool *ok) const
     case Type_Double: return static_cast<long long>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
     case Type_String: {
-        char *end;
-        const long long ret = strtoll(stringPtr()->constData(), &end, 0);
-        if (!*end)
+        char *endPtr;
+        const long long ret = strtoll(stringPtr()->constData(), &endPtr, 0);
+        if (!*endPtr)
             return ret;
         break; }
     case Type_Invalid: break;
@@ -283,9 +283,9 @@ template <> inline unsigned long long Value::convert<unsigned long long>(bool *o
     case Type_Double: return static_cast<unsigned long long>(round(mData.dbl));
     case Type_Boolean: return mData.boolean;
     case Type_String: {
-        char *end;
-        const unsigned long long ret = strtoull(stringPtr()->constData(), &end, 0);
-        if (!*end)
+        char *endPtr;
+        const unsigned long long ret = strtoull(stringPtr()->constData(), &endPtr, 0);
+        if (!*endPtr)
             return ret;
         break; }
     case Type_Invalid: break;
@@ -362,9 +362,9 @@ template <> inline double Value::convert<double>(bool *ok) const
     case Type_Double: return mData.dbl;
     case Type_Boolean: return mData.boolean;
     case Type_String: {
-        char *end;
-        const double ret = strtod(stringPtr()->constData(), &end);
-        if (!*end)
+        char *endPtr;
+        const double ret = strtod(stringPtr()->constData(), &endPtr);
+        if (!*endPtr)
             return ret;
         break; }
     case Type_Custom: break;

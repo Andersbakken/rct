@@ -5,11 +5,11 @@ template <size_t Size, typename T = char>
 class StackBuffer
 {
 public:
-    StackBuffer(size_t size)
-        : mBuffer(0), mSize(size)
+    StackBuffer(size_t len)
+        : mBuffer(0), mSize(len)
     {
-        if (size > Size) {
-            mBuffer = new T[size];
+        if (len > Size) {
+            mBuffer = new T[len];
         } else {
             mBuffer = mStackBuffer;
         }

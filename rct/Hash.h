@@ -78,17 +78,17 @@ public:
         return ret;
     }
 
-    bool remove(const Key &t, Value *value = 0)
+    bool remove(const Key &t, Value *val = 0)
     {
         typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::find(t);
         if (it != std::unordered_map<Key, Value>::end()) {
-            if (value)
-                *value = it->second;
+            if (val)
+                *val = it->second;
             std::unordered_map<Key, Value>::erase(it);
             return true;
         }
-        if (value)
-            *value = Value();
+        if (val)
+            *val = Value();
         return false;
     }
 
@@ -108,9 +108,9 @@ public:
         return ret;
     }
 
-    bool insert(const Key &key, const Value &value)
+    bool insert(const Key &key, const Value &val)
     {
-        return std::unordered_map<Key, Value>::insert(std::make_pair(key, value)).second;
+        return std::unordered_map<Key, Value>::insert(std::make_pair(key, val)).second;
     }
 
     Value &operator[](const Key &key)
@@ -182,35 +182,37 @@ public:
 
     List<Key> keys() const
     {
-        List<Key> keys;
+        List<Key> k;
+        k.reserve(size());
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::begin();
         while (it != std::unordered_map<Key, Value>::end()) {
-            keys.append(it->first);
+            k.append(it->first);
             ++it;
         }
-        return keys;
+        return k;
     }
 
     Set<Key> keysAsSet() const
     {
-        Set<Key> keys;
+        Set<Key> k;
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::begin();
         while (it != std::unordered_map<Key, Value>::end()) {
-            keys.insert(it->first);
+            k.insert(it->first);
             ++it;
         }
-        return keys;
+        return k;
     }
 
     List<Value> values() const
     {
-        List<Value> values;
+        List<Value> vals;
+        vals.reserve(size());
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::begin();
         while (it != std::unordered_map<Key, Value>::end()) {
-            values.append(it->second);
+            vals.append(it->second);
             ++it;
         }
-        return values;
+        return vals;
     }
 };
 

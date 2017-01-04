@@ -24,8 +24,8 @@ public:
     List(const std::vector<CompatibleType> &other)
         : Base(other.size(), T())
     {
-        const size_t size = other.size();
-        for (size_t i=0; i<size; ++i) {
+        const size_t len = other.size();
+        for (size_t i=0; i<len; ++i) {
             std::vector<T>::operator[](i) = other.at(i);
         }
     }
@@ -34,8 +34,8 @@ public:
         : Base(list)
     {}
 
-    List(typename Base::const_iterator first, typename Base::const_iterator last)
-        : Base(first, last)
+    List(typename Base::const_iterator f, typename Base::const_iterator l)
+        : Base(f, l)
     {
     }
 
@@ -71,8 +71,8 @@ public:
 
     void append(const List<T> &t)
     {
-        const size_t size = t.size();
-        for (size_t i=0; i<size; ++i)
+        const size_t len = t.size();
+        for (size_t i=0; i<len; ++i)
             Base::push_back(t.at(i));
     }
 
@@ -245,18 +245,18 @@ public:
         return Base::at(size() - 1);
     }
 
-    List<T> mid(size_t from, int size = -1) const
+    List<T> mid(size_t from, int len = -1) const
     {
         assert(from >= 0);
         const size_t count = Base::size();
         if (from >= count)
             return List<T>();
-        if (size < 0) {
-            size = count - from;
+        if (len < 0) {
+            len = count - from;
         } else {
-            size = std::min<int>(count - from, size);
+            len = std::min<int>(count - from, len);
         }
-        return List<T>(Base::begin() + from, Base::begin() + from + size);
+        return List<T>(Base::begin() + from, Base::begin() + from + len);
     }
 
     bool startsWith(const List<T> &t) const

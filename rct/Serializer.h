@@ -133,8 +133,8 @@ private:
 class Deserializer
 {
 public:
-    Deserializer(const char *data, int length, const char *key = "")
-        : mData(data), mLength(length), mPos(0), mFile(0), mKey(key)
+    Deserializer(const char *data, int len, const char *key = "")
+        : mData(data), mLength(len), mPos(0), mFile(0), mKey(key)
     {}
 
     Deserializer(const String &string, const char *key = "")
@@ -157,9 +157,9 @@ public:
                 return len;
             } else {
                 assert(mFile);
-                const int read = fread(target, sizeof(char), len, mFile);
-                fseek(mFile, -read, SEEK_CUR);
-                return read;
+                const int r = fread(target, sizeof(char), len, mFile);
+                fseek(mFile, -r, SEEK_CUR);
+                return r;
             }
         }
         return 0;

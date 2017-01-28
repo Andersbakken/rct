@@ -9,7 +9,7 @@ class LinkedList : public std::list<T>
 {
 public:
     LinkedList() : std::list<T>() { }
-    LinkedList(size_t size) : std::list<T>(size) { }
+    LinkedList(size_t len) : std::list<T>(len) { }
 
     bool isEmpty() const { return std::list<T>::empty(); }
 

@@ -114,7 +114,8 @@ enum LogFlag {
 #ifndef _WIN32
     LogSyslog = 0x08,
 #endif
-    LogTimeStamp = 0x10
+    LogTimeStamp = 0x10,
+    LogFlush = 0x20
 };
 RCT_FLAGS_OPERATORS(LogFlag);
 

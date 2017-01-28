@@ -43,8 +43,8 @@ public:
         replaceBackslashes();
 #endif
     }
-    Path(const char *path, size_t size)
-        : String(path, size)
+    Path(const char *path, size_t len)
+        : String(path, len)
     {
 #ifdef _WIN32
         replaceBackslashes();

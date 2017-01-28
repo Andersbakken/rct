@@ -70,17 +70,17 @@ public:
         return ret;
     }
 
-    bool remove(const Key &t, Value *value = 0)
+    bool remove(const Key &t, Value *val = 0)
     {
         typename Base::iterator it = Base::find(t);
         if (it != Base::end()) {
-            if (value)
-                *value = it->second;
+            if (val)
+                *val = it->second;
             Base::erase(it);
             return true;
         }
-        if (value)
-            *value = Value();
+        if (val)
+            *val = Value();
         return false;
     }
 
@@ -110,9 +110,9 @@ public:
     }
 
     using Base::insert;
-    bool insert(const Key &key, const Value &value)
+    bool insert(const Key &key, const Value &val)
     {
-        return Base::insert(std::make_pair(key, value)).second;
+        return Base::insert(std::make_pair(key, val)).second;
     }
 
     Value &operator[](const Key &key)
@@ -184,35 +184,37 @@ public:
 
     List<Key> keys() const
     {
-        List<Key> keys;
+        List<Key> k;
+        k.reserve(size());
         typename Base::const_iterator it = Base::begin();
         while (it != Base::end()) {
-            keys.append(it->first);
+            k.append(it->first);
             ++it;
         }
-        return keys;
+        return k;
     }
 
     Set<Key> keysAsSet() const
     {
-        Set<Key> keys;
+        Set<Key> k;
         typename Base::const_iterator it = Base::begin();
         while (it != Base::end()) {
-            keys.insert(it->first);
+            k.insert(it->first);
             ++it;
         }
-        return keys;
+        return k;
     }
 
     List<Value> values() const
     {
-        List<Value> values;
+        List<Value> vals;
+        vals.reserve(size());
         typename Base::const_iterator it = Base::begin();
         while (it != Base::end()) {
-            values.append(it->second);
+            vals.append(it->second);
             ++it;
         }
-        return values;
+        return vals;
     }
 };
 
@@ -290,17 +292,17 @@ public:
         return ret;
     }
 
-    bool remove(const Key &t, Value *value = 0)
+    bool remove(const Key &t, Value *val = 0)
     {
         typename std::multimap<Key, Value, Compare>::iterator it = std::multimap<Key, Value, Compare>::find(t);
         if (it != std::multimap<Key, Value, Compare>::end()) {
-            if (value)
-                *value = it->second;
+            if (val)
+                *val = it->second;
             std::multimap<Key, Value, Compare>::erase(it);
             return true;
         }
-        if (value)
-            *value = Value();
+        if (val)
+            *val = Value();
         return false;
     }
 
@@ -330,9 +332,9 @@ public:
     }
 
     using std::multimap<Key, Value>::insert;
-    void insert(const Key &key, const Value &value)
+    void insert(const Key &key, const Value &val)
     {
-        std::multimap<Key, Value, Compare>::insert(std::make_pair<Key, Value>(key, value));
+        std::multimap<Key, Value, Compare>::insert(std::make_pair<Key, Value>(key, val));
     }
 
     Value &operator[](const Key &key)
@@ -404,35 +406,37 @@ public:
 
     List<Key> keys() const
     {
-        List<Key> keys;
+        List<Key> k;
+        k.reserve(size());
         typename std::multimap<Key, Value, Compare>::const_iterator it = std::multimap<Key, Value, Compare>::begin();
         while (it != std::multimap<Key, Value, Compare>::end()) {
-            keys.append(it->first);
+            k.append(it->first);
             ++it;
         }
-        return keys;
+        return k;
     }
 
     Set<Key> keysAsSet() const
     {
-        Set<Key> keys;
+        Set<Key> k;
         typename std::multimap<Key, Value, Compare>::const_iterator it = std::multimap<Key, Value, Compare>::begin();
         while (it != std::multimap<Key, Value, Compare>::end()) {
-            keys.insert(it->first);
+            k.insert(it->first);
             ++it;
         }
-        return keys;
+        return k;
     }
 
     List<Value> values() const
     {
-        List<Value> values;
+        List<Value> vals;
+        vals.reserve(size());
         typename std::multimap<Key, Value, Compare>::const_iterator it = std::multimap<Key, Value, Compare>::begin();
         while (it != std::multimap<Key, Value, Compare>::end()) {
-            values.append(it->second);
+            vals.append(it->second);
             ++it;
         }
-        return values;
+        return vals;
     }
 };
 

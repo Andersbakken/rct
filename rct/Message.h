@@ -15,8 +15,8 @@ public:
         QuitMessageId = 3
     };
 
-    Message(uint8_t id, uint8_t flags = None)
-        : mMessageId(id), mFlags(flags), mVersion(0)
+    Message(uint8_t id, uint8_t f = None)
+        : mMessageId(id), mFlags(f), mVersion(0)
     {}
     virtual ~Message()
     {}
@@ -34,7 +34,18 @@ public:
     virtual void decode(Deserializer &/* deserializer */) = 0;
 
     virtual size_t encodedSize() const { return -1; }
-    static std::shared_ptr<Message> create(int version, const char *data, int size);
+    enum MessageErrorType {
+        Message_Success,
+        Message_VersionError,
+        Message_IdError,
+        Message_LengthError,
+        Message_CreateError
+    };
+    struct MessageError {
+        MessageErrorType type = Message_Success;
+        String text;
+    };
+    static std::shared_ptr<Message> create(int version, const char *data, int size, MessageError *error = 0);
     template<typename T> static void registerMessage()
     {
         const uint8_t id = T::MessageId;

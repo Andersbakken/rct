@@ -24,8 +24,10 @@ public:
 
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
+#ifndef _WIN32
     bool listen(const Path &path); // UNIX
     bool listenFD(int fd);         // UNIX
+#endif
     bool isListening() const { return fd != -1; }
 
     SocketClient::SharedPtr nextConnection();

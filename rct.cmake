@@ -62,8 +62,10 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+  add_definitions(-D_WIN32_WINNT=_WIN32_WINNT_VISTA)
   set(HAVE_CHANGENOTIFICATION 1)
   set(HAVE_SELECT 1)
+  list (APPEND RCT_LIBRARIES Ws2_32)
 endif ()
 
 check_cxx_source_compiles("
@@ -113,7 +115,6 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/MessageQueue.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Path.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Plugin.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Rct.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/ReadWriteLock.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Semaphore.cpp
@@ -136,6 +137,13 @@ elseif (HAVE_KQUEUE EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_kqueue.cpp)
 elseif (HAVE_CHANGENOTIFICATION EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_win32.cpp)
+endif ()
+
+message(${CMAKE_SYSTEM_NAME})
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/Process_Windows.cpp)
+else ()
+     list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp)
 endif ()
 
 

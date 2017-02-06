@@ -2,14 +2,21 @@
 
 #include <assert.h>
 #include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  include <Winsock2.h>
+#  include <Ws2tcpip.h>
+#  define PASSPTR(x) (reinterpret_cast<const char*>(x))
+#else
+#  include <netdb.h>
+#  include <netinet/in.h>
+#  include <sys/socket.h>
+#  include <sys/types.h>
+#  include <sys/un.h>
+#  include <unistd.h>
+#  define PASSPTR(x) (x)
+#endif
 
+#include <string.h>
 
 #include "EventLoop.h"
 #include "Log.h"
@@ -64,7 +71,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
 #endif
     // turn on nodelay
     flags = 1;
-    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof(int));
+    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, PASSPTR(&flags), sizeof(int));
     if (e == -1) {
         serverError(this, InitializeError);
         close();
@@ -98,6 +105,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
     return commonBindAndListen(&addr, size);
 }
 
+#ifndef _WIN32
 bool SocketServer::listen(const Path &p)
 {
     close();
@@ -135,6 +143,7 @@ bool SocketServer::listenFD(int fdArg)
 
     return commonListen();
 }
+#endif  // _WIN32
 
 bool SocketServer::commonBindAndListen(sockaddr* addr, size_t size)
 {
@@ -167,11 +176,13 @@ bool SocketServer::commonListen()
                                        this,
                                        std::placeholders::_1,
                                        std::placeholders::_2));
+#ifndef _WIN32
         if (!SocketClient::setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
             serverError(this, InitializeError);
             close();
             return false;
         }
+#endif
     }
 
     return true;

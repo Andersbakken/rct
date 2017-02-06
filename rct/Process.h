@@ -149,7 +149,8 @@ private:
     void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal);
 
     ExecState startInternal(const Path &command, const List<String> &arguments,
-                            const List<String> &environ, int timeout = 0, unsigned int flags = 0);
+                            const List<String> &f_environ, int timeout = 0,
+                            unsigned int flags = 0);
 
 private:
 

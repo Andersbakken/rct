@@ -42,7 +42,7 @@ set(WIN_RCT_SOURCES Path.cpp Rct.cpp Log.cpp WindowsUnicodeConversion.cpp
   SHA256.cpp ScriptEngine.cpp Thread.cpp ThreadPool.cpp Timer.cpp
   Semaphore.cpp SharedMemory.cpp)
 
-#missing: Process.cpp
+#missing: Process.cpp SocketServer.cpp
 
 foreach(l IN LISTS WIN_RCT_SOURCES)
   list(APPEND WIN_RCT_SOURCES_PREPENDED ../rct/${l})

@@ -25,47 +25,22 @@ endif ()
 
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
-set(BINARY_NAME "rct_tests")
-add_executable(${BINARY_NAME}
-  main.cpp
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+  set(RCT_TEST_SRCS main.cpp
+  PathTestSuite.cpp)
+else ()
+  set(RCT_TEST_SRCS main.cpp
   DateTestSuite.cpp PathTestSuite.cpp ProcessTestSuite.cpp)
+endif()
+
+set(BINARY_NAME "rct_tests")
+add_executable(${BINARY_NAME} ${RCT_TEST_SRCS})
 target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct pthread)
 add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
-
-##################################################################
-
-set(WIN_RCT_SOURCES Path.cpp Rct.cpp Log.cpp WindowsUnicodeConversion.cpp
-  Buffer.cpp Config.cpp Value.cpp Date.cpp Connection.cpp EventLoop.cpp
-  SocketClient.cpp Message.cpp String.cpp FileSystemWatcher_win32.cpp
-  MemoryMonitor.cpp MessageQueue.cpp Plugin.cpp ReadWriteLock.cpp
-  SHA256.cpp ScriptEngine.cpp Thread.cpp ThreadPool.cpp Timer.cpp
-  Semaphore.cpp SharedMemory.cpp)
-
-#missing: Process.cpp SocketServer.cpp
-
-foreach(l IN LISTS WIN_RCT_SOURCES)
-  list(APPEND WIN_RCT_SOURCES_PREPENDED ../rct/${l})
-endforeach()
-set(WIN_RCT_SOURCES ${WIN_RCT_SOURCES_PREPENDED})
-
-list(APPEND WIN_RCT_SOURCES ../cJSON/cJSON.c)
-
-find_package(OpenSSL)
-if (OPENSSL_FOUND)
-    add_definitions(-DRCT_HAVE_OPENSSL)
-    list(APPEND WIN_RCT_SOURCES ../rct/AES256CBC.cpp ../rct/SHA256.cpp)
-    include_directories(${OPENSSL_INCLUDE_DIR})
-else ()
-    message("OPENSSL can't be found. Win test conf'd without openssl support")
-endif ()
-
-add_executable("Path_tests" main.cpp PathTestSuite.cpp ${WIN_RCT_SOURCES})
-target_link_libraries("Path_tests" ${CPPUNIT_LIBRARIES}
-  ${OPENSSL_LIBRARIES} Ws2_32)
-
-
-###############################################################
-
 add_executable("ChildProcess" ChildProcess.cpp)
 target_link_libraries("ChildProcess" pthread)
+
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+  target_link_libraries("ChildProcess" Ws2_32)
+endif()

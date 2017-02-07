@@ -50,6 +50,10 @@ static const int      stdinDelay_ms = 20;
 
 #include "UdpIncludes.h"
 
+#ifdef _WIN32
+#  include <direct.h>  // for _getcwd
+#endif
+
 void onRecvUdp(void *buf, ssize_t len, char **envp);
 
 class StdinReader
@@ -86,9 +90,9 @@ int main(int, char *[], char *env[])
 {
     int res;
     sock_t listenSock = socket(AF_INET, SOCK_DGRAM, 0);
-    CHECK_RETURN(listenSock < 0, "socket()");
+    CHECK_RETURN(listenSock == INVALID_SOCKET, "socket()");
     sock_t sendSock = socket(AF_INET, SOCK_DGRAM, 0);
-    CHECK_RETURN(sendSock < 0, "socket() sendSock");
+    CHECK_RETURN(sendSock == INVALID_SOCKET, "socket() sendSock");
 
     // allow the server to bind again immediately after killing it.
     const int optval = 1;
@@ -192,7 +196,11 @@ void onRecvUdp(void *f_buf, ssize_t len, char **envp)
         /// FIXME this is actually wrong.
         /// See http://tinyurl.com/n6kp7fe (archived: http://archive.is/HgFr4)
         char buf[PATH_MAX];
+#ifdef _WIN32
+        char *pwd = _getcwd(buf, sizeof(buf));
+#else
         char *pwd = getcwd(buf, sizeof(buf));
+#endif
         std::cout << (pwd ? pwd : "Can't get pwd") << std::endl;
     }
     else if(buf.size() >= 6 && buf.substr(0, 6) == "getEnv")

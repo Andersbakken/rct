@@ -139,7 +139,6 @@ elseif (HAVE_CHANGENOTIFICATION EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_win32.cpp)
 endif ()
 
-message(${CMAKE_SYSTEM_NAME})
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
    list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/Process_Windows.cpp)
 else ()

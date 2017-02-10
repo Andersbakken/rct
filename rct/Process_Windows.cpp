@@ -137,8 +137,8 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
 
     // we need to close our handles to the write end of these pipe. Otherwise,
     // ReadFile() will not return when the child process terminates.
-    CloseHandle(mStdOut[WRITE_END]);
-    CloseHandle(mStdErr[WRITE_END]);
+    closeHandleIfValid(mStdOut[WRITE_END]);
+    closeHandleIfValid(mStdErr[WRITE_END]);
 
     // We start one thread for each pipe (child process' stdout and child process'
     // stderr). We could use overlapping IO here, but it's very complicated and

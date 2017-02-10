@@ -7,8 +7,8 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST_SUITE(ProcessTestSuite);
 
     CPPUNIT_TEST(returnCode);
-#ifndef _WIN32
     CPPUNIT_TEST(startAsync);
+#ifndef _WIN32
     CPPUNIT_TEST(readFromStdout);
     CPPUNIT_TEST(readFromStderr);
     CPPUNIT_TEST(signals);
@@ -27,10 +27,10 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
 protected:
     // start a process and examine its return code
     void returnCode();
-#ifndef _WIN32
+
     // start a process asynchronously
     void startAsync();
-
+#ifndef _WIN32
     // read data from stdout while the child process is running
     void readFromStdout();
 

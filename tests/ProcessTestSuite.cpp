@@ -108,28 +108,22 @@ void ProcessTestSuite::returnCode()
 
     // check exit code
     CPPUNIT_ASSERT(p.returnCode() == 12);
-    std::cout << "returnCode end" << std::endl;
 }
-
-#ifndef _WIN32
 
 void ProcessTestSuite::startAsync()
 {
-    std::cout << "cp1" << std::endl;
     Process p;
     p.start("ChildProcess");  // asynchronous call
-    std::cout << "cp2" << std::endl;
     CPPUNIT_ASSERT(!p.isFinished());
-    std::cout << "cp3" << std::endl;
     realSleep(50);
     CPPUNIT_ASSERT(!p.isFinished());
-    udp_send("exit 4");
+    udp_send("exit 1");
     realSleep(50);
-    std::cout << "cp5" << std::endl;
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == 1);
-    std::cout << "So far, everything passed\n" << std::flush;
 }
+
+#ifndef _WIN32
 
 void ProcessTestSuite::readFromStdout()
 {

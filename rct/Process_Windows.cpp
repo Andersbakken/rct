@@ -43,8 +43,8 @@ Process::~Process()
     if(f_handle != INVALID_HANDLE_VALUE)
     {
         CloseHandle(f_handle);
+        f_handle = INVALID_HANDLE_VALUE;
     }
-    f_handle = INVALID_HANDLE_VALUE;
 }
 
 Process::ExecState Process::exec(const Path &f_cmd,
@@ -145,22 +145,27 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
     // probably doesn't do what we want exactly, so we stick with the (somewhat
     // ugly) two-thread solution.
 
-    mthStdout = std::thread(&Process::readFromPipe, this, mStdOut[READ_END],
-                            std::ref(mReadyReadStdOut),
-                  std::bind(&Process::waitForProcessToFinish, this));
-
-    mthStderr = std::thread(&Process::readFromPipe, this, mStdErr[READ_END],
-                            std::ref(mReadyReadStdErr),
-                            nullptr);
+    mthStdout = std::thread(&Process::readFromPipe, this, STDOUT);
+    mthStderr = std::thread(&Process::readFromPipe, this, STDERR);
 
     return Done;
 }
 
-void Process::readFromPipe(HANDLE f_pipe,
-                           Signal<std::function<void(Process*)> > &f_signalGotSth,
-                           std::function<void ()> f_execAfter)
+void Process::readFromPipe(PipeToReadFrom f_pipe)
 {
-    (void) f_pipe;
+    // This method runs in an extra thread.
+    // It continuously reads from the supplied f_pipe (either the child process' stdout
+    // or the child process' stderr).
+    // The reads are blocking, that's why we do both reads in an extra thread.
+    // Once we receive something, we add it to the appropriate buffer and signal the
+    // reception.
+    // When the pipe is broken (i.e., when the child terminates), the stdout thread does
+    // all the cleanup.
+
+    // shorter names:
+    HANDLE &inPipe          = (f_pipe == STDOUT ? mStdOut[READ_END] : mStdErr[READ_END]);
+    String &outBuffer       = (f_pipe == STDOUT ? mStdOutBuffer : mStdErrBuffer);
+    SignalOnData &outSignal = (f_pipe == STDOUT ? mReadyReadStdOut : mReadyReadStdErr);
 
     CHAR buf[PIPE_READ_BUFFER_SIZE];
     DWORD bytesRead = 0;
@@ -169,12 +174,14 @@ void Process::readFromPipe(HANDLE f_pipe,
 
     while(moreToRead)
     {
-        if(ReadFile(mStdOut[READ_END], buf,
-                    PIPE_READ_BUFFER_SIZE, &bytesRead, NULL))
+        if(ReadFile(inPipe, buf, PIPE_READ_BUFFER_SIZE, &bytesRead, NULL))
         {
-            std::lock_guard<std::mutex> lo(mMutex);
-            mStdOutBuffer.append(buf, bytesRead);
-            (f_signalGotSth)(this);
+            {
+                std::lock_guard<std::mutex> lo(mMutex);
+                outBuffer.append(buf, bytesRead);
+            }
+
+            outSignal(this);
         }
         else
         {
@@ -194,11 +201,13 @@ void Process::readFromPipe(HANDLE f_pipe,
         }
     }
 
-    if(f_execAfter) f_execAfter();
+    // cleanup in extra function.
+    if(f_pipe == STDOUT) waitForProcessToFinish();
 }
 
 void Process::waitForProcessToFinish()
 {
+    std::lock_guard<std::mutex> lock(mMutex);
     if(mProcess.hProcess == INVALID_HANDLE_VALUE) return;  // already finished.
 
     DWORD res = WaitForSingleObject(mProcess.hProcess, INFINITE);
@@ -230,4 +239,20 @@ int Process::returnCode() const
 bool Process::isFinished() const
 {
     return mProcess.hProcess == INVALID_HANDLE_VALUE;
+}
+
+String Process::readAllStdOut()
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    String ret = mStdOutBuffer;
+    mStdOutBuffer.clear();
+    return ret;
+}
+
+String Process::readAllStdErr()
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    String ret = mStdErrBuffer;
+    mStdErrBuffer.clear();
+    return ret;
 }

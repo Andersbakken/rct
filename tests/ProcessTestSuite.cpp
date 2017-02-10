@@ -94,6 +94,15 @@ void ProcessTestSuite::realSleep(int ms)
 #endif
 }
 
+class CallOnScopeExit
+{
+public:
+    CallOnScopeExit(const std::function<void()> &f) : m_f(f) {}
+    ~CallOnScopeExit() {m_f();}
+private:
+    const std::function<void()> &m_f;
+};
+
 void ProcessTestSuite::returnCode()
 {
     // tell child process to exit with code 12 in 50 ms from now
@@ -123,8 +132,6 @@ void ProcessTestSuite::startAsync()
     CPPUNIT_ASSERT(p.returnCode() == 1);
 }
 
-#ifndef _WIN32
-
 void ProcessTestSuite::readFromStdout()
 {
     Process p;
@@ -136,6 +143,7 @@ void ProcessTestSuite::readFromStdout()
     // and polling for stdout does not work because an asynchronous
     // Process requires a running EventLoop.
     std::thread t([&](){p.exec("ChildProcess");});
+    CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
     realSleep(50);
     CPPUNIT_ASSERT(!p.isFinished());
@@ -175,9 +183,10 @@ void ProcessTestSuite::readFromStderr()
     // and polling for stdout does not work because an asynchronous
     // Process requires a running EventLoop.
     std::thread t([&](){p.exec("ChildProcess");});
+    CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
     realSleep(50);
-    CPPUNIT_ASSERT(!p.isFinished());
+    bool isFinished1 = p.isFinished();
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
     udp_send("stderr This is a stderr test");
     realSleep(50);
@@ -188,19 +197,19 @@ void ProcessTestSuite::readFromStderr()
     udp_send("exit 0");
     realSleep(50);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
-
-    CPPUNIT_ASSERT(p.isFinished());
+    bool isFinished2 = p.isFinished();
 
     // need to do the test *after* ChildProcess terminates, because
-    // if the check fails, we exit this scope, destroying the Process object
-    // before ChildProcess exits.
-
+    // if a check fails, we exit this scope, destroying the Process object
+    // before ChildProcess exits (that's a design weakness in the non-windows Process
+    // implementation).
+    CPPUNIT_ASSERT(!isFinished1);
     CPPUNIT_ASSERT(dataReadFromStderr[0].isEmpty());
     CPPUNIT_ASSERT(dataReadFromStderr[1] == "This is a stderr test");
     CPPUNIT_ASSERT(dataReadFromStderr[2].isEmpty());
     CPPUNIT_ASSERT(dataReadFromStderr[3].isEmpty());
     CPPUNIT_ASSERT(dataReadFromStderr[4].isEmpty());
-    t.join();
+    CPPUNIT_ASSERT(isFinished2);
 }
 
 void ProcessTestSuite::signals()
@@ -212,21 +221,26 @@ void ProcessTestSuite::signals()
     bool finishedCalled = false;
     bool wrongProcessObjPassed = false;
     std::string stdoutData, stderrData;
+    std::mutex mut;
 
     p.readyReadStdOut().connect([&](Process* pp)
                                 {
+                                    std::lock_guard<std::mutex> lock(mut);
                                     if(pp != &p) wrongProcessObjPassed = true;
-                                    stdoutData.append(pp->readAllStdOut().c_str());
+                                    String data = pp->readAllStdOut();
+                                    stdoutData.append(data.c_str());
                                 });
 
     p.readyReadStdErr().connect([&](Process* pp)
                                 {
+                                    std::lock_guard<std::mutex> lock(mut);
                                     if(pp != &p) wrongProcessObjPassed = true;
                                     stderrData.append(pp->readAllStdErr().c_str());
                                 });
 
     p.finished().connect([&](Process* pp)
                          {
+                             std::lock_guard<std::mutex> lock(mut);
                              if(pp != &p) wrongProcessObjPassed = true;
                              finishedCalled = true;
                          });
@@ -240,10 +254,12 @@ void ProcessTestSuite::signals()
             udp_send("stderr Error world");
             realSleep(50);
             udp_send("exit 0");
+            realSleep(50);
         });
+    CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
     // Signals are deliviered by the running event loop.
-    loop->exec(150);
+    loop->exec(200);
     t.join();
 
     CPPUNIT_ASSERT(stdoutData == "Hello world");
@@ -251,7 +267,7 @@ void ProcessTestSuite::signals()
     CPPUNIT_ASSERT(!wrongProcessObjPassed);
     CPPUNIT_ASSERT(finishedCalled);
 }
-
+#ifndef _WIN32
 void ProcessTestSuite::execTimeout()
 {
     Process p;

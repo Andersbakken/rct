@@ -5,13 +5,12 @@
 class ProcessTestSuite : public CPPUNIT_NS::TestFixture
 {
     CPPUNIT_TEST_SUITE(ProcessTestSuite);
-
     CPPUNIT_TEST(returnCode);
     CPPUNIT_TEST(startAsync);
-#ifndef _WIN32
     CPPUNIT_TEST(readFromStdout);
     CPPUNIT_TEST(readFromStderr);
     CPPUNIT_TEST(signals);
+#ifndef _WIN32
     CPPUNIT_TEST(execTimeout);
     CPPUNIT_TEST(env);
     CPPUNIT_TEST(writeToStdin);
@@ -30,7 +29,7 @@ protected:
 
     // start a process asynchronously
     void startAsync();
-#ifndef _WIN32
+
     // read data from stdout while the child process is running
     void readFromStdout();
 
@@ -41,7 +40,7 @@ protected:
     // when the child process writes stuff to stdout, stderr or when it
     // exits.
     void signals();
-
+#ifndef _WIN32
     // Start a process that does not terminate in the requested time.
     // Process::exec() should return after the timeout.
     void execTimeout();

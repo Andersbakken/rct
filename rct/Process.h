@@ -17,6 +17,8 @@
 class Process
 {
 public:
+    typedef Signal<std::function<void(Process*)> > SignalOnData;
+public:
     /**
      * Constructor.
      */
@@ -113,9 +115,9 @@ public:
 
     void kill(int signal = SIGTERM);
 
-    Signal<std::function<void(Process*)> > &readyReadStdOut() { return mReadyReadStdOut; }
-    Signal<std::function<void(Process*)> > &readyReadStdErr() { return mReadyReadStdErr; }
-    Signal<std::function<void(Process*)> > &finished() { return mFinished; }
+    SignalOnData &readyReadStdOut() { return mReadyReadStdOut; }
+    SignalOnData &readyReadStdErr() { return mReadyReadStdErr; }
+    SignalOnData &finished() { return mFinished; }
 
     /**
      * Get this process' environment. This can be used as a starting point to
@@ -153,13 +155,13 @@ private:
 private:  // members for windows and non-windows implementations
 
     /// Will be notified when child sends something over its stdout
-    Signal<std::function<void(Process*)> > mReadyReadStdOut;
+    SignalOnData mReadyReadStdOut;
 
     /// Will be notified when child sends something over its stderr
-    Signal<std::function<void(Process*)> > mReadyReadStdErr;
+    SignalOnData mReadyReadStdErr;
 
     /// Will be notified when the child process finishes.
-    Signal<std::function<void(Process*)> > mFinished;
+    SignalOnData mFinished;
 
     enum { Sync, Async } mMode;
 
@@ -186,9 +188,8 @@ private:  // members only required for the windows implementation
      */
     static void closeHandleIfValid(HANDLE &hdl);
 
-    void readFromPipe(HANDLE pipeToReadFrom,
-                      Signal<std::function<void(Process*)> > &signalGotSth,
-                      std::function<void()>executeAfter);
+    enum PipeToReadFrom {STDOUT, STDERR};
+    void readFromPipe(PipeToReadFrom pipe);
 
     void waitForProcessToFinish();
 private:

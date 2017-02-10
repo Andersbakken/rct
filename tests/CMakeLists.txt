@@ -27,7 +27,7 @@ link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR}
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(RCT_TEST_SRCS main.cpp
-  PathTestSuite.cpp)
+  PathTestSuite.cpp ProcessTestSuite.cpp)
 else ()
   set(RCT_TEST_SRCS main.cpp
   DateTestSuite.cpp PathTestSuite.cpp ProcessTestSuite.cpp)
@@ -43,4 +43,5 @@ target_link_libraries("ChildProcess" pthread)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
   target_link_libraries("ChildProcess" Ws2_32)
+  target_link_libraries(${BINARY_NAME} Ws2_32)
 endif()

@@ -89,6 +89,14 @@ std::string StdinReader::getData()
 int main(int, char *[], char *env[])
 {
     int res;
+
+#ifdef _WIN32
+    {
+        WSADATA unused;
+        CHECK_RETURN(WSAStartup(MAKEWORD(2,2), &unused) != 0, "WSAStartup()");
+    }
+#endif
+
     sock_t listenSock = socket(AF_INET, SOCK_DGRAM, 0);
     CHECK_RETURN(listenSock == INVALID_SOCKET, "socket()");
     sock_t sendSock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -141,7 +149,11 @@ int main(int, char *[], char *env[])
         if(recvSize < 0)
         {
             //maybe an error?
+#ifdef _WIN32
+            if(WSAGetLastError() == WSAETIMEDOUT)
+#else
             if(errno == EAGAIN || errno == EWOULDBLOCK)
+#endif
             {
                 // We didn't receive anything within the timeout, but that's
                 // not an error.
@@ -149,6 +161,7 @@ int main(int, char *[], char *env[])
             else
             {
                 // error.
+                CHECK_RETURN(true, "recvfrom");
                 exit(-1);
             }
         }

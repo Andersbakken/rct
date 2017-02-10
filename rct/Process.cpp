@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#  error "This file can not be built on Windows. Build Process_Windows.cpp instead"
+#else
+
+
 #include "Process.h"
 
 #include <assert.h>
@@ -852,3 +857,28 @@ void Process::setChRoot(const Path &path)
     assert(mReturn == ReturnUnset);
     mChRoot = path;
 }
+
+int Process::returnCode() const
+{
+     std::lock_guard<std::mutex> lock(mMutex);
+     return mReturn;
+}
+
+bool Process::isFinished() const
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    return  mReturn != ReturnUnset;
+}
+
+String Process::errorString() const
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mErrorString;
+}
+
+pid_t Process::pid() const
+{
+    return mPid;
+}
+
+#endif // not _WIN32

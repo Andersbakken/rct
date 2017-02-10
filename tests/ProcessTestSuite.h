@@ -7,6 +7,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST_SUITE(ProcessTestSuite);
 
     CPPUNIT_TEST(returnCode);
+#ifndef _WIN32
     CPPUNIT_TEST(startAsync);
     CPPUNIT_TEST(readFromStdout);
     CPPUNIT_TEST(readFromStderr);
@@ -14,7 +15,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(execTimeout);
     CPPUNIT_TEST(env);
     CPPUNIT_TEST(writeToStdin);
-
+#endif
     CPPUNIT_TEST_SUITE_END();
 
     public:
@@ -26,7 +27,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
 protected:
     // start a process and examine its return code
     void returnCode();
-
+#ifndef _WIN32
     // start a process asynchronously
     void startAsync();
 
@@ -49,7 +50,7 @@ protected:
     void env();
 
     void writeToStdin();
-
+#endif
 public:
     /**
      * A version of sleep that is not interrupted by signals and has
@@ -59,7 +60,6 @@ public:
 
 private:
     sock_t listenSock, sendSock;
-    int finishedCounter = 0;
 
 private:
     std::string udp_recv();

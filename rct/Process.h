@@ -58,21 +58,21 @@ public:
      * Execute a child process synchronously
      */
     ExecState exec(const Path &command, const List<String> &arguments = List<String>(),
-                   int timeout = 0, unsigned int flags = 0);
+                   int timeout_ms = 0, unsigned int flags = 0);
 
     /**
      * Execute a child process synchronously, specifying an environment.
      * @param environ Each String in the List must be in the form of key=value.
      */
     ExecState exec(const Path &command, const List<String> &arguments,
-                   const List<String> &f_environ, int timeout = 0, unsigned int flags = 0);
+                   const List<String> &f_environ, int timeout_ms = 0, unsigned int flags = 0);
 
     /**
      * Get information about errors that occured while trying to execute the
      * child process.
      * Note: This is *not* the child process' stderr.
      */
-    String errorString() const { std::lock_guard<std::mutex> lock(mMutex); return mErrorString; }
+    String errorString() const;
 
     /**
      * Write data to the child process' stdin.
@@ -92,20 +92,24 @@ public:
 
     /**
      * Read all data that the child process has written to stdout so far.
+     * The read data is removed from internal storage, so that another call
+     * call to readAllStdOut() will not return the same data again.
      * Does not block.
      */
     String readAllStdOut();
 
     /**
      * Read all data that the child process has written to stderr so far.
+     * The read data is removed from internal storage, so that another call
+     * call to readAllStdErr() will not return the same data again.
      * Does not block.
      */
     String readAllStdErr();
 
-    bool isFinished() const { std::lock_guard<std::mutex> lock(mMutex); return  mReturn != ReturnUnset; }
+    bool isFinished() const;
 
     enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
-    int returnCode() const { std::lock_guard<std::mutex> lock(mMutex); return mReturn; }
+    int returnCode() const;
 
     void kill(int signal = SIGTERM);
 
@@ -128,7 +132,7 @@ public:
     /**
      * Get the child process' process id.
      */
-    pid_t pid() const { return mPid; }
+    pid_t pid() const;
 
     /**
      * Clear a child process' information and close all data structure *after*
@@ -139,6 +143,72 @@ public:
     void clear();
 
 private:
+    /**
+     * Start a process asynchronously.
+     */
+    ExecState startInternal(const Path &command, const List<String> &arguments,
+                            const List<String> &f_environ, int timeout = 0,
+                            unsigned int flags = 0);
+
+private:  // members for windows and non-windows implementations
+
+    /// Will be notified when child sends something over its stdout
+    Signal<std::function<void(Process*)> > mReadyReadStdOut;
+
+    /// Will be notified when child sends something over its stderr
+    Signal<std::function<void(Process*)> > mReadyReadStdErr;
+
+    /// Will be notified when the child process finishes.
+    Signal<std::function<void(Process*)> > mFinished;
+
+    enum { Sync, Async } mMode;
+
+    std::deque<String> mStdInBuffer;
+
+    String mStdOutBuffer;  ///< Collects data from child's stdout. @see readAllStdOut()
+
+    String mStdErrBuffer;  ///< Collects data from child's stderr. @see readAllStdErr()
+
+    mutable std::mutex mMutex;
+
+    /// Child process' return value or one of the Return* values above
+    int mReturn;
+
+    Path mCwd, mChRoot;
+
+    String mErrorString;
+
+#ifdef _WIN32
+private:  // members only required for the windows implementation
+
+    /**
+     * Closes the handle if it is != INVALID_HANDLE_VALUE and sets the handle to INVALID_HANDLE_VALUE.
+     */
+    static void closeHandleIfValid(HANDLE &hdl);
+
+    void readFromPipe(HANDLE pipeToReadFrom,
+                      Signal<std::function<void(Process*)> > &signalGotSth,
+                      std::function<void()>executeAfter);
+
+    void waitForProcessToFinish();
+private:
+    enum
+    {
+        READ_END,
+        WRITE_END,
+        NUM_HANDLES
+    };
+
+    static const int PIPE_READ_BUFFER_SIZE = 512;
+
+    HANDLE mStdIn[NUM_HANDLES];
+    HANDLE mStdOut[NUM_HANDLES];
+    HANDLE mStdErr[NUM_HANDLES];
+    PROCESS_INFORMATION mProcess;  ///< don't forget to close handles!
+
+    std::thread mthStdout, mthStderr;
+#else  // _WIN32
+private:  // member functions not required for the windows implementation
     void finish(int returnCode);
     void processCallback(int fd, int mode);
 
@@ -148,37 +218,21 @@ private:
     void handleInput(int fd);
     void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal);
 
-    ExecState startInternal(const Path &command, const List<String> &arguments,
-                            const List<String> &f_environ, int timeout = 0,
-                            unsigned int flags = 0);
 
-private:
+
+private:  // members not required for the windows implementation
 
     int mStdIn[2];   ///< Pipe used by the child as stdin
     int mStdOut[2];  ///< Pipe used by the child as stdout
     int mStdErr[2];  ///< Pipe used by the child as stderr
     int mSync[2];    ///< used to quit waiting for the child in sync mode
 
-    mutable std::mutex mMutex;
-    pid_t mPid;   ///< Child process' pid
-
-    /// Child process' return value or one of the Return* values above
-    int mReturn;
-
-    std::deque<String> mStdInBuffer;
-    String mStdOutBuffer, mStdErrBuffer;
     int mStdInIndex, mStdOutIndex, mStdErrIndex;
     bool mWantStdInClosed;
-
-    Path mCwd, mChRoot;
-
-    String mErrorString;
-
-    enum { Sync, Async } mMode;
-
-    Signal<std::function<void(Process*)> > mReadyReadStdOut, mReadyReadStdErr, mFinished;
+    pid_t mPid;   ///< Child process' pid
 
     friend class ProcessThread;
+#endif  // _WIN32
 };
 
 #endif

@@ -20,6 +20,16 @@
 #  define INVALID_SOCKET -1
 #endif
 
+#ifdef _WIN32
+#  define CHECK_RETURN(errorCondition, msg)                         \
+    if(errorCondition)                                              \
+    {                                                               \
+        std::cout << "Error: " << (msg)                             \
+                  << " in line " << __LINE__                        \
+                  << ", errno="  << WSAGetLastError() << std::endl; \
+        exit(-1);                                                   \
+    }
+#else
 #  define CHECK_RETURN(errorCondition, msg)               \
     if(errorCondition)                                    \
     {                                                     \
@@ -28,5 +38,6 @@
                   << ", errno="  << errno << std::endl;   \
         exit(-1);                                         \
     }
+#endif
 
 #endif /* UDPINCLUDES_H */

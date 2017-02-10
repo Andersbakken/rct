@@ -9,9 +9,14 @@ void ProcessTestSuite::setUp()
 {
     int res;
 
+#ifdef _WIN32
+    WSADATA unused;
+    CHECK_RETURN(WSAStartup(MAKEWORD(2,2), &unused) != 0, "WSAStartup()");
+#endif
+
     listenSock = socket(AF_INET, SOCK_DGRAM, 0);
     sendSock = socket(AF_INET, SOCK_DGRAM, 0);
-    CHECK_RETURN(listenSock < 0 || sendSock < 0, "socket()");
+    CHECK_RETURN(listenSock == INVALID_SOCKET || sendSock == INVALID_SOCKET, "socket()");
 
     const int optval = 1;
     res = setsockopt(listenSock, SOL_SOCKET, SO_REUSEADDR, (optval_p)&optval,
@@ -79,7 +84,7 @@ void ProcessTestSuite::tearDown()
 void ProcessTestSuite::realSleep(int ms)
 {
 #ifdef _WIN32
-    // TODO
+    Sleep(ms);
 #else
     timespec s;
     s.tv_sec = ms/1000;
@@ -91,34 +96,39 @@ void ProcessTestSuite::realSleep(int ms)
 
 void ProcessTestSuite::returnCode()
 {
-    // tell child process to exit with code 12 in 100 ms from now
+    // tell child process to exit with code 12 in 50 ms from now
     std::thread t([this](){realSleep(50); udp_send("exit 12");});
 
     // start process
     Process p;
-    p.exec("ChildProcess");
+    p.exec("ChildProcess");  // synchronous call
 
     t.join();
     realSleep(50);
 
     // check exit code
     CPPUNIT_ASSERT(p.returnCode() == 12);
+    std::cout << "returnCode end" << std::endl;
 }
+
+#ifndef _WIN32
 
 void ProcessTestSuite::startAsync()
 {
+    std::cout << "cp1" << std::endl;
     Process p;
-    p.start("ChildProcess");
-
+    p.start("ChildProcess");  // asynchronous call
+    std::cout << "cp2" << std::endl;
     CPPUNIT_ASSERT(!p.isFinished());
-
+    std::cout << "cp3" << std::endl;
     realSleep(50);
     CPPUNIT_ASSERT(!p.isFinished());
-    udp_send("exit 1");
+    udp_send("exit 4");
     realSleep(50);
-
+    std::cout << "cp5" << std::endl;
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == 1);
+    std::cout << "So far, everything passed\n" << std::flush;
 }
 
 void ProcessTestSuite::readFromStdout()
@@ -309,3 +319,5 @@ void ProcessTestSuite::writeToStdin()
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(whatWeRead == "stdin write test");
 }
+
+#endif

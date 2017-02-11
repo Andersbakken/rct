@@ -1,8 +1,10 @@
 #include "Date.h"
 
 #include <mutex>
-#include <iostream>
+
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 static std::once_flag tzFlag;
 

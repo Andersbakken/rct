@@ -267,7 +267,7 @@ void ProcessTestSuite::signals()
     CPPUNIT_ASSERT(!wrongProcessObjPassed);
     CPPUNIT_ASSERT(finishedCalled);
 }
-#ifndef _WIN32
+
 void ProcessTestSuite::execTimeout()
 {
     Process p;
@@ -278,6 +278,7 @@ void ProcessTestSuite::execTimeout()
     CPPUNIT_ASSERT(p.errorString() == "Timed out");
 }
 
+#ifndef _WIN32
 void ProcessTestSuite::env()
 {
     Process p;

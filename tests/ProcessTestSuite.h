@@ -10,8 +10,8 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(readFromStdout);
     CPPUNIT_TEST(readFromStderr);
     CPPUNIT_TEST(signals);
-#ifndef _WIN32
     CPPUNIT_TEST(execTimeout);
+#ifndef _WIN32
     CPPUNIT_TEST(env);
     CPPUNIT_TEST(writeToStdin);
 #endif
@@ -40,11 +40,11 @@ protected:
     // when the child process writes stuff to stdout, stderr or when it
     // exits.
     void signals();
-#ifndef _WIN32
+
     // Start a process that does not terminate in the requested time.
     // Process::exec() should return after the timeout.
     void execTimeout();
-
+#ifndef _WIN32
     // Test whether setting the environment for the child process works.
     void env();
 

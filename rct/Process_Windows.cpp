@@ -75,7 +75,6 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
     // unused arguments (for now)
     (void) f_args;
     (void) f_environ;
-    (void) f_timeout_ms;
     (void) f_flags;
 
     SECURITY_ATTRIBUTES saAttr;
@@ -144,6 +143,21 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
     // stderr). We could use overlapping IO here, but it's very complicated and
     // probably doesn't do what we want exactly, so we stick with the (somewhat
     // ugly) two-thread solution.
+
+    // setup timeout
+    if(f_timeout_ms > 0)
+    {
+        COMMTIMEOUTS tos;
+        memset(&tos, 0, sizeof(tos));
+        tos.ReadTotalTimeoutConstant = f_timeout_ms;
+        if(SetCommTimeouts(mStdOut[READ_END], &tos) == 0 ||
+           SetCommTimeouts(mStdErr[READ_END], &tos) == 0)
+        {
+            error() << "Error in SetCommTimeouts(). GetLastError()="
+                    << static_cast<long long int>(GetLastError());
+            return Error;  // todo close stuff to avoid ressource leak
+        }
+    }
 
     mthStdout = std::thread(&Process::readFromPipe, this, STDOUT);
     mthStderr = std::thread(&Process::readFromPipe, this, STDERR);
@@ -255,4 +269,10 @@ String Process::readAllStdErr()
     String ret = mStdErrBuffer;
     mStdErrBuffer.clear();
     return ret;
+}
+
+String Process::errorString() const
+{
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mErrorString;
 }

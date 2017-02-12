@@ -105,7 +105,6 @@ static int64_t currentUsage()
 
     return total_usage;
 #else
-#warning "CpuUsage not implemented for this platform"
     return -1;
 #endif
 }

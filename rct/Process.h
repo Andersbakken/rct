@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <deque>
 #include <mutex>
+#include <condition_variable>
 
 #include <rct/List.h>
 #include <rct/Path.h>
@@ -192,6 +193,8 @@ private:  // members only required for the windows implementation
     void readFromPipe(PipeToReadFrom pipe);
 
     void waitForProcessToFinish();
+
+    void manageTimeout(int timeout_ms);
 private:
     enum
     {
@@ -207,7 +210,9 @@ private:
     HANDLE mStdErr[NUM_HANDLES];
     PROCESS_INFORMATION mProcess;  ///< don't forget to close handles!
 
-    std::thread mthStdout, mthStderr;
+    std::thread mthStdout, mthStderr, mthManageTimeout;
+    enum {NO_TIMEOUT, FINISHED_ON_ITS_OWN, KILLED, NOT_FINISHED} mProcessTimeoutStatus;
+    std::condition_variable mProcessFinished_cond;
 #else  // _WIN32
 private:  // member functions not required for the windows implementation
     void finish(int returnCode);
@@ -217,7 +222,7 @@ private:  // member functions not required for the windows implementation
     void closeStdErr();
 
     void handleInput(int fd);
-    void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal);
+    void handleOutput(int fd, String &buffer, int &index, SignalOnData &signal);
 
 
 

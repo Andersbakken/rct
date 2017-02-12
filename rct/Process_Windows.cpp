@@ -11,6 +11,8 @@
 #include "Process.h"
 #include "Log.h"
 
+#include <chrono>
+
 Process::Process()
     : mMode(Sync), mReturn(ReturnUnset)
 {
@@ -36,6 +38,7 @@ Process::~Process()
 
     if(mthStdout.joinable()) mthStdout.join();
     if(mthStderr.joinable()) mthStderr.join();
+    if(mthManageTimeout.joinable()) mthManageTimeout.join();
 }
 
 /*static*/ void Process::closeHandleIfValid(HANDLE &f_handle)
@@ -56,6 +59,13 @@ Process::ExecState Process::exec(const Path &f_cmd,
 
     if(mthStdout.joinable()) mthStdout.join();
     if(mthStderr.joinable()) mthStderr.join();
+    if(mthManageTimeout.joinable()) mthManageTimeout.join();
+
+    if(mProcessTimeoutStatus == KILLED)
+    {
+        mErrorString = "Timed out";
+        return TimedOut;
+    }
 
     return ret;
 }
@@ -147,16 +157,17 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
     // setup timeout
     if(f_timeout_ms > 0)
     {
-        COMMTIMEOUTS tos;
-        memset(&tos, 0, sizeof(tos));
-        tos.ReadTotalTimeoutConstant = f_timeout_ms;
-        if(SetCommTimeouts(mStdOut[READ_END], &tos) == 0 ||
-           SetCommTimeouts(mStdErr[READ_END], &tos) == 0)
-        {
-            error() << "Error in SetCommTimeouts(). GetLastError()="
-                    << static_cast<long long int>(GetLastError());
-            return Error;  // todo close stuff to avoid ressource leak
-        }
+        // setup condition variable. The condition variable will be signalled when the
+        // process finishes on its own, telling the timeout process to quit.
+        // When the child process does not finish in time, std::wait_condition::wait_for()
+        // will timeout. Then, the manageTimeout() thread will kill the child process.
+
+        mProcessTimeoutStatus = NOT_FINISHED;
+        mthManageTimeout = std::thread(&Process::manageTimeout, this, f_timeout_ms);
+    }
+    else
+    {
+        mProcessTimeoutStatus = NO_TIMEOUT;
     }
 
     mthStdout = std::thread(&Process::readFromPipe, this, STDOUT);
@@ -221,14 +232,23 @@ void Process::readFromPipe(PipeToReadFrom f_pipe)
 
 void Process::waitForProcessToFinish()
 {
-    std::lock_guard<std::mutex> lock(mMutex);
     if(mProcess.hProcess == INVALID_HANDLE_VALUE) return;  // already finished.
 
     DWORD res = WaitForSingleObject(mProcess.hProcess, INFINITE);
+
+    std::lock_guard<std::mutex> lock(mMutex);
     if(res != WAIT_OBJECT_0)
     {
         error() << "Error waiting for process to finish: "
                 << static_cast<long long int>(res) << "\n";
+    }
+
+    // stop the timeout thread (if there is one)
+    if(mProcessTimeoutStatus == NOT_FINISHED)
+    {
+        mProcessTimeoutStatus = FINISHED_ON_ITS_OWN;
+        mProcessFinished_cond.notify_all();
+        // the notified thread will not wake up until we release the mutex.
     }
 
     // store exit code
@@ -242,6 +262,24 @@ void Process::waitForProcessToFinish()
     // Close remaining handles so that the OS can clean up
     closeHandleIfValid(mProcess.hThread);
     closeHandleIfValid(mProcess.hProcess);
+}
+
+void Process::manageTimeout(int timeout_ms)
+{
+    std::unique_lock<std::mutex> lock(mMutex);
+    if(mProcessFinished_cond.wait_for(
+           lock,
+           std::chrono::milliseconds(timeout_ms),
+           [this](){return mProcessTimeoutStatus == FINISHED_ON_ITS_OWN;}))
+    {
+        // Process finished on its own, no need to kill it here
+    }
+    else
+    {
+        // Process did not finish in time. We need to kill it.
+        TerminateProcess(mProcess.hProcess, ReturnKilled);
+        mProcessTimeoutStatus = KILLED;
+    }
 }
 
 int Process::returnCode() const

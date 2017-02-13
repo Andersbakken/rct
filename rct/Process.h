@@ -123,6 +123,10 @@ public:
     /**
      * Get this process' environment. This can be used as a starting point to
      * build the child process' environment.
+     *
+     * On windows, this list will be encoded as utf-8.
+     *
+     * @return A list of strings in the format <key>=<value>.
      */
     static List<String> environment();
 

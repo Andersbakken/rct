@@ -10,6 +10,7 @@
 
 #include "Process.h"
 #include "Log.h"
+#include "WindowsUnicodeConversion.h"
 
 #include <chrono>
 
@@ -300,6 +301,39 @@ void Process::write(const String &f_data)
                     << errorCode;
         }
     }
+}
+
+/*static*/ List<String> Process::environment()
+{
+    List<String> ret;
+
+    /// RAII class to make sure that the LPTCH object is correctly cleared.
+    class Env_Raii
+    {
+    public:
+        Env_Raii(wchar_t *env) : m_data(env) {}
+        ~Env_Raii() {FreeEnvironmentStringsW(m_data);}
+        wchar_t const *data() const {return m_data;}
+    private:
+        wchar_t * const m_data;
+    };
+
+    Env_Raii envData(GetEnvironmentStringsW());
+
+    wchar_t const * readPtr = envData.data();
+    for(;;)
+    {
+        String newEntry = static_cast<const char*>(Utf16To8(readPtr));
+        readPtr += wcslen(readPtr);  // readPtr now points at entry terminating \0
+        readPtr++;   // readPtr now pointers at the beginning of the next entry.
+
+        if(newEntry.size() == 0) break;
+        if(newEntry[0] == '=') continue; // remove spurious entry
+
+        ret.push_back(newEntry);
+    }
+
+    return ret;
 }
 
 int Process::returnCode() const

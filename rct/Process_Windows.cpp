@@ -29,13 +29,6 @@ Process::~Process()
 {
     waitForProcessToFinish();
 
-    for(int i=0; i<NUM_HANDLES; i++)
-    {
-        closeHandleIfValid(mStdIn[i]);
-        closeHandleIfValid(mStdOut[i]);
-        closeHandleIfValid(mStdErr[i]);
-    }
-
     if(mthStdout.joinable()) mthStdout.join();
     if(mthStderr.joinable()) mthStderr.join();
     if(mthManageTimeout.joinable()) mthManageTimeout.join();
@@ -106,8 +99,7 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
        !SetHandleInformation(mStdOut[READ_END], HANDLE_FLAG_INHERIT, 0) ||
        !SetHandleInformation(mStdErr[READ_END], HANDLE_FLAG_INHERIT, 0))
     {
-        error() << "SetHandleInformation: " <<
-            static_cast<long long int>(GetLastError());
+        error() << "SetHandleInformation: " << GetLastError();
         return Error;
     }
 
@@ -139,8 +131,7 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
                       &mProcess    // out: info about the new process
                              ))
     {
-        error() << "Error in CreateProcess(): "
-                << static_cast<long long int>(GetLastError());
+        error() << "Error in CreateProcess(): " << GetLastError();
         return Error;
     }
 
@@ -148,6 +139,7 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
     // ReadFile() will not return when the child process terminates.
     closeHandleIfValid(mStdOut[WRITE_END]);
     closeHandleIfValid(mStdErr[WRITE_END]);
+    closeHandleIfValid(mStdIn[READ_END]);
 
     // We start one thread for each pipe (child process' stdout and child process'
     // stderr). We could use overlapping IO here, but it's very complicated and
@@ -210,7 +202,7 @@ void Process::readFromPipe(PipeToReadFrom f_pipe)
         }
         else
         {
-            DWORD err = GetLastError();
+            const DWORD err = GetLastError();
 
             if(err == ERROR_BROKEN_PIPE)
             {
@@ -218,8 +210,7 @@ void Process::readFromPipe(PipeToReadFrom f_pipe)
             }
             else
             {
-                error() << "Error while reading from child process: "
-                        << static_cast<long long int>(err) << "\n";
+                error() << "Error while reading from child process: " << err;
             }
 
             moreToRead = false;
@@ -236,11 +227,10 @@ void Process::waitForProcessToFinish()
 
     DWORD res = WaitForSingleObject(mProcess.hProcess, INFINITE);
 
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::unique_lock<std::mutex> lock(mMutex);
     if(res != WAIT_OBJECT_0)
     {
-        error() << "Error waiting for process to finish: "
-                << static_cast<long long int>(res) << "\n";
+        error() << "Error waiting for process to finish: " << res;
     }
 
     // stop the timeout thread (if there is one)
@@ -256,12 +246,21 @@ void Process::waitForProcessToFinish()
     GetExitCodeProcess(mProcess.hProcess, &retCode);
     mReturn = retCode;
 
-    // send 'finished' signal
-    mFinished(this);
-
     // Close remaining handles so that the OS can clean up
+    for(int i=0; i<NUM_HANDLES; i++)
+    {
+        closeHandleIfValid(mStdIn[i]);
+        closeHandleIfValid(mStdOut[i]);
+        closeHandleIfValid(mStdErr[i]);
+    }
+
     closeHandleIfValid(mProcess.hThread);
     closeHandleIfValid(mProcess.hProcess);
+
+    lock.unlock();
+
+    // send 'finished' signal
+    mFinished(this);
 }
 
 void Process::manageTimeout(int timeout_ms)
@@ -279,6 +278,27 @@ void Process::manageTimeout(int timeout_ms)
         // Process did not finish in time. We need to kill it.
         TerminateProcess(mProcess.hProcess, ReturnKilled);
         mProcessTimeoutStatus = KILLED;
+    }
+}
+
+void Process::write(const String &f_data)
+{
+    std::lock_guard<std::mutex> lock(mStdinMutex);
+    if(!WriteFile(mStdIn[WRITE_END], f_data.data(), f_data.size(), NULL, NULL))
+    {
+        const DWORD errorCode = GetLastError();
+
+        switch(errorCode)
+        {
+        case ERROR_BROKEN_PIPE:
+            // Child process terminated before it could read our data.
+            // Maybe the process was killed due to a timeout?
+            // Anyway, this is not an error.
+            break;
+        default:
+            error() << "Error writing to child process' stdin. GetLastError()="
+                    << errorCode;
+        }
     }
 }
 

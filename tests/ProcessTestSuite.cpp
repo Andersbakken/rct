@@ -10,14 +10,20 @@ void ProcessTestSuite::setUp()
     int res;
 
 #ifdef _WIN32
+    // On Windows, we need to setup Windows socket before using it.
+    // Calling this function multiple times is ok, according to msdn.
     WSADATA unused;
     CHECK_RETURN(WSAStartup(MAKEWORD(2,2), &unused) != 0, "WSAStartup()");
 #endif
 
+    // create udp sockets for communication with ChildProcess
     listenSock = socket(AF_INET, SOCK_DGRAM, 0);
     sendSock = socket(AF_INET, SOCK_DGRAM, 0);
     CHECK_RETURN(listenSock == INVALID_SOCKET || sendSock == INVALID_SOCKET, "socket()");
 
+    // setting SO_REUSEADDR will allow us to reclaim the socket shortly after the socket
+    // has been closed by another process (possibly from the same executable).
+    // This way, we can call the test suite in quick succession.
     const int optval = 1;
     res = setsockopt(listenSock, SOL_SOCKET, SO_REUSEADDR, (optval_p)&optval,
                      sizeof(optval));
@@ -35,11 +41,13 @@ void ProcessTestSuite::setUp()
                      sizeof(timeout_t));
     CHECK_RETURN(res != 0, "setsockopt(SO_RCVTIMEO)");
 
+    // Bind to LOOPBACK (localhost, 127.0.0.1) and the specified port so that we
+    // receive all udp data sent to it.
     sockaddr_in listenAddr;
     std::memset(&listenAddr, 0, sizeof(listenAddr));
     listenAddr.sin_family = AF_INET;
-    listenAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); //only bind localhost
-    listenAddr.sin_port = htons(1338);
+    listenAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); //only accept data from localhost
+    listenAddr.sin_port = htons(listenPort);
     res = bind(listenSock, (sockaddr*)&listenAddr, sizeof(listenAddr));
     CHECK_RETURN(res < 0, "bind");
 }
@@ -49,11 +57,21 @@ std::string ProcessTestSuite::udp_recv()
     static const size_t BUFFER_SIZE = 80;
     char buf[BUFFER_SIZE];
     ssize_t recvSize = recv(listenSock, buf, BUFFER_SIZE, 0);
-
-    if(recvSize < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+    if(recvSize < 0)
     {
-        std::cout << "Error reading from udp socket" << std::endl;
-        exit(-1);
+        // This might simply be a read timeout (and not an actual error)
+#ifdef _WIN32
+        const DWORD errorCode = WSAGetLastError();
+        const bool reallyAnError = errorCode != WSAETIMEDOUT;
+#else
+        const int errorCode = errno;
+        const bool reallyAnError = errorCode != EAGAIN && errorCode != EWOULDBLOCK;
+#endif
+        if(reallyAnError)
+        {
+            std::cout << "Error reading from udp pipe: " << errorCode << std::endl;
+            exit(-1);
+        }
     }
 
     if(recvSize < 0) recvSize = 0;
@@ -67,7 +85,7 @@ void ProcessTestSuite::udp_send(const std::string &data)
     std::memset(&sendAddr, 0, sizeof(sendAddr));
     sendAddr.sin_family = AF_INET;
     sendAddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    sendAddr.sin_port = htons(1337);
+    sendAddr.sin_port = htons(sendPort);
 
     int res = sendto(sendSock, data.data(), data.size(), 0,
                      (sockaddr*)&sendAddr, sizeof(sendAddr));
@@ -77,8 +95,14 @@ void ProcessTestSuite::udp_send(const std::string &data)
 
 void ProcessTestSuite::tearDown()
 {
+#ifdef _WIN32
+    closesocket(listenSock);
+    closesocket(sendSock);
+    WSACleanup();
+#else
     close(listenSock);
     close(sendSock);
+#endif
 }
 
 void ProcessTestSuite::realSleep(int ms)
@@ -302,6 +326,7 @@ void ProcessTestSuite::env()
 
     CPPUNIT_ASSERT(readEnv == expected);
 }
+#endif
 
 void ProcessTestSuite::writeToStdin()
 {
@@ -331,4 +356,3 @@ void ProcessTestSuite::writeToStdin()
     CPPUNIT_ASSERT(whatWeRead == "stdin write test");
 }
 
-#endif

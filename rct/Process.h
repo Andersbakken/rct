@@ -213,6 +213,8 @@ private:
     std::thread mthStdout, mthStderr, mthManageTimeout;
     enum {NO_TIMEOUT, FINISHED_ON_ITS_OWN, KILLED, NOT_FINISHED} mProcessTimeoutStatus;
     std::condition_variable mProcessFinished_cond;
+
+    std::mutex mStdinMutex;
 #else  // _WIN32
 private:  // member functions not required for the windows implementation
     void finish(int returnCode);

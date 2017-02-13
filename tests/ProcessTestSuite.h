@@ -11,45 +11,51 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(readFromStderr);
     CPPUNIT_TEST(signals);
     CPPUNIT_TEST(execTimeout);
+    CPPUNIT_TEST(writeToStdin);
 #ifndef _WIN32
     CPPUNIT_TEST(env);
-    CPPUNIT_TEST(writeToStdin);
 #endif
     CPPUNIT_TEST_SUITE_END();
 
-    public:
-        void setUp();
-        void tearDown();
+public:
+    void setUp() override;     ///< Set up the required udp sockets.
+    void tearDown() override;  ///< Close the sockets.
 
     static const int recvTimeout_ms = 100;
+    static const uint16_t listenPort = 1338; ///< Must be ChildProcess' sendPort
+    static const uint16_t sendPort   = 1337; ///< Must be ChildProcess' listenPort
 
 protected:
-    // start a process and examine its return code
+    /// start a process and examine its return code
     void returnCode();
 
-    // start a process asynchronously
+    /// start a process asynchronously
     void startAsync();
 
-    // read data from stdout while the child process is running
+    /// read data from stdout while the child process is running
     void readFromStdout();
 
-    // read data from stderr while the child process is running
+    /// read data from stderr while the child process is running
     void readFromStderr();
 
-    // test whether Process sends the correct signals through EventLoop
-    // when the child process writes stuff to stdout, stderr or when it
-    // exits.
+    /// test whether Process sends the correct signals through EventLoop
+    /// when the child process writes stuff to stdout, stderr or when it
+    /// exits.
     void signals();
 
-    // Start a process that does not terminate in the requested time.
-    // Process::exec() should return after the timeout.
+    /// Start a process that does not terminate in the requested time.
+    /// Process::exec() should return after the timeout.
     void execTimeout();
-#ifndef _WIN32
-    // Test whether setting the environment for the child process works.
-    void env();
 
+    /// Write some data to ChildProcess' stdin and check if the child
+    /// receives the data.
     void writeToStdin();
+
+#ifndef _WIN32
+    /// Test whether setting the environment for the child process works.
+    void env();
 #endif
+
 public:
     /**
      * A version of sleep that is not interrupted by signals and has

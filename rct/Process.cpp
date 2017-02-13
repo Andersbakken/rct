@@ -252,8 +252,9 @@ void ProcessThread::installProcessHandler()
 }
 
 Process::Process()
-    : mPid(-1), mReturn(ReturnUnset), mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0),
-      mWantStdInClosed(false), mMode(Sync)
+    : mMode(Sync), mReturn(ReturnUnset),
+      mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0),
+      mWantStdInClosed(false), mPid(-1)
 {
     std::call_once(sProcessHandler, ProcessThread::installProcessHandler);
 

@@ -45,3 +45,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
   target_link_libraries("ChildProcess" Ws2_32)
   target_link_libraries(${BINARY_NAME} Ws2_32)
 endif()
+
+# Create this one for unicode test: See if the Process class can start
+# a program that his special characters in it.
+add_custom_command(
+    TARGET "ChildProcess" POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_BINARY_DIR}/ChildProcess${CMAKE_EXECUTABLE_SUFFIX}
+            ${CMAKE_CURRENT_BINARY_DIR}/ChildProcess_Äßéמש最終${CMAKE_EXECUTABLE_SUFFIX})

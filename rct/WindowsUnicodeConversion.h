@@ -12,6 +12,9 @@ public:
     operator const wchar_t      *  () const {return m_str.c_str();}
     operator const std::wstring &  () const {return m_str;}
 
+    const std::wstring &asWstring() const {return m_str;}
+    const wchar_t      *asWchar_t() const {return m_str.c_str();}
+
 private:
     std::wstring m_str;
 };

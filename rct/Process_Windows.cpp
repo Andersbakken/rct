@@ -77,7 +77,6 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
                             unsigned int f_flags)
 {
     // unused arguments (for now)
-    (void) f_args;
     (void) f_environ;
     (void) f_flags;
 
@@ -106,33 +105,41 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
 
     // set up STARTUPINFO structure. It tells CreateProcess to use the pipes
     // we just created as stdin, stdout and stderr for the new process.
-    STARTUPINFO siStartInfo;
+    STARTUPINFOW siStartInfo;
     memset(&siStartInfo, 0, sizeof(siStartInfo));
     siStartInfo.cb = sizeof(siStartInfo);
     siStartInfo.hStdInput  = mStdIn[READ_END];
     siStartInfo.hStdOutput = mStdOut[WRITE_END];
     siStartInfo.hStdError  = mStdErr[WRITE_END];
-    siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+    siStartInfo.dwFlags   |= STARTF_USESTDHANDLES;
 
     memset(&mProcess, 0, sizeof(mProcess));
 
-    // CreateProcess takes a non-const pointer as the command, so we need
-    // to create a copy.
-    std::string nonConstCommand(f_cmd);
-
-    if(!CreateProcess(NULL,  // application name: we pass it through lpCommandLine
-                      &nonConstCommand[0],
-                      NULL,  // security attrs
-                      NULL,  // thread security attrs
-                      TRUE,  // handles are inherited
-                      0,     // creation flags
-                      NULL,  // TODO: env
-                      NULL,  // TODO: cwd
-                      &siStartInfo,  // in: stdin, stdout, stderr pipes
-                      &mProcess    // out: info about the new process
-                             ))
+    // Build command string
+    std::wstring cmd = Utf8To16(f_cmd.c_str());
+    for(std::size_t i=0; i<f_args.size(); i++)
     {
+        cmd += L" \"";
+        cmd += Utf8To16(f_args[i].c_str()).asWstring();
+        cmd += L"\"";
+    }
+
+    if(!CreateProcessW(NULL,  // application name: we pass it through lpCommandLine
+                       &cmd[0],
+                       NULL,  // security attrs
+                       NULL,  // thread security attrs
+                       TRUE,  // handles are inherited
+                       CREATE_UNICODE_ENVIRONMENT, // creation flags
+                       NULL,  // TODO: env
+                       NULL,  // TODO: cwd
+                       &siStartInfo,  // in: stdin, stdout, stderr pipes
+                       &mProcess    // out: info about the new process
+           ))
+    {
+        // TODO build a real error message like in
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms680582(v=vs.85).aspx
         error() << "Error in CreateProcess(): " << GetLastError();
+        mProcess.hProcess = mProcess.hThread = INVALID_HANDLE_VALUE;
         return Error;
     }
 
@@ -224,7 +231,18 @@ void Process::readFromPipe(PipeToReadFrom f_pipe)
 
 void Process::waitForProcessToFinish()
 {
-    if(mProcess.hProcess == INVALID_HANDLE_VALUE) return;  // already finished.
+    if(mProcess.hProcess == INVALID_HANDLE_VALUE)
+    {
+        // already finished.
+        closeHandleIfValid(mProcess.hThread);
+        for(int i=0; i<NUM_HANDLES; i++)
+        {
+            closeHandleIfValid(mStdIn[i]);
+            closeHandleIfValid(mStdOut[i]);
+            closeHandleIfValid(mStdErr[i]);
+        }
+        return;
+    }
 
     DWORD res = WaitForSingleObject(mProcess.hProcess, INFINITE);
 
@@ -328,7 +346,6 @@ void Process::write(const String &f_data)
         readPtr++;   // readPtr now pointers at the beginning of the next entry.
 
         if(newEntry.size() == 0) break;
-        if(newEntry[0] == '=') continue; // remove spurious entry
 
         ret.push_back(newEntry);
     }

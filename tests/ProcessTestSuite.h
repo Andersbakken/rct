@@ -12,6 +12,9 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(signals);
     CPPUNIT_TEST(execTimeout);
     CPPUNIT_TEST(writeToStdin);
+    CPPUNIT_TEST(startNonExistingProgram);
+    CPPUNIT_TEST(startUnicodeProgram);
+    CPPUNIT_TEST(commandLineArgs);
 #ifndef _WIN32
     CPPUNIT_TEST(env);
 #endif
@@ -50,6 +53,15 @@ protected:
     /// Write some data to ChildProcess' stdin and check if the child
     /// receives the data.
     void writeToStdin();
+
+    /// Try to start a program which does not exist.
+    void startNonExistingProgram();
+
+    /// Try to start a program whose name has some non-English characters.
+    void startUnicodeProgram();
+
+    // Add some command line arguments
+    void commandLineArgs();
 
 #ifndef _WIN32
     /// Test whether setting the environment for the child process works.

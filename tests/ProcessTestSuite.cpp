@@ -356,3 +356,61 @@ void ProcessTestSuite::writeToStdin()
     CPPUNIT_ASSERT(whatWeRead == "stdin write test");
 }
 
+void ProcessTestSuite::startNonExistingProgram()
+{
+    Process p;
+    CPPUNIT_ASSERT(!p.start("ThisProgramDoesNotExist"));  // async
+}
+
+void ProcessTestSuite::startUnicodeProgram()
+{
+    Process p;
+    CPPUNIT_ASSERT(p.start(u8"ChildProcess_Äßéמש最終"));  // async
+    CPPUNIT_ASSERT(!p.isFinished());
+    realSleep(50);
+    CPPUNIT_ASSERT(!p.isFinished());
+    udp_send("exit 1");
+    realSleep(50);
+    CPPUNIT_ASSERT(p.isFinished());
+    CPPUNIT_ASSERT(p.returnCode() == 1);
+}
+
+void ProcessTestSuite::commandLineArgs()
+{
+    List<String> args;
+    args.push_back("Arg1");
+    args.push_back("Arg2 with space");
+    args.push_back("Arg3\nwith\nnewline");
+    Process p;
+
+    // execute ChildProcess synchronously, but in another thread, so
+    // that we can monitor its stdout in the main thread.
+    // Note: Calling ChildProcess asynchronously with Process::start()
+    // and polling for stdout does not work because an asynchronous
+    // Process requires a running EventLoop (on windows, that's not req'd)
+    std::thread t([&](){p.exec("ChildProcess", args);});
+    CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
+
+    realSleep(50);
+    udp_send("getArgv");
+    realSleep(50);
+    String data = p.readAllStdOut();
+    udp_send("exit 0");
+
+    data.replace("\r", "");   // change \r\n to \n for comparison
+
+    String expected;
+    expected += "ChildProcess";
+    expected += '\0';
+    expected += "\nArg1";
+    expected += '\0';
+    expected += "\nArg2 with space";
+    expected += '\0';
+    expected += "\nArg3\nwith\nnewline";
+    expected += '\0';
+    expected += '\n';
+    expected += '\0';
+    expected += '\n';
+
+    CPPUNIT_ASSERT(data == expected);
+}

@@ -9,6 +9,8 @@
  * - getCwd          : Write the current directory to stdout, followed by
  *                     a single \n.
  * - getEnv          : Write the environment to stdout. Format below.
+ * - getArgv         : Write the command line (argv array) to stdout.
+ *                     Format below.
  *
  * Malformed udp packages are ignored.
  *
@@ -27,6 +29,10 @@
  * <key2>=<value2>\0\n
  * \0\n
  * @endcode
+ *
+ * Output format for getArgv: Each entry is delimited by a single binary
+ * zero, followed by a \n character. Additionally, the end of the list is
+ * signalled by a single entry containing only a binary zero and a \n char.
  */
 
 #include <stdint.h>
@@ -54,7 +60,7 @@ static const int      stdinDelay_ms = 20;
 #  include <direct.h>  // for _getcwd
 #endif
 
-void onRecvUdp(void *buf, ssize_t len, char **envp);
+void onRecvUdp(void *buf, ssize_t len, int argc, char *argv[], char **envp);
 
 class StdinReader
 {
@@ -86,7 +92,7 @@ std::string StdinReader::getData()
     return ret;
 }
 
-int main(int, char *[], char *env[])
+int main(int argc, char * argv[], char *env[])
 {
     int res;
 
@@ -168,7 +174,7 @@ int main(int, char *[], char *env[])
 
         if(recvSize > 0)
         {
-            onRecvUdp(buf, recvSize, env);
+            onRecvUdp(buf, recvSize, argc, argv, env);
         }
 
         std::string fromStdin = in.getData();
@@ -183,7 +189,7 @@ int main(int, char *[], char *env[])
     }
 }
 
-void onRecvUdp(void *f_buf, ssize_t len, char **envp)
+void onRecvUdp(void *f_buf, ssize_t len, int argc, char *argv[], char **envp)
 {
     std::string buf((char*)f_buf, len);
 
@@ -222,6 +228,14 @@ void onRecvUdp(void *f_buf, ssize_t len, char **envp)
         {
             std::cout << *envp << '\0' << '\n';
             envp++;
+        }
+        std::cout << '\0' << std::endl;
+    }
+    else if(buf.size() >= 7 && buf.substr(0,7) == "getArgv")
+    {
+        for(int i=0; i<argc; i++)
+        {
+            std::cout << argv[i] << '\0' << '\n';
         }
         std::cout << '\0' << std::endl;
     }

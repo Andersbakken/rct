@@ -26,6 +26,9 @@ public:
 
     operator const char        * () const {return m_str.c_str();}
     operator const std::string & () const {return m_str;}
+
+    const std::string &asStdString() const {return m_str;}
+    const char *asCString() const {return m_str.c_str();}
 private:
     std::string m_str;
 };

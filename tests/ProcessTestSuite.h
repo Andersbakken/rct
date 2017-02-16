@@ -15,6 +15,10 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(startNonExistingProgram);
     CPPUNIT_TEST(startUnicodeProgram);
     CPPUNIT_TEST(commandLineArgs);
+#ifdef _WIN32
+    CPPUNIT_TEST(killWindows);
+    CPPUNIT_TEST(destructorWindows);
+#endif
 #ifndef _WIN32
     CPPUNIT_TEST(env);
 #endif
@@ -62,6 +66,15 @@ protected:
 
     // Add some command line arguments
     void commandLineArgs();
+
+#ifdef _WIN32
+    // test "kill" on windows -- it can only terminate the child.
+    void killWindows();
+
+    // delete a Process object when the associated child process is still
+    // running -- only works on windows.
+    void destructorWindows();
+#endif
 
 #ifndef _WIN32
     /// Test whether setting the environment for the child process works.

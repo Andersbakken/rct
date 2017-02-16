@@ -13,6 +13,7 @@
 #include "WindowsUnicodeConversion.h"
 
 #include <chrono>
+#include <signal.h>
 
 Process::Process()
     : mMode(Sync), mReturn(ReturnUnset)
@@ -28,6 +29,7 @@ Process::Process()
 
 Process::~Process()
 {
+    kill();
     waitForProcessToFinish();
 
     if(mthStdout.joinable()) mthStdout.join();
@@ -325,23 +327,12 @@ void Process::write(const String &f_data)
 {
     List<String> ret;
 
-    /// RAII class to make sure that the LPTCH object is correctly cleared.
-    class Env_Raii
-    {
-    public:
-        Env_Raii(wchar_t *env) : m_data(env) {}
-        ~Env_Raii() {FreeEnvironmentStringsW(m_data);}
-        wchar_t const *data() const {return m_data;}
-    private:
-        wchar_t * const m_data;
-    };
+    wchar_t * const env = GetEnvironmentStringsW(); //need this pointer later to free
 
-    Env_Raii envData(GetEnvironmentStringsW());
-
-    wchar_t const * readPtr = envData.data();
+    wchar_t const * readPtr = env;
     for(;;)
     {
-        String newEntry = static_cast<const char*>(Utf16To8(readPtr));
+        String newEntry = Utf16To8(readPtr).asStdString();
         readPtr += wcslen(readPtr);  // readPtr now points at entry terminating \0
         readPtr++;   // readPtr now pointers at the beginning of the next entry.
 
@@ -350,7 +341,20 @@ void Process::write(const String &f_data)
         ret.push_back(newEntry);
     }
 
+    FreeEnvironmentStringsW(env);
     return ret;
+}
+
+void Process::kill(int f_signal)
+{
+    if(f_signal != SIGTERM) return;
+    if(mProcess.hProcess == INVALID_HANDLE_VALUE) return;
+    if(mProcessTimeoutStatus == KILLED ||
+       mProcessTimeoutStatus == FINISHED_ON_ITS_OWN) return;
+
+    std::lock_guard<std::mutex> lock(mMutex);
+    TerminateProcess(mProcess.hProcess, ReturnKilled);
+    mProcessTimeoutStatus = KILLED;
 }
 
 int Process::returnCode() const

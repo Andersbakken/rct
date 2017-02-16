@@ -114,6 +114,14 @@ public:
     enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
     int returnCode() const;
 
+    /**
+     * Send the requested signal to the process.
+     *
+     * Windows: Apparently, sending signals is not supported on windows
+     * (although one CAN set signal handlers...), so the windows implementation
+     * kills the process if signal is SIGTERM. For other values, this
+     * method call is ignored.
+     */
     void kill(int signal = SIGTERM);
 
     SignalOnData &readyReadStdOut() { return mReadyReadStdOut; }

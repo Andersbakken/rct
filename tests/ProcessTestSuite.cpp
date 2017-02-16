@@ -414,3 +414,29 @@ void ProcessTestSuite::commandLineArgs()
 
     CPPUNIT_ASSERT(data == expected);
 }
+
+void ProcessTestSuite::killWindows()
+{
+    Process p;
+    p.start("ChildProcess");
+
+    realSleep(50);
+    CPPUNIT_ASSERT(!p.isFinished());
+    p.kill();
+    realSleep(50);
+    CPPUNIT_ASSERT(p.isFinished());
+    CPPUNIT_ASSERT(p.returnCode() == Process::ReturnKilled);
+}
+
+void ProcessTestSuite::destructorWindows()
+{
+    std::unique_ptr<Process> p(new Process);
+
+    p->start("ChildProcess");
+    realSleep(50);
+    CPPUNIT_ASSERT(!p->isFinished());
+    p.reset();   //deletes p
+
+    // There should not have been a crash
+    CPPUNIT_ASSERT(true);
+}

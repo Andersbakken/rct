@@ -19,9 +19,7 @@ class ProcessTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(killWindows);
     CPPUNIT_TEST(destructorWindows);
 #endif
-#ifndef _WIN32
     CPPUNIT_TEST(env);
-#endif
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -76,10 +74,8 @@ protected:
     void destructorWindows();
 #endif
 
-#ifndef _WIN32
     /// Test whether setting the environment for the child process works.
     void env();
-#endif
 
 public:
     /**

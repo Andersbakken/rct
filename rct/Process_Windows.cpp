@@ -50,8 +50,16 @@ Process::ExecState Process::exec(const Path &f_cmd,
                                  const List<String> &f_args,
                                  int f_timeout_ms, unsigned int f_flags)
 {
+    // call exec() with default-constructed f_environ
+    return exec(f_cmd, f_args, List<String>(), f_timeout_ms, f_flags);
+}
+
+Process::ExecState Process::exec(const Path &f_cmd, const List<String> &f_args,
+                                 const List<String> &f_environ,
+                                 int f_timeout_ms, unsigned int f_flags)
+{
     mMode = Sync;
-    auto ret = startInternal(f_cmd, f_args, List<String>(), f_timeout_ms, f_flags);
+    auto ret = startInternal(f_cmd, f_args, f_environ, f_timeout_ms, f_flags);
 
     if(mthStdout.joinable()) mthStdout.join();
     if(mthStderr.joinable()) mthStderr.join();
@@ -126,13 +134,22 @@ Process::ExecState Process::startInternal(const Path &f_cmd, const List<String> 
         cmd += L"\"";
     }
 
+    // Build environment string
+    std::wstring env;
+    for(std::size_t i=0; i<f_environ.size(); i++)
+    {
+        env += Utf8To16(f_environ[i].c_str()).asWstring();
+        env += L'\0';
+    }
+    if(!env.empty()) env += L'\0';
+
     if(!CreateProcessW(NULL,  // application name: we pass it through lpCommandLine
                        &cmd[0],
                        NULL,  // security attrs
                        NULL,  // thread security attrs
                        TRUE,  // handles are inherited
                        CREATE_UNICODE_ENVIRONMENT, // creation flags
-                       NULL,  // TODO: env
+                       env.empty() ? NULL : &env[0], // environment
                        NULL,  // TODO: cwd
                        &siStartInfo,  // in: stdin, stdout, stderr pipes
                        &mProcess    // out: info about the new process
@@ -332,7 +349,7 @@ void Process::write(const String &f_data)
     wchar_t const * readPtr = env;
     for(;;)
     {
-        String newEntry = Utf16To8(readPtr).asStdString();
+        String newEntry = Utf16To8(readPtr).asCString();
         readPtr += wcslen(readPtr);  // readPtr now points at entry terminating \0
         readPtr++;   // readPtr now pointers at the beginning of the next entry.
 

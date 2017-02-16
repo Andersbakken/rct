@@ -302,13 +302,12 @@ void ProcessTestSuite::execTimeout()
     CPPUNIT_ASSERT(p.errorString() == "Timed out");
 }
 
-#ifndef _WIN32
 void ProcessTestSuite::env()
 {
     Process p;
 
-    List<String> env;
-    env.push_back("TESTVALUE=foo");
+    List<String> env = Process::environment();
+    env.push_back("TESTVALUE=foo");   // add custom env
 
     std::thread t([&](){p.exec("ChildProcess", List<String>(), env);});
 
@@ -320,13 +319,8 @@ void ProcessTestSuite::env()
 
     t.join();
 
-    //               0        1
-    //               12345678901234 5 6 7
-    String expected("TESTVALUE=foo\0\n\0\n", 17);
-
-    CPPUNIT_ASSERT(readEnv == expected);
+    CPPUNIT_ASSERT(readEnv.contains("TESTVALUE=foo"));
 }
-#endif
 
 void ProcessTestSuite::writeToStdin()
 {
@@ -399,18 +393,16 @@ void ProcessTestSuite::commandLineArgs()
 
     data.replace("\r", "");   // change \r\n to \n for comparison
 
-    String expected;
-    expected += "ChildProcess";
-    expected += '\0';
-    expected += "\nArg1";
-    expected += '\0';
-    expected += "\nArg2 with space";
-    expected += '\0';
-    expected += "\nArg3\nwith\nnewline";
-    expected += '\0';
-    expected += '\n';
-    expected += '\0';
-    expected += '\n';
+                 //  1234567890123 4
+    String expected("ChildProcess\0\n"
+                 //  12345 6
+                    "Arg1\0\n"
+                 //  1234567890123456 7
+                    "Arg2 with space\0\n"
+                 //  12345 67890 12345678 9
+                    "Arg3\nwith\nnewline\0\n"
+                 //  1 2
+                    "\0\n", 58);
 
     CPPUNIT_ASSERT(data == expected);
 }

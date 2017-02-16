@@ -59,16 +59,25 @@ public:
 
     /**
      * Execute a child process synchronously
+     *
+     * @param flags see ExecFlag. Ignored on windows.
      */
     ExecState exec(const Path &command, const List<String> &arguments = List<String>(),
                    int timeout_ms = 0, unsigned int flags = 0);
 
     /**
      * Execute a child process synchronously, specifying an environment.
+     *
+     * You can get a default environment by calling environment().
+     *
+     * @param flags see ExecFlag. Ignored on windows.
      * @param environ Each String in the List must be in the form of key=value.
+     *                On windows, these strings must be encoded in utf8.
+     * @see Process::environment()
      */
     ExecState exec(const Path &command, const List<String> &arguments,
-                   const List<String> &f_environ, int timeout_ms = 0, unsigned int flags = 0);
+                   const List<String> &f_environ, int timeout_ms = 0,
+                   unsigned int flags = 0);
 
     /**
      * Get information about errors that occured while trying to execute the

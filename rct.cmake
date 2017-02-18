@@ -127,7 +127,9 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsUnicodeConversion.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c)
+  ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c
+  ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMappedFile.cpp
+  )
 
 if (HAVE_INOTIFY EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_inotify.cpp)

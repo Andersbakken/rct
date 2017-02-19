@@ -20,7 +20,7 @@
  * directory or a file. A path can be absolute or relative.
  *
  * Note: On windows, all paths use forward slashes (/) as path separator, just
- * link on unix.
+ * like on unix.
  * Paths that are created with backslashes are automatically converted.
  */
 class Path : public String

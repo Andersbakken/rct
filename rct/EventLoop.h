@@ -147,9 +147,9 @@ public:
     void unregisterSocket(int fd);
     unsigned int processSocket(int fd, int timeout = -1);
 
-    // See Timer.h for the flags
     /**
      * @param timeout timeout in ms
+     * @param flags see Timer.h
      */
     int registerTimer(std::function<void(int)>&& func, int timeout, unsigned int flags = 0);
     void unregisterTimer(int id);

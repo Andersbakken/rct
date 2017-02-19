@@ -323,7 +323,7 @@ public:
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(*it)) {
-                Base::erase(it);
+                it = Base::erase(it);
                 ++ret;
             } else {
                 ++it;

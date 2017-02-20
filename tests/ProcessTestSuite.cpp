@@ -124,7 +124,7 @@ public:
     CallOnScopeExit(const std::function<void()> &f) : m_f(f) {}
     ~CallOnScopeExit() {m_f();}
 private:
-    const std::function<void()> &m_f;
+    const std::function<void()> m_f;
 };
 
 void ProcessTestSuite::returnCode()

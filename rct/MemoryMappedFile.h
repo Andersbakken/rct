@@ -7,16 +7,33 @@
 /**
  * Allows to map a file to memory and read/write the file
  * through a standard pointer.
+ *
+ * This class only allows mapping a whole file to memory.
+ * Mapping sections of a file is not supported (yet).
  */
 class MemoryMappedFile
 {
+public:
+    enum AccessType
+    {
+        READ_ONLY,
+        READ_WRITE
+    };
+
+    enum LockType
+    {
+        DO_LOCK,
+        DONT_LOCK
+    };
+
 public:  // ctors + dtors
 
     MemoryMappedFile();
 
     MemoryMappedFile(MemoryMappedFile &&) = default;
 
-    MemoryMappedFile(const Path &filename);
+    MemoryMappedFile(const Path &filename, AccessType access=READ_ONLY,
+                     LockType lock=DONT_LOCK);
 
     ~MemoryMappedFile();
 
@@ -26,7 +43,8 @@ public:  // operators
 
 public:  // methods
 
-    bool open(const Path &filename);
+    bool open(const Path &filename, AccessType access=READ_ONLY,
+              LockType lock=DONT_LOCK);
 
     /**
      * Closes the file mapping.
@@ -64,6 +82,8 @@ private:
     HANDLE mhFile;
     HANDLE mhFileMapping;
     DWORD mFileSize;
+
+    static void closeHandleIfValid(HANDLE &hdl);
 #else
 
 #endif

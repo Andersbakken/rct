@@ -124,7 +124,7 @@ public:
     CallOnScopeExit(const std::function<void()> &f) : m_f(f) {}
     ~CallOnScopeExit() {m_f();}
 private:
-    const std::function<void()> &m_f;
+    const std::function<void()> m_f;
 };
 
 void ProcessTestSuite::returnCode()
@@ -392,21 +392,18 @@ void ProcessTestSuite::commandLineArgs()
     udp_send("exit 0");
 
     data.replace("\r", "");   // change \r\n to \n for comparison
+    List<String> gotArgs = data.split('\0');
 
-                 //  1234567890123 4
-    String expected("ChildProcess\0\n"
-                 //  12345 6
-                    "Arg1\0\n"
-                 //  1234567890123456 7
-                    "Arg2 with space\0\n"
-                 //  12345 67890 12345678 9
-                    "Arg3\nwith\nnewline\0\n"
-                 //  1 2
-                    "\0\n", 58);
-
-    CPPUNIT_ASSERT(data == expected);
+    // includes argv[0] which is empty, and two trailing entries.
+    CPPUNIT_ASSERT(gotArgs.size() == 6);
+    CPPUNIT_ASSERT(gotArgs[1] == "\nArg1");
+    CPPUNIT_ASSERT(gotArgs[2] == "\nArg2 with space");
+    CPPUNIT_ASSERT(gotArgs[3] == "\nArg3\nwith\nnewline");
+    CPPUNIT_ASSERT(gotArgs[4] == "\n");
+    CPPUNIT_ASSERT(gotArgs[5] == "\n");
 }
 
+#ifdef _WIN32
 void ProcessTestSuite::killWindows()
 {
     Process p;
@@ -432,3 +429,4 @@ void ProcessTestSuite::destructorWindows()
     // There should not have been a crash
     CPPUNIT_ASSERT(true);
 }
+#endif // _WIN32

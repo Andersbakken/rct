@@ -12,7 +12,7 @@ find_path(CPPUNIT_INCLUDE_DIR cppunit/Test.h
           HINTS ${PC_CPPUNIT_INCLUDEDIR} ${PC_CPPUNIT_INCLUDE_DIRS}
           PATH_SUFFIXES cppunit)
 
-find_library(CPPUNIT_LIBRARY NAMES
+find_library(CPPUNIT_LIBRARY NAMES cppunit
              HINTS ${PC_CPPUNIT_LIBDIR} ${PC_CPPUNIT_LIBRARY_DIRS} )
 
 include(FindPackageHandleStandardArgs)

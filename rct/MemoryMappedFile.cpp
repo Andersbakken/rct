@@ -31,6 +31,35 @@ MemoryMappedFile::MemoryMappedFile(const Path &f_file, AccessType f_access,
     open(f_file, f_access, f_lock);
 }
 
+MemoryMappedFile::MemoryMappedFile(MemoryMappedFile&& f_other)
+{
+    *this = std::move(f_other);
+}
+
+MemoryMappedFile &MemoryMappedFile::operator=(MemoryMappedFile &&f_other)
+{
+    mpMapped = f_other.mpMapped;
+    f_other.mpMapped = nullptr;
+
+    mFilename = f_other.mFilename;
+    f_other.mFilename.clear();
+
+#ifdef _WIN32
+    mhFile = f_other.mhFile;
+    f_other.mhFile = INVALID_HANDLE_VALUE;
+
+    mhFileMapping = f_other.mhFileMapping;
+    f_other.mhFileMapping = INVALID_HANDLE_VALUE;
+
+    mFileSize = f_other.mFileSize;
+    f_other.mFileSize = 0;
+#else
+
+#endif
+
+    return *this;
+}
+
 MemoryMappedFile::~MemoryMappedFile()
 {
     close();
@@ -107,6 +136,7 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
     }
 
     // everything worked out! We're done.
+    mFilename = f_filename;
     return true;
 
 #else
@@ -117,9 +147,15 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
 void MemoryMappedFile::close()
 {
 #ifdef _WIN32
+    if(mpMapped && !UnmapViewOfFile(mpMapped))
+    {
+        error() << "Could not UnmapViewOfFile(). GetLastError()="
+                << GetLastError();
+    }
     closeHandleIfValid(mhFileMapping);
     closeHandleIfValid(mhFile);
     mFileSize = 0;
+    mFilename.clear();
     mpMapped = nullptr;
 #else
 #endif
@@ -130,7 +166,10 @@ void MemoryMappedFile::close()
 {
     if(f_hdl == INVALID_HANDLE_VALUE) return;
 
-    CloseHandle(f_hdl);
+    if(!CloseHandle(f_hdl))
+    {
+        error() << "Could not close handle! GetLastError()=" << GetLastError();
+    }
     f_hdl = INVALID_HANDLE_VALUE;
 }
 #endif

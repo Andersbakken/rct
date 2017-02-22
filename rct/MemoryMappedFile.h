@@ -30,7 +30,7 @@ public:  // ctors + dtors
 
     MemoryMappedFile();
 
-    MemoryMappedFile(MemoryMappedFile &&) = default;
+    MemoryMappedFile(MemoryMappedFile &&other);
 
     MemoryMappedFile(const Path &filename, AccessType access=READ_ONLY,
                      LockType lock=DONT_LOCK);
@@ -39,7 +39,7 @@ public:  // ctors + dtors
 
 public:  // operators
 
-    MemoryMappedFile &operator=(MemoryMappedFile &&) = default;
+    MemoryMappedFile &operator=(MemoryMappedFile &&);
 
 public:  // methods
 

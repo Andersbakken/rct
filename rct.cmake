@@ -235,6 +235,7 @@ if (ASAN)
 endif ()
 
 check_cxx_source_compiles("
+  #include <functional>
   #include <memory>
   #include <mutex>
   #include <tuple>

@@ -9,9 +9,9 @@
 #endif
 
 MemoryMappedFile::MemoryMappedFile()
-    : mpMapped(nullptr),
+    : mpMapped(nullptr)
 #ifdef _WIN32
-      mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
+    ,mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
       mFileSize(0)
 #else
 #endif
@@ -21,9 +21,9 @@ MemoryMappedFile::MemoryMappedFile()
 
 MemoryMappedFile::MemoryMappedFile(const Path &f_file, AccessType f_access,
                                    LockType f_lock)
-    : mpMapped(nullptr),
+    : mpMapped(nullptr)
 #ifdef _WIN32
-      mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
+    , mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
       mFileSize(0)
 #else
 #endif

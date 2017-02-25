@@ -2,6 +2,8 @@
 
 #ifdef _WIN32
 #  include <Windows.h>
+#else
+#  include <sys/types.h>
 #endif
 
 /**
@@ -85,6 +87,7 @@ private:
 
     static void closeHandleIfValid(HANDLE &hdl);
 #else
-
+    int mFd;   ///< Descriptor for the file
+    off_t mFileSize;
 #endif
 };

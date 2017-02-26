@@ -43,6 +43,22 @@ void MemoryMappedFileTestSuite::nonExistingFile()
     CPPUNIT_ASSERT(mmf2.accessType() == MemoryMappedFile::NO_ACCESS);
 }
 
+void MemoryMappedFileTestSuite::emptyFile()
+{
+    {
+        std::ofstream file("empty.txt");
+        CPPUNIT_ASSERT(file);
+    }
+
+    typedef MemoryMappedFile MMF;
+    MMF mmf("empty.txt");
+    CPPUNIT_ASSERT(mmf.isOpen());
+    CPPUNIT_ASSERT(mmf.accessType() == MMF::READ_ONLY);
+    CPPUNIT_ASSERT(mmf.filename() == "empty.txt");
+    CPPUNIT_ASSERT(mmf.size() == 0);
+    CPPUNIT_ASSERT(mmf.filePtr() == nullptr);
+}
+
 void MemoryMappedFileTestSuite::closing()
 {
     // Test whether MemoryMappedFile properly closes an opened file

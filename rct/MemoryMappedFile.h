@@ -103,7 +103,7 @@ public:  // methods
      */
     void close();
 
-    bool isOpen() const {return mpMapped;}
+    bool isOpen() const {return mAccessType != NO_ACCESS;}
 
     AccessType accessType() const {return mAccessType;}
 
@@ -114,12 +114,12 @@ public:  // methods
     std::size_t size() const {return mFileSize;}
 
     /**
-     * @return nullptr if no file is mapped.
+     * @return nullptr if no file is mapped, nullptr if the file is empty.
      */
     void *filePtr() {return mpMapped;}
 
     /**
-     * @return nullptr if no file is mapped.
+     * @return nullptr if no file is mapped, nullptr if the file is empty.
      */
     const void *filePtr() const {return mpMapped;}
 

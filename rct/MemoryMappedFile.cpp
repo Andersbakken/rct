@@ -131,6 +131,15 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
 
     mFileSize = GetFileSize(mhFile, NULL);
 
+    if(mFileSize == 0)
+    {
+        // can't map empty file. We still report it as success (with size() == 0)
+        mFilename = f_filename;
+        mAccessType = f_access;
+        mpMapped = nullptr;
+        return true;
+    }
+
     // now, we can set up a file mapping:
     mhFileMapping = CreateFileMapping(mhFile,   // file to map
                                       NULL,     // security attrs

@@ -111,8 +111,21 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
 
     if(mhFile == INVALID_HANDLE_VALUE)
     {
-        error() << "Can't open file " << f_filename << ". "
-                << "GetLastError(): " << GetLastError();
+        const DWORD errorCode = GetLastError();
+
+        auto errStream = error() << "Can't open file " << f_filename;
+        switch(errorCode)
+        {
+        case ERROR_FILE_NOT_FOUND:
+            errStream << " (file not found)";
+            break;
+        case ERROR_SHARING_VIOLATION:
+            errStream << " (file is locked)";
+            break;
+        default:
+            errStream << "GetLastError(): " << errorCode;
+        }
+
         return false;
     }
 

@@ -27,10 +27,10 @@ void SHA256TestSuite::someFiles()
 
     createFile("fileWithEmbeddedZeros.txt",
                //                     1          2
-               //           12345 678901 234567890 12345
-               std::string("some\0zeros\0embedded\0here\n", 25));
+               //           12345 678901 234567890 1234
+               std::string("some\0zeros\0embedded\0here", 24));
     CPPUNIT_ASSERT(SHA256::hashFile("fileWithEmbeddedZeros.txt") ==
-                   "c4bf8120487fef13ebc75ab7b5fae7a25a2cd332765ee30df4dc81cccb7bfa0d");
+                   "ce2755ad80159b7a2ab0adfc0246678239e583f83dbf423b8a48d6c8aedd2cb7");
 }
 
 void SHA256TestSuite::nonExistingFile()

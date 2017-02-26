@@ -9,6 +9,7 @@
 #  include "Rct.h"
 #  include <sys/types.h>
 #  include <sys/stat.h>
+#  include <sys/file.h>
 #  include <unistd.h>
 #endif
 
@@ -157,13 +158,40 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
 
     if(mFd == -1)
     {
-        error() << "Could not open file " << f_filename
-                << ". errno=" << errno;
+        auto errStream = error() << "Could not open file " << f_filename;
+        switch(errno)
+        {
+        case ENOENT:
+            errStream << " (file does not exist)";
+            break;
+        default:
+            errStream << ". errno=" << errno;
+            break;
+        }
         return false;
     }
 
-    // TODO lock according to f_lock
-    (void) f_lock;
+    if(f_lock == DO_LOCK)
+    {
+        int lockRes;
+        eintrwrap(lockRes, flock(mFd, LOCK_EX | LOCK_NB));
+
+        if(lockRes == -1)
+        {
+            auto errStream = error() << "Could not lock file " << f_filename;
+            switch(errno)
+            {
+            case EWOULDBLOCK:
+                errStream << " (file is already locked)";
+                break;
+            default:
+                errStream << ". errno=" << errno;
+                break;
+            }
+            close();
+            return false;
+        }
+    }
 
     // get file size
     struct stat st;

@@ -142,3 +142,51 @@ void MemoryMappedFileTestSuite::specialChars()
     CPPUNIT_ASSERT(fileContent ==
                    u8"This file has some utf-8 characters:\ntestfile_Äßéמש最終\n");
 }
+
+void MemoryMappedFileTestSuite::dont_lock()
+{
+    // we open the same file twice.
+
+    {
+        std::ofstream file("testfile.txt");
+        file << "12345";
+    }
+
+    typedef MemoryMappedFile MMF; // shorter name
+
+    MMF mmf1("testfile.txt", MMF::READ_ONLY, MMF::DONT_LOCK);
+    CPPUNIT_ASSERT(mmf1.isOpen());
+    CPPUNIT_ASSERT(mmf1.size() == 5);
+
+    MMF mmf2("testfile.txt", MMF::READ_ONLY, MMF::DONT_LOCK);
+    CPPUNIT_ASSERT(mmf2.isOpen());
+    CPPUNIT_ASSERT(mmf2.size() == 5);
+
+    mmf1.close();
+
+    CPPUNIT_ASSERT(mmf2.isOpen());
+
+    std::string data2(static_cast<const char*>(mmf2.filePtr()),
+                      mmf2.size());
+    CPPUNIT_ASSERT(data2 == "12345");
+}
+
+void MemoryMappedFileTestSuite::do_lock()
+{
+    // we try to open the same file twice.
+
+    {
+        std::ofstream file("testfile.txt");
+        file << "12345";
+    }
+
+    typedef MemoryMappedFile MMF; // shorter name
+
+    MMF mmf1("testfile.txt", MMF::READ_ONLY, MMF::DO_LOCK);
+    CPPUNIT_ASSERT(mmf1.isOpen());
+    CPPUNIT_ASSERT(mmf1.size() == 5);
+
+    // should fail:
+    MMF mmf2("testfile.txt", MMF::READ_ONLY, MMF::DO_LOCK);
+    CPPUNIT_ASSERT(!mmf2.isOpen());
+}

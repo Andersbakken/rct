@@ -7,6 +7,7 @@ class MemoryMappedFileTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(nonExistingFile);
     CPPUNIT_TEST(closing);
     CPPUNIT_TEST(moving);
+    CPPUNIT_TEST(specialChars);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -17,6 +18,8 @@ protected:
     void closing();
 
     void moving();
+
+    void specialChars();
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(MemoryMappedFileTestSuite);

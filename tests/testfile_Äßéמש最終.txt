@@ -1,0 +1,2 @@
+This file has some utf-8 characters:
+testfile_Äßéמש最終

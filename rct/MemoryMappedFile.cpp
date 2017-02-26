@@ -1,6 +1,7 @@
 #include "MemoryMappedFile.h"
 
 #include "Log.h"
+#include "WindowsUnicodeConversion.h"
 
 #ifdef _WIN32
 #  include <Windows.h>
@@ -89,13 +90,13 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
         FILE_MAP_READ : FILE_MAP_WRITE; // FILE_MAP_WRITE includes read access
 
     // first, we need to open the file:
-    mhFile = CreateFile(f_filename.nullTerminated(),
-                        access,
-                        share,
-                        NULL,
-                        OPEN_EXISTING,
-                        FILE_ATTRIBUTE_NORMAL,
-                        NULL);
+    mhFile = CreateFileW(Utf8To16(f_filename.nullTerminated()),
+                         access,
+                         share,
+                         NULL,
+                         OPEN_EXISTING,
+                         FILE_ATTRIBUTE_NORMAL,
+                         NULL);
 
     if(mhFile == INVALID_HANDLE_VALUE)
     {

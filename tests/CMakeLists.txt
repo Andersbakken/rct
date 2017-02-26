@@ -53,3 +53,10 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_BINARY_DIR}/ChildProcess${CMAKE_EXECUTABLE_SUFFIX}
             ${CMAKE_CURRENT_BINARY_DIR}/ChildProcess_Äßéמש最終${CMAKE_EXECUTABLE_SUFFIX})
+
+# Create a file with special chars for the MemoryMappedFile tests.
+add_custom_command(
+    TARGET "ChildProcess" POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/testfile_Äßéמש最終.txt
+            ${CMAKE_CURRENT_BINARY_DIR})

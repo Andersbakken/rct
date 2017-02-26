@@ -110,3 +110,19 @@ void MemoryMappedFileTestSuite::moving()
     CPPUNIT_ASSERT(mmf3.size() == 0);
     CPPUNIT_ASSERT(mmf3.filename().isEmpty());
 }
+
+void MemoryMappedFileTestSuite::specialChars()
+{
+    MemoryMappedFile mmf(u8"testfile_Äßéמש最終.txt");
+
+    CPPUNIT_ASSERT(mmf.isOpen());
+    CPPUNIT_ASSERT(mmf.size() == 63);
+    CPPUNIT_ASSERT(mmf.filename() == u8"testfile_Äßéמש最終.txt");
+
+    const char *ptr = static_cast<const char*>(mmf.filePtr());
+
+    std::string fileContent(ptr, mmf.size());
+
+    CPPUNIT_ASSERT(fileContent ==
+                   u8"This file has some utf-8 characters:\ntestfile_Äßéמש最終\n");
+}

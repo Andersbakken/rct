@@ -190,3 +190,40 @@ void MemoryMappedFileTestSuite::do_lock()
     MMF mmf2("testfile.txt", MMF::READ_ONLY, MMF::DO_LOCK);
     CPPUNIT_ASSERT(!mmf2.isOpen());
 }
+
+void MemoryMappedFileTestSuite::writing()
+{
+                    //  0123456789012345678901234
+    std::string data = "File is in original state";
+
+    {
+        std::ofstream file("testfile.txt");
+        file << data;
+    }
+
+    typedef MemoryMappedFile MMF;  // shorter name
+
+    MMF mmf("testfile.txt", MMF::READ_WRITE);
+    CPPUNIT_ASSERT(mmf.isOpen());
+    CPPUNIT_ASSERT(mmf.accessType() == MMF::READ_WRITE);
+    CPPUNIT_ASSERT(mmf.size() == data.size());
+
+    char *charPtr = static_cast<char*>(mmf.filePtr());
+    std::string readBefore((const char*)charPtr, mmf.size());
+    CPPUNIT_ASSERT(readBefore == data);
+
+    memcpy(charPtr+11, "changed ", 8);
+
+    mmf.close();
+
+    std::string readAfter;
+    std::ifstream infile("testfile.txt");
+
+    if(infile)
+    {
+        std::getline(infile, readAfter);
+    }
+
+
+    CPPUNIT_ASSERT(readAfter == "File is in changed  state");
+}

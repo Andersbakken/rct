@@ -152,7 +152,7 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
     const int openFlags = (f_access == READ_ONLY) ?
         O_RDONLY : O_RDWR;
     const int protFlags = (f_access == READ_ONLY) ?
-        PROT_READ : (PROT_READ & PROT_WRITE);
+        PROT_READ : (PROT_READ | PROT_WRITE);
 
     mFd = ::open(f_filename.nullTerminated(), openFlags);
 

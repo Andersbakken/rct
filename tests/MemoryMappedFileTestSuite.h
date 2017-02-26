@@ -10,6 +10,7 @@ class MemoryMappedFileTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(specialChars);
     CPPUNIT_TEST(dont_lock);
     CPPUNIT_TEST(do_lock);
+    CPPUNIT_TEST(writing);
     CPPUNIT_TEST_SUITE_END();
 
 protected:
@@ -26,6 +27,8 @@ protected:
     void dont_lock();
 
     void do_lock();
+
+    void writing();
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(MemoryMappedFileTestSuite);

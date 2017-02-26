@@ -13,7 +13,7 @@
 #endif
 
 MemoryMappedFile::MemoryMappedFile()
-    : mpMapped(nullptr),
+    : mpMapped(nullptr), mAccessType(NO_ACCESS),
 #ifdef _WIN32
       mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
       mFileSize(0)
@@ -25,7 +25,7 @@ MemoryMappedFile::MemoryMappedFile()
 
 MemoryMappedFile::MemoryMappedFile(const Path &f_file, AccessType f_access,
                                    LockType f_lock)
-    : mpMapped(nullptr),
+    : mpMapped(nullptr), mAccessType(NO_ACCESS),
 #ifdef _WIN32
       mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
       mFileSize(0)
@@ -48,6 +48,9 @@ MemoryMappedFile &MemoryMappedFile::operator=(MemoryMappedFile &&f_other)
 
     mFilename = f_other.mFilename;
     f_other.mFilename.clear();
+
+    mAccessType = f_other.mAccessType;
+    f_other.mAccessType = NO_ACCESS;
 
 #ifdef _WIN32
     mhFile = f_other.mhFile;
@@ -74,15 +77,17 @@ MemoryMappedFile::~MemoryMappedFile()
     close();
 }
 
-std::size_t MemoryMappedFile::size() const
-{
-    return mFileSize;
-}
-
 bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
                             LockType f_lock)
 {
     if(isOpen()) close();
+
+    if(f_access == NO_ACCESS)
+    {
+        error() << "Can't create MemoryMappedFile with access type NO_ACCESS";
+        return false;
+    }
+
 #ifdef _WIN32
 
     const DWORD access = (f_access == READ_ONLY) ?
@@ -141,10 +146,6 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
         return false;
     }
 
-    // everything worked out! We're done.
-    mFilename = f_filename;
-    return true;
-
 #else
     // try to open the file
     const int openFlags = (f_access == READ_ONLY) ?
@@ -195,9 +196,12 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
         return false;
     }
 
-    mFilename = f_filename;
-    return true;
 #endif
+
+    // everything worked out! We're done.
+    mFilename = f_filename;
+    mAccessType = f_access;
+    return true;
 }
 
 void MemoryMappedFile::close()
@@ -228,6 +232,8 @@ void MemoryMappedFile::close()
             error() << "Could not close file " << mFilename
                     << ". errno=" << errno;
         }
+
+        mFd = -1;
     }
 
 #endif
@@ -235,6 +241,7 @@ void MemoryMappedFile::close()
     mFileSize = 0;
     mFilename.clear();
     mpMapped = nullptr;
+    mAccessType = NO_ACCESS;
 }
 
 #ifdef _WIN32

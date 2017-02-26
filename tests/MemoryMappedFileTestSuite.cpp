@@ -18,6 +18,7 @@ void MemoryMappedFileTestSuite::mapSimpleFile()
     CPPUNIT_ASSERT(mmf.isOpen());
     CPPUNIT_ASSERT(mmf.size() == dataToWrite.size());
     CPPUNIT_ASSERT(mmf.filename() == "testfile.txt");
+    CPPUNIT_ASSERT(mmf.accessType() == MemoryMappedFile::READ_ONLY);
 
     std::string readData(static_cast<char*>(mmf.filePtr()), mmf.size());
     CPPUNIT_ASSERT(readData == dataToWrite);
@@ -29,14 +30,17 @@ void MemoryMappedFileTestSuite::nonExistingFile()
     CPPUNIT_ASSERT(!mmf1.isOpen());
     CPPUNIT_ASSERT(mmf1.size() == 0);
     CPPUNIT_ASSERT(mmf1.filename().isEmpty());
+    CPPUNIT_ASSERT(mmf1.accessType() == MemoryMappedFile::NO_ACCESS);
     mmf1.close();  // should be no-op
 
-    MemoryMappedFile mmf2;
+    MemoryMappedFile mmf2;  // standard ctor
     CPPUNIT_ASSERT(!mmf2.isOpen());
     CPPUNIT_ASSERT(mmf2.size() == 0);
+    CPPUNIT_ASSERT(mmf2.accessType() == MemoryMappedFile::NO_ACCESS);
     CPPUNIT_ASSERT(!mmf2.open("fileDoesNotExist.txt"));
     CPPUNIT_ASSERT(!mmf2.isOpen());
     CPPUNIT_ASSERT(mmf2.size() == 0);
+    CPPUNIT_ASSERT(mmf2.accessType() == MemoryMappedFile::NO_ACCESS);
 }
 
 void MemoryMappedFileTestSuite::closing()
@@ -69,6 +73,7 @@ void MemoryMappedFileTestSuite::closing()
     CPPUNIT_ASSERT(!mmf1.isOpen());
     CPPUNIT_ASSERT(mmf1.size() == 0);
     CPPUNIT_ASSERT(mmf1.filename().isEmpty());
+    CPPUNIT_ASSERT(mmf1.accessType() == MemoryMappedFile::NO_ACCESS);
 
 #ifdef _WIN32
     {
@@ -102,8 +107,10 @@ void MemoryMappedFileTestSuite::moving()
     MemoryMappedFile mmf3("testfile.txt");
     CPPUNIT_ASSERT(mmf3.isOpen());
     CPPUNIT_ASSERT(mmf3.size() == dataToWrite.size());
+    CPPUNIT_ASSERT(mmf3.accessType() == MemoryMappedFile::READ_ONLY);
     MemoryMappedFile mmf4;
     CPPUNIT_ASSERT(!mmf4.isOpen());
+    CPPUNIT_ASSERT(mmf4.accessType() == MemoryMappedFile::NO_ACCESS);
 
     mmf4 = std::move(mmf3);
 
@@ -111,11 +118,13 @@ void MemoryMappedFileTestSuite::moving()
     CPPUNIT_ASSERT(mmf4.isOpen());
     CPPUNIT_ASSERT(mmf4.size() == dataToWrite.size());
     CPPUNIT_ASSERT(mmf4.filename() == "testfile.txt");
+    CPPUNIT_ASSERT(mmf4.accessType() == MemoryMappedFile::READ_ONLY);
 
     // mmf3 should now be empty.
     CPPUNIT_ASSERT(!mmf3.isOpen());
     CPPUNIT_ASSERT(mmf3.size() == 0);
     CPPUNIT_ASSERT(mmf3.filename().isEmpty());
+    CPPUNIT_ASSERT(mmf3.accessType() == MemoryMappedFile::NO_ACCESS);
 }
 
 void MemoryMappedFileTestSuite::specialChars()

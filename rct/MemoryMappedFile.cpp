@@ -6,7 +6,10 @@
 #ifdef _WIN32
 #  include <Windows.h>
 #else
-
+#  include "Rct.h"
+#  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <unistd.h>
 #endif
 
 MemoryMappedFile::MemoryMappedFile()
@@ -15,9 +18,9 @@ MemoryMappedFile::MemoryMappedFile()
       mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
       mFileSize(0)
 #else
+      mFd(-1), mFileSize(0)
 #endif
 {
-
 }
 
 MemoryMappedFile::MemoryMappedFile(const Path &f_file, AccessType f_access,
@@ -27,6 +30,7 @@ MemoryMappedFile::MemoryMappedFile(const Path &f_file, AccessType f_access,
       mhFile(INVALID_HANDLE_VALUE), mhFileMapping(INVALID_HANDLE_VALUE),
       mFileSize(0)
 #else
+      mFd(-1), mFileSize(0)
 #endif
 {
     open(f_file, f_access, f_lock);
@@ -55,7 +59,11 @@ MemoryMappedFile &MemoryMappedFile::operator=(MemoryMappedFile &&f_other)
     mFileSize = f_other.mFileSize;
     f_other.mFileSize = 0;
 #else
+    mFd = f_other.mFd;
+    f_other.mFd = -1;
 
+    mFileSize = f_other.mFileSize;
+    f_other.mFileSize = 0;
 #endif
 
     return *this;
@@ -68,10 +76,7 @@ MemoryMappedFile::~MemoryMappedFile()
 
 std::size_t MemoryMappedFile::size() const
 {
-#ifdef _WIN32
     return mFileSize;
-#else
-#endif
 }
 
 bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
@@ -141,7 +146,57 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
     return true;
 
 #else
-    return false;
+    // try to open the file
+    const int openFlags = (f_access == READ_ONLY) ?
+        O_RDONLY : O_RDWR;
+    const int protFlags = (f_access == READ_ONLY) ?
+        PROT_READ : (PROT_READ & PROT_WRITE);
+
+    mFd = ::open(f_filename.nullTerminated(), openFlags);
+
+    if(mFd == -1)
+    {
+        error() << "Could not open file " << f_filename
+                << ". errno=" << errno;
+        return false;
+    }
+
+    // TODO lock according to f_lock
+    (void) f_lock;
+
+    // get file size
+    struct stat st;
+    if(fstat(mFd, &st) != 0)
+    {
+        error() << "Could not stat file " << f_filename
+                << ". errno=" << errno;
+        close();
+        return false;
+    }
+
+    mFileSize = st.st_size;   // size in byte
+
+    // now, we can actually map the file
+    mpMapped = mmap(
+            NULL,       // destination hint
+            mFileSize,
+            protFlags,  // mmu page protection
+            MAP_SHARED,
+            mFd,
+            0           // offset
+        );
+
+    if(mpMapped == MAP_FAILED)
+    {
+        mpMapped = nullptr;
+        close();
+        error() << "Could not map file " << f_filename
+                << ". errno=" << errno;
+        return false;
+    }
+
+    mFilename = f_filename;
+    return true;
 #endif
 }
 
@@ -155,11 +210,31 @@ void MemoryMappedFile::close()
     }
     closeHandleIfValid(mhFileMapping);
     closeHandleIfValid(mhFile);
+
+#else  // ifdef _WIN32
+    if(mpMapped != nullptr && munmap(mpMapped, mFileSize) != 0)
+    {
+        error() << "Could not unmap " << mFilename
+                << ". errno=" << errno;
+    }
+
+    if(mFd != -1)
+    {
+        int ret;
+        eintrwrap(ret, ::close(mFd));
+
+        if(ret == -1)
+        {
+            error() << "Could not close file " << mFilename
+                    << ". errno=" << errno;
+        }
+    }
+
+#endif
+
     mFileSize = 0;
     mFilename.clear();
     mpMapped = nullptr;
-#else
-#endif
 }
 
 #ifdef _WIN32

@@ -53,11 +53,16 @@ void MemoryMappedFileTestSuite::closing()
     MemoryMappedFile mmf1("testfile.txt");
     CPPUNIT_ASSERT(mmf1.isOpen());
 
+#ifdef _WIN32   // opening the same file multiple times is allowed on linux.
+                // on windows, it's only allowed when it's explictly set up
+                // like this in the CreateFile call.
+                // Linux/Posix only has advisory, but no real mandatory locks.
     {
         // opening the file for writing should fail because the file is open
         std::ofstream fileWrite("testfile.txt");
         CPPUNIT_ASSERT(!fileWrite);
     }
+#endif
 
     mmf1.close();
 
@@ -65,12 +70,14 @@ void MemoryMappedFileTestSuite::closing()
     CPPUNIT_ASSERT(mmf1.size() == 0);
     CPPUNIT_ASSERT(mmf1.filename().isEmpty());
 
+#ifdef _WIN32
     {
         // opening the file for writing should work now, because the file
         // should have been closed.
         std::ofstream file("testfile.txt");
         CPPUNIT_ASSERT(file);
     }
+#endif
 }
 
 void MemoryMappedFileTestSuite::moving()

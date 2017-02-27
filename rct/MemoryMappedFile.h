@@ -1,8 +1,6 @@
 #include "Path.h"
 
-#ifdef _WIN32
-#  include <Windows.h>
-#else
+#ifndef _WIN32
 #  include <sys/types.h>
 #endif
 
@@ -141,11 +139,17 @@ private:
     Path mFilename;
     AccessType mAccessType;
 #ifdef _WIN32
-    HANDLE mhFile;
-    HANDLE mhFileMapping;
-    DWORD mFileSize;
+    /**
+     * unfortunately, we can't #include Windows.h here because it causes
+     * conflicts with Winsock2.h.
+     */
+    typedef void *Handle;
+    typedef uint32_t Dword;
+    Handle mhFile;
+    Handle mhFileMapping;
+    Dword mFileSize;
 
-    static void closeHandleIfValid(HANDLE &hdl);
+    static void closeHandleIfValid(Handle &hdl);
 #else
     int mFd;   ///< Descriptor for the file
     off_t mFileSize;

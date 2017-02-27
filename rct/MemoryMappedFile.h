@@ -114,14 +114,22 @@ public:  // methods
     std::size_t size() const {return mFileSize;}
 
     /**
+     * Get a typed pointer to the file's memory region.
+     * Bounds checking is not performed, so there is no error if
+     * sizeof(T) > size().
      * @return nullptr if no file is mapped, nullptr if the file is empty.
      */
-    void *filePtr() {return mpMapped;}
+    template<class T=void>
+    T *filePtr() {return reinterpret_cast<T*>(mpMapped);}
 
     /**
+     * Get a typed pointer to the file's memory region.
+     * Bounds checking is not performed, so there is no error if
+     * sizeof(T) > size().
      * @return nullptr if no file is mapped, nullptr if the file is empty.
      */
-    const void *filePtr() const {return mpMapped;}
+    template<class T=void>
+    const T *filePtr() const {return reinterpret_cast<T*>(mpMapped);}
 
     /**
      * @return Empty string if no file is mapped.

@@ -20,7 +20,7 @@ void MemoryMappedFileTestSuite::mapSimpleFile()
     CPPUNIT_ASSERT(mmf.filename() == "testfile.txt");
     CPPUNIT_ASSERT(mmf.accessType() == MemoryMappedFile::READ_ONLY);
 
-    std::string readData(static_cast<char*>(mmf.filePtr()), mmf.size());
+    std::string readData(mmf.filePtr<char>(), mmf.size());
     CPPUNIT_ASSERT(readData == dataToWrite);
 }
 
@@ -151,7 +151,7 @@ void MemoryMappedFileTestSuite::specialChars()
     CPPUNIT_ASSERT(mmf.size() == 63);
     CPPUNIT_ASSERT(mmf.filename() == u8"testfile_Äßéמש最終.txt");
 
-    const char *ptr = static_cast<const char*>(mmf.filePtr());
+    const char *ptr = mmf.filePtr<char>();
 
     std::string fileContent(ptr, mmf.size());
 
@@ -182,8 +182,7 @@ void MemoryMappedFileTestSuite::dont_lock()
 
     CPPUNIT_ASSERT(mmf2.isOpen());
 
-    std::string data2(static_cast<const char*>(mmf2.filePtr()),
-                      mmf2.size());
+    std::string data2(mmf2.filePtr<char>(), mmf2.size());
     CPPUNIT_ASSERT(data2 == "12345");
 }
 
@@ -224,7 +223,7 @@ void MemoryMappedFileTestSuite::writing()
     CPPUNIT_ASSERT(mmf.accessType() == MMF::READ_WRITE);
     CPPUNIT_ASSERT(mmf.size() == data.size());
 
-    char *charPtr = static_cast<char*>(mmf.filePtr());
+    char *charPtr = mmf.filePtr<char>();
     std::string readBefore((const char*)charPtr, mmf.size());
     CPPUNIT_ASSERT(readBefore == data);
 

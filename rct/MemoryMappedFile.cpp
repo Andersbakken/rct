@@ -3,9 +3,7 @@
 #include "Log.h"
 #include "WindowsUnicodeConversion.h"
 
-#ifdef _WIN32
-#  include <Windows.h>
-#else
+#ifndef _WIN32
 #  include "Rct.h"
 #  include <sys/types.h>
 #  include <sys/stat.h>

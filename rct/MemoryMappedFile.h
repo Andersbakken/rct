@@ -1,6 +1,11 @@
 #include "Path.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <Windows.h>
+#else
 #  include <sys/types.h>
 #endif
 
@@ -139,17 +144,11 @@ private:
     Path mFilename;
     AccessType mAccessType;
 #ifdef _WIN32
-    /**
-     * unfortunately, we can't #include Windows.h here because it causes
-     * conflicts with Winsock2.h.
-     */
-    typedef void *Handle;
-    typedef uint32_t Dword;
-    Handle mhFile;
-    Handle mhFileMapping;
-    Dword mFileSize;
+    HANDLE mhFile;
+    HANDLE mhFileMapping;
+    DWORD mFileSize;
 
-    static void closeHandleIfValid(Handle &hdl);
+    static void closeHandleIfValid(HANDLE &hdl);
 #else
     int mFd;   ///< Descriptor for the file
     off_t mFileSize;

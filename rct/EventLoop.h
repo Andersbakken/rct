@@ -1,6 +1,7 @@
 #ifndef EVENTLOOP_H // -*- mode:c++ -*-
 #define EVENTLOOP_H
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>

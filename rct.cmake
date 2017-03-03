@@ -126,10 +126,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsUnicodeConversion.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c
-  ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMappedFile.cpp
-  )
+  ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c)
 
 if (HAVE_INOTIFY EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_inotify.cpp)
@@ -142,7 +139,9 @@ elseif (HAVE_CHANGENOTIFICATION EQUAL 1)
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/Process_Windows.cpp)
+    list(APPEND RCT_SOURCES
+        ${CMAKE_CURRENT_LIST_DIR}/rct/Process_Windows.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/rct/WindowsUnicodeConversion.cpp)
 else ()
      list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/Process.cpp)
 endif ()
@@ -237,6 +236,7 @@ if (ASAN)
 endif ()
 
 check_cxx_source_compiles("
+  #include <functional>
   #include <memory>
   #include <mutex>
   #include <tuple>

@@ -500,9 +500,7 @@ bool Path::rmdir(const Path &dir)
     };
 
     if (d) {
-        dirent *p;
-
-        while (!readdir_r(d, &dbuf, &p) && p) {
+        while (dirent *p = readdir(d)) {
             /* Skip the names "." and ".." as we don't want to recurse on them. */
             if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
                 continue;
@@ -562,8 +560,7 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
         Utf16To8 u8Data(p->d_name);
         const char *d_name = u8Data;
 #else
-    dirent *p;
-    while (!readdir_r(d, &dbuf, &p) && p) {
+    while (dirent *p = readdir(d)) {
         const char *d_name = p->d_name;
 #endif
         if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))

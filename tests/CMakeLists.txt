@@ -24,12 +24,14 @@ endif ()
 
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-  set(RCT_TEST_SRCS main.cpp
-  PathTestSuite.cpp ProcessTestSuite.cpp)
-else ()
-  set(RCT_TEST_SRCS main.cpp
-  DateTestSuite.cpp PathTestSuite.cpp ProcessTestSuite.cpp)
+set(RCT_TEST_SRCS main.cpp
+                  PathTestSuite.cpp
+                  ProcessTestSuite.cpp
+                  MemoryMappedFileTestSuite.cpp
+                  SHA256TestSuite.cpp)
+
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
+  list(APPEND RCT_TEST_SRCS DateTestSuite.cpp)
 endif()
 
 set(BINARY_NAME "rct_tests")
@@ -52,3 +54,10 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy
             ${CMAKE_CURRENT_BINARY_DIR}/ChildProcess${CMAKE_EXECUTABLE_SUFFIX}
             ${CMAKE_CURRENT_BINARY_DIR}/ChildProcess_Äßéמש最終${CMAKE_EXECUTABLE_SUFFIX})
+
+# Create a file with special chars for the MemoryMappedFile tests.
+add_custom_command(
+    TARGET "ChildProcess" POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/testfile_Äßéמש最終.txt
+            ${CMAKE_CURRENT_BINARY_DIR})

@@ -22,6 +22,10 @@ public:
 
     static String hash(const String& data, MapType type = Hex);
     static String hash(const char* data, unsigned int size, MapType type = Hex);
+
+    /**
+     * Returns an empty string if the file can not be opened.
+     */
     static String hashFile(const Path& fileName, MapType type = Hex);
 
 private:

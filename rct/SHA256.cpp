@@ -2,19 +2,18 @@
 
 #include <stdio.h>
 #ifdef OS_Darwin
-#include "CommonCrypto/CommonDigest.h"
-#define SHA256_Update        CC_SHA256_Update
-#define SHA256_Init          CC_SHA256_Init
-#define SHA256_Final         CC_SHA256_Final
-#define SHA256_CTX           CC_SHA256_CTX
-#define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
-#elif defined _WIN32
-#  include <Windows.h>
-#  include <openssl/sha.h>
+#  include "CommonCrypto/CommonDigest.h"
+#  define SHA256_Update        CC_SHA256_Update
+#  define SHA256_Init          CC_SHA256_Init
+#  define SHA256_Final         CC_SHA256_Final
+#  define SHA256_CTX           CC_SHA256_CTX
+#  define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
 #else
-#include <openssl/sha.h>
+#  include <openssl/sha.h>
 #endif
+
 #include "rct/Path.h"
+#include "rct/MemoryMappedFile.h"
 
 class SHA256Private
 {
@@ -104,45 +103,7 @@ String SHA256::hash(const char* data, unsigned int size, MapType type)
 
 String SHA256::hashFile(const Path& file, MapType type)
 {
-#ifdef _WIN32
-    // FIXME only works for small files (<< 4 GiB)
-    const HANDLE hFile =
-        ::CreateFile(file.nullTerminated(), GENERIC_READ, FILE_SHARE_READ,
-                     NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if(hFile == INVALID_HANDLE_VALUE) return String();
-
-    const DWORD fileSz = ::GetFileSize(hFile, NULL);
-
-    const HANDLE hFm = ::CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-    if(hFm == NULL) return String();
-
-    const void *mapped = ::MapViewOfFile(hFm, FILE_MAP_READ, 0, 0, 0);
-    if(!mapped) return String();
-
-    const String ret = SHA256::hash(static_cast<const char*>(mapped), fileSz, type);
-
-    UnmapViewOfFile(mapped);
-    CloseHandle(hFm);
-    CloseHandle(hFile);
-    return ret;
-#else
-    const int fd = ::open(file.nullTerminated(), 0);
-    if (fd < 0)
-        return String();
-
-    struct stat st;
-    if (fstat(fd, &st)) {
-        ::close(fd);
-        return String();
-    }
-    void *mapped = ::mmap(NULL, st.st_size, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
-    if (mapped == MAP_FAILED)
-        return String();
-
-    const String ret = SHA256::hash(const_cast<const char *>(static_cast<char*>(mapped)), st.st_size, type);
-
-    ::munmap(mapped, st.st_size);
-    ::close(fd);
-    return ret;
-#endif
+    MemoryMappedFile mmf(file);
+    if(!mmf.isOpen()) return String();
+    return hash(static_cast<const char*>(mmf.filePtr()), mmf.size(), type);
 }

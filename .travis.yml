@@ -74,7 +74,6 @@ before_script:
 
 
 script:
-    - make
-    - make test
-
-
+    - make -j4
+    - make -j4 test
+    - cat Testing/Temporary/LastTest.log

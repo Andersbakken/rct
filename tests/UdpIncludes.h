@@ -8,6 +8,15 @@
    typedef const char *optval_p;
    typedef DWORD timeout_t;
    typedef int socklen_t;
+#elif defined(__APPLE__)
+#  include <sys/types.h>
+#  include <sys/socket.h>
+#  include <netinet/ip.h>
+#  include <unistd.h>
+typedef int sock_t;
+typedef const void *optval_p;
+typedef struct timeval timeout_t;
+#  define INVALID_SOCKET -1
 #else
 #  include <sys/types.h>
 #  include <sys/socket.h>

@@ -214,11 +214,11 @@ void onRecvUdp(void *f_buf, ssize_t len, int argc, char *argv[], char **envp)
     {
         /// FIXME this is actually wrong.
         /// See http://tinyurl.com/n6kp7fe (archived: http://archive.is/HgFr4)
-        char buf[PATH_MAX];
+        char buffer[PATH_MAX];
 #ifdef _WIN32
-        char *pwd = _getcwd(buf, sizeof(buf));
+        char *pwd = _getcwd(buffer, sizeof(buffer));
 #else
-        char *pwd = getcwd(buf, sizeof(buf));
+        char *pwd = getcwd(buffer, sizeof(buffer));
 #endif
         std::cout << (pwd ? pwd : "Can't get pwd") << std::endl;
     }

@@ -98,7 +98,7 @@ else ()
 endif ()
 find_package(OpenSSL)
 if (NOT OPENSSL_FOUND AND PKGCONFIG_FOUND)
-    pkg_search_module(OPENSSL REQUIRED openssl)
+    pkg_search_module(OPENSSL openssl)
 endif()
 
 if (OPENSSL_FOUND)

@@ -52,6 +52,7 @@ public:
 private:
     void init();
     void shutdown();
+    void destroy();
 #if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
     std::shared_ptr<WatcherData> mWatcher;
     friend class WatcherData;

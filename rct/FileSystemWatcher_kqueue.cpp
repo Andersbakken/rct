@@ -38,6 +38,9 @@ void FileSystemWatcher::shutdown()
     close(mFd);
 }
 
+// TODO What is the proper way to shut down?
+void FileSystemWatcher::shutdown() {}
+
 struct FSUserData
 {
     Set<Path> all, added, modified;

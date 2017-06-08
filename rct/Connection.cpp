@@ -160,7 +160,6 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&&
         }
         if (!message)
             client->close();
-    // mClient->dataAvailable().disconnect(this, &Connection::dataAvailable);
     }
 }
 

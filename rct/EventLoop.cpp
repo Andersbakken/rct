@@ -95,7 +95,7 @@ EventLoop::EventLoop()
 #endif
     mNextTimerId(0), mStop(false), mTimeout(false), mFlags(0), mInactivityTimeout(0)
 {
-    std::call_once(sMainOnce, [this](){
+    std::call_once(sMainOnce, [](){
             atexit(&EventLoop::cleanupLocalEventLoop);
             sMainEventPipe = -1;
             pthread_key_create(&sEventLoopKey, 0);

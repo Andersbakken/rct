@@ -126,10 +126,10 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&&
             if (available < static_cast<int>(sizeof(uint32_t)))
                 break;
             union {
-                unsigned char buf[sizeof(uint32_t)];
+                unsigned char b[sizeof(uint32_t)];
                 int pending;
             };
-            const int read = mBuffers.read(buf, 4);
+            const int read = mBuffers.read(b, 4);
             assert(read == 4);
             mPendingRead = pending;
             assert(mPendingRead > 0);

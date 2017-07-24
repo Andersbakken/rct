@@ -19,6 +19,7 @@ class String
 {
 public:
     static const size_t npos = std::string::npos;
+    typedef size_t size_type;
 
     enum CaseSensitivity
     {
@@ -72,6 +73,14 @@ public:
             clear();
         }
     }
+
+    typedef std::string::const_iterator const_iterator;
+    typedef std::string::iterator iterator;
+
+    const_iterator begin() const { return mString.begin(); }
+    const_iterator end() const { return mString.begin(); }
+    iterator begin() { return mString.begin(); }
+    iterator end() { return mString.begin(); }
 
     size_t lastIndexOf(char ch, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
     {
@@ -443,6 +452,16 @@ public:
         return ret;
     }
 
+    iterator erase(const_iterator begin, const_iterator end)
+    {
+        return mString.erase(begin, end);
+    }
+
+    String& erase(size_t index = 0, size_t count = npos)
+    {
+        mString.erase(index, count);
+        return *this;
+    }
 
     void remove(size_t idx, size_t count)
     {

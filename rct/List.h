@@ -16,8 +16,12 @@ class List : public std::vector<T>
     typedef std::vector<T> Base;
 public:
     static const size_t npos = std::string::npos;
-    explicit List(size_t count = 0, const T &defaultValue = T())
-        : Base(count, defaultValue)
+    explicit List(size_t count, T &&defaultValue = T())
+        : Base(count, std::move(defaultValue))
+    {}
+
+    explicit List()
+        : Base()
     {}
 
     template <typename CompatibleType>
@@ -27,6 +31,16 @@ public:
         const size_t len = other.size();
         for (size_t i=0; i<len; ++i) {
             std::vector<T>::operator[](i) = other.at(i);
+        }
+    }
+
+    template <typename CompatibleType>
+    List(std::vector<CompatibleType> &&other)
+        : Base(other.size(), T())
+    {
+        const size_t len = other.size();
+        for (size_t i=0; i<len; ++i) {
+            std::vector<T>::operator[](i) = std::move(other.at(i));
         }
     }
 

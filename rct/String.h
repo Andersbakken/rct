@@ -78,9 +78,9 @@ public:
     typedef std::string::iterator iterator;
 
     const_iterator begin() const { return mString.begin(); }
-    const_iterator end() const { return mString.begin(); }
+    const_iterator end() const { return mString.end(); }
     iterator begin() { return mString.begin(); }
-    iterator end() { return mString.begin(); }
+    iterator end() { return mString.end(); }
 
     size_t lastIndexOf(char ch, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
     {

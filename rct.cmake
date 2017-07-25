@@ -87,7 +87,7 @@ set(RCT_DEFINITIONS "")
 set(RCT_INCLUDE_DIRS "")
 find_package(ZLIB)
 if (NOT ZLIB_FOUND AND PKGCONFIG_FOUND)
-    pkg_search_module(ZLIB)
+    pkg_search_module(ZLIB zlib)
 endif()
 
 if (ZLIB_FOUND)

@@ -20,6 +20,7 @@
 #cmakedefine HAVE_SHMDEST
 #cmakedefine HAVE_SCRIPTENGINE
 #cmakedefine HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR
+#cmakedefine HAVE_HAVE_STRING_ITERATOR_ERASE
 #if !defined(HAVE_EPOLL) && !defined(HAVE_KQUEUE)
 #cmakedefine HAVE_SELECT
 #endif

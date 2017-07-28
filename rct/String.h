@@ -454,7 +454,17 @@ public:
 
     iterator erase(const_iterator begin, const_iterator end)
     {
+#ifdef HAVE_STRING_ITERATOR_ERASE
         return mString.erase(begin, end);
+#else
+        if (begin >= end) {
+            return mString.end();
+        }
+
+        const size_t offset = begin - mString.begin();
+        mString.erase(offset, end - begin);
+        return mString.begin() + offset;
+#endif
     }
 
     String& erase(size_t index = 0, size_t count = npos)

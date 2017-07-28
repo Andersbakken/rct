@@ -287,6 +287,16 @@ check_cxx_source_runs("
       return 0;
   }" HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR)
 
+check_cxx_source_runs("
+  #include <string>
+
+  int main(int, char **)
+  {
+      std::string str = \"foobar testing\";
+      std::string::iterator it = str.erase(str.begin(), str.end());
+      return 0;
+  }" HAVE_STRING_ITERATOR_ERASE)
+
 unset(CMAKE_REQUIRED_FLAGS)
 unset(CMAKE_REQUIRED_LIBRARIES)
 

@@ -11,7 +11,7 @@ class Hash : public std::unordered_map<Key, Value>
 {
 public:
     Hash() : std::unordered_map<Key, Value>() {}
-#ifndef HAVE_UNORDERED_MAP_MOVE_CONSTRUCTOR_WORKS
+#ifndef HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR
     Hash(Hash<Key, Value> &&other)
         : std::unordered_map<Key, Value>(std::forward<Hash<Key, Value> >(other))
     {

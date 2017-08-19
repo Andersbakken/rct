@@ -6,10 +6,6 @@ if (NOT RCT_NO_LIBRARY)
     project(rct)
 endif ()
 
-if (POLICY CMP0022)
-  cmake_policy(SET CMP0022 OLD)
-endif ()
-
 if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()

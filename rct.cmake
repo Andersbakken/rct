@@ -19,6 +19,7 @@ include(CheckSymbolExists)
 include(CheckCXXSymbolExists)
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
+include(GNUInstallDirs)
 
 include(${CMAKE_CURRENT_LIST_DIR}/compiler.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_OLD_MODULE_PATH})
@@ -235,7 +236,7 @@ endif ()
 
 if (NOT RCT_NO_INSTALL)
   install(CODE "message(\"Installing rct...\")")
-  install(TARGETS rct DESTINATION lib COMPONENT rct EXPORT rct)
+  install(TARGETS rct EXPORT rct LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
 
 set(CMAKE_REQUIRED_FLAGS "-std=c++11")

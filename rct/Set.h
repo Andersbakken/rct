@@ -105,7 +105,7 @@ public:
         return false;
     }
 
-    Set<T> intersected(const Set<T>& other)
+    Set<T> intersected(const Set<T>& other) const
     {
         Set<T> ret;
         typename Base::const_iterator it = other.begin();

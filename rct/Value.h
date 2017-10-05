@@ -14,6 +14,19 @@ struct cJSON;
 class Value
 {
 public:
+    enum Type {
+        Type_Invalid,
+        Type_Undefined,
+        Type_Boolean,
+        Type_Integer,
+        Type_Double,
+        Type_String,
+        Type_Custom,
+        Type_Map,
+        Type_List,
+        Type_Date
+    };
+
     struct Custom;
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
@@ -28,6 +41,27 @@ public:
     inline Value(const std::shared_ptr<Custom> &custom) : mType(Type_Custom) { new (mData.customBuf) std::shared_ptr<Custom>(custom); }
     inline Value(const String &string) : mType(Type_String) { new (mData.stringBuf) String(string); }
     inline Value(const Date &date) : mType(Type_Date) { mData.llong = date.time(); }
+    inline Value(Type t)
+        : mType(t)
+    {
+        switch (t) {
+        case Type_String:
+            new (mData.stringBuf) String();
+            break;
+        case Type_List:
+            new (mData.listBuf) List<Value>(0);
+            break;
+        case Type_Custom:
+            new (mData.customBuf) std::shared_ptr<Custom>();
+            break;
+        case Type_Map:
+            new (mData.mapBuf) Map<String, Value>();
+            break;
+        default:
+            memset(&mData, 0, sizeof(mData));
+            break;
+        }
+    }
 
     struct Custom : std::enable_shared_from_this<Custom>
     {
@@ -67,18 +101,6 @@ public:
 
     inline bool isNull() const { return mType == Type_Invalid; }
     inline bool isValid() const { return mType != Type_Invalid; }
-    enum Type {
-        Type_Invalid,
-        Type_Undefined,
-        Type_Boolean,
-        Type_Integer,
-        Type_Double,
-        Type_String,
-        Type_Custom,
-        Type_Map,
-        Type_List,
-        Type_Date
-    };
 
     inline bool isInvalid() const { return mType == Type_Invalid; }
     inline bool isUndefined() const { return mType == Type_Undefined; }
@@ -149,8 +171,6 @@ public:
         }
     };
 private:
-    explicit Value(Type t) : mType(t) {}
-
     template <typename T> T *pun() const
     {
         union {

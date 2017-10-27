@@ -44,6 +44,7 @@ public:
     inline Value(Type t)
         : mType(t)
     {
+
         switch (t) {
         case Type_String:
             new (mData.stringBuf) String();
@@ -76,6 +77,7 @@ public:
     };
     inline Value(const char *str, int len = -1) : mType(Type_String)
     {
+
         if (len == -1)
             len = strlen(str);
         new (mData.stringBuf) String(str, len);
@@ -183,6 +185,7 @@ private:
 
     static cJSON *toCJSON(const Value &value);
     void copy(const Value &other);
+    void copy(Value &&other);
     String *stringPtr() { return pun<String>(); }
     const String *stringPtr() const { return pun<const String>(); }
     Map<String, Value> *mapPtr() { return pun<Map<String, Value> >(); }
@@ -211,16 +214,12 @@ inline Value::Value(Value &&other)
     : mType(Type_Invalid)
 {
     copy(other);
-    memset(&other.mData, '\0', sizeof(mData));
-    other.mType = Type_Invalid;
 }
 
 inline Value &Value::operator=(Value &&other)
 {
     clear();
     copy(other);
-    memset(&other.mData, '\0', sizeof(mData));
-    other.mType = Type_Invalid;
     return *this;
 }
 

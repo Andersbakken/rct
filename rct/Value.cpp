@@ -24,6 +24,7 @@ void Value::clear()
     mType = Type_Invalid;
 }
 
+int Value::sCount;
 void Value::copy(const Value &other)
 {
     assert(isNull());
@@ -45,6 +46,15 @@ void Value::copy(const Value &other)
         memcpy(&mData, &other.mData, sizeof(mData));
         break;
     }
+}
+
+void Value::copy(Value &&other)
+{
+    assert(isNull());
+    mType = other.mType;
+    memcpy(&mData, &other.mData, sizeof(mData));
+    other.mType = Type_Invalid;
+    memset(&other.mData, 0, sizeof(other.mData));
 }
 
 static Value fromCJSON(const cJSON *object)

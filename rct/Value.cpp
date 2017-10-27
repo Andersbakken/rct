@@ -24,7 +24,6 @@ void Value::clear()
     mType = Type_Invalid;
 }
 
-int Value::sCount;
 void Value::copy(const Value &other)
 {
     assert(isNull());

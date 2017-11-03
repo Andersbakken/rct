@@ -31,33 +31,30 @@ struct Null { template <typename T> Null operator<<(const T &) { return *this; }
 #endif
 
 SocketClient::SocketClient(unsigned int mode)
-    : fd(-1), socketPort(0), socketState(Disconnected), socketMode(None),
-      wMode(Asynchronous), writeWait(false), mLogsEnabled(true), writeOffset(0)
+    : mSocketMode(mode), mBlocking(mode & Blocking)
 {
-    blocking = (mode & Blocking);
 }
 
 SocketClient::SocketClient(int f, unsigned int mode)
-    : fd(f), socketPort(0), socketState(Connected), socketMode(mode),
-      wMode(Asynchronous), writeWait(false), mLogsEnabled(true), writeOffset(0)
+    : mFd(f), mSocketState(Connected), mSocketMode(mode)
 {
-    assert(fd >= 0);
+    assert(mFd >= 0);
 #ifdef HAVE_NOSIGPIPE
     int flags = 1;
-    ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
+    ::setsockopt(mFd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
 #endif
 #ifdef HAVE_CLOEXEC
-    setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
+    setFlags(mFd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
-    blocking = (mode & Blocking);
+    mBlocking = (mode & Blocking);
 
-    if (!blocking) {
+    if (!mBlocking) {
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-            loop->registerSocket(fd, EventLoop::SocketRead,
+            loop->registerSocket(mFd, EventLoop::SocketRead,
                                  std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
 #ifndef _WIN32
-            if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
-                signalError(shared_from_this(), InitializeError);
+            if (!setFlags(mFd, O_NONBLOCK, F_GETFL, F_SETFL)) {
+                mSignalError(shared_from_this(), InitializeError);
                 close();
                 return;
             }
@@ -73,17 +70,17 @@ SocketClient::~SocketClient()
 
 void SocketClient::close()
 {
-    if (fd == -1)
+    if (mFd == -1)
         return;
-    socketState = Disconnected;
-    if (!blocking) {
+    mSocketState = Disconnected;
+    if (!mBlocking) {
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
-            loop->unregisterSocket(fd);
+            loop->unregisterSocket(mFd);
     }
-    ::close(fd);
-    socketPort = 0;
-    address.clear();
-    fd = -1;
+    ::close(mFd);
+    mSocketPort = 0;
+    mAddress.clear();
+    mFd = -1;
 }
 
 class Resolver
@@ -113,7 +110,7 @@ Resolver::Resolver(const String& host, uint16_t port, const SocketClient::Shared
 
 void Resolver::resolve(const String& host, uint16_t port, const SocketClient::SharedPtr& socket)
 {
-    // first, see if this parses as an IP address
+    // first, see if this parses as an IP mAddress
     {
         struct in_addr inaddr4;
         struct in6_addr inaddr6;
@@ -147,7 +144,7 @@ void Resolver::resolve(const String& host, uint16_t port, const SocketClient::Sh
         }
     }
 
-    // not an ip address, try to resolve it
+    // not an ip mAddress, try to resolve it
     addrinfo hints, *p;
 
     memset(&hints, 0, sizeof(hints));
@@ -156,7 +153,7 @@ void Resolver::resolve(const String& host, uint16_t port, const SocketClient::Sh
 
     if (getaddrinfo(host.constData(), NULL, &hints, &res) != 0) {
         // bad
-        socket->signalError(socket, SocketClient::DnsError);
+        socket->mSignalError(socket, SocketClient::DnsError);
         socket->close();
         return;
     }
@@ -176,7 +173,7 @@ void Resolver::resolve(const String& host, uint16_t port, const SocketClient::Sh
     }
 
     if (!addr) {
-        socket->signalError(socket, SocketClient::DnsError);
+        socket->mSignalError(socket, SocketClient::DnsError);
         socket->close();
         freeaddrinfo(res);
         res = 0;
@@ -211,25 +208,25 @@ bool SocketClient::connect(const String& host, uint16_t port)
         return false;
 
     int e;
-    eintrwrap(e, ::connect(fd, resolver.addr, resolver.size));
-    socketPort = port;
-    address = host;
+    eintrwrap(e, ::connect(mFd, resolver.addr, resolver.size));
+    mSocketPort = port;
+    mAddress = host;
     if (e == 0) { // we're done
-        socketState = Connected;
+        mSocketState = Connected;
 
         signalConnected(tcpSocket);
     } else {
         if (errno != EINPROGRESS) {
             // bad
-            signalError(tcpSocket, ConnectError);
+            mSignalError(tcpSocket, ConnectError);
             close();
             return false;
         }
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-            loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
-            writeWait = true;
+            loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
+            mWriteWait = true;
         }
-        socketState = Connecting;
+        mSocketState = Connecting;
     }
 
     return true;
@@ -252,24 +249,24 @@ bool SocketClient::connect(const String& path)
     SocketClient::SharedPtr unixSocket = shared_from_this();
 
     int e;
-    eintrwrap(e, ::connect(fd, &addr, sizeof(addr_un)));
-    address = path;
+    eintrwrap(e, ::connect(mFd, &addr, sizeof(addr_un)));
+    mAddress = path;
     if (e == 0) { // we're done
-        socketState = Connected;
+        mSocketState = Connected;
 
         signalConnected(unixSocket);
     } else {
         if (errno != EINPROGRESS) {
             // bad
-            signalError(unixSocket, ConnectError);
+            mSignalError(unixSocket, ConnectError);
             close();
             return false;
         }
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-            loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
-            writeWait = true;
+            loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
+            mWriteWait = true;
         }
-        socketState = Connecting;
+        mSocketState = Connecting;
     }
     return true;
 }
@@ -285,7 +282,7 @@ bool SocketClient::bind(uint16_t port)
         sockaddr addr;
     };
     int size = 0;
-    if (socketMode & IPv6) {
+    if (mSocketMode & IPv6) {
         size = sizeof(sockaddr_in6);
         memset(&addr6, '\0', size);
         addr6.sin6_family = AF_INET6;
@@ -308,21 +305,21 @@ bool SocketClient::bind(uint16_t port)
     int in = e;
     int *pin = &in;
 #endif
-    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, pin, sizeof(in));
+    e = ::setsockopt(mFd, SOL_SOCKET, SO_REUSEADDR, pin, sizeof(in));
     if (e == -1) {
         SocketClient::SharedPtr udpSocket = shared_from_this();
-        signalError(udpSocket, BindError);
+        mSignalError(udpSocket, BindError);
         close();
         return false;
     }
-    e = ::bind(fd, &addr, size);
+    e = ::bind(mFd, &addr, size);
     if (!e) {
-        socketPort = port;
+        mSocketPort = port;
         return true;
     }
 
     SocketClient::SharedPtr udpSocket = shared_from_this();
-    signalError(udpSocket, BindError);
+    mSignalError(udpSocket, BindError);
     close();
     return false;
 }
@@ -333,7 +330,7 @@ bool SocketClient::addMembership(const String& ip)
     if (inet_pton(AF_INET, ip.constData(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-    ::setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
+    ::setsockopt(mFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
     return true;
 }
 
@@ -343,19 +340,19 @@ bool SocketClient::dropMembership(const String& ip)
     if (inet_pton(AF_INET, ip.constData(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-    ::setsockopt(fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
+    ::setsockopt(mFd, IPPROTO_IP, IP_DROP_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
     return true;
 }
 
 void SocketClient::setMulticastLoop(bool loop)
 {
     const char ena = loop ? 1 : 0;
-    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, sizeof(ena));
+    ::setsockopt(mFd, IPPROTO_IP, IP_MULTICAST_LOOP, &ena, sizeof(ena));
 }
 
 void SocketClient::setMulticastTTL(unsigned char ttl)
 {
-    ::setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, reinterpret_cast<char*>(&ttl), sizeof(ttl));
+    ::setsockopt(mFd, IPPROTO_IP, IP_MULTICAST_TTL, reinterpret_cast<char*>(&ttl), sizeof(ttl));
 }
 
 #ifdef _WIN32
@@ -363,7 +360,7 @@ typedef int (*GetNameFunc)(SOCKET, sockaddr*, socklen_t*);
 #else
 typedef int (*GetNameFunc)(int, sockaddr*, socklen_t*);
 #endif
-static inline String getNameHelper(int fd, GetNameFunc func, uint16_t* port)
+static inline String getNameHelper(int mFd, GetNameFunc func, uint16_t* port)
 {
     union {
         sockaddr_storage storage;
@@ -372,7 +369,7 @@ static inline String getNameHelper(int fd, GetNameFunc func, uint16_t* port)
         sockaddr addr;
     };
     socklen_t size = sizeof(storage);
-    if (func(fd, &addr, &size) == -1)
+    if (func(mFd, &addr, &size) == -1)
         return String();
     String name(INET6_ADDRSTRLEN, '\0');
     if (storage.ss_family == AF_INET6) {
@@ -392,16 +389,16 @@ static inline String getNameHelper(int fd, GetNameFunc func, uint16_t* port)
 
 String SocketClient::peerName(uint16_t* port) const
 {
-    if (socketMode & Unix)
+    if (mSocketMode & Unix)
         return String();
-    return getNameHelper(fd, ::getpeername, port);
+    return getNameHelper(mFd, ::getpeername, port);
 }
 
 String SocketClient::sockName(uint16_t* port) const
 {
-    if (socketMode & Unix)
+    if (mSocketMode & Unix)
         return String();
-    return getNameHelper(fd, ::getsockname, port);
+    return getNameHelper(mFd, ::getsockname, port);
 }
 
 bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned char* f_data, unsigned int size)
@@ -412,9 +409,11 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
     const unsigned char *data = f_data;
 #endif
 
+#ifdef RCT_SOCKETCLIENT_TIMING_ENABLED
     if (size) {
         mWrites.append(size);
     }
+#endif
 
     assert((!size) == (!data));
     SocketClient::SharedPtr socketPtr = shared_from_this();
@@ -432,111 +431,115 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
     const int sendFlags = 0;
 #endif
 
-    if (!writeWait) {
-        if (!writeBuffer.isEmpty()) {
+    if (!mWriteWait) {
+        if (!mWriteBuffer.isEmpty()) {
             assert(writeOffset < writeBuffer.size());
-            const size_t writeBufferSize = writeBuffer.size() - writeOffset;
+            const size_t writeBufferSize = mWriteBuffer.size() - mWriteOffset;
             while (total < writeBufferSize) {
                 assert(writeBuffer.size() > total);
                 if (resolver.addr) {
-                    eintrwrap(e, ::sendto(fd, reinterpret_cast<const char*>(writeBuffer.data()) + total + writeOffset, writeBufferSize - total,
+                    eintrwrap(e, ::sendto(mFd, reinterpret_cast<const char*>(mWriteBuffer.data()) + total + mWriteOffset, writeBufferSize - total,
                                           sendFlags, resolver.addr, resolver.size));
                 } else {
-                    eintrwrap(e, ::write(fd, writeBuffer.data() + total + writeOffset, writeBufferSize - total));
+                    eintrwrap(e, ::write(mFd, mWriteBuffer.data() + total + mWriteOffset, writeBufferSize - total));
                 }
                 DEBUG() << "SENT(1)" << (writeBufferSize - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        if (wMode == Synchronous) {
+                        if (mWMode == Synchronous) {
                             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                                 if (total) {
                                     if (total < writeBufferSize) {
-                                        writeOffset += total;
+                                        mWriteOffset += total;
                                     } else {
-                                        writeOffset = 0;
-                                        writeBuffer.clear();
+                                        mWriteOffset = 0;
+                                        mWriteBuffer.clear();
                                     }
                                     total = 0;
                                 }
-                                if (loop->processSocket(fd) & EventLoop::SocketWrite)
+                                if (loop->processSocket(mFd) & EventLoop::SocketWrite)
                                     break;
-                                if (fd == -1)
+                                if (mFd == -1)
                                     return false;
                             }
                         }
-                        assert(!writeWait);
+                        assert(!mWriteWait);
                         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-                            loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
-                            writeWait = true;
+                            loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
+                            mWriteWait = true;
                         }
                         break;
                     } else {
                         // bad
-                        signalError(shared_from_this(), WriteError);
+                        mSignalError(shared_from_this(), WriteError);
                         close();
                         return false;
                     }
                 }
-                signalBytesWritten(socketPtr, e);
+                mSignalBytesWritten(socketPtr, e);
                 total += e;
             }
             if (total) {
                 assert(total <= writeBufferSize);
                 if (total < writeBufferSize) {
-                    writeOffset += total;
+                    mWriteOffset += total;
                 } else {
-                    writeOffset = 0;
-                    writeBuffer.clear();
+                    mWriteOffset = 0;
+                    mWriteBuffer.clear();
                 }
             }
         }
 
-        if (fd == -1 || !data) {
-            return fd != -1;
+        if (mFd == -1 || !data) {
+            return mFd != -1;
         }
         total = 0;
 
         assert(data != 0 && size > 0);
 
-        if (writeBuffer.isEmpty()) {
+        if (mWriteBuffer.isEmpty()) {
             for (;;) {
                 assert(size > total);
                 if (resolver.addr) {
-                    eintrwrap(e, ::sendto(fd, data + total, size - total,
+                    eintrwrap(e, ::sendto(mFd, data + total, size - total,
                                           sendFlags, resolver.addr, resolver.size));
                 } else {
-                    eintrwrap(e, ::write(fd, data + total, size - total));
+                    eintrwrap(e, ::write(mFd, data + total, size - total));
                 }
                 DEBUG() << "SENT(2)" << (size - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        if (wMode == Synchronous) {
+                        if (mWMode == Synchronous) {
                             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
                                 // store the rest
                                 const unsigned int rem = size - total;
-                                writeBuffer.reserve(writeBuffer.size() + rem);
-                                memcpy(writeBuffer.end(), data + total, rem);
-                                writeBuffer.resize(writeBuffer.size() + rem);
+                                if (mMaxWriteBufferSize && mWriteBuffer.size() + rem > mMaxWriteBufferSize) {
+                                    close();
+                                    return false;
+                                }
+                                mWriteBuffer.reserve(mWriteBuffer.size() + rem);
+                                memcpy(mWriteBuffer.end(), data + total, rem);
+                                mWriteBuffer.resize(mWriteBuffer.size() + rem);
                                 assert(!writeOffset);
 
-                                (void)loop->processSocket(fd);
+                                (void)loop->processSocket(mFd);
                                 return isConnected();
                             }
                         }
-                        assert(!writeWait);
+                        assert(!mWriteWait);
                         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-                            loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
-                            writeWait = true;
+                            loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
+                            mWriteWait = true;
                         }
                         break;
                     } else {
                         // bad
-                        signalError(shared_from_this(), WriteError);
+                        mSignalError(shared_from_this(), WriteError);
                         close();
                         return false;
                     }
                 }
-                signalBytesWritten(socketPtr, e);
+                mSignalBytesWritten(socketPtr, e);
                 total += e;
                 assert(total <= size);
                 if (total == size) {
@@ -550,9 +553,13 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
     if (total < size) {
         // store the rest
         const unsigned int rem = size - total;
-        writeBuffer.reserve(writeBuffer.size() + rem);
-        memcpy(writeBuffer.end(), data + total, rem);
-        writeBuffer.resize(writeBuffer.size() + rem);
+        if (mMaxWriteBufferSize && mWriteBuffer.size() + rem > mMaxWriteBufferSize) {
+            close();
+            return false;
+        }
+        mWriteBuffer.reserve(mWriteBuffer.size() + rem);
+        memcpy(mWriteBuffer.end(), data + total, rem);
+        mWriteBuffer.resize(mWriteBuffer.size() + rem);
     }
     return true;
 }
@@ -599,21 +606,21 @@ static uint16_t addrToPort(const sockaddr* addr, bool IPv6)
 
 void SocketClient::socketCallback(int f, int mode)
 {
-    assert(f == fd);
+    assert(f == mFd);
     (void)f;
 
     SocketClient::SharedPtr socketPtr = shared_from_this();
 
     if (mode == EventLoop::SocketError) {
-        signalError(socketPtr, EventLoopError);
+        mSignalError(socketPtr, EventLoopError);
         close();
         return;
     }
 
-    if (writeWait && (mode & EventLoop::SocketWrite)) {
+    if (mWriteWait && (mode & EventLoop::SocketWrite)) {
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-            loop->updateSocket(fd, EventLoop::SocketRead);
-            writeWait = false;
+            loop->updateSocket(mFd, EventLoop::SocketRead);
+            mWriteWait = false;
         }
     }
 
@@ -624,7 +631,7 @@ void SocketClient::socketCallback(int f, int mode)
     };
 
     socklen_t fromLen = 0;
-    const bool isIPv6 = socketMode & IPv6;
+    const bool isIPv6 = mSocketMode & IPv6;
 
     if (mode & EventLoop::SocketRead) {
 
@@ -633,24 +640,24 @@ void SocketClient::socketCallback(int f, int mode)
 
         unsigned int total = 0;
         for(;;) {
-            unsigned int rem = readBuffer.capacity() - readBuffer.size();
+            unsigned int rem = mReadBuffer.capacity() - mReadBuffer.size();
             // printf("reading, remaining size %u\n", rem);
             if (rem <= AllocateAt) {
                 // printf("allocating more\n");
-                readBuffer.reserve(readBuffer.size() + BlockSize);
-                rem = readBuffer.capacity() - readBuffer.size();
+                mReadBuffer.reserve(mReadBuffer.size() + BlockSize);
+                rem = mReadBuffer.capacity() - mReadBuffer.size();
                 // printf("Rem is now %d\n", rem);
             }
-            if (socketMode & Udp) {
+            if (mSocketMode & Udp) {
                 if (isIPv6) {
                     fromLen = sizeof(fromAddr6);
-                    eintrwrap(e, ::recvfrom(fd, reinterpret_cast<char*>(readBuffer.end()), rem, 0, &fromAddr, &fromLen));
+                    eintrwrap(e, ::recvfrom(mFd, reinterpret_cast<char*>(mReadBuffer.end()), rem, 0, &fromAddr, &fromLen));
                 } else {
                     fromLen = sizeof(fromAddr4);
-                    eintrwrap(e, ::recvfrom(fd, reinterpret_cast<char*>(readBuffer.end()), rem, 0, &fromAddr, &fromLen));
+                    eintrwrap(e, ::recvfrom(mFd, reinterpret_cast<char*>(mReadBuffer.end()), rem, 0, &fromAddr, &fromLen));
                 }
             } else {
-                eintrwrap(e, ::read(fd, readBuffer.end(), rem));
+                eintrwrap(e, ::read(mFd, mReadBuffer.end(), rem));
             }
             DEBUG() << "RECEIVED(2)" << rem << "BYTES" << e << errno;
             if (e == -1) {
@@ -658,7 +665,7 @@ void SocketClient::socketCallback(int f, int mode)
                     break;
                 } else {
                     // bad
-                    signalError(socketPtr, ReadError);
+                    mSignalError(socketPtr, ReadError);
                     close();
                     return;
                 }
@@ -666,50 +673,50 @@ void SocketClient::socketCallback(int f, int mode)
                 // socket closed
                 if (total) {
                     if (!fromLen)
-                        signalReadyRead(socketPtr, std::move(readBuffer));
+                        mSignalReadyRead(socketPtr, std::move(mReadBuffer));
                 }
                 signalDisconnected(socketPtr);
                 close();
                 return;
             } else if (fromLen) {
-                readBuffer.resize(e);
-                signalReadyReadFrom(socketPtr, addrToString(&fromAddr, isIPv6), addrToPort(&fromAddr, isIPv6), std::move(readBuffer));
-                readBuffer.clear();
+                mReadBuffer.resize(e);
+                mSignalReadyReadFrom(socketPtr, addrToString(&fromAddr, isIPv6), addrToPort(&fromAddr, isIPv6), std::move(mReadBuffer));
+                mReadBuffer.clear();
             } else {
                 total += e;
-                readBuffer.resize(total);
+                mReadBuffer.resize(total);
             }
         }
         assert(total <= readBuffer.capacity());
         if (!fromLen)
-            signalReadyRead(socketPtr, std::move(readBuffer));
+            mSignalReadyRead(socketPtr, std::move(mReadBuffer));
 
-        if (writeWait) {
+        if (mWriteWait) {
             if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-                loop->updateSocket(fd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
+                loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
             }
         }
     }
     if (mode & EventLoop::SocketWrite) {
-        if (socketState == Connecting) {
+        if (mSocketState == Connecting) {
             int err;
             socklen_t size = sizeof(err);
 
-            int e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &size);
+            int e = ::getsockopt(mFd, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&err), &size);
 
             if (e == -1) {
                 // bad
-                signalError(socketPtr, ConnectError);
+                mSignalError(socketPtr, ConnectError);
                 close();
                 return;
             }
             if (!err) {
                 // connected
-                socketState = Connected;
+                mSocketState = Connected;
                 signalConnected(socketPtr);
             } else {
                 // failed to connect
-                signalError(socketPtr, ConnectError);
+                mSignalError(socketPtr, ConnectError);
                 close();
                 return;
             }
@@ -737,25 +744,25 @@ bool SocketClient::init(unsigned int mode)
         break;
     }
 
-    fd = ::socket(domain, type, 0);
-    if (fd < 0) {
+    mFd = ::socket(domain, type, 0);
+    if (mFd < 0) {
         // bad
         return false;
     }
 #ifdef HAVE_NOSIGPIPE
     int flags = 1;
-    ::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
+    ::setsockopt(mFd, SOL_SOCKET, SO_NOSIGPIPE, (void *)&flags, sizeof(int));
 #endif
 #ifdef HAVE_CLOEXEC
-    setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
+    setFlags(mFd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
 
-    if (!blocking) {
+    if (!mBlocking) {
         if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
-            loop->registerSocket(fd, EventLoop::SocketRead,
+            loop->registerSocket(mFd, EventLoop::SocketRead,
                                  std::bind(&SocketClient::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
 #ifndef _WIN32   // no O_NONBLOCK on windows
-            if (!setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
+            if (!setFlags(mFd, O_NONBLOCK, F_GETFL, F_SETFL)) {
                 close();
                 return false;
             }
@@ -763,29 +770,30 @@ bool SocketClient::init(unsigned int mode)
         }
     }
 
-    socketMode = mode;
+    mSocketMode = mode;
     return true;
 }
 
-bool SocketClient::setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode)
+bool SocketClient::setFlags(int mFd, int flag, int getcmd, int setcmd, FlagMode mode)
 {
 #ifdef _WIN32
-    (void) fd; (void) flag; (void) getcmd; (void) setcmd; (void) mode;  // unused
+    (void) mFd; (void) flag; (void) getcmd; (void) setcmd; (void) mode;  // unused
     return false;  // no fcntl() on windows
 #else
     int flg = 0, e;
     if (mode == FlagAppend) {
-        eintrwrap(e, ::fcntl(fd, getcmd, 0));
+        eintrwrap(e, ::fcntl(mFd, getcmd, 0));
         if (e == -1)
             return false;
         flg = e;
     }
     flg |= flag;
-    eintrwrap(e, ::fcntl(fd, setcmd, flg));
+    eintrwrap(e, ::fcntl(mFd, setcmd, flg));
     return e != -1;
 #endif
 }
 
+#ifdef RCT_SOCKETCLIENT_TIMING_ENABLED
 double SocketClient::mbpsWritten() const
 {
     uint64_t bytes = 0, currentStart = 0, currentEnd = 0;
@@ -804,11 +812,13 @@ double SocketClient::mbpsWritten() const
     elapsed += currentEnd - currentStart;
     return ((static_cast<double>(bytes) / (1024 * 1024)) / (static_cast<double>(elapsed) / 1000.0));
 }
+#endif
 
 
 void SocketClient::bytesWritten(const SocketClient::SharedPtr &socket, uint64_t bytes)
 {
     const uint64_t copy = bytes;
+#ifdef RCT_SOCKETCLIENT_TIMING_ENABLED
     List<TimeData>::iterator it = mPendingWrites.begin();
     while (bytes && it != mPendingWrites.end()) {
         if (it->add(bytes)) {
@@ -819,6 +829,7 @@ void SocketClient::bytesWritten(const SocketClient::SharedPtr &socket, uint64_t 
         }
     }
     assert(!bytes);
-    signalBytesWritten(socket, copy);
+#endif
+    mSignalBytesWritten(socket, copy);
 }
 

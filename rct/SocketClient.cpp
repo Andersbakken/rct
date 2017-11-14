@@ -433,10 +433,10 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
 
     if (!mWriteWait) {
         if (!mWriteBuffer.isEmpty()) {
-            assert(writeOffset < writeBuffer.size());
+            assert(mWriteOffset < mWriteBuffer.size());
             const size_t writeBufferSize = mWriteBuffer.size() - mWriteOffset;
             while (total < writeBufferSize) {
-                assert(writeBuffer.size() > total);
+                assert(mWriteBuffer.size() > total);
                 if (resolver.addr) {
                     eintrwrap(e, ::sendto(mFd, reinterpret_cast<const char*>(mWriteBuffer.data()) + total + mWriteOffset, writeBufferSize - total,
                                           sendFlags, resolver.addr, resolver.size));
@@ -520,7 +520,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                                 mWriteBuffer.reserve(mWriteBuffer.size() + rem);
                                 memcpy(mWriteBuffer.end(), data + total, rem);
                                 mWriteBuffer.resize(mWriteBuffer.size() + rem);
-                                assert(!writeOffset);
+                                assert(!mWriteOffset);
 
                                 (void)loop->processSocket(mFd);
                                 return isConnected();
@@ -687,7 +687,7 @@ void SocketClient::socketCallback(int f, int mode)
                 mReadBuffer.resize(total);
             }
         }
-        assert(total <= readBuffer.capacity());
+        assert(total <= mReadBuffer.capacity());
         if (!fromLen)
             mSignalReadyRead(socketPtr, std::move(mReadBuffer));
 
@@ -832,4 +832,3 @@ void SocketClient::bytesWritten(const SocketClient::SharedPtr &socket, uint64_t 
 #endif
     mSignalBytesWritten(socket, copy);
 }
-

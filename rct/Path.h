@@ -29,6 +29,10 @@ public:
     Path(const Path &other)
         : String(other)
     {}
+    Path(Path &&other)
+        : String(std::move(other))
+    {}
+
     Path(const String &other)
         : String(other)
     {
@@ -64,6 +68,12 @@ public:
         String::operator=(other);
         return *this;
     }
+    Path &operator=(Path &&other)
+    {
+        String::operator=(std::move(other));
+        return *this;
+    }
+
     Path &operator=(const String &other)
     {
         String::operator=(other);
@@ -72,6 +82,16 @@ public:
 #endif
         return *this;
     }
+
+    Path &operator=(String &&other)
+    {
+        String::operator=(std::move(other));
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+        return *this;
+    }
+
 
     Path &operator=(const char *path)
     {

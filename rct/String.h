@@ -57,9 +57,19 @@ public:
         : mString(str)
     {}
 
+    String(std::string &&str)
+        : mString(std::move(str))
+    {}
+
     String &operator=(const String &other)
     {
         mString = other.mString;
+        return *this;
+    }
+
+    String &operator=(String &&other)
+    {
+        mString = std::move(other.mString);
         return *this;
     }
 

@@ -36,6 +36,14 @@ public:
         replaceBackslashes();
 #endif
     }
+    Path(String &&other)
+        : String(std::move(other))
+    {
+#ifdef _WIN32
+        replaceBackslashes();
+#endif
+    }
+
     Path(const char *path)
         : String(path)
     {
@@ -200,7 +208,7 @@ public:
     List<Path> files(unsigned int filter = All, size_t max = String::npos, bool recurse = false) const;
 
     static bool sRealPathEnabled;
-    
+
     /// ';' on windows, ':' on unix
     static const char ENV_PATH_SEPARATOR;
 

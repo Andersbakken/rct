@@ -4,7 +4,13 @@ if (NOT RCT_RTTI_ENABLED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif ()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpointer-arith -Wshadow -Wformat") # -pthread")
+set(SHADOW "")
+if (NOT CMAKE_COMPILER_IS_GNUCC OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
+    set(SHADOW "-Wshadow")
+endif ()
+
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpointer-arith -Wformat ${SHADOW}") # -pthread")
 if (CMAKE_SYSTEM_NAME MATCHES "CYGWIN")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")

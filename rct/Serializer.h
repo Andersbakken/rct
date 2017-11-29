@@ -355,13 +355,23 @@ Serializer &operator<<(Serializer &s, const Hash<Key, Value> &map)
     return s;
 }
 
+template <typename T>
+Serializer &operator<<(Serializer &s, const Flags<T> &flags)
+{
+    if (sizeof(T) == 8) {
+        s << flags.value();
+    } else {
+        s << static_cast<uint32_t>(flags.value());
+    }
+    return s;
+}
+
 template <typename First, typename Second>
 Serializer &operator<<(Serializer &s, const std::pair<First, Second> &pair)
 {
     s << pair.first << pair.second;
     return s;
 }
-
 
 template <typename T>
 Serializer &operator<<(Serializer &s, const Set<T> &set)
@@ -420,6 +430,21 @@ Deserializer &operator>>(Deserializer &s, Hash<Key, Value> &map)
             s >> key >> value;
             map[key] = value;
         }
+    }
+    return s;
+}
+
+template <typename T>
+Deserializer &operator>>(Deserializer &s, Flags<T> &flags)
+{
+    if (sizeof(T) == 8) {
+        unsigned long long value;
+        s >> value;
+        flags = Flags<T>::construct(value);
+    } else {
+        int value;
+        s >> value;
+        flags = Flags<T>::construct(value);
     }
     return s;
 }

@@ -90,7 +90,7 @@ inline void LogOutput::vlog(const char *format, ...)
     va_end(args);
 }
 
-RCT_FLAGS_OPERATORS(LogOutput::LogFlag);
+RCT_FLAGS(LogOutput::LogFlag);
 
 void log(LogLevel level, Flags<LogOutput::LogFlag> flags, const char *format, ...) RCT_PRINTF_WARNING(3, 4);
 void log(LogLevel level, const char *format, ...) RCT_PRINTF_WARNING(2, 3);
@@ -117,7 +117,7 @@ enum LogFlag {
     LogTimeStamp = 0x10,
     LogFlush = 0x20
 };
-RCT_FLAGS_OPERATORS(LogFlag);
+RCT_FLAGS(LogFlag);
 
 bool initLogging(const char* ident,
                  Flags<LogFlag> flags = LogStderr,

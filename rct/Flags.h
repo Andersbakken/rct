@@ -225,7 +225,6 @@ public:
         }
     }
     bool test(unsigned long long flag) const { return mValue & flag; }
-    template <typename Type> Type cast() const { return static_cast<Type>(mValue); }
 private:
     unsigned long long mValue;
 };

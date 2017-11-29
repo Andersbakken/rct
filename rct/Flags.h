@@ -196,17 +196,17 @@ template <typename T>
 class Flags
 {
 public:
-    Flags(ullong val = 0)
+    Flags(unsigned long long val = 0)
         : mValue(val)
     {}
 
-    inline ullong value() const { return mValue; }
+    inline unsigned long long value() const { return mValue; }
 
     inline void clear() { mValue = 0; }
     static Flags<T> construct(uint64_t value) { Flags<T> ret; ret.mValue = value; return ret; }
 
-    operator ullong &() { return mValue; }
-    operator ullong() const { return mValue; }
+    operator unsigned long long &() { return mValue; }
+    operator unsigned long long() const { return mValue; }
     T cast() const { return cast<T>(); }
     template <typename Type> Type cast() const { return static_cast<Type>(mValue); }
 
@@ -216,7 +216,7 @@ public:
         const int w = snprintf(buf, sizeof(buf), "0x%llx", cast<unsigned long long>());
         return String(buf, w);
     }
-    void set(ullong flag, bool on = true)
+    void set(unsigned long long flag, bool on = true)
     {
         if (on) {
             mValue |= flag;
@@ -224,9 +224,9 @@ public:
             mValue &= ~flag;
         }
     }
-    bool test(ullong flag) const { return mValue & flag; }
+    bool test(unsigned long long flag) const { return mValue & flag; }
 private:
-    ullong mValue;
+    unsigned long long mValue;
 };
 
 #define RCT_FLAGS(T) //

@@ -433,7 +433,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
 
     if (!mWriteWait) {
         if (!mWriteBuffer.isEmpty()) {
-            assert(mWriteOffset < mWriteBuffer.size());
+            // assert(mWriteOffset < mWriteBuffer.size());
             const size_t writeBufferSize = mWriteBuffer.size() - mWriteOffset;
             while (total < writeBufferSize) {
                 assert(mWriteBuffer.size() > total);

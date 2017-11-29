@@ -31,12 +31,12 @@ struct Null { template <typename T> Null operator<<(const T &) { return *this; }
 #endif
 
 SocketClient::SocketClient(unsigned int mode)
-    : mSocketMode(mode), mBlocking(mode & Blocking)
+    : mSocketMode(mode), mBlocking(mode & Blocking), mWriteOffset(0)
 {
 }
 
 SocketClient::SocketClient(int f, unsigned int mode)
-    : mFd(f), mSocketState(Connected), mSocketMode(mode)
+    : mFd(f), mSocketState(Connected), mSocketMode(mode), mWriteOffset(0)
 {
     assert(mFd >= 0);
 #ifdef HAVE_NOSIGPIPE

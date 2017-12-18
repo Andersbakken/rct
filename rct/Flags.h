@@ -21,7 +21,7 @@ public:
 
     inline unsigned long long value() const { return mValue; }
 
-    static Flags<T> construct(uint64_t value) { Flags<T> ret; ret.mValue = value; return ret; }
+    static Flags<T> construct(int64_t value) { Flags<T> ret; ret.mValue = value; return ret; }
     Flags<T> &operator=(Flags<T> &&other) { mValue = other.mValue; other.mValue = 0; return *this; }
     Flags<T> &operator=(const Flags<T> &other) { mValue = other.mValue; return *this; }
     Flags<T> &operator=(T t) { mValue = t; return *this; }
@@ -84,12 +84,12 @@ public:
     bool operator<=(Flags<T> other) const { return mValue <= other.mValue; }
     bool operator>=(Flags<T> other) const { return mValue >= other.mValue; }
 
-    bool operator==(T other) const { return mValue == other; }
-    bool operator!=(T other) const { return mValue != other; }
-    bool operator<(T other) const { return mValue < other; }
-    bool operator>(T other) const { return mValue > other; }
-    bool operator<=(T other) const { return mValue <= other; }
-    bool operator>=(T other) const { return mValue >= other; }
+    bool operator==(T other) const { return mValue == static_cast<int64_t>(other); }
+    bool operator!=(T other) const { return mValue != static_cast<int64_t>(other); }
+    bool operator<(T other) const { return mValue < static_cast<int64_t>(other); }
+    bool operator>(T other) const { return mValue > static_cast<int64_t>(other); }
+    bool operator<=(T other) const { return mValue <= static_cast<int64_t>(other); }
+    bool operator>=(T other) const { return mValue >= static_cast<int64_t>(other); }
 
     String toString() const
     {
@@ -101,7 +101,7 @@ public:
     template <typename Type> Type cast() const { return static_cast<Type>(mValue); }
 private:
     union {
-        uint64_t mValue;
+        int64_t mValue;
         T mT;
     };
 };

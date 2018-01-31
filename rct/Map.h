@@ -13,6 +13,16 @@ class Map : public std::map<Key, Value, Compare>
     typedef std::map<Key, Value, Compare> Base;
 public:
     Map() {}
+    Map(const Map<Key, Value, Compare> &other)
+        : Base(other)
+    {
+    }
+
+    Map(Map<Key, Value, Compare> &&other)
+        : Base(std::move(other))
+    {
+    }
+
     Map(std::initializer_list<typename Base::value_type> init, const Compare& comp = Compare())
         : Base(init, comp)
     {
@@ -21,6 +31,12 @@ public:
     Map<Key, Value, Compare>& operator=(const Map<Key, Value, Compare>& other)
     {
         Base::operator=(other);
+        return *this;
+    }
+
+    Map<Key, Value, Compare>& operator=(Map<Key, Value, Compare>&& other)
+    {
+        Base::operator=(std::move(other));
         return *this;
     }
 

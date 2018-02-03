@@ -385,6 +385,7 @@ if (NOT RCT_NO_INSTALL)
     rct/SocketServer.h
     rct/StopWatch.h
     rct/String.h
+    rct/StringTokenizer.h
     rct/Thread.h
     rct/ThreadLocal.h
     rct/ThreadPool.h

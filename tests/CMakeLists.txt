@@ -25,7 +25,7 @@ endif ()
 
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
-set(RCT_TEST_SRCS main.cpp PathTestSuite.cpp ProcessTestSuite.cpp MemoryMappedFileTestSuite.cpp)
+set(RCT_TEST_SRCS main.cpp PathTestSuite.cpp ProcessTestSuite.cpp MemoryMappedFileTestSuite.cpp StringTokenizerTests.cpp)
 if (OPENSSL_FOUND)
     list(APPEND RCT_TEST_SRCS SHA256TestSuite.cpp)
 endif ()

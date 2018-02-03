@@ -1,6 +1,6 @@
 /Makefile
 /CMakeFiles/rct.dir/src/Value.cpp.o.d
-/cmake_install.cmake
+*/cmake_install.cmake
 /include/rct/rct-config.h
 /librct.a
 /CMakeFiles/
@@ -17,3 +17,7 @@
 /dbtest
 /build/*
 /tests/testfile_Äßéמש最終.txt
+/tests/CMake*
+/tests/CTest*
+/tests/ChildProcess*
+/tests/rct_tests

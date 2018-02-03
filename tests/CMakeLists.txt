@@ -15,6 +15,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CPPUNIT_INCLUDE_DIRS}
+    ${RCT_INCLUDE_DIRS}
     ${RCT_BINARY_DIR}/include
 )
 
@@ -24,19 +25,28 @@ endif ()
 
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
-set(RCT_TEST_SRCS main.cpp
-                  PathTestSuite.cpp
-                  ProcessTestSuite.cpp
-                  MemoryMappedFileTestSuite.cpp
-                  SHA256TestSuite.cpp)
+set(RCT_TEST_SRCS main.cpp PathTestSuite.cpp ProcessTestSuite.cpp MemoryMappedFileTestSuite.cpp)
+if (OPENSSL_FOUND)
+    list(APPEND RCT_TEST_SRCS SHA256TestSuite.cpp)
+endif ()
 
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
   list(APPEND RCT_TEST_SRCS DateTestSuite.cpp)
 endif()
 
+if (RCT_NO_LIBRARY)
+    list(APPEND RCT_TEST_SRCS ${RCT_SOURCES})
+endif ()
+
 set(BINARY_NAME "rct_tests")
 add_executable(${BINARY_NAME} ${RCT_TEST_SRCS})
-target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct pthread)
+
+if (NOT RCT_NO_LIBRARY)
+    target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} rct pthread)
+else ()
+    target_link_libraries(${BINARY_NAME} ${CPPUNIT_LIBRARIES} pthread ${RCT_LIBRARIES})
+endif ()
+
 add_test("unittests" ${CMAKE_CURRENT_BINARY_DIR}/${BINARY_NAME})
 
 add_executable("ChildProcess" ChildProcess.cpp)

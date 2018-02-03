@@ -297,6 +297,58 @@ check_cxx_source_runs("
 unset(CMAKE_REQUIRED_FLAGS)
 unset(CMAKE_REQUIRED_LIBRARIES)
 
+if (RCT_WITH_TESTS)
+    enable_testing()
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tests)
+
+    if (${CMAKE_CXX_COMPILER} MATCHES "clang")
+        find_program(LLVM_COV_EXECUTABLE
+            NAMES
+            llvm-cov
+            llvm-cov35
+            llvm-cov36
+            llvm-cov37
+            )
+
+        add_custom_target(
+            gen_llvm_cov_wrapper_script
+            COMMAND echo ${LLVM_COV_EXECUTABLE} gcov $@ | tee llvm-cov.sh
+            COMMAND chmod a+x llvm-cov.sh
+            VERBATIM
+        )
+
+        set(GCOV_TOOL ./llvm-cov.sh)
+    else ()
+        find_program(GCOV_EXECUTABLE
+            NAMES
+            gcov47
+            gcov48
+        )
+
+        add_custom_target(
+            gen_llvm_cov_wrapper_script
+            COMMAND true
+            VERBATIM
+        )
+
+        set(GCOV_TOOL ${GCOV_EXECUTABLE})
+    endif ()
+
+    find_program(LCOV_EXECUTABLE NAMES lcov)
+    find_program(GENHTML_EXECUTABLE NAMES genhtml)
+
+    if (GCOV_TOOL AND LCOV_EXECUTABLE AND GENHTML_EXECUTABLE)
+        add_custom_target(
+            coverage
+            COMMAND ${LCOV_EXECUTABLE} --directory . --base-directory . --gcov-tool ${GCOV_TOOL} -capture -o cov.info
+            COMMAND ${GENHTML_EXECUTABLE} cov.info -o output
+            DEPENDS gen_llvm_cov_wrapper_script
+            VERBATIM
+        )
+    endif ()
+
+endif ()
+
 if (NOT RCT_NO_INSTALL)
   install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/include/rct/rct-config.h

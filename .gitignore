@@ -17,3 +17,5 @@
 /dbtest
 /build/*
 /tests/testfile_Äßéמש最終.txt
+/tests/CTestTestfile.cmake
+/tests/cmake_install.cmake

@@ -19,3 +19,7 @@
 /tests/testfile_Äßéמש最終.txt
 /tests/CTestTestfile.cmake
 /tests/cmake_install.cmake
+/tests/CMakeFiles/
+/tests/ChildProcess
+/tests/rct_tests
+/tests/ChildProcess_Äßéמש最終

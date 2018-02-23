@@ -103,6 +103,7 @@ void ProcessTestSuite::tearDown()
     close(listenSock);
     close(sendSock);
 #endif
+    usleep(100 * 1000);
 }
 
 void ProcessTestSuite::realSleep(int ms)

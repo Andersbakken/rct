@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 
 find_package(PkgConfig)
 
+if (RCT_WITH_TESTS)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -fprofile-arcs -ftest-coverage")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
+    SET(CMAKE_EXE_LINKER_FLAGS "-fprofile-arcs -ftest-coverage")
+endif ()
+
 if (NOT RCT_NO_LIBRARY)
     project(rct)
 endif ()
@@ -271,18 +277,6 @@ check_cxx_source_compiles("
 if (NOT HAVE_CXX11)
   message(FATAL_ERROR "C++11 support not detected. rct requires a modern compiler, GCC >= 4.8 or Clang >= 3.2 should suffice")
 endif ()
-
-check_cxx_source_runs("
-  #include <unordered_map>
-
-  int main(int, char **)
-  {
-      std::unordered_map<int, int> a;
-      a.emplace(1, 1);
-      std::unordered_map<int, int> b = std::move(a);
-      a.emplace(1, 1);
-      return 0;
-  }" HAVE_UNORDERDED_MAP_WORKING_MOVE_CONSTRUCTOR)
 
 check_cxx_source_runs("
   #include <string>

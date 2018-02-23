@@ -19,6 +19,4 @@
 /tests/ChildProcess*
 /tests/cmake_install.cmake
 /tests/rct_tests
-/tests/testfile_Äßéמש最終.txt
-/tests/empty.txt
-/tests/testfile.txt
+/tests/*.txt

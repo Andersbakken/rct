@@ -7,7 +7,6 @@
 #include <algorithm>
 
 enum MatchResultType {
-    NO_MATCH,
     WORD_BOUNDARY_MATCH,
     PREFIX_MATCH_CASE_INSENSITIVE,
     PREFIX_MATCH_CASE_SENSITIVE,
@@ -17,8 +16,13 @@ enum MatchResultType {
 
 struct CompletionCandidate
 {
-    CompletionCandidate()
-        : priority(-1)
+    CompletionCandidate(String &&n = String())
+        : name(std::move(n)), priority(-1)
+    {
+    }
+
+    CompletionCandidate(const String &n)
+        : name(n), priority(-1)
     {
     }
 
@@ -86,7 +90,7 @@ struct MatchResultComparator
         if (a->candidate->priority != b->candidate->priority)
             return a->candidate->priority < b->candidate->priority;
 
-        return a < b;
+        return a->candidate->name < b->candidate->name;
     }
 };
 

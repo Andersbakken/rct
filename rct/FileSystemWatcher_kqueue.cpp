@@ -12,17 +12,16 @@
 #include "Log.h"
 #include "rct/rct-config.h"
 #include "Rct.h"
+#include "SocketClient.h"
 
 void FileSystemWatcher::init()
 {
     mFd = kqueue();
     assert(mFd != -1);
 
-    int ret = fcntl(mFd, F_GETFD, 0);
-    assert(ret != -1);
-    ret |= FD_CLOEXEC;
-    ret = fcntl(mFd, F_SETFD, ret);
-    assert(ret != -1);
+#ifdef HAVE_CLOEXEC
+    SocketClient::setFlags(mFd, FD_CLOEXEC, F_GETFD, F_SETFD);
+#endif
 
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }

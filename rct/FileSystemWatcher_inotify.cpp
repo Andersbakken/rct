@@ -13,7 +13,7 @@
 
 void FileSystemWatcher::init()
 {
-    mFd = inotify_init();
+    mFd = inotify_init1(IN_CLOEXEC);
     assert(mFd != -1);
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
@@ -29,6 +29,7 @@ void FileSystemWatcher::shutdown()
 
 void FileSystemWatcher::clear()
 {
+    std::lock_guard<std::mutex> lock(mMutex);
     for (Map<Path, int>::const_iterator it = mWatchedByPath.begin(); it != mWatchedByPath.end(); ++it) {
         inotify_rm_watch(mFd, it->second);
     }

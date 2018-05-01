@@ -39,6 +39,7 @@ void FileSystemWatcher::clear()
 
 bool FileSystemWatcher::watch(const Path &p)
 {
+    assert(!p.contains("/../"));
     if (p.isEmpty())
         return false;
     Path path = p;

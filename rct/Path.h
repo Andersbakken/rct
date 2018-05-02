@@ -178,7 +178,7 @@ public:
     mode_t mode() const;
     enum ResolveMode {
         RealPath,
-        Canonicalize
+        MakeAbsolute
     };
     static bool realPathEnabled() { return sRealPathEnabled; }
     static void setRealPathEnabled(bool enabled) { sRealPathEnabled = enabled; }

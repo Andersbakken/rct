@@ -251,11 +251,9 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 #endif
     if (*this == ".")
         clear();
-    if (mode == Canonicalize || !sRealPathEnabled) {
-        if (isAbsolute()) {
-            canonicalize();
+    if (mode == MakeAbsolute || !sRealPathEnabled) {
+        if (isAbsolute())
             return true;
-        }
 
         // we only add the relative file name to the cwd/pwd and check if the
         // result exists.
@@ -477,7 +475,7 @@ bool Path::rmdir(const Path &dir)
 {
 #ifdef _WIN32
     // SHFileOperation needs an absolute path.
-    Path absDir = Path::resolved(dir, Canonicalize);
+    Path absDir = Path::resolved(dir, MakeAbsolute);
     std::wstring pathU16 = Utf8To16(dir.c_str());
 
     // double zero terminate the string. There *should* already be one zero

@@ -158,7 +158,7 @@ void PathTestSuite::mkdirAndRmdir()
     CPPUNIT_ASSERT(Path::rmdir("temp_subdir4"));
 }
 
-
+#if !defined(__APPLE__)
 void PathTestSuite::unicode()
 {
     static const char unicodePath[] = u8"Äßéמש最終";
@@ -192,3 +192,4 @@ void PathTestSuite::unicode()
     CPPUNIT_ASSERT(Path::rmdir(p));
 
 }
+#endif

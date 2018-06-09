@@ -11,8 +11,9 @@ class PathTestSuite : public CPPUNIT_NS::TestFixture
 #endif
 
     CPPUNIT_TEST(mkdirAndRmdir);
+#if !defined(__APPLE__)
     CPPUNIT_TEST(unicode);
-
+#endif
     CPPUNIT_TEST_SUITE_END();
 
     public:
@@ -26,8 +27,9 @@ protected:
     void testRelativeToAbsPath_windows();
 #endif
     void mkdirAndRmdir();
-
+#if !defined(__APPLE__)
     void unicode();
+#endif
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(PathTestSuite);

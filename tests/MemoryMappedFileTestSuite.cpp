@@ -143,6 +143,7 @@ void MemoryMappedFileTestSuite::moving()
     CPPUNIT_ASSERT(mmf3.accessType() == MemoryMappedFile::NO_ACCESS);
 }
 
+#if !defined(__APPLE__)
 void MemoryMappedFileTestSuite::specialChars()
 {
     MemoryMappedFile mmf(u8"testfile_Äßéמש最終.txt");
@@ -158,6 +159,7 @@ void MemoryMappedFileTestSuite::specialChars()
     CPPUNIT_ASSERT(fileContent ==
                    u8"This file has some utf-8 characters:\ntestfile_Äßéמש最終\n");
 }
+#endif
 
 void MemoryMappedFileTestSuite::dont_lock()
 {

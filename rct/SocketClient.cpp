@@ -356,7 +356,7 @@ void SocketClient::setMulticastTTL(unsigned char ttl)
 }
 
 #ifdef _WIN32
-typedef int (*GetNameFunc)(SOCKET, sockaddr*, socklen_t*);
+typedef int __stdcall (*GetNameFunc)(SOCKET, sockaddr*, socklen_t*);
 #else
 typedef int (*GetNameFunc)(int, sockaddr*, socklen_t*);
 #endif

@@ -63,7 +63,7 @@ class FileOutput : public LogOutput
 {
 public:
     FileOutput(LogLevel level, FILE *f)
-        : LogOutput(level), file(f)
+        : LogOutput(File, level), file(f)
     {
     }
     ~FileOutput()
@@ -84,7 +84,7 @@ class TerminalOutput : public LogOutput
 {
 public:
     TerminalOutput(LogLevel lvl, Flags<::LogFlag> flags)
-        : LogOutput(lvl), mReplaceableLength(0), mFlags(flags)
+        : LogOutput(Terminal, lvl), mReplaceableLength(0), mFlags(flags)
     {}
     virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
@@ -117,7 +117,7 @@ class SyslogOutput : public LogOutput
 {
 public:
     SyslogOutput(const char* ident, LogLevel lvl)
-        : LogOutput(lvl)
+        : LogOutput(Syslog, lvl)
     {
         ::openlog(ident, LOG_CONS | LOG_NOWAIT | LOG_PID, LOG_USER);
     }
@@ -331,8 +331,8 @@ Log &Log::operator=(const Log &other)
     return *this;
 }
 
-LogOutput::LogOutput(LogLevel logLevel)
-    : mLogLevel(logLevel)
+LogOutput::LogOutput(Type type, LogLevel logLevel)
+    : mType(type), mLogLevel(logLevel)
 {
 }
 

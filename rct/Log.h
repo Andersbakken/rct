@@ -52,13 +52,19 @@ private:
 class LogOutput : public std::enable_shared_from_this<LogOutput>
 {
 public:
-    LogOutput(LogLevel logLevel);
+    enum Type {
+        Terminal,
+        File,
+        Syslog,
+        Custom
+    };
+    LogOutput(Type type, LogLevel logLevel);
     virtual ~LogOutput();
 
     void add();
     void remove();
 
-    virtual unsigned int flags() const { return 0; }
+    Type type() const { return mType; }
 
     virtual bool testLog(LogLevel level) const
     {
@@ -78,6 +84,7 @@ public:
     void vlog(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     LogLevel logLevel() const { return mLogLevel; }
 private:
+    const Type mType;
     LogLevel mLogLevel;
 };
 

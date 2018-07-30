@@ -383,6 +383,23 @@ uint64_t currentTimeMs()
     return (time.tv_sec * static_cast<uint64_t>(1000)) + (time.tv_usec / static_cast<uint64_t>(1000));
 }
 
+String currentTimeString()
+{
+    struct timeval tv;
+    if (gettimeofday(&tv, nullptr))
+        return String();
+    struct tm *gm = gmtime(&tv.tv_sec);
+    if (!gm)
+        return String();
+    char buf[128];
+    size_t w = strftime(buf, sizeof(buf), "%H:%M:%S", gm);
+    if (w + 4 >= sizeof(buf))
+        return String();
+
+    size_t ww = snprintf(buf+w, sizeof(buf) - w, ".%03d", tv.tv_usec / 1000);
+    return String(buf, ww);
+}
+
 String hostName()
 {
     String host(HOST_NAME_MAX, '\0');

@@ -84,6 +84,7 @@ String backtrace(int maxFrames = -1);
 bool gettime(timeval* time);
 uint64_t monoMs();
 uint64_t currentTimeMs();
+String currentTimeString();
 String hostName();
 
 enum AnsiColor {

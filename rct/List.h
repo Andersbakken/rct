@@ -196,7 +196,7 @@ public:
         Base::clear();
     }
 
-    void deleteAll(void (*deleter)(void *t))
+    void deleteAll(std::function<void(T)> deleter)
     {
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {

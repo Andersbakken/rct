@@ -404,7 +404,7 @@ String currentTimeString()
     int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
 
     return String::format<16>("%d:%02d:%02d.%03llu",
-                              hour, min, sec, tv.tv_usec / static_cast<uint64_t>(1000));
+                              hour, min, sec, tv.tv_usec / static_cast<unsigned long long>(1000));
 }
 
 String hostName()

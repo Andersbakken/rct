@@ -11,6 +11,7 @@
 #include "StackBuffer.h"
 #include "Log.h"
 #include "rct/rct-config.h"
+#include "Rct.h"
 
 class WatcherData : public std::enable_shared_from_this<WatcherData>
 {

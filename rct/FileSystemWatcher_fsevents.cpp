@@ -305,7 +305,7 @@ bool FileSystemWatcher::watch(const Path &p)
     switch (type) {
     case Path::File:
         path = path.parentDir();
-        // fall through
+        RCT_FALL_THROUGH;
     case Path::Directory:
         break;
     default:

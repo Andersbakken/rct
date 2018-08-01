@@ -151,7 +151,7 @@ bool FileSystemWatcher::watch(const Path &p)
     switch (type) {
     case Path::File:
         path = path.parentDir();
-        // fall through
+        RCT_FALL_THROUGH;
     case Path::Directory:
         flags = NOTE_RENAME|NOTE_DELETE|NOTE_EXTEND|NOTE_WRITE|NOTE_ATTRIB|NOTE_REVOKE;
         break;

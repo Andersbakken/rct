@@ -6,7 +6,7 @@
 #include <string.h>
 #include <thread>
 
-
+#include "Rct.h"
 #include "EventLoop.h"
 #include "StackBuffer.h"
 #include "Log.h"

@@ -178,10 +178,13 @@ Path Path::resolved(const String &path, ResolveMode mode, const Path &cwd, bool 
     return ret;
 }
 
-size_t Path::canonicalize()
+size_t Path::canonicalize(bool *changed)
 {
     size_t len = size();
     char *path = data();
+    bool dummy;
+    bool &ref = changed ? *changed : dummy;
+    ref = false;
     for (size_t i=0; i<len - 1; ++i) {
         if (path[i] == '/') {
             if (i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') {
@@ -191,11 +194,13 @@ size_t Path::canonicalize()
                         const int removed = (i + 3 - j);
                         len -= removed;
                         i -= removed;
+                        ref = true;
                         break;
                     }
                 }
             } else if (path[i + 1] == '/') {
                 memmove(path + i, path + i + 1, len - (i + 1));
+                ref = true;
                 --i;
                 --len;
             }
@@ -247,13 +252,17 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         wordexp(constData(), &exp_result, 0);
         operator=(exp_result.we_wordv[0]);
         wordfree(&exp_result);
+        if (changed)
+            *changed = true;
     }
 #endif
     if (*this == ".")
         clear();
     if (mode == MakeAbsolute || !sRealPathEnabled) {
-        if (isAbsolute())
+        if (isAbsolute()) {
+            canonicalize(changed);
             return true;
+        }
 
         // we only add the relative file name to the cwd/pwd and check if the
         // result exists.

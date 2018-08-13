@@ -126,10 +126,10 @@ public:
     bool isAbsolute() const;
     static const char *typeName(Type type);
     bool isSymLink() const;
-    Path followLink(bool *ok = 0) const;
+    Path followLink(bool *ok = nullptr) const;
     String name() const;
-    const char *fileName(size_t *len = 0) const;
-    const char *extension(size_t *len = 0) const;
+    const char *fileName(size_t *len = nullptr) const;
+    const char *extension(size_t *len = nullptr) const;
     static bool exists(const Path &path) { return path.exists(); }
     enum MkDirMode {
         Single,
@@ -182,9 +182,9 @@ public:
     };
     static bool realPathEnabled() { return sRealPathEnabled; }
     static void setRealPathEnabled(bool enabled) { sRealPathEnabled = enabled; }
-    Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0) const;
-    bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *changed = 0);
-    size_t canonicalize();
+    Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = nullptr) const;
+    bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *changed = nullptr);
+    size_t canonicalize(bool *changed = nullptr);
     Path canonicalized() const;
     static Path canonicalized(const Path &path);
     time_t lastModified() const; // returns time_t ... no shit
@@ -192,10 +192,10 @@ public:
     bool setLastModified(time_t lastModified) const;
     uint64_t lastModifiedMs() const;
 
-    struct stat stat(bool *ok = 0) const;
+    struct stat stat(bool *ok = nullptr) const;
 
     int64_t fileSize() const;
-    static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = 0);
+    static Path resolved(const String &path, ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = nullptr);
     static Path canonicalized(const String &path);
     static Path pwd();
     size_t readAll(char *&, size_t max = -1) const;

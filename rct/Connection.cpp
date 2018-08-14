@@ -115,6 +115,7 @@ int Connection::pendingWrite() const
 
 void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&& buf)
 {
+    auto that = shared_from_this();
     while (true) {
         if (!buf.isEmpty())
             mBuffers.push(std::forward<Buffer>(buf));
@@ -146,7 +147,6 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&&
         Message::MessageError error;
         std::shared_ptr<Message> message = Message::create(mVersion, buffer, read, &error);
         if (message) {
-            auto that = shared_from_this();
             if (message->messageId() == FinishMessage::MessageId) {
                 mFinishStatus = std::static_pointer_cast<FinishMessage>(message)->status();
                 mFinished(that, mFinishStatus);

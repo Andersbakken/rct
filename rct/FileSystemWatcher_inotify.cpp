@@ -48,7 +48,7 @@ bool FileSystemWatcher::watch(const Path &p)
     uint32_t flags = 0;
     switch (type) {
     case Path::File:
-        flags = IN_DELETE_SELF|IN_MOVE_SELF|IN_ATTRIB|IN_DELETE|IN_CLOSE_WRITE;
+        flags = IN_DELETE_SELF|IN_MOVE_SELF|IN_ATTRIB|IN_DELETE|IN_CLOSE_WRITE|IN_MOVED_FROM|IN_MOVED_TO;
         break;
     case Path::Directory:
         flags = IN_MOVED_FROM|IN_MOVED_TO|IN_CREATE|IN_DELETE|IN_DELETE_SELF|IN_ATTRIB|IN_CLOSE_WRITE;
@@ -91,32 +91,75 @@ bool FileSystemWatcher::unwatch(const Path &path)
 
 static inline void dump(Log &log, unsigned int mask)
 {
-    if (mask & IN_ACCESS)
+    if (mask & IN_ACCESS) {
+        mask &= ~IN_ACCESS;
         log << "IN_ACCESS";
-    if (mask & IN_MODIFY)
+    }
+    if (mask & IN_MODIFY) {
+        mask &= ~IN_MODIFY;
         log << "IN_MODIFY";
-    if (mask & IN_ATTRIB)
+    }
+    if (mask & IN_ATTRIB) {
+        mask &= ~IN_ATTRIB;
         log << "IN_ATTRIB";
-    if (mask & IN_CLOSE_WRITE)
+    }
+    if (mask & IN_CLOSE_WRITE) {
+        mask &= ~IN_CLOSE_WRITE;
         log << "IN_CLOSE_WRITE";
-    if (mask & IN_CLOSE_NOWRITE)
+    }
+    if (mask & IN_CLOSE_NOWRITE) {
+        mask &= ~IN_CLOSE_NOWRITE;
         log << "IN_CLOSE_NOWRITE";
-    if (mask & IN_CLOSE)
+    }
+    if (mask & IN_CLOSE) {
+        mask &= ~IN_CLOSE;
         log << "IN_CLOSE";
-    if (mask & IN_OPEN)
+    }
+    if (mask & IN_OPEN) {
+        mask &= ~IN_OPEN;
         log << "IN_OPEN";
-    if (mask & IN_MOVED_FROM)
+    }
+    if (mask & IN_MOVED_FROM) {
+        mask &= ~IN_MOVED_FROM;
         log << "IN_MOVED_FROM";
-    if (mask & IN_MOVED_TO)
+    }
+    if (mask & IN_MOVED_TO) {
+        mask &= ~IN_MOVED_TO;
         log << "IN_MOVED_TO";
-    if (mask & IN_CREATE)
+    }
+    if (mask & IN_CREATE) {
+        mask &= ~IN_CREATE;
         log << "IN_CREATE";
-    if (mask & IN_DELETE)
+    }
+    if (mask & IN_DELETE) {
+        mask &= ~IN_DELETE;
         log << "IN_DELETE";
-    if (mask & IN_DELETE_SELF)
+    }
+    if (mask & IN_DELETE_SELF) {
+        mask &= ~IN_DELETE_SELF;
         log << "IN_DELETE_SELF";
-    if (mask & IN_MOVE_SELF)
+    }
+    if (mask & IN_MOVE_SELF) {
+        mask &= ~IN_MOVE_SELF;
         log << "IN_MOVE_SELF";
+    }
+
+    if (mask & IN_UNMOUNT) {
+        mask &= ~IN_UNMOUNT;
+        log << "IN_UNMOUNT";
+    }
+
+    if (mask & IN_Q_OVERFLOW) {
+        mask &= ~IN_Q_OVERFLOW;
+        log << "IN_Q_OVERFLOW";
+    }
+
+    if (mask & IN_IGNORED) {
+        mask &= ~IN_IGNORED;
+        log << "IN_IGNORED";
+    }
+
+    assert(!mask);
 }
 
 void FileSystemWatcher::notifyReadyRead()

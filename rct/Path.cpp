@@ -187,7 +187,8 @@ size_t Path::canonicalize(bool *changed)
     ref = false;
     for (size_t i=0; i<len - 1; ++i) {
         if (path[i] == '/') {
-            if (i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') {
+          if ((i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') ||
+              (i + 3 == len && path[i + 1] == '.' && path[i + 2] == '.')) {
                 for (int j=i - 1; j>=0; --j) {
                     if (path[j] == '/') {
                         memmove(path + j, path + i + 3, len - (i + 2));
@@ -198,19 +199,26 @@ size_t Path::canonicalize(bool *changed)
                         break;
                     }
                 }
-            } else if (i + 2 < len && path[i + 1] == '.' && path[i + 2] == '/' ) {
+          } else if ((i + 2 < len && path[i + 1] == '.' && path[i + 2] == '/') ||
+                     (i + 2 == len && path[i + 1] == '.')) {
                 // skip over /./
                 memmove(path + i, path + i + 2, len - (i + 1));
                 ref = true;
                 len -= 2;
                 i -= 2;
             } else if (path[i + 1] == '/') {
-                memmove(path + i, path + i + 1, len - (i + 0));
+                memmove(path + i, path + i + 1, len - i);
                 ref = true;
                 --i;
                 --len;
             }
         }
+    }
+    // Remove trailing slash
+    if (path[len - 1] == '/') {
+        path[len - 1] = '\0';
+        ref = true;
+        --len;
     }
 
     if (len != size())

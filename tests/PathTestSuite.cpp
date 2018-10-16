@@ -162,6 +162,7 @@ void PathTestSuite::testCanonicalize()
 {
     CPPUNIT_ASSERT(Path("dir1/dir2/dir3/../../dir4").canonicalized() == Path("dir1/dir4"));
     CPPUNIT_ASSERT(Path("dir1/dir2/dir3/./../../dir4").canonicalized() == Path("dir1/dir4"));
+    CPPUNIT_ASSERT(Path("dir1//dir2/").canonicalized() == Path("dir1/dir2"));
     CPPUNIT_ASSERT(Path("dir1/dir2/dir3/../").canonicalized() == Path("dir1/dir2"));
     CPPUNIT_ASSERT(Path("dir1/dir2/dir3/..").canonicalized() == Path("dir1/dir2"));
     CPPUNIT_ASSERT(Path("dir1/dir2/dir3/.").canonicalized() == Path("dir1/dir2/dir3"));

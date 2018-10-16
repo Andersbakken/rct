@@ -154,9 +154,22 @@ void PathTestSuite::mkdirAndRmdir()
     if(subdir_file) fclose(subdir_file);
 
 
-    // cleanup
+    // cleanupn
     CPPUNIT_ASSERT(Path::rmdir("temp_subdir4"));
 }
+
+void PathTestSuite::testCanonicalize()
+{
+    CPPUNIT_ASSERT(Path("dir1/dir2/dir3/../../dir4").canonicalized() == Path("dir1/dir4"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/dir3/./../../dir4").canonicalized() == Path("dir1/dir4"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/dir3/../").canonicalized() == Path("dir1/dir2"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/dir3/..").canonicalized() == Path("dir1/dir2"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/dir3/.").canonicalized() == Path("dir1/dir2/dir3"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/dir3/./").canonicalized() == Path("dir1/dir2/dir3"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/./dir3/").canonicalized() == Path("dir1/dir2/dir3"));
+    CPPUNIT_ASSERT(Path("dir1/dir2/./dir3").canonicalized() == Path("dir1/dir2/dir3"));
+}
+
 
 #if !defined(__APPLE__)
 void PathTestSuite::unicode()

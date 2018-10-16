@@ -9,8 +9,8 @@ class PathTestSuite : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(testPathStatusWindows);
     CPPUNIT_TEST(testRelativeToAbsPath_windows);
 #endif
-
     CPPUNIT_TEST(mkdirAndRmdir);
+    CPPUNIT_TEST(testCanonicalize);
 #if !defined(__APPLE__)
     CPPUNIT_TEST(unicode);
 #endif
@@ -27,6 +27,7 @@ protected:
     void testRelativeToAbsPath_windows();
 #endif
     void mkdirAndRmdir();
+    void testCanonicalize();
 #if !defined(__APPLE__)
     void unicode();
 #endif

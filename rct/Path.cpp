@@ -198,8 +198,14 @@ size_t Path::canonicalize(bool *changed)
                         break;
                     }
                 }
+            } else if (i + 2 < len && path[i + 1] == '.' && path[i + 2] == '/' ) {
+                // skip over /./
+                memmove(path + i, path + i + 2, len - (i + 1));
+                ref = true;
+                len -= 2;
+                i -= 2;
             } else if (path[i + 1] == '/') {
-                memmove(path + i, path + i + 1, len - (i + 1));
+                memmove(path + i, path + i + 1, len - (i + 0));
                 ref = true;
                 --i;
                 --len;

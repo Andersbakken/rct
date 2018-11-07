@@ -476,7 +476,13 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
 #else
             const int r = ::mkdir(buf, permissions);
 #endif
-            if (r && errno != EEXIST && errno != EISDIR)
+            if (r && errno != EEXIST && errno != EISDIR
+#ifdef OS_CYGWIN
+            		// on cygwin/msys2 we may try to create something like (/cygdrive)/c/some/path/
+            		// an mkdir() attempt to create /c/ will fail with EACCESS so we need to catch it here
+            		&& errno != EACCES
+#endif
+					)
                 return false;
             buf[i] = '/';
         }

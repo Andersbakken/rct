@@ -11,7 +11,7 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #endif
-#ifdef OS_FreeBSD
+#if defined(OS_FreeBSD) || defined(OS_DragonFly)
 #include <sys/sysctl.h>
 #endif
 
@@ -29,7 +29,8 @@ struct CpuData
 
     float usage;
 
-#if defined(OS_Linux) || defined (OS_Darwin) || defined(OS_FreeBSD)
+#if defined(OS_Linux) || defined (OS_Darwin) || defined(OS_FreeBSD) || \
+        defined(OS_DragonFly)
     float hz;
     uint32_t cores;
 #endif
@@ -67,7 +68,7 @@ static int64_t currentUsage()
         return usage;
     }
     return -1;
-#elif defined(OS_FreeBSD)
+#elif defined(OS_FreeBSD) || defined(OS_DragonFly)
     const size_t ncpu_mib_len = 2;
     const int ncpu_mib[ncpu_mib_len] = { CTL_HW, HW_NCPU };
     int ncpu;
@@ -83,8 +84,11 @@ static int64_t currentUsage()
         size_t cpu_usage_mib_len = 4;
         int cpu_usage_mib[cpu_usage_mib_len];
         int cpu_usage = 0;
+#if defined(OS_FreeBSD)
         const char *cpu_usage_sysctl_name_fmt = "dev.cpu.%d.cx_usage";
-
+#else
+        const char *cpu_usage_sysctl_name_fmt = "hw.acpi.cpu%d.cx_usage";
+#endif
         size_t sysctl_entry_name_len = snprintf(NULL, 0, cpu_usage_sysctl_name_fmt, cpu_id) + 1;
         char *mib_name = (char*)malloc(sysctl_entry_name_len);
         snprintf(mib_name, sysctl_entry_name_len, cpu_usage_sysctl_name_fmt, cpu_id);
@@ -125,7 +129,8 @@ static void collectData()
                 if (sData.lastUsage > usage) {
                     sData.usage = 0;
                 } else {
-#if defined(OS_Linux) || defined(OS_Darwin) || defined(OS_FreeBSD)
+#if defined(OS_Linux) || defined(OS_Darwin) || defined(OS_FreeBSD) || \
+        defined(OS_DragonFly)
                     const uint32_t deltaUsage = usage - sData.lastUsage;
                     const uint64_t deltaTime = time - sData.lastTime;
                     const float timeRatio = deltaTime / (SLEEP_TIME / 1000);
@@ -148,7 +153,8 @@ float CpuUsage::usage()
             sData.usage = 0;
             sData.lastUsage = 0;
             sData.lastTime = 0;
-#if defined(OS_Linux) || defined(OS_Darwin) || defined(OS_FreeBSD)
+#if defined(OS_Linux) || defined(OS_Darwin) || defined(OS_FreeBSD) || \
+        defined(OS_DragonFly)
             sData.hz = sysconf(_SC_CLK_TCK);
             sData.cores = sysconf(_SC_NPROCESSORS_ONLN);
 #endif

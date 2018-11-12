@@ -404,7 +404,7 @@ bool Path::isHeader(const char *ext)
 bool Path::isSystem(const char *path)
 {
     if (!strncmp("/usr/", path, 5)) {
-#ifdef OS_FreeBSD
+#if defined(OS_FreeBSD) || defined(OS_DragonFly)
         if (!strncmp("home/", path + 5, 5))
             return false;
 #endif

@@ -4,7 +4,8 @@
 #include <assert.h>
 
 #include "rct/rct-config.h"
-#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
+#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || \
+        defined(OS_DragonFly)
 #   include <sys/sysctl.h>
 #   include <sys/types.h>
 #elif defined (OS_Linux)
@@ -193,7 +194,8 @@ bool ThreadPool::remove(const std::shared_ptr<Job> &job)
 
 int ThreadPool::idealThreadCount()
 {
-#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD)
+#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || \
+        defined(OS_DragonFly)
     int cores;
     size_t len = sizeof(cores);
     int mib[2];

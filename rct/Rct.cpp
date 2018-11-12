@@ -10,7 +10,7 @@
 #include <unistd.h>
 #ifdef OS_Darwin
 # include <mach-o/dyld.h>
-#elif OS_FreeBSD
+#elif defined(OS_FreeBSD) || defined(OS_DragonFly)
 # include <netinet/in.h>
 # include <sys/sysctl.h>
 #endif
@@ -238,7 +238,7 @@ void findExecutablePath(const char *argv0)
                 return;
         }
     }
-#elif defined(OS_FreeBSD)
+#elif defined(OS_FreeBSD) || defined(OS_DragonFly)
     {
         int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1 };
         char buf[PATH_MAX];

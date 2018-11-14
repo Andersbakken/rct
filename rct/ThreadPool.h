@@ -51,6 +51,7 @@ public:
     enum { Guaranteed = -1 };
 
     void start(const std::shared_ptr<Job> &job, int priority = 0);
+    void start(const std::function<void()> &func, int priority = 0);
 
     bool remove(const std::shared_ptr<Job> &job);
 

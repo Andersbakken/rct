@@ -182,6 +182,26 @@ void ThreadPool::start(const std::shared_ptr<Job> &job, int priority)
     mCond.notify_one();
 }
 
+class FunctionJob : public ThreadPool::Job
+{
+public:
+    FunctionJob(const std::function<void()> func)
+        : mFunction(func)
+    {}
+
+    virtual void run() override
+    {
+        mFunction();
+    }
+private:
+    std::function<void()> mFunction;
+};
+
+void ThreadPool::start(const std::function<void()> &func, int priority)
+{
+    start(std::make_shared<FunctionJob>(func), priority);
+}
+
 bool ThreadPool::remove(const std::shared_ptr<Job> &job)
 {
     std::lock_guard<std::mutex> lock(mMutex);

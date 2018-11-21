@@ -45,6 +45,8 @@ public:
     int pendingWrite() const;
 
     bool send(const Message &message);
+    bool send(Message &&message){ return send(message); }
+
     template <int StaticBufSize>
     bool write(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     bool write(const String &out, ResponseMessage::Type type = ResponseMessage::Stdout)

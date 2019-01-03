@@ -8,7 +8,7 @@
 #  include <Shellapi.h>
 #  include "WindowsUnicodeConversion.h"
 #else
-#  include <wordexp.h>
+#  include <glob.h>
 #endif
 #include <limits.h>
 #include <stdio.h>
@@ -262,14 +262,15 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     if (isEmpty())
         return false;
     if (startsWith('~')) {
-        wordexp_t exp_result;
-        wordexp(constData(), &exp_result, 0);
-        operator=(exp_result.we_wordv[0]);
-        wordfree(&exp_result);
-        if (changed)
-            *changed = true;
-    }
+#else
+        glob_t exp_result;
+        if (glob(constData(), 0, NULL, &exp_result) == false) {
+            operator=(exp_result.gl_pathv[0]);
+            if (changed)
+                *changed = true;
+        }
 #endif
+    }
     if (*this == ".")
         clear();
     if (mode == MakeAbsolute || !sRealPathEnabled) {

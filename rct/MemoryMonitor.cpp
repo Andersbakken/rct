@@ -69,6 +69,12 @@ static inline uint64_t usageFreeBSD()
 #warning "implement me"
     return 0;
 }
+#elif (__OpenBSD__)
+static inline uint64_t usageOpenBSD()
+{
+#warning "implement me"
+    return 0;
+}
 #elif defined(OS_DragonFly)
 static inline uint64_t usageDragonFly()
 {
@@ -122,6 +128,8 @@ uint64_t MemoryMonitor::usage()
     return usageLinux();
 #elif defined(OS_FreeBSD)
     return usageFreeBSD();
+#elif defined(__OpenBSD__)
+    return usageOpenBSD();
 #elif defined(OS_DragonFly)
     return usageDragonFly();
 #elif defined(OS_Darwin)

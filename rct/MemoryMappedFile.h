@@ -1,3 +1,6 @@
+#ifndef MemoryMappedFile_h
+#define MemoryMappedFile_h
+
 #include "Path.h"
 
 #ifdef _WIN32
@@ -154,3 +157,5 @@ private:
     off_t mFileSize;
 #endif
 };
+
+#endif

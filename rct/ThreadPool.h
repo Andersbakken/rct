@@ -34,7 +34,17 @@ public:
             Running,
             Finished
         };
-        State state() const { std::lock_guard<std::mutex> lock(mMutex); return mState; }
+        State state() const
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            return mState;
+        }
+        void waitForState(State state)
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            while (mState != state)
+                mCond.wait(lock);
+        }
     protected:
         virtual void run() = 0;
         std::mutex &mutex() const { return mMutex; }
@@ -43,6 +53,7 @@ public:
         int mPriority;
         State mState;
         mutable std::mutex mMutex;
+        std::condition_variable mCond;
 
         friend class ThreadPool;
         friend class ThreadPoolThread;

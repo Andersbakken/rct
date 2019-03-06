@@ -87,6 +87,7 @@ void ThreadPoolThread::run()
         {
             std::lock_guard<std::mutex> joblock(job->mMutex);
             job->mState = ThreadPool::Job::Running;
+            job->mCond.notify_all();
         }
         ++mPool->mBusyThreads;
         lock.unlock();
@@ -94,6 +95,7 @@ void ThreadPoolThread::run()
         {
             std::lock_guard<std::mutex> joblock(job->mMutex);
             job->mState = ThreadPool::Job::Finished;
+            job->mCond.notify_all();
         }
     }
 }

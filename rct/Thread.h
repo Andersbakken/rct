@@ -13,22 +13,26 @@ public:
     virtual ~Thread();
 
     enum Priority { Idle, Normal };
-    void start(Priority priority = Normal, size_t stackSize = 0);
+    bool start(Priority priority = Normal, size_t stackSize = 0);
     bool join();
 
     void setAutoDelete(bool on)
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::unique_lock<std::mutex> lock(mMutex);
         mAutoDelete = on;
     }
 
     bool isAutoDelete() const
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::unique_lock<std::mutex> lock(mMutex);
         return mAutoDelete;
     }
 
-    pthread_t self() const { return mThread; }
+    pthread_t self() const
+    {
+        std::unique_lock<std::mutex> lock(mMutex);
+        return mThread;
+    }
 
 protected:
     virtual void run() = 0;

@@ -1,9 +1,5 @@
 include(CheckCXXCompilerFlag)
 
-if (CMAKE_BUILD_TYPE MATCHES "Debug")
-    add_compile_options("-Og")
-endif ()
-
 set(SHADOW "")
 if (NOT CMAKE_COMPILER_IS_GNUCC OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
     set(SHADOW "-Wshadow")

@@ -32,6 +32,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__GNUC__) && __GXX_ABI_VERSION >= 1011
+#  define FALLTHROUGH /* fall through */ __attribute__ ((fallthrough));
+#else
+#  define FALLTHROUGH /* fall through */
+#endif
+
 static const char *ep;
 
 const char *
@@ -296,15 +302,15 @@ parse_string(cJSON *item, const char *str)
                 case 4:
                     *--ptr2 = ((uc | 0x80) & 0xBF);
                     uc >>= 6;
-                    /* FALLTHRU */
+                    FALLTHROUGH
                 case 3:
                     *--ptr2 = ((uc | 0x80) & 0xBF);
                     uc >>= 6;
-                    /* FALLTHRU */
+                    FALLTHROUGH
                 case 2:
                     *--ptr2 = ((uc | 0x80) & 0xBF);
                     uc >>= 6;
-                    /* FALLTHRU */
+                    FALLTHROUGH
                 case 1:
                     *--ptr2 = (uc | firstByteMark[len]);
                     break;

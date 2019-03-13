@@ -224,7 +224,7 @@ public:
             mValue &= ~flag;
         }
     }
-    bool test(unsigned long long flag) const { return mValue & flag; }
+    unsigned int test(unsigned long long flag) const { return mValue & flag; }
 private:
     unsigned long long mValue;
 };

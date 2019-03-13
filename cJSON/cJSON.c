@@ -250,69 +250,70 @@ parse_string(cJSON *item, const char *str)
         else {
             ptr++;
             switch (*ptr) {
-                case 'b':
-                    *ptr2++ = '\b';
-                    break;
-                case 'f':
-                    *ptr2++ = '\f';
-                    break;
-                case 'n':
-                    *ptr2++ = '\n';
-                    break;
-                case 'r':
-                    *ptr2++ = '\r';
-                    break;
-                case 't':
-                    *ptr2++ = '\t';
-                    break;
-                case 'u': /* transcode utf16 to utf8. */
-                    uc = parse_hex4(ptr + 1);
-                    ptr += 4; /* get the unicode char. */
+            case 'b':
+                *ptr2++ = '\b';
+                break;
+            case 'f':
+                *ptr2++ = '\f';
+                break;
+            case 'n':
+                *ptr2++ = '\n';
+                break;
+            case 'r':
+                *ptr2++ = '\r';
+                break;
+            case 't':
+                *ptr2++ = '\t';
+                break;
+            case 'u': /* transcode utf16 to utf8. */
+                uc = parse_hex4(ptr + 1);
+                ptr += 4; /* get the unicode char. */
 
-                    if ((uc >= 0xDC00 && uc <= 0xDFFF) || uc == 0)
-                        break; /* check for invalid.	*/
+                if ((uc >= 0xDC00 && uc <= 0xDFFF) || uc == 0)
+                    break; /* check for invalid.	*/
 
-                    if (uc >= 0xD800 && uc <= 0xDBFF) /* UTF16 surrogate pairs.	*/
-                    {
-                        if (ptr[1] != '\\' || ptr[2] != 'u')
-                            break; /* missing second-half of surrogate.	*/
-                        uc2 = parse_hex4(ptr + 3);
-                        ptr += 6;
-                        if (uc2 < 0xDC00 || uc2 > 0xDFFF)
-                            break; /* invalid second-half of surrogate.	*/
-                        uc = 0x10000 + (((uc & 0x3FF) << 10) | (uc2 & 0x3FF));
-                    }
+                if (uc >= 0xD800 && uc <= 0xDBFF) /* UTF16 surrogate pairs.	*/
+                {
+                    if (ptr[1] != '\\' || ptr[2] != 'u')
+                        break; /* missing second-half of surrogate.	*/
+                    uc2 = parse_hex4(ptr + 3);
+                    ptr += 6;
+                    if (uc2 < 0xDC00 || uc2 > 0xDFFF)
+                        break; /* invalid second-half of surrogate.	*/
+                    uc = 0x10000 + (((uc & 0x3FF) << 10) | (uc2 & 0x3FF));
+                }
 
-                    len = 4;
-                    if (uc < 0x80)
-                        len = 1;
-                    else if (uc < 0x800)
-                        len = 2;
-                    else if (uc < 0x10000)
-                        len = 3;
-                    ptr2 += len;
+                len = 4;
+                if (uc < 0x80)
+                    len = 1;
+                else if (uc < 0x800)
+                    len = 2;
+                else if (uc < 0x10000)
+                    len = 3;
+                ptr2 += len;
 
-                    switch (len) {
-                        case 4:
-                            *--ptr2 = ((uc | 0x80) & 0xBF);
-                            uc >>= 6;
-                            /* Falls through. */
-                        case 3:
-                            *--ptr2 = ((uc | 0x80) & 0xBF);
-                            uc >>= 6;
-                            /* Falls through. */
-                        case 2:
-                            *--ptr2 = ((uc | 0x80) & 0xBF);
-                            uc >>= 6;
-                            /* Falls through. */
-                        case 1:
-                            *--ptr2 = (uc | firstByteMark[len]);
-                    }
-                    ptr2 += len;
+                switch (len) {
+                case 4:
+                    *--ptr2 = ((uc | 0x80) & 0xBF);
+                    uc >>= 6;
+                    /* fall through */
+                case 3:
+                    *--ptr2 = ((uc | 0x80) & 0xBF);
+                    uc >>= 6;
+                    /* fall through */
+                case 2:
+                    *--ptr2 = ((uc | 0x80) & 0xBF);
+                    uc >>= 6;
+                    /* fall through */
+                case 1:
+                    *--ptr2 = (uc | firstByteMark[len]);
                     break;
-                default:
-                    *ptr2++ = *ptr;
-                    break;
+                }
+                ptr2 += len;
+                break;
+            default:
+                *ptr2++ = *ptr;
+                break;
             }
             ptr++;
         }
@@ -359,31 +360,31 @@ print_string_ptr(const char *str, int escape)
         else {
             *ptr2++ = '\\';
             switch (token = *ptr++) {
-                case '\\':
-                    *ptr2++ = '\\';
-                    break;
-                case '\"':
-                    *ptr2++ = '\"';
-                    break;
-                case '\b':
-                    *ptr2++ = 'b';
-                    break;
-                case '\f':
-                    *ptr2++ = 'f';
-                    break;
-                case '\n':
-                    *ptr2++ = 'n';
-                    break;
-                case '\r':
-                    *ptr2++ = 'r';
-                    break;
-                case '\t':
-                    *ptr2++ = 't';
-                    break;
-                default:
-                    sprintf(ptr2, "u%04x", token);
-                    ptr2 += 5;
-                    break; /* escape and print */
+            case '\\':
+                *ptr2++ = '\\';
+                break;
+            case '\"':
+                *ptr2++ = '\"';
+                break;
+            case '\b':
+                *ptr2++ = 'b';
+                break;
+            case '\f':
+                *ptr2++ = 'f';
+                break;
+            case '\n':
+                *ptr2++ = 'n';
+                break;
+            case '\r':
+                *ptr2++ = 'r';
+                break;
+            case '\t':
+                *ptr2++ = 't';
+                break;
+            default:
+                sprintf(ptr2, "u%04x", token);
+                ptr2 += 5;
+                break; /* escape and print */
             }
         }
     }
@@ -508,28 +509,28 @@ print_value(cJSON *item, int depth, int fmt)
     if (!item)
         return 0;
     switch ((item->type) & 255) {
-        case cJSON_NULL:
-            out = cJSON_strdup("null");
-            break;
-        case cJSON_False:
-            out = cJSON_strdup("false");
-            break;
-        case cJSON_True:
-            out = cJSON_strdup("true");
-            break;
-        case cJSON_Number:
-            out = print_number(item);
-            break;
-        case cJSON_Array:
-            out = print_array(item, depth, fmt);
-            break;
-        case cJSON_Object:
-            out = print_object(item, depth, fmt);
-            break;
-        case cJSON_RawString:
-        case cJSON_String:
-            out = print_string(item);
-            break;
+    case cJSON_NULL:
+        out = cJSON_strdup("null");
+        break;
+    case cJSON_False:
+        out = cJSON_strdup("false");
+        break;
+    case cJSON_True:
+        out = cJSON_strdup("true");
+        break;
+    case cJSON_Number:
+        out = print_number(item);
+        break;
+    case cJSON_Array:
+        out = print_array(item, depth, fmt);
+        break;
+    case cJSON_Object:
+        out = print_object(item, depth, fmt);
+        break;
+    case cJSON_RawString:
+    case cJSON_String:
+        out = print_string(item);
+        break;
     }
     return out;
 }

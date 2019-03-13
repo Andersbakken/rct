@@ -244,7 +244,7 @@ bool SocketClient::connect(const String& path)
     };
     memset(&addr_un, '\0', sizeof(addr_un));
     addr_un.sun_family = AF_UNIX;
-    strncpy(addr_un.sun_path, path.constData(), sizeof(addr_un.sun_path));
+    strncpy(addr_un.sun_path, path.constData(), sizeof(addr_un.sun_path) - 1);
 
     SocketClient::SharedPtr unixSocket = shared_from_this();
 

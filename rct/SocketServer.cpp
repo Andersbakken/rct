@@ -126,7 +126,7 @@ bool SocketServer::listen(const Path &p)
     };
     memset(&addr_un, '\0', sizeof(sockaddr_un));
     addr_un.sun_family = AF_UNIX;
-    strncpy(addr_un.sun_path, p.constData(), sizeof(addr_un.sun_path));
+    strncpy(addr_un.sun_path, p.constData(), sizeof(addr_un.sun_path) - 1);
 
     if (commonBindAndListen(&addr, sizeof(sockaddr_un))) {
         path = p;

@@ -82,7 +82,7 @@ public:
             int version;
             (*mDeserializer) >> version;
             if (version != mVersion) {
-                mError = String::format<128>("Wrong database version. Expected %d, got %d for %s.",
+                mError = String::format<128>("Wrong database version. Expected %d, got %d for %s",
                                              mVersion, version, mPath.constData());
                 return false;
             }

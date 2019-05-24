@@ -8,7 +8,7 @@
 
 namespace Rct {
 void* loadPlugin(const Path& fileName);
-void  unloadPlugin(void* handle);
+void unloadPlugin(void* handle);
 void* resolveSymbol(void* handle, const char* symbol);
 char* pluginError();
 }

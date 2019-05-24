@@ -18,7 +18,7 @@ find_library(CPPUNIT_LIBRARY NAMES cppunit
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set CPPUNIT_FOUND to TRUE
 # if all listed variables are TRUE
-find_package_handle_standard_args(CPPUNIT  DEFAULT_MSG
+find_package_handle_standard_args(CPPUNIT DEFAULT_MSG
                                   CPPUNIT_LIBRARY CPPUNIT_INCLUDE_DIR)
 
 mark_as_advanced(CPPUNIT_INCLUDE_DIR CPPUNIT_LIBRARY )

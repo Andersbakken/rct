@@ -868,7 +868,7 @@ int Process::returnCode() const
 bool Process::isFinished() const
 {
     std::lock_guard<std::mutex> lock(mMutex);
-    return  mReturn != ReturnUnset;
+    return mReturn != ReturnUnset;
 }
 
 String Process::errorString() const

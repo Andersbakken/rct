@@ -242,5 +242,5 @@ void MemoryMappedFileTestSuite::writing()
     }
 
 
-    CPPUNIT_ASSERT(readAfter == "File is in changed state");
+    CPPUNIT_ASSERT(readAfter == "File is in changed  state");
 }

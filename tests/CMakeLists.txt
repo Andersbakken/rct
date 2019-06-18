@@ -23,13 +23,17 @@ endif ()
 
 link_directories(${CPPUNIT_LIBRARY_DIRS} ${PROJECT_BINARY_DIR} ${RCT_BINARY_DIR})
 
-set(RCT_TEST_SRCS main.cpp PathTestSuite.cpp ProcessTestSuite.cpp MemoryMappedFileTestSuite.cpp StringTokenizerTestSuite.cpp)
+set(RCT_TEST_SRCS main.cpp PathTestSuite.cpp MemoryMappedFileTestSuite.cpp StringTokenizerTestSuite.cpp)
 if (OPENSSL_FOUND)
     list(APPEND RCT_TEST_SRCS SHA256TestSuite.cpp)
 endif ()
 
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     list(APPEND RCT_TEST_SRCS DateTestSuite.cpp)
+endif()
+
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    list(APPEND RCT_TEST_SRCS ProcessTestSuite.cpp)
 endif()
 
 if (RCT_NO_LIBRARY)

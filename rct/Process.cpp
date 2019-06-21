@@ -406,7 +406,8 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
 
     ProcessThread::setPending(1);
 
-    mPid = ::fork();
+    pid_t oldPid;
+    oldPid = mPid = ::fork();
     if (mPid == -1) {
         //printf("fork, something horrible has happened %d\n", errno);
         // bail out
@@ -579,7 +580,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                         eintrwrap(w, ::close(mSync[0]));
                         mSync[0] = -1;
                     }
-                    mFinished(this);
+                    mFinished(this, oldPid);
                     return Done;
                 }
                 if (timeout) {
@@ -713,8 +714,10 @@ void Process::processCallback(int fd, int mode)
 
 void Process::finish(int returnCode)
 {
+    pid_t oldPid;
     {
         std::lock_guard<std::mutex> lock(mMutex);
+        oldPid = mPid;
         mReturn = returnCode;
 
         mStdInBuffer.clear();
@@ -740,7 +743,7 @@ void Process::finish(int returnCode)
     }
 
     if (mMode == Async)
-        mFinished(this);
+        mFinished(this, oldPid);
 }
 
 void Process::handleInput(int fd)

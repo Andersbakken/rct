@@ -18,8 +18,6 @@
 class Process
 {
 public:
-    typedef Signal<std::function<void(Process*)> > SignalOnData;
-public:
     /**
      * Constructor.
      */
@@ -133,9 +131,10 @@ public:
      */
     void kill(int signal = SIGTERM);
 
-    SignalOnData &readyReadStdOut() { return mReadyReadStdOut; }
-    SignalOnData &readyReadStdErr() { return mReadyReadStdErr; }
-    SignalOnData &finished() { return mFinished; }
+public:
+    Signal<std::function<void(Process*)> > &readyReadStdOut() { return mReadyReadStdOut; }
+    Signal<std::function<void(Process*)> > &readyReadStdErr() { return mReadyReadStdErr; }
+    Signal<std::function<void(Process *, pid_t)> > &finished() { return mFinished; }
 
     /**
      * Get this process' environment. This can be used as a starting point to
@@ -177,13 +176,13 @@ private:
 private:  // members for windows and non-windows implementations
 
     /// Will be notified when child sends something over its stdout
-    SignalOnData mReadyReadStdOut;
+    Signal<std::function<void(Process*)> > mReadyReadStdOut;
 
     /// Will be notified when child sends something over its stderr
-    SignalOnData mReadyReadStdErr;
+    Signal<std::function<void(Process*)> > mReadyReadStdErr;
 
     /// Will be notified when the child process finishes.
-    SignalOnData mFinished;
+    Signal<std::function<void(Process *, pid_t)> > mFinished;
 
     enum { Sync, Async } mMode;
 
@@ -245,9 +244,7 @@ private:  // member functions not required for the windows implementation
     void closeStdErr();
 
     void handleInput(int fd);
-    void handleOutput(int fd, String &buffer, int &index, SignalOnData &signal);
-
-
+    void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)> > &signal);
 
 private:  // members not required for the windows implementation
 

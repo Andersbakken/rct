@@ -393,7 +393,7 @@ bool Path::isHeader(const char *ext)
 {
     if (!ext)
         return true;
-    const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", 0 };
+    const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", "tpp", "txx", "inc", nullptr };
     for (size_t i=0; headers[i]; ++i) {
         if (!strcasecmp(ext, headers[i]))
             return true;
@@ -478,11 +478,11 @@ bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
 #endif
             if (r && errno != EEXIST && errno != EISDIR
 #ifdef OS_CYGWIN
-            		// on cygwin/msys2 we may try to create something like (/cygdrive)/c/some/path/
-            		// an mkdir() attempt to create /c/ will fail with EACCESS so we need to catch it here
-            		&& errno != EACCES
+                    // on cygwin/msys2 we may try to create something like (/cygdrive)/c/some/path/
+                    // an mkdir() attempt to create /c/ will fail with EACCESS so we need to catch it here
+                    && errno != EACCES
 #endif
-					)
+                    )
                 return false;
             buf[i] = '/';
         }

@@ -98,12 +98,12 @@ public:
 };
 
 Resolver::Resolver()
-    : res(0), addr(0), size(0)
+    : res(nullptr), addr(nullptr), size(0)
 {
 }
 
 Resolver::Resolver(const String& host, uint16_t port, const SocketClient::SharedPtr& socket)
-    : res(0), addr(0), size(0)
+    : res(nullptr), addr(nullptr), size(0)
 {
     resolve(host, port, socket);
 }
@@ -151,7 +151,7 @@ void Resolver::resolve(const String& host, uint16_t port, const SocketClient::Sh
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(host.constData(), NULL, &hints, &res) != 0) {
+    if (getaddrinfo(host.constData(), nullptr, &hints, &res) != 0) {
         // bad
         socket->mSignalError(socket, SocketClient::DnsError);
         socket->close();
@@ -176,7 +176,7 @@ void Resolver::resolve(const String& host, uint16_t port, const SocketClient::Sh
         socket->mSignalError(socket, SocketClient::DnsError);
         socket->close();
         freeaddrinfo(res);
-        res = 0;
+        res = nullptr;
         return;
     }
 }
@@ -721,7 +721,7 @@ void SocketClient::socketCallback(int f, int mode)
                 return;
             }
         }
-        write(0, 0);
+        write(nullptr, 0);
     }
 }
 

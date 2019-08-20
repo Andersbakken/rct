@@ -92,9 +92,9 @@ AES256CBC::AES256CBC(const String& key, const unsigned char* salt)
                     outkey, kCCKeySizeAES256, priv->iv, &priv->dctx);
 #else
     priv->ectx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(priv->ectx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
+    EVP_EncryptInit_ex(priv->ectx, EVP_aes_256_cbc(), nullptr, outkey, priv->iv);
     priv->dctx = EVP_CIPHER_CTX_new();
-    EVP_DecryptInit_ex(priv->dctx, EVP_aes_256_cbc(), NULL, outkey, priv->iv);
+    EVP_DecryptInit_ex(priv->dctx, EVP_aes_256_cbc(), nullptr, outkey, priv->iv);
 #endif
 
     priv->inited = true;
@@ -119,7 +119,7 @@ String AES256CBC::encrypt(const String& data)
 #else
     int elen = data.size() + AES_BLOCK_SIZE, flen;
     String out(elen, '\0');
-    EVP_EncryptInit_ex(priv->ectx, NULL, NULL, NULL, NULL);
+    EVP_EncryptInit_ex(priv->ectx, nullptr, nullptr, nullptr, nullptr);
     EVP_EncryptUpdate(priv->ectx, reinterpret_cast<unsigned char*>(out.data()), &elen,
                       reinterpret_cast<const unsigned char*>(data.constData()), data.size());
     EVP_EncryptFinal_ex(priv->ectx, reinterpret_cast<unsigned char*>(out.data()) + elen, &flen);
@@ -142,7 +142,7 @@ String AES256CBC::decrypt(const String& data)
 #else
     int dlen = data.size(), flen;
     String out(dlen + AES_BLOCK_SIZE, '\0');
-    EVP_DecryptInit_ex(priv->dctx, NULL, NULL, NULL, NULL);
+    EVP_DecryptInit_ex(priv->dctx, nullptr, nullptr, nullptr, nullptr);
     EVP_DecryptUpdate(priv->dctx, reinterpret_cast<unsigned char*>(out.data()), &dlen,
                       reinterpret_cast<const unsigned char*>(data.constData()), data.size());
     EVP_DecryptFinal_ex(priv->dctx, reinterpret_cast<unsigned char*>(out.data()) + dlen, &flen);

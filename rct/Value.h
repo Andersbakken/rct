@@ -145,15 +145,15 @@ public:
     const Value &operator[](const String &key) const;
     Value &operator[](const String &key);
     inline Value value(int idx, const Value &defaultValue = Value()) const;
-    template <typename T> inline T value(int idx, const T &defaultValue = T(), bool *ok = 0) const;
+    template <typename T> inline T value(int idx, const T &defaultValue = T(), bool *ok = nullptr) const;
     inline Value value(const String &key, const Value &defaultValue = Value()) const;
-    template <typename T> inline T value(const String &name, const T &defaultValue = T(), bool *ok = 0) const;
-    template <typename T> inline T convert(bool *ok = 0) const { invalidType(T()); if (ok) *ok = false; return T(); }
+    template <typename T> inline T value(const String &name, const T &defaultValue = T(), bool *ok = nullptr) const;
+    template <typename T> inline T convert(bool *ok = nullptr) const { invalidType(T()); if (ok) *ok = false; return T(); }
     inline Value convert(Type type, bool *ok) const;
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
-    static Value fromJSON(const String &json, bool *ok = 0) { return fromJSON(json.constData(), ok); }
-    static Value fromJSON(const char *json, bool *ok = 0);
+    static Value fromJSON(const String &json, bool *ok = nullptr) { return fromJSON(json.constData(), ok); }
+    static Value fromJSON(const char *json, bool *ok = nullptr);
     String toJSON(bool pretty = false) const;
     String format() const;
     static Value undefined() { return Value(Type_Undefined); }
@@ -483,16 +483,16 @@ inline Value Value::convert(Type type, bool *ok) const
     return Value();
 }
 
-inline bool Value::toBool() const { return convert<bool>(0); }
-inline int Value::toInteger() const { return convert<int>(0); }
-inline long long Value::toLongLong() const { return convert<long long>(0); }
-inline unsigned long long Value::toULongLong() const { return convert<unsigned long long>(0); }
-inline double Value::toDouble() const { return convert<double>(0); }
-inline Date Value::toDate(Date::Mode mode) const { return Date(convert<long long>(0), mode); }
-inline String Value::toString() const { return convert<String>(0); }
-inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(0); }
-inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(0); }
-inline List<Value> Value::toList() const { return convert<List<Value> >(0); }
+inline bool Value::toBool() const { return convert<bool>(nullptr); }
+inline int Value::toInteger() const { return convert<int>(nullptr); }
+inline long long Value::toLongLong() const { return convert<long long>(nullptr); }
+inline unsigned long long Value::toULongLong() const { return convert<unsigned long long>(nullptr); }
+inline double Value::toDouble() const { return convert<double>(nullptr); }
+inline Date Value::toDate(Date::Mode mode) const { return Date(convert<long long>(nullptr), mode); }
+inline String Value::toString() const { return convert<String>(nullptr); }
+inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(nullptr); }
+inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(nullptr); }
+inline List<Value> Value::toList() const { return convert<List<Value> >(nullptr); }
 template <typename T>
 inline List<T> Value::toList() const
 {

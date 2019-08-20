@@ -191,7 +191,7 @@ bool SocketServer::commonListen()
 SocketClient::SharedPtr SocketServer::nextConnection()
 {
     if (accepted.empty())
-        return 0;
+        return nullptr;
     const int sock = accepted.front();
     accepted.pop();
     return SocketClient::SharedPtr(new SocketClient(sock, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));

@@ -52,7 +52,7 @@ public:
         MessageErrorType type = Message_Success;
         String text;
     };
-    static std::shared_ptr<Message> create(int version, const char *data, int size, MessageError *error = 0);
+    static std::shared_ptr<Message> create(int version, const char *data, int size, MessageError *error = nullptr);
     template<typename T> static void registerMessage()
     {
         const uint8_t id = T::MessageId;

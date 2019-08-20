@@ -134,16 +134,16 @@ class Deserializer
 {
 public:
     Deserializer(const char *data, int len, const char *key = "")
-        : mData(data), mLength(len), mPos(0), mFile(0), mKey(key)
+        : mData(data), mLength(len), mPos(0), mFile(nullptr), mKey(key)
     {}
 
     Deserializer(const String &string, const char *key = "")
         : mString(string), mData(mString.constData()), mLength(mString.size()),
-          mPos(0), mFile(0), mKey(key)
+          mPos(0), mFile(nullptr), mKey(key)
     {}
 
     Deserializer(FILE *file, const char *key = "")
-        : mData(0), mLength(0), mFile(file), mKey(key)
+        : mData(nullptr), mLength(0), mFile(file), mKey(key)
     {
         assert(file);
     }

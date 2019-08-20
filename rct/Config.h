@@ -62,7 +62,7 @@ public:
         return 0;
     }
 
-    template <typename T> static T value(const char *name, const T & defaultValue, bool *ok = 0)
+    template <typename T> static T value(const char *name, const T & defaultValue, bool *ok = nullptr)
     {
         const OptionBase *opt = findOption(name);
         if (opt && !opt->value.isNull()) {
@@ -75,7 +75,7 @@ public:
         return defaultValue;
     }
 
-    template <typename T> static T value(const char *name, bool *ok = 0)
+    template <typename T> static T value(const char *name, bool *ok = nullptr)
     {
         const OptionBase *opt = findOption(name);
         if (opt) {
@@ -121,7 +121,7 @@ private:
     };
 
     template <typename T>
-    static void convert(const Value &value, T &t, bool *ok = 0, typename std::enable_if<is_list<T>::value, T>::type * = 0)
+    static void convert(const Value &value, T &t, bool *ok = nullptr, typename std::enable_if<is_list<T>::value, T>::type * = 0)
     {
         typedef typename ListType<T>::type K;
         List<Value> values = value.convert<List<Value> >();
@@ -141,7 +141,7 @@ private:
             *ok = true;
     }
     template <typename T>
-    static void convert(const Value &value, T &t, bool *ok = 0, typename std::enable_if<!is_list<T>::value, T>::type * = 0)
+    static void convert(const Value &value, T &t, bool *ok = nullptr, typename std::enable_if<!is_list<T>::value, T>::type * = 0)
     {
         t = value.convert<T>(ok);
     }
@@ -206,7 +206,7 @@ private:
                 return sOptions.at(i);
             }
         }
-        return 0;
+        return nullptr;
     }
 };
 

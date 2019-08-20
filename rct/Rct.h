@@ -4,8 +4,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
-#include <stdio.h>
 #include <regex>
+#include <stdio.h>
 
 #include <rct/List.h>
 #include <rct/Path.h>
@@ -13,29 +13,29 @@
 extern char **environ;
 
 #ifndef RCT_FALL_THROUGH
-# if defined(__cplusplus) && (__cplusplus > 201402L)
-#  define RCT_FALL_THROUGH() /* fall through */ [[fallthrough]]
-# else
-#  if defined(__GNUC__)
-#   if __GXX_ABI_VERSION >= 1011 && !defined(__ANDROID__)
-#    define RCT_FALL_THROUGH /* fall through */ __attribute__ ((fallthrough))
-#   else
-#    define RCT_FALL_THROUGH /* fall through */
-#   endif
-#  elif defined(__clang__)
-#   define RCT_FALL_THROUGH /* fall through */ [[clang::fallthrough]]
-#  else
-#   define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
-#  endif
-# endif
+#if defined(__cplusplus) && (__cplusplus > 201402L)
+#define RCT_FALL_THROUGH() /* fall through */ [[fallthrough]]
+#else
+#if defined(__GNUC__)
+#if __GXX_ABI_VERSION >= 1011 && !defined(__ANDROID__)
+#define RCT_FALL_THROUGH /* fall through */ __attribute__((fallthrough))
+#else
+#define RCT_FALL_THROUGH /* fall through */
+#endif
+#elif defined(__clang__)
+#define RCT_FALL_THROUGH /* fall through */ [[clang::fallthrough]]
+#else
+#define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
+#endif
+#endif
 #endif
 
-namespace Rct {
+namespace Rct
+{
 
-constexpr bool is64Bit = sizeof(void*) == 8;
+constexpr bool is64Bit = sizeof(void *) == 8;
 
-template <typename T, size_t N>
-constexpr size_t countof(T(&)[N])
+template <typename T, size_t N> constexpr size_t countof(T (&)[N])
 {
     return N;
 }
@@ -50,21 +50,20 @@ inline size_t indexIn(const String &string, const std::regex &rx)
     return String::npos;
 }
 
-inline bool contains(const char *str, const std::regex &rx, std::cmatch *match = 0)
+inline bool contains(const char *str, const std::regex &rx, std::cmatch *match = nullptr)
 {
     std::cmatch null;
     std::cmatch &m = match ? *match : null;
     return std::regex_match(str, m, rx);
 }
 
-inline bool contains(const String &str, const std::regex &rx, std::cmatch *match = 0)
+inline bool contains(const String &str, const std::regex &rx, std::cmatch *match = nullptr)
 {
     return contains(str.constData(), rx, match);
 }
 
-
 String shortOptions(const option *longOptions);
-int readLine(FILE *f, char *buf = 0, int max = -1);
+int readLine(FILE *f, char *buf = nullptr, int max = -1);
 String readAll(FILE *f, int max = -1);
 inline int fileSize(FILE *f)
 {
@@ -75,16 +74,15 @@ inline int fileSize(FILE *f)
     fseek(f, pos, SEEK_SET);
     return ret;
 }
-template <typename Container, typename Value>
-inline bool addTo(Container &container, const Value &value)
+template <typename Container, typename Value> inline bool addTo(Container &container, const Value &value)
 {
     const int oldSize = container.size();
     container += value;
     return container.size() != oldSize;
 }
-bool readFile(const Path& path, String &data, mode_t *perm = 0 );
-bool readFile(FILE *f, String &data, mode_t *perm = 0);
-bool writeFile(const Path& path, const String& data, int perm = -1);
+bool readFile(const Path &path, String &data, mode_t *perm = nullptr);
+bool readFile(FILE *f, String &data, mode_t *perm = nullptr);
+bool writeFile(const Path &path, const String &data, int perm = -1);
 
 /**
  * Finds the absolute path (including the file name) of the currently running
@@ -99,7 +97,7 @@ void findExecutablePath(const char *argv0);
 Path executablePath();
 
 String backtrace(int maxFrames = -1);
-bool gettime(timeval* time);
+bool gettime(timeval *time);
 uint64_t monoMs();
 uint64_t currentTimeMs();
 String currentTimeString();
@@ -127,9 +125,9 @@ enum AnsiColor {
 };
 String colorize(const String &string, AnsiColor color, size_t from = 0, size_t len = -1);
 enum LookupMode { Auto, IPv4, IPv6 };
-String addrLookup(const String& addr, LookupMode mode = Auto, bool *ok = 0);
-String nameLookup(const String& name, LookupMode mode = IPv4, bool *ok = 0);
-bool isIP(const String& addr, LookupMode mode = Auto);
+String addrLookup(const String &addr, LookupMode mode = Auto, bool *ok = nullptr);
+String nameLookup(const String &name, LookupMode mode = IPv4, bool *ok = nullptr);
+bool isIP(const String &addr, LookupMode mode = Auto);
 
 inline void jsonEscape(const String &str, std::function<void(const char *, size_t)> output)
 {
@@ -149,13 +147,27 @@ inline void jsonEscape(const String &str, std::function<void(const char *, size_
     const size_t length = str.size();
     for (i = 0; i < length; ++i) {
         switch (const char ch = stringData[i]) {
-        case 8: put("\\b"); break; // backspace
-        case 12: put("\\f"); break; // Form feed
-        case '\n': put("\\n"); break; // newline
-        case '\t': put("\\t"); break; // tab
-        case '\r': put("\\r"); break; // carriage return
-        case '"': put("\\\""); break; // quote
-        case '\\': put("\\\\"); break; // backslash
+        case 8:
+            put("\\b");
+            break; // backspace
+        case 12:
+            put("\\f");
+            break; // Form feed
+        case '\n':
+            put("\\n");
+            break; // newline
+        case '\t':
+            put("\\t");
+            break; // tab
+        case '\r':
+            put("\\r");
+            break; // carriage return
+        case '"':
+            put("\\\"");
+            break; // quote
+        case '\\':
+            put("\\\\");
+            break; // backslash
         default:
             if (ch < 0x20 || ch == 127) { // escape non printable characters
                 char buffer[7];
@@ -177,18 +189,18 @@ inline void jsonEscape(const String &str, std::function<void(const char *, size_
 inline String jsonEscape(const String &string)
 {
     String ret;
-    jsonEscape(string, std::bind(static_cast<void(String::*)(const char *, size_t)>(&String::append),
-                                 &ret, std::placeholders::_1, std::placeholders::_2));
+    jsonEscape(string,
+               std::bind(
+                   static_cast<void (String::*)(const char *, size_t)>(&String::append), &ret, std::placeholders::_1, std::placeholders::_2));
     return ret;
 }
 
-inline bool timevalGreaterEqualThan(const timeval* a, const timeval* b)
+inline bool timevalGreaterEqualThan(const timeval *a, const timeval *b)
 {
-    return (a->tv_sec > b->tv_sec
-            || (a->tv_sec == b->tv_sec && a->tv_usec >= b->tv_usec));
+    return (a->tv_sec > b->tv_sec || (a->tv_sec == b->tv_sec && a->tv_usec >= b->tv_usec));
 }
 
-inline void timevalAdd(timeval* a, int diff)
+inline void timevalAdd(timeval *a, int diff)
 {
     a->tv_sec += diff / 1000;
     a->tv_usec += (diff % 1000) * 1000;
@@ -198,7 +210,7 @@ inline void timevalAdd(timeval* a, int diff)
     }
 }
 
-inline void timevalSub(timeval* a, timeval* b)
+inline void timevalSub(timeval *a, timeval *b)
 {
     a->tv_sec -= b->tv_sec;
     a->tv_usec -= b->tv_usec;
@@ -213,12 +225,12 @@ inline void timevalSub(timeval* a, timeval* b)
     }
 }
 
-inline uint64_t timevalMs(timeval* a)
+inline uint64_t timevalMs(timeval *a)
 {
     return (a->tv_sec * 1000) + (a->tv_usec / 1000);
 }
 
-inline int timevalDiff(timeval* a, timeval* b)
+inline int timevalDiff(timeval *a, timeval *b)
 {
     const uint64_t ams = timevalMs(a);
     const uint64_t bms = timevalMs(b);
@@ -247,7 +259,7 @@ inline List<String> environment()
 static inline bool wildCmp(const char *wild, const char *string, String::CaseSensitivity cs = String::CaseSensitive)
 {
     // Written by Jack Handy - Found here: http://www.codeproject.com/Articles/1088/Wildcard-string-compare-globbing
-    const char *cp = 0, *mp = 0;
+    const char *cp = nullptr, *mp = nullptr;
 
     while (*string && *wild != '*') {
         if (*wild != '?' && *wild != *string && (cs == String::CaseSensitive || tolower(*wild) != tolower(*string))) {
@@ -263,7 +275,7 @@ static inline bool wildCmp(const char *wild, const char *string, String::CaseSen
                 return true;
             }
             mp = wild;
-            cp = string+1;
+            cp = string + 1;
         } else if (*wild == '?' || *wild == *string || (cs == String::CaseInsensitive && tolower(*wild) == tolower(*string))) {
             wild++;
             string++;
@@ -287,14 +299,13 @@ String strerror(int error = errno);
         VAR = BLOCK;                            \
     } while (VAR == -1 && errno == EINTR)
 
-
 #ifndef RCT_FALL_THROUGH
-# if defined(__clang__)
-#  define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
-# elif defined(__GNUC__) && __GXX_ABI_VERSION >= 1011
-#   define RCT_FALL_THROUGH /* fall through */ __attribute__ ((fallthrough))
-# else
-#   define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
-# endif
+#if defined(__clang__)
+#define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
+#elif defined(__GNUC__) && __GXX_ABI_VERSION >= 1011
+#define RCT_FALL_THROUGH /* fall through */ __attribute__((fallthrough))
+#else
+#define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
+#endif
 #endif
 #endif

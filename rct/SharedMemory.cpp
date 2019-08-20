@@ -15,13 +15,13 @@
 #define PROJID 3946
 
 SharedMemory::SharedMemory(key_t key, int size, CreateMode mode)
-    : mShm(-1), mOwner(false), mAddr(0), mKey(-1), mSize(0)
+    : mShm(-1), mOwner(false), mAddr(nullptr), mKey(-1), mSize(0)
 {
     init(key, size, mode);
 }
 
 SharedMemory::SharedMemory(const Path& filename, int size, CreateMode mode)
-    : mShm(-1), mOwner(false), mAddr(0), mKey(-1), mSize(0)
+    : mShm(-1), mOwner(false), mAddr(nullptr), mKey(-1), mSize(0)
 {
     init(ftok(filename.nullTerminated(), PROJID), size, mode);
 }
@@ -35,7 +35,7 @@ bool SharedMemory::init(key_t key, int size, CreateMode mode)
     if (mShm == -1 && mode == Recreate) {
         mShm = shmget(key, size, 0);
         if (mShm != -1) {
-            shmctl(mShm, IPC_RMID, 0);
+            shmctl(mShm, IPC_RMID, nullptr);
             mShm = shmget(key, size, IPC_CREAT | IPC_EXCL);
         }
     }
@@ -52,7 +52,7 @@ bool SharedMemory::init(key_t key, int size, CreateMode mode)
 #endif
         const int ret = shmctl(mShm, IPC_SET, &ds);
         if (ret == -1) {
-            shmctl(mShm, IPC_RMID, 0);
+            shmctl(mShm, IPC_RMID, nullptr);
             mShm = -1;
             return false;
         }
@@ -80,7 +80,7 @@ void* SharedMemory::attach(AttachFlag flag, void* address)
     mAddr = shmat(mShm, address, flg);
     if (mAddr == reinterpret_cast<void*>(-1)) {
         error() << Rct::strerror() << errno;
-        mAddr = 0;
+        mAddr = nullptr;
     }
     return mAddr;
 }
@@ -91,13 +91,13 @@ void SharedMemory::detach()
         return;
 
     shmdt(mAddr);
-    mAddr = 0;
+    mAddr = nullptr;
 }
 
 void SharedMemory::cleanup()
 {
     detach();
     if (mShm != -1 && mOwner)
-        shmctl(mShm, IPC_RMID, 0);
+        shmctl(mShm, IPC_RMID, nullptr);
 }
 #endif

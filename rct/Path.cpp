@@ -354,19 +354,19 @@ const char *Path::extension(size_t *len) const
                     *len = s - (dot + 1);
                 return data + dot + 1;
             case '/':
-                return 0;
+                return nullptr;
             default:
                 break;
             }
             --dot;
         }
     }
-    return 0;
+    return nullptr;
 }
 
 bool Path::isSource(const char *ext)
 {
-    const char *sources[] = { "c", "cc", "cpp", "cxx", "c++", "moc", "mm", "m", 0 };
+    const char *sources[] = { "c", "cc", "cpp", "cxx", "c++", "moc", "mm", "m", nullptr };
     for (size_t i=0; sources[i]; ++i) {
         if (!strcasecmp(ext, sources[i]))
             return true;
@@ -609,7 +609,7 @@ static void visitorWrapper(Path path, const std::function<Path::VisitResult(cons
 #endif
         switch (callback(path)) {
         case Path::Abort:
-            p = 0;
+            p = nullptr;
             break;
         case Path::Recurse:
             if (isDir)
@@ -666,7 +666,7 @@ Path Path::followLink(bool *ok) const
 size_t Path::readAll(char *&buf, size_t max) const
 {
     FILE *f = fopen(constData(), "r");
-    buf = 0;
+    buf = nullptr;
     if (!f)
         return -1;
     fseek(f, 0, SEEK_END);

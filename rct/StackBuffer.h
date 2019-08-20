@@ -6,7 +6,7 @@ class StackBuffer
 {
 public:
     StackBuffer(size_t len)
-        : mBuffer(0), mSize(len)
+        : mBuffer(nullptr), mSize(len)
     {
         if (len > Size) {
             mBuffer = new T[len];
@@ -21,7 +21,7 @@ public:
     }
     void resize(size_t size)
     {
-        T *old = 0;
+        T *old = nullptr;
         if (mSize > Size) {
             old = mBuffer;
         } else {

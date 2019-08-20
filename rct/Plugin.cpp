@@ -10,7 +10,7 @@ namespace Rct {
 void* loadPlugin(const Path& fileName)
 {
     if (!fileName.isFile())
-        return 0;
+        return nullptr;
     return dlopen(fileName.nullTerminated(), RTLD_LAZY);
 }
 

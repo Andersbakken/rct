@@ -22,7 +22,7 @@
 
 using std::shared_ptr;
 
-ThreadPool* ThreadPool::sInstance = 0;
+ThreadPool* ThreadPool::sInstance = nullptr;
 
 class ThreadPoolThread : public Thread
 {
@@ -48,7 +48,7 @@ ThreadPoolThread::ThreadPoolThread(ThreadPool* pool)
 }
 
 ThreadPoolThread::ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job)
-    : mJob(job), mPool(0), mStopped(false)
+    : mJob(job), mPool(nullptr), mStopped(false)
 {
     setAutoDelete(false);
 }
@@ -115,7 +115,7 @@ ThreadPool::ThreadPool(int concurrentJobs, Thread::Priority priority, size_t thr
 ThreadPool::~ThreadPool()
 {
     if (sInstance == this)
-        sInstance = 0;
+        sInstance = nullptr;
     std::unique_lock<std::mutex> lock(mMutex);
     mJobs.clear();
     lock.unlock();

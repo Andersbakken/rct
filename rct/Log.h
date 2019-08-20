@@ -259,7 +259,7 @@ private:
             : outPtr(string), level(LogLevel::None), spacing(true), disableSpacingOverride(0), flags(f)
         {}
         Data(LogLevel lvl, Flags<LogOutput::LogFlag> f)
-            : outPtr(0), level(lvl), spacing(true), disableSpacingOverride(0), flags(f)
+            : outPtr(nullptr), level(lvl), spacing(true), disableSpacingOverride(0), flags(f)
         {
         }
         ~Data()
@@ -297,7 +297,7 @@ template <typename T> inline String typeName()
 {
 #ifdef __GXX_RTTI
     const char *name = typeid(T).name();
-    char *ret = abi::__cxa_demangle(name, 0, 0, 0);
+    char *ret = abi::__cxa_demangle(name, nullptr, nullptr, nullptr);
     String ba;
     if (ret) {
         ba = ret;

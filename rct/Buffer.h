@@ -11,7 +11,7 @@ class Buffer
 {
 public:
     Buffer()
-        : bufferData(0), bufferSize(0), bufferReserved(0)
+        : bufferData(nullptr), bufferSize(0), bufferReserved(0)
     {
     }
     Buffer(Buffer&& other)
@@ -19,7 +19,7 @@ public:
         bufferData = other.bufferData;
         bufferSize = other.bufferSize;
         bufferReserved = other.bufferReserved;
-        other.bufferData = 0;
+        other.bufferData = nullptr;
         other.bufferSize = 0;
         other.bufferReserved = 0;
     }
@@ -34,7 +34,7 @@ public:
         bufferData = other.bufferData;
         bufferSize = other.bufferSize;
         bufferReserved = other.bufferReserved;
-        other.bufferData = 0;
+        other.bufferData = nullptr;
         other.bufferSize = 0;
         other.bufferReserved = 0;
         return *this;
@@ -47,7 +47,7 @@ public:
         enum { ClearThreshold = 1024 * 512 };
         if (bufferSize >= ClearThreshold) {
             free(bufferData);
-            bufferData = 0;
+            bufferData = nullptr;
             bufferReserved = 0;
         }
         bufferSize = 0;

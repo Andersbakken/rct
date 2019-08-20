@@ -10,7 +10,7 @@ class DataFile
 {
 public:
     DataFile(const Path &path, int version)
-        : mFile(0), mSizeOffset(-1), mSerializer(0), mDeserializer(0), mPath(path), mVersion(version)
+        : mFile(nullptr), mSizeOffset(-1), mSerializer(nullptr), mDeserializer(nullptr), mPath(path), mVersion(version)
     {}
 
     ~DataFile()
@@ -32,9 +32,9 @@ public:
         operator<<(size);
 
         fclose(mFile);
-        mFile = 0;
+        mFile = nullptr;
         delete mSerializer;
-        mSerializer = 0;
+        mSerializer = nullptr;
         if (rename(mTempFilePath.constData(), mPath.constData())) {
             Path::rm(mTempFilePath);
             mError = String::format<128>("rename error: %d %s", errno, Rct::strerror().constData());

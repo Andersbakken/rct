@@ -63,7 +63,7 @@ public:
         template<typename T>
         void setExtraData(const T& t, int type = -1);
         template<typename T>
-        T extraData(int type = -1, bool *ok = 0) const;
+        T extraData(int type = -1, bool *ok = nullptr) const;
         int extraDataType() const;
 
         Signal<std::function<void(const SharedPtr&)> >& onDestroyed() { return mDestroyed; }

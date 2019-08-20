@@ -26,7 +26,7 @@ void* Thread::localStart(void* arg)
         else
             EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, t));
     }
-    return 0;
+    return nullptr;
 }
 
 static inline void initAttr(pthread_attr_t** pattr, pthread_attr_t* attr)
@@ -40,7 +40,7 @@ static inline void initAttr(pthread_attr_t** pattr, pthread_attr_t* attr)
 bool Thread::start(Priority priority, size_t stackSize)
 {
     pthread_attr_t attr;
-    pthread_attr_t* pattr = 0;
+    pthread_attr_t* pattr = nullptr;
     if (priority == Idle) {
 #ifdef HAVE_SCHEDIDLE
         initAttr(&pattr, &attr);
@@ -75,7 +75,7 @@ bool Thread::join()
 {
     if (!mRunning)
         return false;
-    const bool ok = pthread_join(mThread, 0) == 0;
+    const bool ok = pthread_join(mThread, nullptr) == 0;
     mRunning = false;
     return ok;
 }

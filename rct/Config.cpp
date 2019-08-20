@@ -63,7 +63,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
             o.name = opt->name;
             o.has_arg = (opt->defaultValue.type() == Value::Type_Boolean) ? no_argument : required_argument; // ### no optional arg?
             o.val = opt->shortOption;
-            o.flag = 0;
+            o.flag = nullptr;
         }
     }
     memset(&options[optionPointers.size()], 0, sizeof(option));
@@ -86,7 +86,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
         // error() << optind << ret << optarg;
         // error("%c [%s] [%s]", ret, optarg, a[optind]);
 
-        OptionBase *opt = 0;
+        OptionBase *opt = nullptr;
         if (idx != -1) {
             opt = optionPointers[idx];
         } else {

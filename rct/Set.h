@@ -74,7 +74,7 @@ public:
         return Base::insert(t).second;
     }
 
-    Set<T> &unite(const Set<T> &other, size_t *count = 0)
+    Set<T> &unite(const Set<T> &other, size_t *count = nullptr)
     {
         size_t c = 0;
         if (isEmpty()) {
@@ -118,7 +118,7 @@ public:
         return ret;
     }
 
-    Set<T> &unite(const List<T> &other, size_t *count = 0)
+    Set<T> &unite(const List<T> &other, size_t *count = nullptr)
     {
         size_t c = 0;
         typename std::vector<T>::const_iterator it = other.begin();
@@ -132,7 +132,7 @@ public:
         return *this;
     }
 
-    Set<T> &subtract(const Set<T> &other, size_t *count = 0)
+    Set<T> &subtract(const Set<T> &other, size_t *count = nullptr)
     {
         size_t c = 0;
         if (!isEmpty()) {

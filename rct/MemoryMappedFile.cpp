@@ -90,13 +90,13 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
 #ifdef _WIN32
 
     const DWORD access = (f_access == READ_ONLY) ?
-        GENERIC_READ : (GENERIC_READ | GENERIC_WRITE);
+    GENERIC_READ : (GENERIC_READ | GENERIC_WRITE);
     const DWORD share = (f_lock == DO_LOCK) ?
-        0 : (FILE_SHARE_READ | FILE_SHARE_WRITE);
+    0 : (FILE_SHARE_READ | FILE_SHARE_WRITE);
     const DWORD protect = (f_access == READ_ONLY) ?
-        PAGE_READONLY : PAGE_READWRITE;
+    PAGE_READONLY : PAGE_READWRITE;
     const DWORD desiredAccess = (f_access == READ_ONLY) ?
-        FILE_MAP_READ : FILE_MAP_WRITE; // FILE_MAP_WRITE includes read access
+    FILE_MAP_READ : FILE_MAP_WRITE; // FILE_MAP_WRITE includes read access
 
     // first, we need to open the file:
     mhFile = CreateFileW(Utf8To16(f_filename.nullTerminated()),
@@ -170,9 +170,9 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
 #else
     // try to open the file
     const int openFlags = (f_access == READ_ONLY) ?
-        O_RDONLY : O_RDWR;
+    O_RDONLY : O_RDWR;
     const int protFlags = (f_access == READ_ONLY) ?
-        PROT_READ : (PROT_READ | PROT_WRITE);
+    PROT_READ : (PROT_READ | PROT_WRITE);
 
     mFd = ::open(f_filename.nullTerminated(), openFlags);
 
@@ -235,14 +235,13 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
     }
 
     // now, we can actually map the file
-    mpMapped = mmap(
-            NULL,       // destination hint
-            mFileSize,
-            protFlags,  // mmu page protection
-            MAP_SHARED,
-            mFd,
-            0           // offset
-        );
+    mpMapped = mmap(nullptr,       // destination hint
+                    mFileSize,
+                    protFlags,  // mmu page protection
+                    MAP_SHARED,
+                    mFd,
+                    0);           // offset
+
 
     if(mpMapped == MAP_FAILED)
     {

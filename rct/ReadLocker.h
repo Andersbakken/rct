@@ -10,7 +10,7 @@ public:
         : mLock(lock)
     {
         if (mLock && !mLock->lockForRead())
-            mLock = 0;
+            mLock = nullptr;
     }
     ~ReadLocker()
     {

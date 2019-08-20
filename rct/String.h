@@ -26,7 +26,7 @@ public:
         CaseSensitive,
         CaseInsensitive
     };
-    String(const char *ch = 0, size_t len = npos)
+    String(const char *ch = nullptr, size_t len = npos)
     {
         if (ch) {
             if (len == npos)
@@ -721,37 +721,37 @@ public:
         return ret;
     }
 
-    unsigned long long toULongLong(bool *ok = 0, size_t base = 10) const
+    unsigned long long toULongLong(bool *ok = nullptr, size_t base = 10) const
     {
         errno = 0;
-        char *end = 0;
+        char *end = nullptr;
         const unsigned long long ret = ::strtoull(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
-    long long toLongLong(bool *ok = 0, size_t base = 10) const
+    long long toLongLong(bool *ok = nullptr, size_t base = 10) const
     {
         errno = 0;
-        char *end = 0;
+        char *end = nullptr;
         const long long ret = ::strtoll(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
-    uint32_t toULong(bool *ok = 0, size_t base = 10) const
+    uint32_t toULong(bool *ok = nullptr, size_t base = 10) const
     {
         errno = 0;
-        char *end = 0;
+        char *end = nullptr;
         const uint32_t ret = ::strtoul(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
-    int32_t toLong(bool *ok = 0, size_t base = 10) const
+    int32_t toLong(bool *ok = nullptr, size_t base = 10) const
     {
         errno = 0;
-        char *end = 0;
+        char *end = nullptr;
         const int32_t ret = ::strtol(constData(), &end, base);
         if (ok)
             *ok = !errno && !*end;
@@ -766,7 +766,7 @@ public:
 
     static String formatTime(time_t t, TimeFormat fmt = DateTime)
     {
-        const char *format = 0;
+        const char *format = nullptr;
         switch (fmt) {
         case DateTime:
             format = "%Y-%m-%d %H:%M:%S";
@@ -805,7 +805,7 @@ public:
     static String number(unsigned long num, size_t base = 10) { return String::number(static_cast<unsigned long long>(num), base); }
     static String number(long long num, size_t base = 10)
     {
-        const char *format = 0;
+        const char *format = nullptr;
         switch (base) {
         case 10: format = "%lld"; break;
         case 16: format = "0x%llx"; break;
@@ -828,7 +828,7 @@ public:
 
     static String number(unsigned long long num, size_t base = 10)
     {
-        const char *format = 0;
+        const char *format = nullptr;
         switch (base) {
         case 10: format = "%llu"; break;
         case 16: format = "0x%llx"; break;

@@ -144,7 +144,7 @@ MessageQueue::~MessageQueue()
         thread.reset();
     }
     if (queue != -1 && owner) {
-        msgctl(queue, IPC_RMID, 0);
+        msgctl(queue, IPC_RMID, nullptr);
     }
 }
 

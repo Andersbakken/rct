@@ -150,7 +150,7 @@ public:
      * Find a command in the current PATH.
      * If nothing can be found, an empty Path is returned.
      */
-    static Path findCommand(const String &command, const char *path = 0);
+    static Path findCommand(const String &command, const char *path = nullptr);
 
     /**
      * Get the child process' process id.

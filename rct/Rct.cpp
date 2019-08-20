@@ -264,7 +264,7 @@ void findExecutablePath(const char *argv0)
 static inline char *demangle(const char *str)
 {
     if (!str)
-        return 0;
+        return nullptr;
     int status;
 #ifdef OS_Darwin
     char paren[1024];
@@ -287,17 +287,17 @@ static inline char *demangle(const char *str)
     char buf[1024];
     size_t len = sizeof(buf);
     if (l >= len)
-        return 0;
+        return nullptr;
     memcpy(buf, paren, l + 1);
     buf[l] = '\0';
-    char *ret = abi::__cxa_demangle(buf, 0, 0, &status);
+    char *ret = abi::__cxa_demangle(buf, nullptr, nullptr, &status);
     if (status != 0) {
         if (ret)
             free(ret);
 #ifdef OS_Darwin
         return strdup(paren);
 #else
-        return 0;
+        return nullptr;
 #endif
     }
     return ret;
@@ -379,7 +379,7 @@ uint64_t monoMs()
 uint64_t currentTimeMs()
 {
     timeval time;
-    gettimeofday(&time, NULL);
+    gettimeofday(&time, nullptr);
     return (time.tv_sec * static_cast<uint64_t>(1000)) + (time.tv_usec / static_cast<uint64_t>(1000));
 }
 
@@ -513,7 +513,7 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
         sz = sizeof(sockaddr_in);
     }
     String out(NI_MAXHOST, '\0');
-    if (getnameinfo(&addr, sz, out.data(), NI_MAXHOST, 0, 0, 0) != 0) {
+    if (getnameinfo(&addr, sz, out.data(), NI_MAXHOST, nullptr, 0, 0) != 0) {
         if (ok)
             *ok = false;
         // bad
@@ -536,7 +536,7 @@ String nameLookup(const String& name, LookupMode mode, bool *ok)
     hints.ai_family = (mode == IPv6) ? AF_INET6 : AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(name.constData(), NULL, &hints, &res) != 0) {
+    if (getaddrinfo(name.constData(), nullptr, &hints, &res) != 0) {
         if (ok)
             *ok = false;
         // bad

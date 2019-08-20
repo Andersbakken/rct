@@ -22,7 +22,7 @@ public:
         return !std::unordered_map<Key, Value>::size();
     }
 
-    Value value(const Key &key, const Value &defaultValue, bool *ok = 0) const
+    Value value(const Key &key, const Value &defaultValue, bool *ok = nullptr) const
     {
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::find(key);
         if (it == std::unordered_map<Key, Value>::end()) {
@@ -50,7 +50,7 @@ public:
         std::unordered_map<Key, Value>::clear();
     }
 
-    Value take(const Key &key, bool *ok = 0)
+    Value take(const Key &key, bool *ok = nullptr)
     {
         Value ret = Value();
         if (remove(key, &ret)) {
@@ -62,7 +62,7 @@ public:
         return ret;
     }
 
-    bool remove(const Key &t, Value *val = 0)
+    bool remove(const Key &t, Value *val = nullptr)
     {
         typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::find(t);
         if (it != std::unordered_map<Key, Value>::end()) {
@@ -108,7 +108,7 @@ public:
         return std::unordered_map<Key, Value>::find(key)->second;
     }
 
-    Hash<Key, Value> &unite(const Hash<Key, Value> &other, size_t *count = 0)
+    Hash<Key, Value> &unite(const Hash<Key, Value> &other, size_t *count = nullptr)
     {
         typename std::unordered_map<Key, Value>::const_iterator it = other.begin();
         const auto end = other.end();

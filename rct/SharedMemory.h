@@ -14,7 +14,7 @@ public:
     SharedMemory(const Path& filename, int size, CreateMode = None);
     ~SharedMemory();
 
-    void* attach(AttachFlag flag, void* address = 0);
+    void* attach(AttachFlag flag, void* address = nullptr);
     void detach();
 
     bool isValid() const { return mShm != -1; }

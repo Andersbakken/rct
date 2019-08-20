@@ -34,9 +34,9 @@ public:
     State state() const { return mSocketState; }
     unsigned int mode() const { return mSocketMode; }
 #ifndef _WIN32
-    bool connect(const String& path); // UNIX
+    bool connect(const String &path); // UNIX
 #endif
-    bool connect(const String& host, uint16_t port); // TCP
+    bool connect(const String &host, uint16_t port); // TCP
     bool bind(uint16_t port); // UDP
 
     String hostName() const { return (mSocketMode & Tcp ? mAddress : String()); }
@@ -59,7 +59,7 @@ public:
     bool write(const void *data, unsigned int num);
     bool write(const String &data) { return write(&data[0], data.size()); }
 
-    String peerName(uint16_t* port = 0) const;
+    String peerName(uint16_t *port = nullptr) const;
     String peerString() const
     {
         uint16_t port;
@@ -69,7 +69,7 @@ public:
         }
         return String();
     }
-    String sockName(uint16_t* port = 0) const;
+    String sockName(uint16_t *port = nullptr) const;
     String sockString() const
     {
         uint16_t port;
@@ -81,20 +81,20 @@ public:
     }
 
     // UDP
-    bool writeTo(const String& host, uint16_t port, const unsigned char* data, unsigned int num);
-    bool writeTo(const String& host, uint16_t port, const String& data)
+    bool writeTo(const String &host, uint16_t port, const unsigned char *data, unsigned int num);
+    bool writeTo(const String &host, uint16_t port, const String &data)
     {
-        return writeTo(host, port, reinterpret_cast<const unsigned char*>(&data[0]), data.size());
+        return writeTo(host, port, reinterpret_cast<const unsigned char *>(&data[0]), data.size());
     }
 
     // UDP Multicast
-    bool addMembership(const String& ip);
-    bool dropMembership(const String& ip);
+    bool addMembership(const String &ip);
+    bool dropMembership(const String &ip);
     void setMulticastLoop(bool loop);
     void setMulticastTTL(unsigned char ttl);
 
-    const Buffer& buffer() const { return mReadBuffer; }
-    Buffer&& takeBuffer() { return std::move(mReadBuffer); }
+    const Buffer &buffer() const { return mReadBuffer; }
+    Buffer &&takeBuffer() { return std::move(mReadBuffer); }
 
     Signal<std::function<void(const SocketClient::SharedPtr&, Buffer&&)> >& readyRead() { return mSignalReadyRead; }
     Signal<std::function<void(const SocketClient::SharedPtr&, const String&, uint16_t, Buffer&&)> >& readyReadFrom() { return mSignalReadyReadFrom; }

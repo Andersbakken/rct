@@ -56,7 +56,7 @@ public:
         return !Base::size();
     }
 
-    Value value(const Key &key, const Value &defaultValue, bool *ok = 0) const
+    Value value(const Key &key, const Value &defaultValue, bool *ok = nullptr) const
     {
         typename Base::const_iterator it = Base::find(key);
         if (it == Base::end()) {
@@ -74,7 +74,7 @@ public:
         return value(key, Value());
     }
 
-    Value take(const Key &key, bool *ok = 0)
+    Value take(const Key &key, bool *ok = nullptr)
     {
         Value ret = Value();
         if (remove(key, &ret)) {
@@ -86,7 +86,7 @@ public:
         return ret;
     }
 
-    bool remove(const Key &t, Value *val = 0)
+    bool remove(const Key &t, Value *val = nullptr)
     {
         typename Base::iterator it = Base::find(t);
         if (it != Base::end()) {
@@ -142,7 +142,7 @@ public:
         return Base::find(key)->second;
     }
 
-    Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, size_t *count = 0)
+    Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, size_t *count = nullptr)
     {
         typename Base::const_iterator it = other.begin();
         const auto end = other.end();
@@ -283,7 +283,7 @@ public:
         return !std::multimap<Key, Value, Compare>::size();
     }
 
-    Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = 0) const
+    Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = nullptr) const
     {
         typename std::multimap<Key, Value, Compare>::const_iterator it = std::multimap<Key, Value, Compare>::find(key);
         if (it == std::multimap<Key, Value, Compare>::end()) {
@@ -296,7 +296,7 @@ public:
         return it->second;
     }
 
-    Value take(const Key &key, bool *ok = 0)
+    Value take(const Key &key, bool *ok = nullptr)
     {
         Value ret = Value();
         if (remove(key, &ret)) {
@@ -364,7 +364,7 @@ public:
         return std::multimap<Key, Value, Compare>::find(key)->second;
     }
 
-    MultiMap<Key, Value, Compare> &unite(const MultiMap<Key, Value, Compare> &other, size_t *count = 0)
+    MultiMap<Key, Value, Compare> &unite(const MultiMap<Key, Value, Compare> &other, size_t *count = nullptr)
     {
         typename std::multimap<Key, Value, Compare>::const_iterator it = other.begin();
         const auto end = other.end();

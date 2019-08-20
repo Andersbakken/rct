@@ -183,7 +183,7 @@ std::unique_ptr<MatchResult> StringTokenizer::find_match(CompletionCandidate *ca
     String c = candidate->name;
 
     if (query.length() > c.length())
-        return 0;
+        return nullptr;
 
     String c_lower = c.toLower();
     String query_lower = query.toLower();

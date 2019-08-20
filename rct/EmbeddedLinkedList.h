@@ -194,7 +194,7 @@ public:
             deleteNode(t);
             t = next;
         }
-        mFirst = mLast = 0;
+        mFirst = mLast = nullptr;
         mCount = 0;
     }
     void moveToEnd(const T &t)

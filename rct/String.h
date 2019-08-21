@@ -704,6 +704,11 @@ public:
         return ret;
     }
 
+    static List<String> split(const String &str, char ch, unsigned int flags = NoSplitFlag)
+    {
+        return str.split(ch, flags);
+    }
+
     List<String> split(const String &str, unsigned int flags = NoSplitFlag) const
     {
         List<String> ret;
@@ -719,6 +724,11 @@ public:
         if (prev < size() || !(flags & SkipEmpty))
             ret.append(mid(prev));
         return ret;
+    }
+
+    static List<String> split(const String &str, const String &by, unsigned int flags = NoSplitFlag)
+    {
+        return str.split(by, flags);
     }
 
     unsigned long long toULongLong(bool *ok = nullptr, size_t base = 10) const

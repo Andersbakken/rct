@@ -56,7 +56,7 @@ public:
 
     void clear() { mValue = 0; }
     bool operator!() const { return !mValue; }
-    operator SafeBool() const { return mValue ? &safeBool : 0; }
+    operator SafeBool() const { return mValue ? &safeBool : nullptr; }
 
     template <typename F> bool test(F flag) const { return *this & flag; }
     Flags<T> test(Flags<T> flags) const { return construct(mValue & flags); }

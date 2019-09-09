@@ -241,7 +241,7 @@ void ProcessThread::processSignalHandler(int sig)
 
 void ProcessThread::installProcessHandler()
 {
-    assert(sProcessThread == 0);
+    assert(sProcessThread == nullptr);
     sProcessThread = new ProcessThread;
     sProcessThread->start();
 }

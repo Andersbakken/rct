@@ -495,7 +495,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
         }
         total = 0;
 
-        assert(data != 0 && size > 0);
+        assert(data != nullptr && size > 0);
 
         if (mWriteBuffer.isEmpty()) {
             for (;;) {

@@ -393,7 +393,7 @@ bool Path::isHeader(const char *ext)
 {
     if (!ext)
         return true;
-    const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", "tpp", "txx", "inc", nullptr };
+    const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", "tpp", "txx", "inc", "cuh", nullptr };
     for (size_t i=0; headers[i]; ++i) {
         if (!strcasecmp(ext, headers[i]))
             return true;

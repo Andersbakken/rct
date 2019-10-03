@@ -23,7 +23,7 @@ find_path(V8_INCLUDE_DIR v8.h
 # On non-Unix platforms (Mac and Windows specifically based on the forum),
 # V8 builds separate shared (or at least linkable) libraries for v8_base and v8_snapshot
 find_library(V8_BASE_LIBRARY
-    NAMES v8_base v8_base.ia32 v8_base.x64 libv8_base
+    NAMES v8_base v8_base.ia32 v8_base.x64 libv8_base v8_libbase
     PATHS
     ${V8_DIR}
     ${V8_DIR}/lib
@@ -223,8 +223,9 @@ find_library(V8_ICUI18N_LIBRARY_DEBUG
     )
 
 set(V8_FOUND "NO")
-#message(FATAL_ERROR ${V8_BASE_LIBRARY} "E" ${V8_SNAPSHOT_LIBRARY} "d" ${V8_ICUUC_LIBRARY} "C" ${V8_ICUI18N_LIBRARY} "B" ${V8_INCLUDE_DIR} "a")
-if(V8_BASE_LIBRARY AND V8_SNAPSHOT_LIBRARY AND V8_LIBBASE_LIBRARY AND V8_LIBPLATFORM_LIBRARY AND V8_INCLUDE_DIR)
-    set(V8_LIBRARY ${V8_BASE_LIBRARY} ${V8_LIBBASE_LIBRARY} ${V8_LIBPLATFORM_LIBRARY} ${V8_SNAPSHOT_LIBRARY})
+ message(STATUS BASE "BASE " ${V8_BASE_LIBRARY} "\nSNAPSHOT " ${V8_SNAPSHOT_LIBRARY} "\nICUUC " ${V8_ICUUC_LIBRARY} "\nICUI18N " ${V8_ICUI18N_LIBRARY} "\nINCLUDE " ${V8_INCLUDE_DIR})
+
+if(V8_BASE_LIBRARY AND V8_LIBBASE_LIBRARY AND V8_LIBPLATFORM_LIBRARY AND V8_INCLUDE_DIR) # AND V8_SNAPSHOT_LIBRARY
+    set(V8_LIBRARY ${V8_BASE_LIBRARY} ${V8_LIBBASE_LIBRARY} ${V8_LIBPLATFORM_LIBRARY}) # ${V8_SNAPSHOT_LIBRARY})
     set(V8_FOUND "YES")
 endif()

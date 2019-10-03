@@ -22,9 +22,9 @@ public:
 
     static ScriptEngine *instance() { return sInstance; }
 
-    Value evaluate(const String &source, const Path &path = String(), String *error = 0);
-    Value call(const String &function, String *error = 0);
-    Value call(const String &function, std::initializer_list<Value> arguments, String *error = 0);
+    Value evaluate(const String &source, const Path &path = String(), String *error = nullptr);
+    Value call(const String &function, String *error = nullptr);
+    Value call(const String &function, std::initializer_list<Value> arguments, String *error = nullptr);
 
     template<typename RetVal>
     RetVal throwException(const Value& exception) {
@@ -54,11 +54,11 @@ public:
         SharedPtr child(const String &name);
         bool isFunction() const;
 
-        Value property(const String &propertyName, String *error = 0);
-        void setProperty(const String &propertyName, const Value &value, String *error = 0);
+        Value property(const String &propertyName, String *error = nullptr);
+        void setProperty(const String &propertyName, const Value &value, String *error = nullptr);
         Value call(std::initializer_list<Value> arguments = std::initializer_list<Value>(),
                    const SharedPtr &thisObject = SharedPtr(),
-                   String *error = 0);
+                   String *error = nullptr);
 
         template<typename T>
         void setExtraData(const T& t, int type = -1);
@@ -92,8 +92,8 @@ public:
         class ExtraData : public ExtraDataBase
         {
         public:
-            ExtraData(int type, const T& ot)
-                : ExtraDataBase(type), t(new T(ot))
+            ExtraData(int typ, const T& ot)
+                : ExtraDataBase(typ), t(new T(ot))
             {
             }
             ~ExtraData()

@@ -184,8 +184,7 @@ static inline std::shared_ptr<ScriptEngine::Object> createObject(const std::shar
     } else {
         v8::Handle<v8::Value> sub = templ->NewInstance(ctx).ToLocalChecked();
         subobj = v8::Handle<v8::Object>::Cast(sub);
-#warning v8 is a stinking pile of shit
-        // subobj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, type));
+        subobj->SetPrivate(ctx, v8::Private::New(iso, v8::String::NewFromUtf8(iso, "rct")), v8::Int32::New(iso, type));
         subobj->SetInternalField(0, v8::External::New(iso, data));
     }
 
@@ -391,8 +390,8 @@ ScriptEngine::ScriptEngine()
     {
         v8::Context::Scope contextScope(ctx);
         v8::Local<v8::Object> global = ctx->Global();
-        // global->SetHiddenValue(v8::String::NewFromUtf8(mPrivate->isolate, "rct"), v8::Int32::New(mPrivate->isolate, CustomType_Global));
-#warning v8, you suck
+        global->SetPrivate(ctx, v8::Private::New(mPrivate->isolate, v8::String::NewFromUtf8(mPrivate->isolate, "rct")),
+                           v8::Int32::New(mPrivate->isolate, CustomType_Global));
         global->Set(v8::String::NewFromUtf8(mPrivate->isolate, "global"), global);
 
         mGlobalObject.reset(new Object);
@@ -713,8 +712,7 @@ static Value fromV8(const v8::Local<v8::Context> &ctx, v8::Isolate *isolate, v8:
         return result;
     } else if (value->IsObject()) {
         v8::Handle<v8::Object> object = v8::Handle<v8::Object>::Cast(value);
-        v8::Handle<v8::Value> rct; // = object->GetHiddenValue(v8::String::NewFromUtf8(isolate, "rct"));
-#warning v8 is a stinking pile
+        v8::Handle<v8::Value> rct = object->GetPrivate(ctx, v8::Private::New(isolate, v8::String::NewFromUtf8(isolate, "rct"))).ToLocalChecked();
         if (!rct.IsEmpty() && rct->IsInt32()) {
             return Value(std::make_shared<ScriptEngineCustom>(rct->ToInt32(ctx).ToLocalChecked()->Value(), isolate,
                                                               object, objectFromV8Object(object)));
@@ -858,8 +856,8 @@ std::shared_ptr<ScriptEngine::Object> ScriptEngine::createObject() const
     std::shared_ptr<ScriptEngine::Object> o = ObjectPrivate::makeObject();
 
     ObjectData* data = new ObjectData({ String(), o, std::shared_ptr<ScriptEngine::Object>() });
-    // obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
-#warning fucking hidden value
+    obj->SetPrivate(ctx, v8::Private::New(iso, v8::String::NewFromUtf8(iso, "rct")),
+                    v8::Int32::New(iso, CustomType_ClassObject));
     obj->SetInternalField(0, v8::External::New(iso, data));
 
     ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
@@ -884,8 +882,8 @@ std::shared_ptr<ScriptEngine::Object> ClassPrivate::create()
     std::shared_ptr<ScriptEngine::Object> o = ObjectPrivate::makeObject();
 
     ObjectData* data = new ObjectData({ String(), o, std::shared_ptr<ScriptEngine::Object>() });
-#warning fucking hidden value
-    // obj->SetHiddenValue(v8::String::NewFromUtf8(iso, "rct"), v8::Int32::New(iso, CustomType_ClassObject));
+    obj->SetPrivate(ctx, v8::Private::New(iso, v8::String::NewFromUtf8(iso, "rct")),
+                    v8::Int32::New(iso, CustomType_ClassObject));
     obj->SetInternalField(0, v8::External::New(iso, data));
 
     ObjectPrivate *priv = ObjectPrivate::objectPrivate(o.get());
@@ -1161,7 +1159,6 @@ void ScriptEngine::Class::registerStaticFunction(const String &name, StaticFunct
 
     v8::Local<v8::FunctionTemplate> templ = v8::Local<v8::FunctionTemplate>::New(iso, mPrivate->ctorTempl);
 
-#warning is this right?
     templ->GetFunction(ctx).ToLocalChecked()->Set(v8::String::NewFromUtf8(iso, name.constData()), function);
 }
 

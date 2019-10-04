@@ -31,8 +31,8 @@ public:
     void setVersion(int version) { mVersion = version; }
     int version() const { return mVersion; }
 
-    void setErrorHandler(std::function<void(const SocketClient::SharedPtr &, Message::MessageError &&)> handler) { mErrorHandler = handler; }
-    std::function<void(const SocketClient::SharedPtr &, Message::MessageError &&)> errorHandler() const { return mErrorHandler; }
+    void setErrorHandler(std::function<void(const std::shared_ptr<SocketClient> &, Message::MessageError &&)> handler) { mErrorHandler = handler; }
+    std::function<void(const std::shared_ptr<SocketClient> &, Message::MessageError &&)> errorHandler() const { return mErrorHandler; }
 
     void setSilent(bool on) { mSilent = on; }
     bool isSilent() const { return mSilent; }
@@ -79,17 +79,17 @@ public:
     Signal<std::function<void(std::shared_ptr<Connection>, int)> > &finished() { return mFinished; }
     Signal<std::function<void(std::shared_ptr<Connection>, const Message *)> > &aboutToSend() { return mAboutToSend; }
     Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)> > &newMessage() { return mNewMessage; }
-    SocketClient::SharedPtr client() const { return mSocketClient; }
+    std::shared_ptr<SocketClient> client() const { return mSocketClient; }
 
 private:
     Connection(int version);
     void disconnect();
-    void connect(const SocketClient::SharedPtr &client);
-    void onClientConnected(const SocketClient::SharedPtr&) { mIsConnected = true; mConnected(shared_from_this()); }
-    void onClientDisconnected(const SocketClient::SharedPtr&) { mIsConnected = false; mDisconnected(shared_from_this()); }
-    void onDataAvailable(const SocketClient::SharedPtr&, Buffer&& buffer);
-    void onDataWritten(const SocketClient::SharedPtr&, int);
-    void onSocketError(const SocketClient::SharedPtr&, SocketClient::Error error)
+    void connect(const std::shared_ptr<SocketClient> &client);
+    void onClientConnected(const std::shared_ptr<SocketClient>&) { mIsConnected = true; mConnected(shared_from_this()); }
+    void onClientDisconnected(const std::shared_ptr<SocketClient>&) { mIsConnected = false; mDisconnected(shared_from_this()); }
+    void onDataAvailable(const std::shared_ptr<SocketClient>&, Buffer&& buffer);
+    void onDataWritten(const std::shared_ptr<SocketClient>&, int);
+    void onSocketError(const std::shared_ptr<SocketClient>&, SocketClient::Error error)
     {
         ::warning() << "Socket error" << error << errno << Rct::strerror();
         mError(shared_from_this());
@@ -97,13 +97,13 @@ private:
     }
     void checkData();
 
-    SocketClient::SharedPtr mSocketClient;
+    std::shared_ptr<SocketClient> mSocketClient;
     Buffers mBuffers;
     int mPendingRead, mPendingWrite, mTimeoutTimer, mCheckTimer, mFinishStatus, mVersion;
 
     bool mSilent, mIsConnected, mWarned;
 
-    std::function<void(const SocketClient::SharedPtr &, Message::MessageError &&)> mErrorHandler;
+    std::function<void(const std::shared_ptr<SocketClient> &, Message::MessageError &&)> mErrorHandler;
 
     Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)> > mNewMessage;
     Signal<std::function<void(std::shared_ptr<Connection>)> > mConnected, mDisconnected, mError, mSendFinished;

@@ -36,7 +36,7 @@ void SocketServer::close()
 {
     if (fd == -1)
         return;
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
+    if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop())
         loop->unregisterSocket(fd);
     ::close(fd);
     fd = -1;
@@ -169,7 +169,7 @@ bool SocketServer::commonListen()
         return false;
     }
 
-    if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+    if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              //|EventLoop::SocketWrite,
                              std::bind(&SocketServer::socketCallback,
@@ -188,13 +188,13 @@ bool SocketServer::commonListen()
     return true;
 }
 
-SocketClient::SharedPtr SocketServer::nextConnection()
+std::shared_ptr<SocketClient> SocketServer::nextConnection()
 {
     if (accepted.empty())
         return nullptr;
     const int sock = accepted.front();
     accepted.pop();
-    return SocketClient::SharedPtr(new SocketClient(sock, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));
+    return std::shared_ptr<SocketClient>(new SocketClient(sock, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));
 }
 
 void SocketServer::socketCallback(int /*fd*/, int mode)

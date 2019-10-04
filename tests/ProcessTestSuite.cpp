@@ -239,7 +239,7 @@ void ProcessTestSuite::readFromStderr()
 
 void ProcessTestSuite::signals()
 {
-    EventLoop::SharedPtr loop(new EventLoop);
+    std::shared_ptr<EventLoop> loop(new EventLoop);
     loop->init(EventLoop::MainEventLoop);
 
     Process p;
@@ -325,7 +325,7 @@ void ProcessTestSuite::env()
 
 void ProcessTestSuite::writeToStdin()
 {
-    EventLoop::SharedPtr loop(new EventLoop);
+    std::shared_ptr<EventLoop> loop(new EventLoop);
     loop->init(EventLoop::MainEventLoop);
 
     Process p;

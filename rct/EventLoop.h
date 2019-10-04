@@ -83,9 +83,6 @@ private:
 class EventLoop : public std::enable_shared_from_this<EventLoop>
 {
 public:
-    typedef std::shared_ptr<EventLoop> SharedPtr;
-    typedef std::weak_ptr<EventLoop> WeakPtr;
-
     EventLoop();
     ~EventLoop();
 
@@ -107,7 +104,7 @@ public:
     template<typename T>
     static void deleteLater(T* del)
     {
-        if (EventLoop::SharedPtr loop = eventLoop()) {
+        if (std::shared_ptr<EventLoop> loop = eventLoop()) {
             loop->post(new DeleteLaterEvent<T>(del));
         } else {
             error("No event loop!");
@@ -175,8 +172,8 @@ public:
 
     //bool isRunning() const { std::lock_guard<std::mutex> locker(mutex); return !mExecStack.empty(); }
 
-    static EventLoop::SharedPtr mainEventLoop() { std::lock_guard<std::mutex> locker(mMainMutex); return sMainLoop.lock(); }
-    static EventLoop::SharedPtr eventLoop();
+    static std::shared_ptr<EventLoop> mainEventLoop() { std::lock_guard<std::mutex> locker(mMainMutex); return sMainLoop.lock(); }
+    static std::shared_ptr<EventLoop> eventLoop();
     static void cleanupLocalEventLoop();
 
     static bool isMainThread() { return EventLoop::mainEventLoop() && std::this_thread::get_id() == EventLoop::mainEventLoop()->threadId; }
@@ -273,7 +270,7 @@ private:
     bool mStop;
     bool mTimeout;
 
-    static EventLoop::WeakPtr sMainLoop;
+    static std::weak_ptr<EventLoop> sMainLoop;
 
     unsigned int mFlags;
 

@@ -109,13 +109,13 @@ private:
         template<typename... Args>
         void operator()(Args&&... args)
         {
-            EventLoop::SharedPtr l;
+            std::shared_ptr<EventLoop> l;
             if ((l = loop.lock())) {
                 l->post(call, std::forward<Args>(args)...);
             }
         }
 
-        EventLoop::WeakPtr loop;
+        std::weak_ptr<EventLoop> loop;
         Signature call;
     };
 
@@ -130,13 +130,13 @@ private:
         template<typename... Args>
         void operator()(Args&&... args)
         {
-            EventLoop::SharedPtr l;
+            std::shared_ptr<EventLoop> l;
             if ((l = loop.lock())) {
                 l->postMove(call, std::forward<Args>(args)...);
             }
         }
 
-        EventLoop::WeakPtr loop;
+        std::weak_ptr<EventLoop> loop;
         Signature call;
     };
 

@@ -47,7 +47,7 @@ private:
     mutable std::mutex mMutex;
     pthread_t mThread;
     bool mRunning;
-    EventLoop::WeakPtr mLoop;
+    std::weak_ptr<EventLoop> mLoop;
 };
 
 #endif

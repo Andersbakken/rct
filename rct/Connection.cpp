@@ -37,7 +37,7 @@ void Connection::disconnect()
     }
 }
 
-void Connection::connect(const SocketClient::SharedPtr &client)
+void Connection::connect(const std::shared_ptr<SocketClient> &client)
 {
     assert(!mSocketClient);
     mSocketClient = client;
@@ -113,7 +113,7 @@ int Connection::pendingWrite() const
     return mPendingWrite;
 }
 
-void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&& buf)
+void Connection::onDataAvailable(const std::shared_ptr<SocketClient> &client, Buffer&& buf)
 {
     auto that = shared_from_this();
     while (true) {
@@ -163,7 +163,7 @@ void Connection::onDataAvailable(const SocketClient::SharedPtr &client, Buffer&&
     }
 }
 
-void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
+void Connection::onDataWritten(const std::shared_ptr<SocketClient>&, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;
@@ -176,7 +176,7 @@ void Connection::onDataWritten(const SocketClient::SharedPtr&, int bytes)
 class SocketClientBuffer : public Serializer::Buffer
 {
 public:
-    SocketClientBuffer(const SocketClient::SharedPtr &client)
+    SocketClientBuffer(const std::shared_ptr<SocketClient> &client)
         : mClient(client), mWritten(0)
     {}
 
@@ -194,7 +194,7 @@ public:
         return mWritten;
     }
 private:
-    SocketClient::SharedPtr mClient;
+    std::shared_ptr<SocketClient> mClient;
     int mWritten;
 };
 

@@ -63,7 +63,7 @@ private:
 
     struct ProcessData {
         Process *proc;
-        EventLoop::WeakPtr loop;
+        std::weak_ptr<EventLoop> loop;
     };
     static std::map<pid_t, ProcessData> sProcesses;
 };
@@ -125,7 +125,7 @@ void ProcessThread::addPid(pid_t pid, Process *process, bool async)
         }
     }
 
-    sProcesses[pid] = { process, async ? EventLoop::eventLoop() : EventLoop::SharedPtr() };
+    sProcesses[pid] = { process, async ? EventLoop::eventLoop() : std::shared_ptr<EventLoop>() };
 
     if (!sPending)
         sPendingPids.clear();
@@ -138,7 +138,7 @@ void ProcessThread::removePid(pid_t f_pid)
     auto it = sProcesses.find(f_pid);
     if (it != sProcesses.end()) {
         it->second.proc = nullptr;
-        it->second.loop = EventLoop::SharedPtr();
+        it->second.loop = std::shared_ptr<EventLoop>();
     }
 }
 
@@ -184,7 +184,7 @@ void ProcessThread::run()
                         if (proc != sProcesses.end()) {
                             Process *process = proc->second.proc;
                             if (process != nullptr) {
-                                EventLoop::SharedPtr loop = proc->second.loop.lock();
+                                std::shared_ptr<EventLoop> loop = proc->second.loop.lock();
                                 sProcesses.erase(proc++);
                                 lock.unlock();
                                 if (loop) {
@@ -513,7 +513,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
 
         // printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
         if (mMode == Async) {
-            if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+            if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
                 loop->registerSocket(mStdOut[0], EventLoop::SocketRead,
                                      std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
                 loop->registerSocket(mStdErr[0], EventLoop::SocketRead,
@@ -645,7 +645,7 @@ void Process::closeStdIn(CloseStdInFlag flag)
         return;
 
     if (flag == CloseForce || mStdInBuffer.empty()) {
-        if (EventLoop::SharedPtr loop = EventLoop::eventLoop())
+        if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop())
             loop->unregisterSocket(mStdIn[1]);
         int err;
         eintrwrap(err, ::close(mStdIn[1]));
@@ -661,7 +661,7 @@ void Process::closeStdOut()
     if (mStdOut[0] == -1)
         return;
 
-    if (EventLoop::SharedPtr eventLoop = EventLoop::eventLoop())
+    if (std::shared_ptr<EventLoop> eventLoop = EventLoop::eventLoop())
         eventLoop->unregisterSocket(mStdOut[0]);
     int err;
     eintrwrap(err, ::close(mStdOut[0]));
@@ -673,7 +673,7 @@ void Process::closeStdErr()
     if (mStdErr[0] == -1)
         return;
 
-    if (EventLoop::SharedPtr eventLoop = EventLoop::eventLoop())
+    if (std::shared_ptr<EventLoop> eventLoop = EventLoop::eventLoop())
         eventLoop->unregisterSocket(mStdErr[0]);
     int err;
     eintrwrap(err, ::close(mStdErr[0]));

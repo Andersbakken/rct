@@ -14,9 +14,6 @@ struct sockaddr;
 class SocketServer
 {
 public:
-    typedef std::shared_ptr<SocketServer> SharedPtr;
-    typedef std::weak_ptr<SocketServer> WeakPtr;
-
     SocketServer();
     ~SocketServer();
 
@@ -30,7 +27,7 @@ public:
 #endif
     bool isListening() const { return fd != -1; }
 
-    SocketClient::SharedPtr nextConnection();
+    std::shared_ptr<SocketClient> nextConnection();
 
     Signal<std::function<void(SocketServer*)> >& newConnection() { return serverNewConnection; }
 

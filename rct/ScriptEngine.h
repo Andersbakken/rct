@@ -42,22 +42,19 @@ public:
     class Object : public std::enable_shared_from_this<Object>
     {
     public:
-        typedef std::shared_ptr<Object> SharedPtr;
-        typedef std::weak_ptr<Object> WeakPtr;
-
         ~Object();
 
-        SharedPtr registerFunction(const String &name, Function &&func);
+        std::shared_ptr<Object> registerFunction(const String &name, Function &&func);
         void registerProperty(const String &name, Getter &&get);
         void registerProperty(const String &name, Getter &&get, Setter &&set);
 
-        SharedPtr child(const String &name);
+        std::shared_ptr<Object> child(const String &name);
         bool isFunction() const;
 
         Value property(const String &propertyName, String *error = nullptr);
         void setProperty(const String &propertyName, const Value &value, String *error = nullptr);
         Value call(std::initializer_list<Value> arguments = std::initializer_list<Value>(),
-                   const SharedPtr &thisObject = SharedPtr(),
+                   const std::shared_ptr<Object> &thisObject = nullptr,
                    String *error = nullptr);
 
         template<typename T>
@@ -66,7 +63,7 @@ public:
         T extraData(int type = -1, bool *ok = nullptr) const;
         int extraDataType() const;
 
-        Signal<std::function<void(const SharedPtr&)> >& onDestroyed() { return mDestroyed; }
+        Signal<std::function<void(const std::shared_ptr<Object> &)> >& onDestroyed() { return mDestroyed; }
 
         // callAsConstructor
         // handleUnknownProperty
@@ -104,7 +101,7 @@ public:
         };
 
         ExtraDataBase* mData;
-        Signal<std::function<void(const SharedPtr&)> > mDestroyed;
+        Signal<std::function<void(const std::shared_ptr<Object>&)> > mDestroyed;
 
         friend struct ObjectData;
     };
@@ -112,9 +109,6 @@ public:
     class Class : public std::enable_shared_from_this<Class>
     {
     public:
-        typedef std::shared_ptr<Class> SharedPtr;
-        typedef std::weak_ptr<Class> WeakPtr;
-
         ~Class();
 
         enum QueryResult {
@@ -127,17 +121,17 @@ public:
         // return an empty Value from these to not intercept
 
         // return Value for both Set and Get
-        typedef std::function<Value(const Object::SharedPtr&, const String&, const Value&)> InterceptSet;
-        typedef std::function<Value(const Object::SharedPtr&, const String&)> InterceptGet;
+        typedef std::function<Value(const std::shared_ptr<Object> &, const String&, const Value&)> InterceptSet;
+        typedef std::function<Value(const std::shared_ptr<Object> &, const String&)> InterceptGet;
         // return QueryResult for Query, boolean for Deleter
         typedef std::function<Value(const String&)> InterceptQuery;
         // return List<Value>
         typedef std::function<Value()> InterceptEnumerate;
         typedef std::function<Value(const List<Value>&)> Constructor;
 
-        static SharedPtr create(const String& name)
+        static std::shared_ptr<Class> create(const String& name)
         {
-            SharedPtr cls(new Class(name));
+            std::shared_ptr<Class> cls(new Class(name));
             cls->init();
             return cls;
         }
@@ -154,7 +148,7 @@ public:
                                    InterceptQuery&& deleter,
                                    InterceptEnumerate&& enumerator);
 
-        Object::SharedPtr create();
+        std::shared_ptr<Object> create();
 
     private:
         Class(const String& name);
@@ -169,17 +163,17 @@ public:
         friend class ObjectPrivate;
     };
 
-    Value fromObject(const Object::SharedPtr& object);
-    Object::SharedPtr toObject(const Value &value) const;
+    Value fromObject(const std::shared_ptr<Object>& object);
+    std::shared_ptr<Object> toObject(const Value &value) const;
     bool isFunction(const Value &value) const;
-    Object::SharedPtr globalObject() const { return mGlobalObject; }
-    Object::SharedPtr createObject() const;
+    std::shared_ptr<Object> globalObject() const { return mGlobalObject; }
+    std::shared_ptr<Object> createObject() const;
 
 private:
     void throwExceptionInternal(const Value &exception);
     static ScriptEngine *sInstance;
     ScriptEnginePrivate *mPrivate;
-    Object::SharedPtr mGlobalObject;
+    std::shared_ptr<Object> mGlobalObject;
 
     friend struct ScriptEnginePrivate;
 };

@@ -21,7 +21,7 @@ void* Thread::localStart(void* arg)
     t->run();
     EventLoop::cleanupLocalEventLoop();
     if (t->isAutoDelete()) {
-        if (EventLoop::SharedPtr loop = t->mLoop.lock())
+        if (std::shared_ptr<EventLoop> loop = t->mLoop.lock())
             loop->callLater(std::bind(&Thread::finish, t));
         else
             EventLoop::mainEventLoop()->callLater(std::bind(&Thread::finish, t));

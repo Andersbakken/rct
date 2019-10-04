@@ -20,7 +20,7 @@ Timer::~Timer()
 
 void Timer::restart(int interval, int flags, const std::shared_ptr<EventLoop> &l)
 {
-    EventLoop::SharedPtr loop = l ? l : EventLoop::eventLoop();
+    std::shared_ptr<EventLoop> loop = l ? l : EventLoop::eventLoop();
     if (loop) {
         // ### this is a bit inefficient, should revisit
         if (timerId)
@@ -33,7 +33,7 @@ void Timer::restart(int interval, int flags, const std::shared_ptr<EventLoop> &l
 void Timer::stop()
 {
     if (timerId) {
-        if (EventLoop::SharedPtr loop = EventLoop::eventLoop()) {
+        if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
             loop->unregisterTimer(timerId);
         }
         timerId = 0;

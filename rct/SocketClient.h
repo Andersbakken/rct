@@ -12,9 +12,6 @@
 class SocketClient : public std::enable_shared_from_this<SocketClient>
 {
 public:
-    typedef std::shared_ptr<SocketClient> SharedPtr;
-    typedef std::weak_ptr<SocketClient> WeakPtr;
-
     enum Mode {
         None = 0x0,
         Tcp = 0x1,
@@ -96,11 +93,11 @@ public:
     const Buffer &buffer() const { return mReadBuffer; }
     Buffer &&takeBuffer() { return std::move(mReadBuffer); }
 
-    Signal<std::function<void(const SocketClient::SharedPtr&, Buffer&&)> >& readyRead() { return mSignalReadyRead; }
-    Signal<std::function<void(const SocketClient::SharedPtr&, const String&, uint16_t, Buffer&&)> >& readyReadFrom() { return mSignalReadyReadFrom; }
-    Signal<std::function<void(const SocketClient::SharedPtr&)> >& connected() { return signalConnected; }
-    Signal<std::function<void(const SocketClient::SharedPtr&)> >& disconnected() { return signalDisconnected; }
-    Signal<std::function<void(const SocketClient::SharedPtr&, int)> >& bytesWritten() { return mSignalBytesWritten; }
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, Buffer&&)> >& readyRead() { return mSignalReadyRead; }
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, const String&, uint16_t, Buffer&&)> >& readyReadFrom() { return mSignalReadyReadFrom; }
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&)> >& connected() { return signalConnected; }
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&)> >& disconnected() { return signalDisconnected; }
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, int)> >& bytesWritten() { return mSignalBytesWritten; }
 
     enum Error {
         InitializeError,
@@ -111,7 +108,7 @@ public:
         WriteError,
         EventLoopError
     };
-    Signal<std::function<void(const SocketClient::SharedPtr&, Error)> >& error() { return mSignalError; }
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, Error)> >& error() { return mSignalError; }
 
     enum FlagMode { FlagAppend, FlagOverwrite };
     static bool setFlags(int fd, int flag, int getcmd, int setcmd, FlagMode mode = FlagAppend);
@@ -138,12 +135,12 @@ private:
     bool mLogsEnabled { true };
     size_t mMaxWriteBufferSize { 0 };
 
-    Signal<std::function<void(const SocketClient::SharedPtr&, Buffer&&)> > mSignalReadyRead;
-    Signal<std::function<void(const SocketClient::SharedPtr&, const String&, uint16_t, Buffer&&)> > mSignalReadyReadFrom;
-    Signal<std::function<void(const SocketClient::SharedPtr&)> >signalConnected, signalDisconnected;
-    Signal<std::function<void(const SocketClient::SharedPtr&, Error)> > mSignalError;
-    Signal<std::function<void(const SocketClient::SharedPtr&, int)> > mSignalBytesWritten;
-    void bytesWritten(const SocketClient::SharedPtr &socket, uint64_t bytes);
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, Buffer&&)> > mSignalReadyRead;
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, const String&, uint16_t, Buffer&&)> > mSignalReadyReadFrom;
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&)> >signalConnected, signalDisconnected;
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, Error)> > mSignalError;
+    Signal<std::function<void(const std::shared_ptr<SocketClient>&, int)> > mSignalBytesWritten;
+    void bytesWritten(const std::shared_ptr<SocketClient> &socket, uint64_t bytes);
     Buffer mReadBuffer, mWriteBuffer;
     size_t mWriteOffset;
 

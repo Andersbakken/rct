@@ -40,7 +40,7 @@ private:
     MessageQueue* queue;
     std::mutex mutex;
     bool stopped;
-    EventLoop::WeakPtr loop;
+    std::weak_ptr<EventLoop> loop;
 };
 
 void MessageThread::stop()
@@ -83,7 +83,7 @@ void MessageThread::run()
             buf.resize(sz);
             memcpy(buf.data(), msgbuf.mtext, sz);
 
-            if (EventLoop::SharedPtr l = loop.lock()) {
+            if (std::shared_ptr<EventLoop> l = loop.lock()) {
                 std::weak_ptr<MessageThread> thr = thread;
                 l->callLaterMove(std::bind(MessageThread::notifyDataAvailable, std::placeholders::_1, std::placeholders::_2), std::move(buf), std::move(thr));
             }

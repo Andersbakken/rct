@@ -4,6 +4,8 @@
 #include <rct/rct-config.h>
 
 #ifdef HAVE_SCRIPTENGINE
+
+#include <v8.h>
 #include <memory>
 
 #include <rct/String.h>
@@ -20,6 +22,22 @@ public:
     ScriptEngine();
     ~ScriptEngine();
 
+    enum PrivateDataType {
+        Type_Function = -100,
+        Type_GlobalObject = -99,
+        Type_FirstUser = 0
+    };
+    struct PrivateData
+    {
+        PrivateData(int t)
+            : type(t)
+        {}
+        virtual ~PrivateData()
+        {}
+
+        const int type;
+    };
+
     static ScriptEngine *instance() { return sInstance; }
 
     Value evaluate(const String &source, const Path &path = String(), String *error = nullptr);
@@ -27,7 +45,8 @@ public:
     Value call(const String &function, std::initializer_list<Value> arguments, String *error = nullptr);
 
     template<typename RetVal>
-    RetVal throwException(const Value& exception) {
+    RetVal throwException(const Value &exception)
+    {
         throwExceptionInternal(exception);
         return RetVal();
     }
@@ -57,11 +76,25 @@ public:
                    const std::shared_ptr<Object> &thisObject = nullptr,
                    String *error = nullptr);
 
-        template<typename T>
-        void setExtraData(const T& t, int type = -1);
-        template<typename T>
-        T extraData(int type = -1, bool *ok = nullptr) const;
-        int extraDataType() const;
+        const PrivateData *privateData() const;
+        template <typename T>
+        const T *privateData(int type) const
+        {
+            const PrivateData *d = privateData();
+            if (d && d->type == type)
+                return static_cast<T *>(d);
+            return nullptr;
+        }
+
+        PrivateData *privateData();
+        template <typename T>
+        T *privateData(int type)
+        {
+            PrivateData *d = privateData();
+            if (d && d->type == type)
+                return static_cast<T *>(d);
+            return nullptr;
+        }
 
         Signal<std::function<void(const std::shared_ptr<Object> &)> >& onDestroyed() { return mDestroyed; }
 
@@ -69,38 +102,14 @@ public:
         // handleUnknownProperty
         // deleteHandler
     private:
-        Object();
+        Object(v8::Isolate *isolate, const v8::Local<v8::Object> &object);
         Object(const Object&) = delete;
-        Object& operator=(const Object&) = delete;
+        Object &operator=(const Object&) = delete;
 
-        ObjectPrivate *mPrivate;
+        v8::Persistent<v8::Object> mObject;
         friend class ScriptEngine;
         friend class ObjectPrivate;
 
-        class ExtraDataBase
-        {
-        public:
-            int type;
-            ExtraDataBase(int t) : type(t) {}
-            virtual ~ExtraDataBase() { };
-        };
-
-        template<typename T>
-        class ExtraData : public ExtraDataBase
-        {
-        public:
-            ExtraData(int typ, const T& ot)
-                : ExtraDataBase(typ), t(new T(ot))
-            {
-            }
-            ~ExtraData()
-            {
-                delete t;
-            }
-            T *t;
-        };
-
-        ExtraDataBase* mData;
         Signal<std::function<void(const std::shared_ptr<Object>&)> > mDestroyed;
 
         friend struct ObjectData;
@@ -123,44 +132,59 @@ public:
         // return Value for both Set and Get
         typedef std::function<Value(const std::shared_ptr<Object> &, const String&, const Value&)> InterceptSet;
         typedef std::function<Value(const std::shared_ptr<Object> &, const String&)> InterceptGet;
+        typedef std::function<PrivateData *()> CreatePrivateData;
         // return QueryResult for Query, boolean for Deleter
         typedef std::function<Value(const String&)> InterceptQuery;
         // return List<Value>
         typedef std::function<Value()> InterceptEnumerate;
         typedef std::function<Value(const List<Value>&)> Constructor;
 
-        static std::shared_ptr<Class> create(const String& name)
+        static std::shared_ptr<Class> create(int type, const String &name)
         {
-            std::shared_ptr<Class> cls(new Class(name));
+            std::shared_ptr<Class> cls(new Class(type, name));
             cls->init();
             return cls;
         }
 
         void registerFunction(const String &name, Function &&func);
         void registerStaticFunction(const String &name, StaticFunction &&func);
-        void registerProperty(const String &name, Getter &&get);
-        void registerProperty(const String &name, Getter &&get, Setter &&set);
+        void registerProperty(const String &name, Getter &&get, Setter &&set = nullptr);
         void registerConstructor(Constructor&& ctor);
+        void registerCreatePrivateData(CreatePrivateData &&createPrivateData);
 
-        void interceptPropertyName(InterceptGet&& get,
-                                   InterceptSet&& set,
-                                   InterceptQuery&& query,
-                                   InterceptQuery&& deleter,
-                                   InterceptEnumerate&& enumerator);
+        void interceptProperties(InterceptGet&& get,
+                                 InterceptSet&& set,
+                                 InterceptQuery&& query,
+                                 InterceptQuery&& deleter,
+                                 InterceptEnumerate&& enumerator);
 
         std::shared_ptr<Object> create();
 
     private:
-        Class(const String& name);
+        Class(int type, const String &name);
         Class(const Class&) = delete;
-        Class& operator=(const Class&) = delete;
+        Class &operator=(const Class&) = delete;
 
         void init();
 
-        ClassPrivate *mPrivate;
+
+        struct Property {
+            Getter getter;
+            Setter setter;
+        };
+        const int mType;
+        const String mName;
+        Constructor mConstructor;
+        CreatePrivateData mCreatePrivateData;
+        InterceptGet mInterceptGet;
+        InterceptSet mInterceptSet;
+        InterceptQuery mInterceptQuery;
+        InterceptQuery mInterceptDelete;
+        std::unordered_map<std::string, Property> mGetterSetters;
+        std::unordered_map<std::string, StaticFunction> mStaticFunctions;
+        std::unordered_map<std::string, Function> mFunctions;
+
         friend class ScriptEngine;
-        friend class ClassPrivate;
-        friend class ObjectPrivate;
     };
 
     Value fromObject(const std::shared_ptr<Object>& object);
@@ -172,39 +196,19 @@ public:
 private:
     void throwExceptionInternal(const Value &exception);
     static ScriptEngine *sInstance;
-    ScriptEnginePrivate *mPrivate;
     std::shared_ptr<Object> mGlobalObject;
-
-    friend struct ScriptEnginePrivate;
+    v8::Persistent<v8::Context> mContext;
+    v8::Isolate *mIsolate { nullptr };
+    struct ArrayBufferAllocator : public v8::ArrayBuffer::Allocator
+    {
+        virtual void* Allocate(size_t length) { return calloc(length, 1); }
+        virtual void* AllocateUninitialized(size_t length) { return malloc(length); }
+        virtual void Free(void* data, size_t /*length*/) { free(data); }
+    } mArrayBufferAllocator;
 };
 
-template<typename T>
-inline void ScriptEngine::Object::setExtraData(const T& t, int type)
-{
-    delete mData;
-    mData = new ExtraData<T>(type, t);
-}
-
-template<typename T>
-T ScriptEngine::Object::extraData(int type, bool *ok) const
-{
-    if (!mData || (type != -1 && mData->type != type)) {
-        if (!ok)
-            *ok = false;
-        return T();
-    } else if (ok) {
-        *ok = false;
-    }
-    return *(static_cast<ExtraData<T>*>(mData)->t);
-}
-
-inline int ScriptEngine::Object::extraDataType() const
-{
-    return mData ? mData->type : -1;
-}
-
 template<>
-inline Value ScriptEngine::throwException<Value>(const Value& exception) {
+inline Value ScriptEngine::throwException<Value>(const Value &exception) {
     throwExceptionInternal(exception);
     return Value::undefined();
 }

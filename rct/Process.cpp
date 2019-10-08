@@ -38,7 +38,7 @@ public:
     static void setPending(int pending);
 
 protected:
-    void run();
+    virtual void run() override;
 
 private:
     ProcessThread();

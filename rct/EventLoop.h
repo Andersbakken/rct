@@ -58,7 +58,7 @@ public:
     {
     }
 
-    void exec() { applyMove(obj, args); }
+    virtual void exec() override { applyMove(obj, args); }
 
 private:
     Object obj;
@@ -74,7 +74,7 @@ public:
     {
     }
 
-    void exec() { delete del; }
+    virtual void exec() override { delete del; }
 
 private:
     T* del;

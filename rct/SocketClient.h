@@ -43,13 +43,6 @@ public:
     bool isConnected() const { return mFd != -1; }
     int socket() const { return mFd; }
 
-    enum WriteMode {
-        Synchronous,
-        Asynchronous
-    };
-    void setWriteMode(WriteMode m) { mWMode = m; }
-    WriteMode writeMode() const { return mWMode; }
-
     void close();
 
     // TCP/UNIX
@@ -128,7 +121,6 @@ private:
     uint16_t mSocketPort { 0 };
     State mSocketState { Disconnected };
     unsigned int mSocketMode { None };
-    WriteMode mWMode { Asynchronous };
     bool mWriteWait { false };
     String mAddress;
     bool mBlocking { false };

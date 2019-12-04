@@ -446,23 +446,6 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 DEBUG() << "SENT(1)" << (writeBufferSize - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        if (mWMode == Synchronous) {
-                            if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
-                                if (total) {
-                                    if (total < writeBufferSize) {
-                                        mWriteOffset += total;
-                                    } else {
-                                        mWriteOffset = 0;
-                                        mWriteBuffer.clear();
-                                    }
-                                    total = 0;
-                                }
-                                if (loop->processSocket(mFd) & EventLoop::SocketWrite)
-                                    break;
-                                if (mFd == -1)
-                                    return false;
-                            }
-                        }
                         assert(!mWriteWait);
                         if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
                             loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);
@@ -509,23 +492,6 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
                 DEBUG() << "SENT(2)" << (size - total) << "BYTES" << e << errno;
                 if (e == -1) {
                     if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        if (mWMode == Synchronous) {
-                            if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
-                                // store the rest
-                                const unsigned int rem = size - total;
-                                if (mMaxWriteBufferSize && mWriteBuffer.size() + rem > mMaxWriteBufferSize) {
-                                    close();
-                                    return false;
-                                }
-                                mWriteBuffer.reserve(mWriteBuffer.size() + rem);
-                                memcpy(mWriteBuffer.end(), data + total, rem);
-                                mWriteBuffer.resize(mWriteBuffer.size() + rem);
-                                assert(!mWriteOffset);
-
-                                (void)loop->processSocket(mFd);
-                                return isConnected();
-                            }
-                        }
                         assert(!mWriteWait);
                         if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
                             loop->updateSocket(mFd, EventLoop::SocketRead|EventLoop::SocketWrite|EventLoop::SocketOneShot);

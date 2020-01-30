@@ -124,8 +124,10 @@ public:
         return npos;
     }
 
-    size_t lastIndexOf(const char *ch, size_t len, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
+    size_t lastIndexOf(const char *ch, size_t from = npos, size_t len = std::numeric_limits<size_t>::max(), CaseSensitivity cs = CaseSensitive) const
     {
+        if (len == std::numeric_limits<size_t>::max())
+            len = strlen(ch);
         switch (len) {
         case 0: return npos;
         case 1: return lastIndexOf(*ch, from, cs);
@@ -153,8 +155,10 @@ public:
         return npos;
     }
 
-    size_t indexOf(const char *ch, size_t len, size_t from = 0, CaseSensitivity cs = CaseSensitive) const
+    size_t indexOf(const char *ch, size_t from = 0, size_t len = std::numeric_limits<size_t>::max(), CaseSensitivity cs = CaseSensitive) const
     {
+        if (len == std::numeric_limits<size_t>::max())
+            len = strlen(ch);
         switch (len) {
         case 0: return npos;
         case 1: return indexOf(*ch, from, cs);
@@ -212,12 +216,12 @@ public:
 
     size_t lastIndexOf(const String &ba, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
     {
-        return lastIndexOf(ba.constData(), ba.size(), from, cs);
+        return lastIndexOf(ba.constData(), from, ba.size(), cs);
     }
 
     size_t indexOf(const String &ba, size_t from = 0, CaseSensitivity cs = CaseSensitive) const
     {
-        return indexOf(ba.constData(), ba.size(), from, cs);
+        return indexOf(ba.constData(), from, ba.size(), cs);
     }
 
     char first() const

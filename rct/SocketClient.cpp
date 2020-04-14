@@ -242,6 +242,8 @@ bool SocketClient::connect(const String& path)
         sockaddr_un addr_un;
         sockaddr addr;
     };
+    if (path.size() >= sizeof(addr_un.sun_path))
+        return false;
     memset(&addr_un, '\0', sizeof(addr_un));
     addr_un.sun_family = AF_UNIX;
     strncpy(addr_un.sun_path, path.constData(), sizeof(addr_un.sun_path));

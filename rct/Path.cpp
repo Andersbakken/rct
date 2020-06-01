@@ -270,8 +270,14 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
             *changed = true;
     }
 #endif
-    if (*this == ".")
-        clear();
+    if (*this == ".") {
+        if (!cwd.isEmpty()) {
+            operator=(cwd);
+        } else {
+            operator=(Path::pwd());
+        }
+        return true;
+    }
     if (mode == MakeAbsolute || !sRealPathEnabled) {
         if (isAbsolute()) {
             canonicalize(changed);

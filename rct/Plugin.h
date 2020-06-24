@@ -17,12 +17,12 @@ template<typename T>
 class Plugin
 {
 public:
-    Plugin() : mHandle(0), mInstance(0) { }
-    Plugin(const Path& fileName) : mFileName(fileName), mHandle(0), mInstance(0) { }
+    Plugin() : mHandle(nullptr), mInstance(0) { }
+    Plugin(const Path& fileName) : mFileName(fileName), mHandle(nullptr), mInstance(nullptr) { }
     ~Plugin() { clear(); }
 
-    void clear() { if (mHandle) { deleteInstance(); Rct::unloadPlugin(mHandle); mHandle = 0; } }
-    void deleteInstance() { delete mInstance; mInstance = 0; }
+    void clear() { if (mHandle) { deleteInstance(); Rct::unloadPlugin(mHandle); mHandle = nullptr; } }
+    void deleteInstance() { delete mInstance; mInstance = nullptr; }
 
     void setFileName(const Path& fileName) { clear(); mFileName = fileName; }
     Path fileName() const { return mFileName; }

@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#if defined(OS_Linux)
 #include <sys/epoll.h>
+#endif
 #include <sys/time.h>
 #ifdef _WIN32
 #  include <Winsock2.h>

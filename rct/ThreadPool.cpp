@@ -1,11 +1,9 @@
 #include "ThreadPool.h"
 
 #include <assert.h>
-#include <ext/alloc_traits.h>
 #include <algorithm>
 #include <vector>
-#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || \
-        defined(OS_DragonFly)
+#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || defined(OS_DragonFly)
 #   include <sys/sysctl.h>
 #   include <sys/types.h>
 #elif defined (OS_Linux)

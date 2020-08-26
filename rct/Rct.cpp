@@ -3,7 +3,6 @@
 #include <limits.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <ext/alloc_traits.h>
 #include <features.h>
 #include <getopt.h>
 #include <netinet/in.h>

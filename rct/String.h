@@ -8,7 +8,6 @@
 #include <time.h>
 #include <rct/List.h>
 #include <assert.h>
-#include <bits/types/struct_tm.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>

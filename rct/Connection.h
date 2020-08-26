@@ -1,18 +1,31 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include "FinishMessage.h"
 #include <rct/Buffer.h>
 #include <rct/ResponseMessage.h>
 #include <rct/SignalSlot.h>
 #include <rct/SocketClient.h>
 #include <rct/String.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stdint.h>
 #include <functional>
+#include <map>
+#include <memory>
+
+#include "FinishMessage.h"
+#include "rct/Buffer.h"
+#include "rct/Log.h"
+#include "rct/Message.h"
+#include "rct/Path.h"
+#include "rct/SignalSlot.h"
 
 class ConnectionPrivate;
 class Event;
 class Message;
 class SocketClient;
+
 class Connection : public std::enable_shared_from_this<Connection>
 {
 public:

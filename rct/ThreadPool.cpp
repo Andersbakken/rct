@@ -1,9 +1,9 @@
 #include "ThreadPool.h"
 
-#include <algorithm>
 #include <assert.h>
-
-#include "rct/rct-config.h"
+#include <ext/alloc_traits.h>
+#include <algorithm>
+#include <vector>
 #if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || \
         defined(OS_DragonFly)
 #   include <sys/sysctl.h>
@@ -17,7 +17,6 @@
 #   include <windows.h>
 #endif
 
-#include "Log.h"
 #include "Thread.h"
 
 using std::shared_ptr;

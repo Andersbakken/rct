@@ -6,13 +6,20 @@
 #include <stdarg.h>
 #include <strings.h>
 #include <time.h>
+#include <rct/List.h>
+#include <assert.h>
+#include <bits/types/struct_tm.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
-
-#include <rct/List.h>
+#include <algorithm>
+#include <functional>
+#include <iosfwd>
+#include <limits>
+#include <memory>
+#include <utility>
 
 #define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
 class String

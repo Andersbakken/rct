@@ -3,9 +3,10 @@
 
 #include <stdlib.h>
 #include <assert.h>
-
 #include <rct/LinkedList.h>
 #include <rct/String.h>
+#include <string.h>
+#include <utility>
 
 class Buffer
 {

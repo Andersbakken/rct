@@ -3,10 +3,16 @@
 
 #include <getopt.h>
 #include <stdio.h>
-
 #include <rct/Path.h>
 #include <rct/String.h>
 #include <rct/Value.h>
+#include <assert.h>
+#include <string.h>
+#include <functional>
+#include <type_traits>
+
+#include "rct/List.h"
+#include "rct/String.h"
 
 
 class Config

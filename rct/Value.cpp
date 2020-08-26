@@ -1,6 +1,13 @@
 #include "Value.h"
 
+#include <stdio.h>
+#include <utility>
+
 #include "../cJSON/cJSON.h"
+#include "rct/Date.h"
+#include "rct/Map.h"
+#include "rct/Rct.h"
+#include "rct/String.h"
 
 void Value::clear()
 {

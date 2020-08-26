@@ -4,12 +4,27 @@
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
-#include <regex>
 #include <stdio.h>
-
 #include <rct/List.h>
 #include <rct/Path.h>
 #include <rct/String.h>
+#include <assert.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <regex>
+#include <functional>
+#include <vector>
+
+#include "rct/List.h"
+#include "rct/String.h"
+
+struct option;
+struct timeval;
+
 extern char **environ;
 
 #ifndef RCT_FALL_THROUGH

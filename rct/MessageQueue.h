@@ -1,14 +1,18 @@
 #ifndef MESSAGEQUEUE_H
 #define MESSAGEQUEUE_H
 
-#include <memory>
-
 #include <rct/Buffer.h>
 #include <rct/SignalSlot.h>
 #include <rct/String.h>
+#include <stddef.h>
+#include <memory>
+#include <functional>
+
+#include "rct/String.h"
 
 class MessageThread;
 class Path;
+
 class MessageQueue
 {
 public:

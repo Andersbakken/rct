@@ -1,6 +1,9 @@
 #include "Timer.h"
 
+#include <map>
+
 #include "EventLoop.h"
+#include "rct/SignalSlot.h"
 
 Timer::Timer()
     : timerId(0)

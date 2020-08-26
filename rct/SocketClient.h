@@ -1,7 +1,11 @@
 #ifndef TCPSOCKET_H
 #define TCPSOCKET_H
 
+#include <stddef.h>
+#include <stdint.h>
 #include <memory>
+#include <functional>
+#include <utility>
 
 #include "Buffer.h"
 #include "Rct.h"

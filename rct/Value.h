@@ -1,16 +1,27 @@
 #ifndef Value_h
 #define Value_h
 
-#include <cmath>
-
 #include <rct/Date.h>
 #include <rct/List.h>
 #include <rct/Log.h>
 #include <rct/Map.h>
 #include <rct/Serializer.h>
 #include <rct/String.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cmath>
+#include <algorithm>
+#include <functional>
+#include <map>
+#include <memory>
+#include <new>
+#include <vector>
+
+#include "rct/List.h"
 
 struct cJSON;
+
 class Value
 {
 public:
@@ -28,6 +39,7 @@ public:
     };
 
     struct Custom;
+
     inline Value() : mType(Type_Invalid) {}
     inline Value(int i) : mType(Type_Integer) { mData.integer = i; }
     inline Value(unsigned int i) : mType(Type_Integer) { mData.integer = i; }

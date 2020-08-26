@@ -2,10 +2,12 @@
 // todo: implement on windows
 #else
 #include "SharedMemory.h"
-#include <assert.h>
+
 #include <errno.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "Log.h"
 #include "rct/rct-config.h"

@@ -1,13 +1,17 @@
 #ifndef ThreadPool_h
 #define ThreadPool_h
 
+#include <rct/List.h>
+#include <rct/Thread.h>
+#include <stddef.h>
 #include <condition_variable>
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <functional>
 
-#include <rct/List.h>
-#include <rct/Thread.h>
+#include "rct/List.h"
+#include "rct/Thread.h"
 
 class ThreadPoolThread;
 

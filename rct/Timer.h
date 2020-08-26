@@ -1,11 +1,12 @@
 #ifndef TIMER_H
 #define TIMER_H
 
-#include <memory>
-
 #include <rct/SignalSlot.h>
+#include <memory>
+#include <functional>
 
 class EventLoop;
+
 class Timer
 {
 public:

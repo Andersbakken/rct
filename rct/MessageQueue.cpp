@@ -1,5 +1,12 @@
 #include "MessageQueue.h"
 
+#include <string.h>
+#include <map>
+#include <utility>
+
+#include "rct/Buffer.h"
+#include "rct/SignalSlot.h"
+
 #ifdef _WIN32
 // todo: implement on windows
 #else
@@ -10,10 +17,9 @@
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-
-#include <sys/types.h>
 #include <unistd.h>
 #include <mutex>
+
 #include "EventLoop.h"
 #include "Log.h"
 #include "Path.h"

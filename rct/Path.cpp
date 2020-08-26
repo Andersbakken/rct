@@ -1,11 +1,24 @@
 #include "Path.h"
-#include "StackBuffer.h"
 
 #include <dirent.h>
+#include <assert.h>
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <time.h>
+
+#include "StackBuffer.h"
+#include "rct/List.h"
+#include "rct/Path.h"
+#include "rct/Set.h"
+#include "rct/String.h"
 #ifdef _WIN32
 #  include <direct.h>
 #  include <Windows.h>
 #  include <Shellapi.h>
+
 #  include "WindowsUnicodeConversion.h"
 #else
 #  include <wordexp.h>
@@ -15,9 +28,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utime.h>
-#include <algorithm>
+#include <functional>
+#include <iosfwd>
 
-#include "Log.h"
 #include "Rct.h"
 #include "rct/rct-config.h"
 

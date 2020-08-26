@@ -1,10 +1,13 @@
 #ifndef THREAD_H
 #define THREAD_H
 
-#include <mutex>
 #include <pthread.h>
-
 #include <rct/EventLoop.h>
+#include <stddef.h>
+#include <mutex>
+#include <memory>
+
+class EventLoop;
 
 class Thread
 {

@@ -1,14 +1,18 @@
 #include "MemoryMappedFile.h"
 
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <utility>
+
 #include "Log.h"
-#include "WindowsUnicodeConversion.h"
 
 #ifndef _WIN32
-#  include "Rct.h"
-#  include <sys/types.h>
 #  include <sys/stat.h>
 #  include <sys/file.h>
 #  include <unistd.h>
+
+#  include "Rct.h"
 #endif
 
 MemoryMappedFile::MemoryMappedFile()

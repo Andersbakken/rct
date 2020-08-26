@@ -1,7 +1,10 @@
 #include "String.h"
 
+#include <zconf.h>
+
 #ifdef RCT_HAVE_ZLIB
 #include <zlib.h>
+
 enum { BufferSize = 1024 * 32 };
 #endif
 

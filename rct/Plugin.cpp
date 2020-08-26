@@ -1,5 +1,7 @@
 #include "Plugin.h"
 
+#include "rct/Path.h"
+
 #ifdef _WIN32
 // TODO: Imlement on windows
 #else

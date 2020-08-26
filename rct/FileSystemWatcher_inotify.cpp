@@ -1,14 +1,27 @@
-#include "FileSystemWatcher.h"
-
 #include <errno.h>
 #include <sys/inotify.h>
 #include <sys/ioctl.h>
+#include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <utility>
 
+#include "FileSystemWatcher.h"
 #include "EventLoop.h"
 #include "Log.h"
 #include "rct/rct-config.h"
 #include "Rct.h"
 #include "StackBuffer.h"
+#include "rct/Map.h"
+#include "rct/Path.h"
+#include "rct/Set.h"
+#include "rct/String.h"
 
 
 void FileSystemWatcher::init()

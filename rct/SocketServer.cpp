@@ -1,27 +1,31 @@
 #include "SocketServer.h"
 
-#include <assert.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <stdio.h>
 #ifdef _WIN32
 #  include <Winsock2.h>
 #  include <Ws2tcpip.h>
+
 #  define PASSPTR(x) (reinterpret_cast<const char*>(x))
 #else
-#  include <netdb.h>
 #  include <netinet/in.h>
 #  include <sys/socket.h>
-#  include <sys/types.h>
 #  include <sys/un.h>
 #  include <unistd.h>
+
 #  define PASSPTR(x) (x)
 #endif
 
 #include <string.h>
+#include <map>
 
 #include "EventLoop.h"
-#include "Log.h"
 #include "rct/rct-config.h"
 #include "Rct.h"
+#include "rct/Path.h"
+#include "rct/SocketClient.h"
+#include "rct/String.h"
 
 SocketServer::SocketServer()
     : fd(-1), isIPv6(false)

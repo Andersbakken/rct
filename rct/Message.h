@@ -1,10 +1,9 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
+#include <rct/Serializer.h>
 #include <mutex>
 #include <memory>
-
-#include <rct/Serializer.h>
 
 class Message
 {

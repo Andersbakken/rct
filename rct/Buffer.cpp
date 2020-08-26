@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+#include "rct/String.h"
+
 bool Buffer::load(const String& filename)
 {
     clear();

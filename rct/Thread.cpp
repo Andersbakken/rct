@@ -3,6 +3,8 @@
 #include <rct/EventLoop.h>
 #include <rct/Log.h>
 #include <rct/rct-config.h>
+#include <sched.h>
+#include <functional>
 
 Thread::Thread()
     : mAutoDelete(false), mRunning(false), mLoop(EventLoop::eventLoop())

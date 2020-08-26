@@ -1,15 +1,19 @@
 #ifndef SOCKETSERVER_H
 #define SOCKETSERVER_H
 
-#include <memory>
-#include <queue>
 #include <stdint.h>
-
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>
 #include <rct/SocketClient.h>
+#include <stddef.h>
+#include <memory>
+#include <queue>
+#include <functional>
+
+#include "rct/SignalSlot.h"
 
 struct sockaddr;
+class SocketClient;
 
 class SocketServer
 {

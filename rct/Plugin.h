@@ -2,7 +2,6 @@
 #define PLUGIN_H
 
 #include <assert.h>
-
 #include <rct/Path.h>
 #include <rct/String.h>
 

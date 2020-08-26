@@ -1,9 +1,11 @@
 #include "CpuUsage.h"
 
 #include <assert.h>
+#include <unistd.h>
+#include <stdio.h>
 #include <mutex>
 #include <thread>
-#include <unistd.h>
+#include <cstdint>
 #ifdef OS_Darwin
 #include <mach/mach.h>
 #include <mach/mach_host.h>

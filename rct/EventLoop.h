@@ -1,6 +1,8 @@
 #ifndef EVENTLOOP_H // -*- mode:c++ -*-
 #define EVENTLOOP_H
 
+#include <rct/Apply.h>
+#include <rct/rct-config.h>
 #include <functional>
 #include <map>
 #include <memory>
@@ -12,8 +14,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include <rct/Apply.h>
-#include <rct/rct-config.h>
+#include "rct/rct-config.h"
 #if defined(HAVE_EPOLL)
 #  include <sys/epoll.h>
 #elif defined(HAVE_KQUEUE)

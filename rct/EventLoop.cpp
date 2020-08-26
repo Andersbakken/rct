@@ -7,18 +7,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/epoll.h>
+#include <sys/time.h>
 #ifdef _WIN32
 #  include <Winsock2.h>
 #else
 #  include <sys/socket.h>
 #endif
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 #include <algorithm>
 #include <atomic>
 #include <set>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <type_traits>
+#include <unordered_set>
+#include <utility>
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #  include <mach/mach.h>
 #  include <mach/mach_time.h>
@@ -27,9 +39,12 @@
 #include "Rct.h"
 #include "SocketClient.h"
 #include "Timer.h"
+#include "rct/EventLoop.h"
+#include "rct/String.h"
 #if defined(RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD) && RCT_EVENTLOOP_CALLBACK_TIME_THRESHOLD > 0
 #  include "Log.h"
 #  include "StopWatch.h"
+
 #  define RCT_CALLBACK(op)                                          \
     do {                                                            \
         StopWatch sw;                                               \

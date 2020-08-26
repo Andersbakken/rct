@@ -2,14 +2,18 @@
 #define PROCESS_H
 
 #include <signal.h>
-#include <deque>
-#include <mutex>
-#include <condition_variable>
-
 #include <rct/List.h>
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>
 #include <rct/String.h>
+#include <deque>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+
+#include "rct/List.h"
+#include "rct/SignalSlot.h"
+#include "rct/String.h"
 
 /**
  * This class can be used to launch a child process, monitor its execution

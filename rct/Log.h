@@ -3,20 +3,28 @@
 
 #include <assert.h>
 #include <cxxabi.h>
-#include <climits>
 #include <ctype.h>
-#include <memory>
-#include <sstream>
 #include <stdio.h>
 #include <string.h>
-
-#include "Flags.h"
-#include "Hash.h"
 #include <rct/List.h>
 #include <rct/Map.h>
 #include <rct/Path.h>
 #include <rct/Set.h>
 #include <rct/String.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <climits>
+#include <memory>
+#include <sstream>
+#include <functional>
+#include <string>
+#include <typeinfo>
+#include <utility>
+
+#include "Flags.h"
+#include "Hash.h"
+#include "rct/Path.h"
 
 class LogLevel
 {

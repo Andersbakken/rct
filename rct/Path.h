@@ -2,9 +2,9 @@
 #define Path_h
 
 #include <fcntl.h>
-#include <functional>
 #include <stdio.h>
 #include <stdlib.h>
+#include <functional>
 #include <string>
 #ifndef _WIN32
 #  include <sys/mman.h>
@@ -12,7 +12,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <rct/String.h>
 
 /**

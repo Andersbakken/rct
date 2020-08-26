@@ -1,13 +1,17 @@
 #include "Connection.h"
 
 #include <assert.h>
+#include <stddef.h>
+#include <utility>
 
-#include "Connection.h"
 #include "EventLoop.h"
 #include "Message.h"
 #include "Serializer.h"
 #include "StackBuffer.h"
 #include "Timer.h"
+#include "rct/FinishMessage.h"
+#include "rct/SocketClient.h"
+#include "rct/String.h"
 
 Connection::Connection(int version)
     : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mCheckTimer(0), mFinishStatus(0),

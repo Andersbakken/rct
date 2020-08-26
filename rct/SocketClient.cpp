@@ -7,7 +7,6 @@
 #  include <arpa/inet.h>
 #  include <netdb.h>
 #  include <netinet/in.h>
-#  include <sys/select.h>
 #  include <sys/socket.h>
 #  include <sys/un.h>
 #endif
@@ -15,13 +14,17 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
+#include <cstdint>
+#include <map>
 
 #include "EventLoop.h"
-#include "Log.h"
 #include "rct/rct-config.h"
 #include "Rct.h"
+#include "rct/Buffer.h"
+#include "rct/SignalSlot.h"
+#include "rct/String.h"
 
 #ifdef NDEBUG
 struct Null { template <typename T> Null operator<<(const T &) { return *this; } };

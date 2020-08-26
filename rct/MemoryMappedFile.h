@@ -1,7 +1,10 @@
 #ifndef MemoryMappedFile_h
 #define MemoryMappedFile_h
 
+#include <iosfwd>
+
 #include "Path.h"
+#include "rct/Path.h"
 
 #ifdef _WIN32
 #  ifndef WIN32_LEAN_AND_MEAN

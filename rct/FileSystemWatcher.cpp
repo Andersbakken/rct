@@ -1,5 +1,15 @@
 #include "FileSystemWatcher.h"
 
+#include <assert.h>
+#include <map>
+#include <set>
+#include <utility>
+
+#include "rct/Path.h"
+#include "rct/Set.h"
+#include "rct/SignalSlot.h"
+#include "rct/Timer.h"
+
 FileSystemWatcher::FileSystemWatcher(const Options &options)
     : mOptions(options)
 {

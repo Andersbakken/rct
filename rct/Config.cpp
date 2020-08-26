@@ -1,7 +1,16 @@
 #include "Config.h"
 
-#include "Log.h"
+#include <ctype.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <memory>
+#include <vector>
+
 #include "StackBuffer.h"
+#include "rct/Path.h"
+#include "rct/Rct.h"
+#include "rct/Value.h"
 
 List<Config::OptionBase*> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;

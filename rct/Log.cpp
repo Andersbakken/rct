@@ -1,6 +1,5 @@
 #include "Log.h"
 
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -12,6 +11,9 @@
 #include "Path.h"
 #include "StackBuffer.h"
 #include "StopWatch.h"
+#include "rct/Flags.h"
+#include "rct/Set.h"
+#include "rct/String.h"
 
 static Flags<LogFlag> sFlags;
 static StopWatch sStart;

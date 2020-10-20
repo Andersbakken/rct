@@ -22,6 +22,7 @@
 #include "EventLoop.h"
 #include "rct/rct-config.h"
 #include "Rct.h"
+#include "rct/Log.h"
 #include "rct/Buffer.h"
 #include "rct/SignalSlot.h"
 #include "rct/String.h"

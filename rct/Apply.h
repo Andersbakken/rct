@@ -6,7 +6,7 @@
 #include <utility>
 
 // magic courtesy of http://stackoverflow.com/questions/687490/how-do-i-expand-a-tuple-into-variadic-template-functions-arguments
-template<size_t N>
+template<std::size_t N>
 struct Apply {
     template<typename F, typename T, typename... A>
     static inline auto apply(F && f, T && t, A &&... a)
@@ -43,7 +43,7 @@ inline auto apply(F && f, T && t)
 }
 
 
-template<size_t N>
+template<std::size_t N>
 struct ApplyMove {
     template<typename F, typename T, typename... A>
     static inline auto applyMove(F && f, T && t, A &&... a)

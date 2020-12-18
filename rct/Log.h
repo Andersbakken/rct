@@ -150,7 +150,7 @@ public:
     Log(LogLevel level = LogLevel::Error, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
     Log(const Log &other);
     Log &operator=(const Log &other);
-#if defined(OS_Darwin)
+#if defined(OS_Darwin) || defined(__OpenBSD__)
 #ifndef __i386__
     Log operator<<(long number) { return addStringStream(number); }
 #endif

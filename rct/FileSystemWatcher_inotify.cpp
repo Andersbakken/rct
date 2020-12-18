@@ -26,8 +26,11 @@
 
 void FileSystemWatcher::init()
 {
-    mFd = inotify_init1(IN_CLOEXEC);
+    mFd = inotify_init();
     assert(mFd != -1);
+    int res = fcntl(mFd, F_SETFD, FD_CLOEXEC);
+    std::ignore = res;
+    assert(res != -1);
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
 }
 

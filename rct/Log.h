@@ -130,7 +130,8 @@ enum LogFlag {
     LogSyslog = 0x08,
 #endif
     LogTimeStamp = 0x10,
-    LogFlush = 0x20
+    LogFlush = 0x20,
+    LogAbsTimeStamp = 0x40
 };
 RCT_FLAGS(LogFlag);
 

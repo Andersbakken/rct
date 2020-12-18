@@ -50,9 +50,15 @@ static inline int writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::L
     int ret = 0;
     if (sFlags & LogTimeStamp && flags & LogOutput::TrailingNewLine) {
         char buf[32];
-        ret += prettyTimeSinceStarted(buf, sizeof(buf));
-        ret += fwrite(buf, 1, ret, f);
+        int timeLen = prettyTimeSinceStarted(buf, sizeof(buf));
+        ret += fwrite(buf, 1, timeLen, f);
     }
+
+    if (sFlags & LogAbsTimeStamp && flags & LogOutput::TrailingNewLine) {
+        String currentTimePrefix = Rct::currentTimeString() + ": ";
+        ret += fwrite(currentTimePrefix.data(), 1, currentTimePrefix.length(), f);
+    }
+
     ret += fwrite(msg, 1, len, f);
     if (flags & LogOutput::TrailingNewLine) {
         ret += fwrite("\n", 1, 1, f);

@@ -99,6 +99,7 @@ public:
     {
         Base::insert(Base::begin() + idx, val);
     }
+    using std::vector<T>::insert;
 
     void sort()
     {

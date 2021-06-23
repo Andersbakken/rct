@@ -27,24 +27,6 @@ struct timeval;
 
 extern char **environ;
 
-#ifndef RCT_FALL_THROUGH
-#if defined(__cplusplus) && (__cplusplus > 201402L)
-#define RCT_FALL_THROUGH() /* fall through */ [[fallthrough]]
-#else
-#if defined(__GNUC__)
-#if __GXX_ABI_VERSION >= 1011 && !defined(__ANDROID__)
-#define RCT_FALL_THROUGH /* fall through */ __attribute__((fallthrough))
-#else
-#define RCT_FALL_THROUGH /* fall through */
-#endif
-#elif defined(__clang__)
-#define RCT_FALL_THROUGH /* fall through */ [[clang::fallthrough]]
-#else
-#define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
-#endif
-#endif
-#endif
-
 namespace Rct
 {
 
@@ -314,13 +296,4 @@ String strerror(int error = errno);
         VAR = BLOCK;                            \
     } while (VAR == -1 && errno == EINTR)
 
-#ifndef RCT_FALL_THROUGH
-#if defined(__clang__)
-#define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
-#elif defined(__GNUC__) && __GXX_ABI_VERSION >= 1011
-#define RCT_FALL_THROUGH /* fall through */ __attribute__((fallthrough))
-#else
-#define RCT_FALL_THROUGH /* fall through */ struct RCT_FALL_THROUGH_STRUCT
-#endif
-#endif
 #endif

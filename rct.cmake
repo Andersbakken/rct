@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
-
+set(CMAKE_CXX_STANDARD 17)
 find_package(PkgConfig)
 
 if (NOT RCT_NO_LIBRARY)
@@ -230,7 +230,6 @@ if (NOT RCT_NO_INSTALL)
   install(TARGETS rct EXPORT rct LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif ()
 
-set(CMAKE_REQUIRED_FLAGS "-std=c++11")
 if (RCT_USE_LIBCXX)
   set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_EXE_LINKER_FLAGS}")
 endif ()

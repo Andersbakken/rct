@@ -20,7 +20,7 @@ public:
         : Base(count, std::move(defaultValue))
     {}
 
-    explicit List()
+    List()
         : Base()
     {}
 

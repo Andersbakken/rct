@@ -328,6 +328,12 @@ public:
     {
         return mString.data();
     }
+
+    bool empty() const
+    {
+        return mString.empty();
+    }
+
     bool isEmpty() const
     {
         return mString.empty();

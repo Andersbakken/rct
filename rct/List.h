@@ -62,6 +62,7 @@ public:
     {
         return Base::empty();
     }
+    using Base::empty;
 
     void append(const T &t)
     {

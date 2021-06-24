@@ -18,6 +18,7 @@ public:
         return Base::find(t) != Base::end();
     }
 
+    using Base::empty;
     bool isEmpty() const
     {
         return !Base::size();

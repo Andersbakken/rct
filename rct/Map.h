@@ -51,6 +51,8 @@ public:
         return Base::find(t) != Base::end();
     }
 
+    using Base::empty;
+
     bool isEmpty() const
     {
         return !Base::size();
@@ -278,9 +280,10 @@ public:
         return std::multimap<Key, Value, Compare>::find(t) != std::multimap<Key, Value, Compare>::end();
     }
 
+    using std::multimap<Key, Value, Compare>::empty;
     bool isEmpty() const
     {
-        return !std::multimap<Key, Value, Compare>::size();
+        return std::multimap<Key, Value, Compare>::empty();
     }
 
     Value value(const Key &key, const Value &defaultValue = Value(), bool *ok = nullptr) const

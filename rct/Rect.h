@@ -12,6 +12,7 @@ struct Rect
     bool operator==(const Rect &other) const { return (x == other.x && y == other.y && w == other.w && h == other.h); }
     bool operator!=(const Rect &other) const { return !operator==(other); }
 
+    bool empty() const { return !w && !h; }
     bool isEmpty() const { return !w && !h; }
     bool isNull() const { return !x && !y && !w && !h; }
 

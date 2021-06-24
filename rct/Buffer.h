@@ -42,6 +42,7 @@ public:
     }
 
     bool isEmpty() const { return !bufferSize; }
+    bool empty() const { return !bufferSize; }
 
     void clear()
     {

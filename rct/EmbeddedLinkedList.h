@@ -17,6 +17,7 @@ public:
     }
 
     bool isEmpty() const { return !mCount; }
+    bool empty() const { return !mCount; }
 
     size_t size() const { return mCount; }
     size_t count() const { return mCount; }

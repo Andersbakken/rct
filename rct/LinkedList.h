@@ -12,6 +12,7 @@ public:
     LinkedList(size_t len) : std::list<T>(len) { }
 
     bool isEmpty() const { return std::list<T>::empty(); }
+    using std::list<T>::empty;
 
     size_t size() const { return std::list<T>::size(); }
     void append(const T &t) { std::list<T>::push_back(t); }

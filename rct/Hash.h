@@ -22,6 +22,8 @@ public:
         return !std::unordered_map<Key, Value>::size();
     }
 
+    using std::unordered_map<Key, Value>::empty;
+
     Value value(const Key &key, const Value &defaultValue, bool *ok = nullptr) const
     {
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::find(key);

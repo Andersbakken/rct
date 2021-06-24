@@ -82,7 +82,7 @@ static Value fromCJSON(const cJSON *object)
     case cJSON_Array: {
         List<Value> values;
         for (const cJSON *child = object->child; child; child = child->next) {
-            values.append(fromCJSON(child));
+            values.push_back(fromCJSON(child));
         }
         return values; }
     case cJSON_Object: {

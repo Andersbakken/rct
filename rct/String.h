@@ -446,6 +446,24 @@ public:
         mString.insert(pos, &ch, 1);
     }
 
+    void push_back(char ch)
+    {
+        mString += ch;
+    }
+
+    void push_back(const String &ba)
+    {
+        mString.append(ba);
+    }
+
+    void push_back(const char *str, size_t len = npos)
+    {
+        if (len == npos)
+            len = strlen(str);
+        if (len > 0)
+            mString.append(str, len);
+    }
+
     void append(char ch)
     {
         mString += ch;
@@ -728,11 +746,11 @@ public:
                 if (next == npos)
                     break;
                 if (next > prev || !(flags & SkipEmpty))
-                    ret.append(mid(prev, next - prev + add));
+                    ret.push_back(mid(prev, next - prev + add));
                 prev = next + 1;
             }
             if (prev < size() || !(flags & SkipEmpty))
-                ret.append(mid(prev));
+                ret.push_back(mid(prev));
         }
         return ret;
     }
@@ -751,11 +769,11 @@ public:
             if (next == npos)
                 break;
             if (next > prev || !(flags & SkipEmpty))
-                ret.append(mid(prev, next - prev));
+                ret.push_back(mid(prev, next - prev));
             prev = next + str.size();
         }
         if (prev < size() || !(flags & SkipEmpty))
-            ret.append(mid(prev));
+            ret.push_back(mid(prev));
         return ret;
     }
 

@@ -53,8 +53,9 @@ public:
     }
 
     using Base::empty;
-    using Base::push_back;
     using Base::insert;
+    using Base::push_back;
+    using Base::reserve;
     using Base::size;
 
     bool contains(const T &t) const
@@ -100,6 +101,15 @@ public:
     void append(const List<T> &t)
     {
         const size_t len = t.size();
+        reserve(size() + len);
+        for (size_t i=0; i<len; ++i)
+            Base::push_back(t.at(i));
+    }
+
+    void push_back(const List<T> &t)
+    {
+        const size_t len = t.size();
+        reserve(size() + len);
         for (size_t i=0; i<len; ++i)
             Base::push_back(t.at(i));
     }
@@ -391,25 +401,25 @@ public:
 
     List<T> &operator+=(const T &t)
     {
-        append(t);
+        push_back(t);
         return *this;
     }
 
     List<T> &operator+=(const List<T> &t)
     {
-        append(t);
+        push_back(t);
         return *this;
     }
 
     List<T> &operator<<(const T &t)
     {
-        append(t);
+        push_back(t);
         return *this;
     }
 
     List<T> &operator<<(const List<T> &t)
     {
-        append(t);
+        push_back(t);
         return *this;
     }
 };

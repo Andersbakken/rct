@@ -53,7 +53,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
         }
     }
     for (int i=1; i<argc; ++i)
-        args.append(argv[i]);
+        args.push_back(argv[i]);
 
     // ::error() << "parsing" << args;
 
@@ -68,7 +68,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
         OptionBase *opt = sOptions.at(i);
         if (opt->name) {
             option &o = options[optionPointers.size()];
-            optionPointers.append(opt);
+            optionPointers.push_back(opt);
             o.name = opt->name;
             o.has_arg = (opt->defaultValue.type() == Value::Type_Boolean) ? no_argument : required_argument; // ### no optional arg?
             o.val = opt->shortOption;
@@ -194,9 +194,9 @@ void Config::showHelp(FILE *f)
     for (size_t i=0; i<sOptions.size(); ++i) {
         const OptionBase *option = sOptions.at(i);
         if (!option->name && !option->shortOption) {
-            out.append(String());
+            out.push_back(String());
         } else {
-            out.append(String::format<64>("  %s%s%s%s",
+            out.push_back(String::format<64>("  %s%s%s%s",
                                           option->name ? String::format<4>("--%s", option-> name).c_str() : "",
                                           option->name && option->shortOption ? "|" : "",
                                           option->shortOption ? String::format<2>("-%c", option->shortOption).c_str() : "",

@@ -36,7 +36,7 @@ public:
         option->type = type;
         option->count = 0;
         option->listCount = listCount;
-        sOptions.append(option);
+        sOptions.push_back(option);
     }
 
     template <typename T>
@@ -56,7 +56,7 @@ public:
         option->type = def.type();
         option->count = 0;
         option->listCount = 0;
-        sOptions.append(option);
+        sOptions.push_back(option);
     }
 
     static int isEnabled(const char *name)

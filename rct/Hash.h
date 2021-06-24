@@ -172,7 +172,7 @@ public:
         k.reserve(size());
         typename std::unordered_map<Key, Value>::const_iterator it = std::unordered_map<Key, Value>::begin();
         while (it != std::unordered_map<Key, Value>::end()) {
-            k.append(it->first);
+            k.push_back(it->first);
             ++it;
         }
         return k;

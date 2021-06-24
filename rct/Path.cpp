@@ -633,7 +633,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
                     break;
                 case Path::Recurse:
                     if (isDir)
-                        recurseDirs.append(d_name);
+                        recurseDirs.push_back(d_name);
                     break;
                 case Path::Continue:
                     break;
@@ -772,7 +772,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
                 if (max > 0)
                     --max;
                 if (path.type() & filter) {
-                    paths.append(path);
+                    paths.push_back(path);
                 }
                 if (!max)
                     return Path::Abort;

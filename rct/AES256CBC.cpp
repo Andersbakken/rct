@@ -75,8 +75,8 @@ static void deriveKey(const String& key, unsigned char* outkey,
             currentHash = SHA256::hash(currentHash, SHA256::Raw);
         hash += currentHash;
     }
-    memcpy(outkey, hash.constData(), 32);
-    memcpy(outiv, hash.constData() + 32, 32);
+    memcpy(outkey, hash.c_str(), 32);
+    memcpy(outiv, hash.c_str() + 32, 32);
 }
 
 AES256CBC::AES256CBC(const String& key, const unsigned char* salt)
@@ -112,7 +112,7 @@ String AES256CBC::encrypt(const String& data)
 #ifdef OS_Darwin
     size_t flen;
     String out(data.size() + kCCBlockSizeAES128, '\0');
-    CCCryptorUpdate(priv->ectx, data.constData(), data.size(), out.data(), out.size(), &flen);
+    CCCryptorUpdate(priv->ectx, data.c_str(), data.size(), out.data(), out.size(), &flen);
     CCCryptorFinal(priv->ectx, out.data(), flen, &flen);
     CCCryptorReset(priv->ectx, priv->iv);
     out.resize(flen);
@@ -121,7 +121,7 @@ String AES256CBC::encrypt(const String& data)
     String out(elen, '\0');
     EVP_EncryptInit_ex(priv->ectx, nullptr, nullptr, nullptr, nullptr);
     EVP_EncryptUpdate(priv->ectx, reinterpret_cast<unsigned char*>(out.data()), &elen,
-                      reinterpret_cast<const unsigned char*>(data.constData()), data.size());
+                      reinterpret_cast<const unsigned char*>(data.c_str()), data.size());
     EVP_EncryptFinal_ex(priv->ectx, reinterpret_cast<unsigned char*>(out.data()) + elen, &flen);
     out.resize(elen + flen);
 #endif
@@ -135,7 +135,7 @@ String AES256CBC::decrypt(const String& data)
 #ifdef OS_Darwin
     size_t flen;
     String out(data.size() + kCCBlockSizeAES128, '\0');
-    CCCryptorUpdate(priv->dctx, data.constData(), data.size(), out.data(), out.size(), &flen);
+    CCCryptorUpdate(priv->dctx, data.c_str(), data.size(), out.data(), out.size(), &flen);
     CCCryptorFinal(priv->dctx, out.data(), flen, &flen);
     CCCryptorReset(priv->dctx, priv->iv);
     out.resize(flen);
@@ -144,7 +144,7 @@ String AES256CBC::decrypt(const String& data)
     String out(dlen + AES_BLOCK_SIZE, '\0');
     EVP_DecryptInit_ex(priv->dctx, nullptr, nullptr, nullptr, nullptr);
     EVP_DecryptUpdate(priv->dctx, reinterpret_cast<unsigned char*>(out.data()), &dlen,
-                      reinterpret_cast<const unsigned char*>(data.constData()), data.size());
+                      reinterpret_cast<const unsigned char*>(data.c_str()), data.size());
     EVP_DecryptFinal_ex(priv->dctx, reinterpret_cast<unsigned char*>(out.data()) + dlen, &flen);
     out.resize(dlen + flen);
 #endif

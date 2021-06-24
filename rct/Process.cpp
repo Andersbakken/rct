@@ -324,7 +324,7 @@ void Process::setCwd(const Path &cwd)
 Path Process::findCommand(const String &command, const char *path)
 {
     /// @todo use Path::isAbsolute() and check if the file actually exists
-    if (command.isEmpty() || command.at(0) == '/')
+    if (command.empty() || command.at(0) == '/')
         return command;
 
     if (!path)
@@ -335,7 +335,7 @@ Path Process::findCommand(const String &command, const char *path)
     const List<String> paths = String(path).split(':');
     for (List<String>::const_iterator it = paths.begin(); it != paths.end(); ++it) {
         const Path ret = Path::resolved(command, Path::RealPath, *it, &ok);
-        if (ok && !access(ret.nullTerminated(), R_OK | X_OK))
+        if (ok && !access(ret.c_str(), R_OK | X_OK))
             return ret;
     }
     return Path();
@@ -350,12 +350,12 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
     const char *path = nullptr;
     for (const auto &it : environment) {
         if (it.startsWith("PATH=")) {
-            path = it.constData() + 5;
+            path = it.c_str() + 5;
             break;
         }
     }
     Path cmd = findCommand(command, path);
-    if (cmd.isEmpty()) {
+    if (cmd.empty()) {
         mErrorString = "Command not found";
         return Error;
     }
@@ -384,10 +384,10 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
     const char **args = new const char *[arguments.size() + 2];
     // const char* args[arguments.size() + 2];
     args[arguments.size() + 1] = nullptr;
-    args[0] = cmd.nullTerminated();
+    args[0] = cmd.c_str();
     int pos = 1;
     for (List<String>::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {
-        args[pos] = it->nullTerminated();
+        args[pos] = it->c_str();
         // printf("arg: '%s'\n", args[pos]);
         ++pos;
     }
@@ -399,9 +399,9 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
 
     if (hasEnviron) {
         pos = 0;
-        // printf("fork, about to exec '%s'\n", cmd.nullTerminated());
+        // printf("fork, about to exec '%s'\n", cmd.c_str());
         for (List<String>::const_iterator it = environment.begin(); it != environment.end(); ++it) {
-            env[pos] = it->nullTerminated();
+            env[pos] = it->c_str();
             // printf("env: '%s'\n", env[pos]);
             ++pos;
         }
@@ -449,16 +449,16 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
         eintrwrap(err, ::close(mStdErr[1]));
 
         int ret;
-        if (!mChRoot.isEmpty() && ::chroot(mChRoot.constData())) {
+        if (!mChRoot.empty() && ::chroot(mChRoot.c_str())) {
             goto error;
         }
-        if (!mCwd.isEmpty() && ::chdir(mCwd.constData())) {
+        if (!mCwd.empty() && ::chdir(mCwd.c_str())) {
             goto error;
         }
         if (hasEnviron) {
-            ret = ::execve(cmd.nullTerminated(), const_cast<char *const *>(args), const_cast<char *const *>(env));
+            ret = ::execve(cmd.c_str(), const_cast<char *const *>(args), const_cast<char *const *>(env));
         } else {
-            ret = ::execv(cmd.nullTerminated(), const_cast<char *const *>(args));
+            ret = ::execv(cmd.c_str(), const_cast<char *const *>(args));
         }
         // notify the parent process
   error:
@@ -467,7 +467,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
         eintrwrap(err, ::close(closePipe[1]));
         ::_exit(1);
         (void)ret;
-        // printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, Rct::strerror().constData());
+        // printf("fork, exec seemingly failed %d, %d %s\n", ret, errno, Rct::strerror().c_str());
     } else {
         delete[] env;
         delete[] args;
@@ -640,7 +640,7 @@ Process::ExecState Process::exec(
 
 void Process::write(const String &data)
 {
-    if (!data.isEmpty() && mStdIn[1] != -1) {
+    if (!data.empty() && mStdIn[1] != -1) {
         mStdInBuffer.push_back(data);
         handleInput(mStdIn[1]);
     }
@@ -767,10 +767,10 @@ void Process::handleInput(int fd)
         const String &front = mStdInBuffer.front();
         if (mStdInIndex) {
             want = front.size() - mStdInIndex;
-            eintrwrap(w, ::write(fd, front.mid(mStdInIndex).constData(), want));
+            eintrwrap(w, ::write(fd, front.mid(mStdInIndex).c_str(), want));
         } else {
             want = front.size();
-            eintrwrap(w, ::write(fd, front.constData(), want));
+            eintrwrap(w, ::write(fd, front.c_str(), want));
         }
         if (w == -1) {
             EventLoop::eventLoop()->registerSocket(
@@ -801,7 +801,7 @@ void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::funct
         int r;
         eintrwrap(r, ::read(fd, buf, BufSize));
         if (r == -1) {
-            // printf("Process::handleOutput %d returning -1, errno %d %s\n", fd, errno, Rct::strerror().constData());
+            // printf("Process::handleOutput %d returning -1, errno %d %s\n", fd, errno, Rct::strerror().c_str());
             break;
         } else if (r == 0) { // file descriptor closed, remove it
             // printf("Process::handleOutput %d returning 0\n", fd);
@@ -810,7 +810,7 @@ void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::funct
             break;
         } else {
             // printf("Process::handleOutput in loop %d\n", fd);
-            // printf("data: '%s'\n", String(buf, r).constData());
+            // printf("data: '%s'\n", String(buf, r).c_str());
             int sz = buffer.size();
             if (sz + r > MaxSize) {
                 if (sz + r - index > MaxSize) {
@@ -831,7 +831,7 @@ void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::funct
         }
     }
 
-    // printf("total data '%s'\n", buffer.nullTerminated());
+    // printf("total data '%s'\n", buffer.c_str());
 
     if (total)
         signal(this);

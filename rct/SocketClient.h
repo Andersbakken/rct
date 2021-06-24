@@ -58,8 +58,8 @@ public:
     {
         uint16_t port;
         const String name = peerName(&port);
-        if (!name.isEmpty()) {
-            return String::format<64>("%s:%u", name.constData(), port);
+        if (!name.empty()) {
+            return String::format<64>("%s:%u", name.c_str(), port);
         }
         return String();
     }
@@ -68,8 +68,8 @@ public:
     {
         uint16_t port;
         const String name = sockName(&port);
-        if (!name.isEmpty()) {
-            return String::format<64>("%s:%u", name.constData(), port);
+        if (!name.empty()) {
+            return String::format<64>("%s:%u", name.c_str(), port);
         }
         return String();
     }

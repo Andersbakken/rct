@@ -14,7 +14,7 @@ String String::compress() const
     assert(0 && "Rct configured without zlib support");
     return String();
 #else
-    if (isEmpty())
+    if (empty())
         return String();
     z_stream stream;
     memset(&stream, 0, sizeof(stream));

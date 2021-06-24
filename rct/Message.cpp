@@ -23,7 +23,7 @@ Map<uint8_t, Message::MessageCreatorBase *> Message::sFactory;
 
 void Message::prepare(int version, String &header, String &value) const
 {
-    if (mHeader.isEmpty() || version != mVersion) {
+    if (mHeader.empty() || version != mVersion) {
         if (version != mVersion) {
             mHeader.clear();
             mValue.clear();
@@ -88,7 +88,7 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
     String uncompressed;
     if (flags & Compressed) {
         uncompressed = String::uncompress(data, size);
-        data = uncompressed.constData();
+        data = uncompressed.c_str();
         size = uncompressed.size();
     }
     std::lock_guard<std::mutex> lock(sMutex);

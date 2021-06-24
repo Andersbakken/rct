@@ -42,7 +42,7 @@ enum { Max_USec = 1000000 };
 inline size_t indexIn(const String &string, const std::regex &rx)
 {
     std::cmatch match;
-    if (std::regex_match(string.constData(), match, rx) && !match.empty())
+    if (std::regex_match(string.c_str(), match, rx) && !match.empty())
         return match.position(0);
     return String::npos;
 }
@@ -56,7 +56,7 @@ inline bool contains(const char *str, const std::regex &rx, std::cmatch *match =
 
 inline bool contains(const String &str, const std::regex &rx, std::cmatch *match = nullptr)
 {
-    return contains(str.constData(), rx, match);
+    return contains(str.c_str(), rx, match);
 }
 
 String shortOptions(const option *longOptions);
@@ -135,11 +135,11 @@ inline void jsonEscape(const String &str, std::function<void(const char *, size_
         if (!hasEscaped) {
             hasEscaped = true;
             if (i)
-                output(str.constData(), i);
+                output(str.c_str(), i);
         }
         output(escaped, strlen(escaped));
     };
-    const char *stringData = str.constData();
+    const char *stringData = str.c_str();
 
     const size_t length = str.size();
     for (i = 0; i < length; ++i) {

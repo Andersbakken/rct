@@ -164,7 +164,7 @@ public:
     inline Value convert(Type type, bool *ok) const;
     template <typename T> static Value create(const T &t) { return Value(t); }
     void clear();
-    static Value fromJSON(const String &json, bool *ok = nullptr) { return fromJSON(json.constData(), ok); }
+    static Value fromJSON(const String &json, bool *ok = nullptr) { return fromJSON(json.c_str(), ok); }
     static Value fromJSON(const char *json, bool *ok = nullptr);
     String toJSON(bool pretty = false) const;
     String format() const;
@@ -263,7 +263,7 @@ template <> inline int Value::convert<int>(bool *ok) const
     case Type_Boolean: return mData.boolean;
     case Type_String: {
         char *endPtr;
-        const int ret = strtol(stringPtr()->constData(), &endPtr, 10);
+        const int ret = strtol(stringPtr()->c_str(), &endPtr, 10);
         if (!*endPtr)
             return ret;
         break; }
@@ -289,7 +289,7 @@ template <> inline long long Value::convert<long long>(bool *ok) const
     case Type_Boolean: return mData.boolean;
     case Type_String: {
         char *endPtr;
-        const long long ret = strtoll(stringPtr()->constData(), &endPtr, 0);
+        const long long ret = strtoll(stringPtr()->c_str(), &endPtr, 0);
         if (!*endPtr)
             return ret;
         break; }
@@ -315,7 +315,7 @@ template <> inline unsigned long long Value::convert<unsigned long long>(bool *o
     case Type_Boolean: return mData.boolean;
     case Type_String: {
         char *endPtr;
-        const unsigned long long ret = strtoull(stringPtr()->constData(), &endPtr, 0);
+        const unsigned long long ret = strtoull(stringPtr()->c_str(), &endPtr, 0);
         if (!*endPtr)
             return ret;
         break; }
@@ -394,7 +394,7 @@ template <> inline double Value::convert<double>(bool *ok) const
     case Type_Boolean: return mData.boolean;
     case Type_String: {
         char *endPtr;
-        const double ret = strtod(stringPtr()->constData(), &endPtr);
+        const double ret = strtod(stringPtr()->c_str(), &endPtr);
         if (!*endPtr)
             return ret;
         break; }
@@ -691,7 +691,7 @@ inline Log operator<<(Log log, const Value &value)
         }
     }
     log << String::format<128>("Value(%s: %s)", Value::typeToString(value.type()),
-                               str.constData());
+                               str.c_str());
     return log;
 }
 

@@ -132,7 +132,7 @@ MessageQueue::MessageQueue(const Path& path, CreateFlag flag)
     : queue(-1), owner(false)
 {
     pthread_once(&msgInitOnce, msgInit);
-    const key_t key = ftok(path.nullTerminated(), PROJID);
+    const key_t key = ftok(path.c_str(), PROJID);
     if (key == -1)
         return;
     const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;

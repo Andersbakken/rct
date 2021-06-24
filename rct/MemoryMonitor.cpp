@@ -49,7 +49,7 @@ static bool lineVisitor(char* line, void* userData)
 static inline uint64_t usageLinux()
 {
     const pid_t pid = getpid();
-    FILE* file = fopen(("/proc/" + String::number(pid) + "/smaps").constData(), "r");
+    FILE* file = fopen(("/proc/" + String::number(pid) + "/smaps").c_str(), "r");
     if (!file)
         return 0;
 

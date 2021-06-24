@@ -177,7 +177,7 @@ void logDirect(LogLevel level, const char *msg, int len, Flags<LogOutput::LogFla
         std::lock_guard<std::mutex> lock(sOutputsMutex);
         logs = sOutputs;
     }
-    if (logs.isEmpty()) {
+    if (logs.empty()) {
         fwrite(msg, len, 1, stdout);
         if (flags & LogOutput::TrailingNewLine)
             fwrite("\n", 1, 1, stdout);
@@ -254,7 +254,7 @@ void error(const char *format, ...)
 bool testLog(LogLevel level)
 {
     std::lock_guard<std::mutex> lock(sOutputsMutex);
-    if (sOutputs.isEmpty())
+    if (sOutputs.empty())
         return true;
     for (const auto &output : sOutputs) {
         if (output->testLog(level))
@@ -288,20 +288,20 @@ bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
         out->add();
     }
 #endif
-    if (!file.isEmpty()) {
+    if (!file.empty()) {
         if (!(flags & (Append|DontRotate)) && file.exists()) {
             int i = 0;
             while (true) {
-                const Path rotated = String::format<64>("%s.%d", file.constData(), ++i);
+                const Path rotated = String::format<64>("%s.%d", file.c_str(), ++i);
                 if (!rotated.exists()) {
-                    if (rename(file.constData(), rotated.constData())) {
+                    if (rename(file.c_str(), rotated.c_str())) {
                         error() << "Couldn't rotate log file" << file << "to" << rotated << Rct::strerror();
                     }
                     break;
                 }
             }
         }
-        FILE *f = fopen(file.constData(), flags & Append ? "a" : "w");
+        FILE *f = fopen(file.c_str(), flags & Append ? "a" : "w");
         if (!f)
             return false;
         std::shared_ptr<FileOutput> out(new FileOutput(logFileLogLevel, f));

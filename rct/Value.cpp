@@ -117,7 +117,7 @@ cJSON *Value::toCJSON(const Value &value)
     case Value::Type_Date:
     case Value::Type_Integer: return cJSON_CreateNumber(value.toInteger());
     case Value::Type_Double: return cJSON_CreateNumber(value.toDouble());
-    case Value::Type_String: return cJSON_CreateString(value.toString().constData());
+    case Value::Type_String: return cJSON_CreateString(value.toString().c_str());
     case Value::Type_List: {
         cJSON *array = cJSON_CreateArray();
         for (const auto &v : *value.listPtr())
@@ -126,7 +126,7 @@ cJSON *Value::toCJSON(const Value &value)
     case Value::Type_Map: {
         cJSON *object = cJSON_CreateObject();
         for (const auto &v : *value.mapPtr())
-            cJSON_AddItemToObject(object, v.first.constData(), v.second.toCJSON(v.second));
+            cJSON_AddItemToObject(object, v.first.c_str(), v.second.toCJSON(v.second));
         return object; }
     case Value::Type_Invalid:
         break;
@@ -134,7 +134,7 @@ cJSON *Value::toCJSON(const Value &value)
         break;
     case Value::Type_Custom:
         if (std::shared_ptr<Value::Custom> custom = value.toCustom()) {
-            cJSON *ret = cJSON_CreateString(custom->toString().constData());
+            cJSON *ret = cJSON_CreateString(custom->toString().c_str());
             if (ret) {
                 ret->type = cJSON_RawString;
                 return ret;
@@ -266,11 +266,11 @@ public:
             ++indent;
             for (auto it = value.begin(); it != end; ++it) {
                 // printf("%*s" "%s", indent, " ", string);
-                String s = String::format<128>("%*s%s: ", indent - 1, " ", it->first.constData());
+                String s = String::format<128>("%*s%s: ", indent - 1, " ", it->first.c_str());
                 format(it->second, [&s](const char *ch, size_t len) {
                         s.append(ch, len);
                     });
-                output(s.constData(), s.size());
+                output(s.c_str(), s.size());
                 output("\n", 1);
             }
             --indent;
@@ -293,8 +293,8 @@ public:
             str = String::formatTime(value.toDate().time());
             break;
         }
-        if (!str.isEmpty())
-            output(str.constData(), str.size());
+        if (!str.empty())
+            output(str.c_str(), str.size());
     }
 };
 

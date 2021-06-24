@@ -103,7 +103,7 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
     FILE_MAP_READ : FILE_MAP_WRITE; // FILE_MAP_WRITE includes read access
 
     // first, we need to open the file:
-    mhFile = CreateFileW(Utf8To16(f_filename.nullTerminated()),
+    mhFile = CreateFileW(Utf8To16(f_filename.c_str()),
                          access,
                          share,
                          NULL,
@@ -178,7 +178,7 @@ bool MemoryMappedFile::open(const Path &f_filename, AccessType f_access,
     const int protFlags = (f_access == READ_ONLY) ?
     PROT_READ : (PROT_READ | PROT_WRITE);
 
-    mFd = ::open(f_filename.nullTerminated(), openFlags);
+    mFd = ::open(f_filename.c_str(), openFlags);
 
     if(mFd == -1)
     {

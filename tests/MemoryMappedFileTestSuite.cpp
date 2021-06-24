@@ -29,7 +29,7 @@ void MemoryMappedFileTestSuite::nonExistingFile()
     MemoryMappedFile mmf1("fileDoesNotExist.txt");
     CPPUNIT_ASSERT(!mmf1.isOpen());
     CPPUNIT_ASSERT(mmf1.size() == 0);
-    CPPUNIT_ASSERT(mmf1.filename().isEmpty());
+    CPPUNIT_ASSERT(mmf1.filename().empty());
     CPPUNIT_ASSERT(mmf1.accessType() == MemoryMappedFile::NO_ACCESS);
     mmf1.close();  // should be no-op
 
@@ -88,7 +88,7 @@ void MemoryMappedFileTestSuite::closing()
 
     CPPUNIT_ASSERT(!mmf1.isOpen());
     CPPUNIT_ASSERT(mmf1.size() == 0);
-    CPPUNIT_ASSERT(mmf1.filename().isEmpty());
+    CPPUNIT_ASSERT(mmf1.filename().empty());
     CPPUNIT_ASSERT(mmf1.accessType() == MemoryMappedFile::NO_ACCESS);
 
 #ifdef _WIN32
@@ -139,7 +139,7 @@ void MemoryMappedFileTestSuite::moving()
     // mmf3 should now be empty.
     CPPUNIT_ASSERT(!mmf3.isOpen());
     CPPUNIT_ASSERT(mmf3.size() == 0);
-    CPPUNIT_ASSERT(mmf3.filename().isEmpty());
+    CPPUNIT_ASSERT(mmf3.filename().empty());
     CPPUNIT_ASSERT(mmf3.accessType() == MemoryMappedFile::NO_ACCESS);
 }
 

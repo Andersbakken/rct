@@ -35,6 +35,6 @@ void SHA256TestSuite::someFiles()
 
 void SHA256TestSuite::nonExistingFile()
 {
-    CPPUNIT_ASSERT(SHA256::hashFile("fileDoesNotExist.txt").isEmpty());
-    CPPUNIT_ASSERT(SHA256::hashFile("fileDoesNotExist.txt", SHA256::Raw).isEmpty());
+    CPPUNIT_ASSERT(SHA256::hashFile("fileDoesNotExist.txt").empty());
+    CPPUNIT_ASSERT(SHA256::hashFile("fileDoesNotExist.txt", SHA256::Raw).empty());
 }

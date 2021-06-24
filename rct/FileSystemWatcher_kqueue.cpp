@@ -37,7 +37,7 @@ void FileSystemWatcher::shutdown()
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
             // bad stuff
             error("FileSystemWatcher::~FileSystemWatcher() kevent failed for '%s' (%d) %s",
-                  it->first.constData(), errno, Rct::strerror().constData());
+                  it->first.c_str(), errno, Rct::strerror().c_str());
         }
         ::close(it->second);
     }
@@ -67,7 +67,7 @@ Path::VisitResult FileSystemWatcher::scanFiles(const Path& path, void* userData)
         return Path::Recurse;
     case Path::File: {
         struct stat st;
-        if (!::stat(path.nullTerminated(), &st)) {
+        if (!::stat(path.c_str(), &st)) {
             u->watcher->mTimes[path] = timespecToInt(st.st_mtimespec);
         }
         break; }
@@ -85,7 +85,7 @@ Path::VisitResult FileSystemWatcher::updateFiles(const Path& path, void* userDat
         return Path::Recurse;
     case Path::File: {
         struct stat st;
-        if (!::stat(path.nullTerminated(), &st)) {
+        if (!::stat(path.c_str(), &st)) {
             const uint64_t time = timespecToInt(st.st_mtimespec);
             Map<Path, uint64_t>::iterator it = u->watcher->mTimes.find(path);
             if (it != u->watcher->mTimes.end()) {
@@ -144,7 +144,7 @@ bool FileSystemWatcher::isWatching(const Path& p) const
 bool FileSystemWatcher::watch(const Path &p)
 {
     Path path = p;
-    assert(!path.isEmpty());
+    assert(!path.empty());
     std::lock_guard<std::mutex> lock(mMutex);
     const Path::Type type = path.type();
     uint32_t flags = 0;
@@ -156,7 +156,7 @@ bool FileSystemWatcher::watch(const Path &p)
         flags = NOTE_RENAME|NOTE_DELETE|NOTE_EXTEND|NOTE_WRITE|NOTE_ATTRIB|NOTE_REVOKE;
         break;
     default:
-        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.constData());
+        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.c_str());
         return false;
     }
 
@@ -166,9 +166,9 @@ bool FileSystemWatcher::watch(const Path &p)
     if (isWatching(path))
         return false;
 
-    int ret = ::open(path.nullTerminated(), O_RDONLY);
+    int ret = ::open(path.c_str(), O_RDONLY);
     //static int cnt = 0;
-    //printf("wanting to watch [%05d] %s : %d\n", ++cnt, path.nullTerminated(), ret);
+    //printf("wanting to watch [%05d] %s : %d\n", ++cnt, path.c_str(), ret);
     if (ret != -1) {
         struct kevent change;
         struct timespec nullts = { 0, 0 };
@@ -176,14 +176,14 @@ bool FileSystemWatcher::watch(const Path &p)
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
             // bad things have happened
             error("FileSystemWatcher::watch() kevent failed for '%s' (%d) %s",
-                  path.constData(), errno, Rct::strerror().constData());
+                  path.c_str(), errno, Rct::strerror().c_str());
             ::close(ret);
             return false;
         }
     }
     if (ret == -1) {
         error("FileSystemWatcher::watch() watch failed for '%s' (%d) %s",
-              path.constData(), errno, Rct::strerror().constData());
+              path.c_str(), errno, Rct::strerror().c_str());
         return false;
     }
 
@@ -211,7 +211,7 @@ bool FileSystemWatcher::unwatch(const Path &p)
 
     int wd = -1;
     if (mWatchedByPath.remove(path, &wd)) {
-        debug("FileSystemWatcher::unwatch(\"%s\")", path.constData());
+        debug("FileSystemWatcher::unwatch(\"%s\")", path.c_str());
         mWatchedById.remove(wd);
         struct kevent change;
         struct timespec nullts = { 0, 0 };
@@ -219,7 +219,7 @@ bool FileSystemWatcher::unwatch(const Path &p)
         if (::kevent(mFd, &change, 1, 0, 0, &nullts) == -1) {
             // bad stuff
             error("FileSystemWatcher::unwatch() kevent failed for '%s' (%d) %s",
-                  path.constData(), errno, Rct::strerror().constData());
+                  path.c_str(), errno, Rct::strerror().c_str());
         }
         ::close(wd);
         Map<Path, uint64_t>::iterator it = mTimes.lower_bound(path);
@@ -247,7 +247,7 @@ void FileSystemWatcher::notifyReadyRead()
                 break;
             } else if (ret == -1) {
                 error("FileSystemWatcher::notifyReadyRead() kevent failed (%d) %s",
-                      errno, Rct::strerror().constData());
+                      errno, Rct::strerror().c_str());
                 break;
             }
             assert(ret > 0 && ret <= MaxEvents);
@@ -256,10 +256,10 @@ void FileSystemWatcher::notifyReadyRead()
                 const Path p = mWatchedById.value(event.ident);
                 if (event.flags & EV_ERROR) {
                     error("FileSystemWatcher::notifyReadyRead() kevent element failed for '%s' (%ld) %s",
-                          p.constData(), event.data, Rct::strerror(event.data).constData());
+                          p.c_str(), event.data, Rct::strerror(event.data).c_str());
                     continue;
                 }
-                if (p.isEmpty()) {
+                if (p.empty()) {
                     warning() << "FileSystemWatcher::notifyReadyRead() We don't seem to be watching " << p;
                     continue;
                 }
@@ -292,7 +292,7 @@ void FileSystemWatcher::notifyReadyRead()
                         data.all.insert(it->first);
                         ++it;
                     }
-                    //printf("before updateFiles, path %s, all %d\n", p.nullTerminated(), data.all.size());
+                    //printf("before updateFiles, path %s, all %d\n", p.c_str(), data.all.size());
                     p.visit([&data](const Path &p) {
                             return updateFiles(p, &data);
                             });

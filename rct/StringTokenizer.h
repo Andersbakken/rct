@@ -121,7 +121,7 @@ List<String> StringTokenizer::break_parts_of_word(const String &str)
     for (String::const_iterator c = str.begin(); c != str.end(); c++) {
         if (*c == '_') {
             /* Underscore symbol always break */
-            if (!buffer.isEmpty()) {
+            if (!buffer.empty()) {
                 result.push_back(buffer);
                 buffer.clear();
             }
@@ -131,7 +131,7 @@ List<String> StringTokenizer::break_parts_of_word(const String &str)
                 size_t l = buffer.length();
                 result.push_back(buffer.mid(0, l - 1));
                 buffer = buffer.mid(l - 1, 1);
-            } else if (!buffer.isEmpty() && isdigit(buffer[buffer.length() - 1])) {
+            } else if (!buffer.empty() && isdigit(buffer[buffer.length() - 1])) {
                 /* Break: 0|D. */
                 result.push_back(buffer);
                 buffer.clear();
@@ -140,7 +140,7 @@ List<String> StringTokenizer::break_parts_of_word(const String &str)
             buffer += *c;
         } else if (isupper(*c)) {
             /* Break: a|D or 0|D. */
-            if (!buffer.isEmpty() && !isupper(buffer[buffer.length() - 1])) {
+            if (!buffer.empty() && !isupper(buffer[buffer.length() - 1])) {
                 result.push_back(buffer);
                 buffer.clear();
             }
@@ -148,7 +148,7 @@ List<String> StringTokenizer::break_parts_of_word(const String &str)
             buffer += *c;
         } else if (isdigit(*c)) {
             /* Break: a|0 or A|0. */
-            if (!buffer.isEmpty() && !isdigit(buffer[buffer.length() - 1])) {
+            if (!buffer.empty() && !isdigit(buffer[buffer.length() - 1])) {
                 result.push_back(buffer);
                 buffer.clear();
             }
@@ -157,7 +157,7 @@ List<String> StringTokenizer::break_parts_of_word(const String &str)
         }
     }
 
-    if (!buffer.isEmpty())
+    if (!buffer.empty())
         result.push_back(buffer);
 
     /* Lower all parts of result. */

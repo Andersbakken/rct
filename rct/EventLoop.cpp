@@ -528,7 +528,7 @@ bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int
     if (e == -1) {
         if (errno != EEXIST) {
             fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n",
-                    fd, mode, errno, Rct::strerror().constData());
+                    fd, mode, errno, Rct::strerror().c_str());
             return false;
         }
     }
@@ -594,7 +594,7 @@ bool EventLoop::updateSocket(int fd, unsigned int mode)
     if (e == -1) {
         if (errno != EEXIST && errno != ENOENT) {
             fprintf(stderr, "Unable to register socket %d with mode %x: %d (%s)\n",
-                    fd, mode, errno, Rct::strerror().constData());
+                    fd, mode, errno, Rct::strerror().c_str());
             return false;
         }
     }
@@ -641,7 +641,7 @@ void EventLoop::unregisterSocket(int fd)
     if (e == -1) {
         if (errno != ENOENT) {
             fprintf(stderr, "Unable to unregister socket %d: %d (%s)\n",
-                    fd, errno, Rct::strerror().constData());
+                    fd, errno, Rct::strerror().c_str());
         }
     }
 }
@@ -768,9 +768,9 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                 socklen_t size = sizeof(err);
                 e = ::getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &size);
                 if (e == -1) {
-                    fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, Rct::strerror().constData());
+                    fprintf(stderr, "Error getting error for fd %d: %d (%s)\n", fd, errno, Rct::strerror().c_str());
                 } else {
-                    fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, Rct::strerror().constData());
+                    fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, Rct::strerror().c_str());
                 }
                 mode |= SocketError;
             }
@@ -810,7 +810,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                 std::lock_guard<std::mutex> locker(mMutex);
                 mSockets.erase(fd);
             }
-            fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, Rct::strerror().constData());
+            fprintf(stderr, "Error on socket %d, removing: %d (%s)\n", fd, err, Rct::strerror().c_str());
 
             all |= fireSocket(fd, SocketError);
             continue;
@@ -861,7 +861,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
                 } while (e == 1);
                 if (e == -1 && errno != EAGAIN && errno != EWOULDBLOCK) {
                     // error
-                    fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, Rct::strerror().constData());
+                    fprintf(stderr, "Error reading from event pipe: %d (%s)\n", errno, Rct::strerror().c_str());
                     return GeneralError;
                 }
             } else {

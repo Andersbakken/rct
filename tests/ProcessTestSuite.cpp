@@ -189,11 +189,11 @@ void ProcessTestSuite::readFromStdout()
     // if the check fails, we exit this scope, destroying the Process object
     // before ChildProcess exits.
 
-    CPPUNIT_ASSERT(dataReadFromStdout[0].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStdout[0].empty());
     CPPUNIT_ASSERT(dataReadFromStdout[1] == "This is a test");
-    CPPUNIT_ASSERT(dataReadFromStdout[2].isEmpty());
-    CPPUNIT_ASSERT(dataReadFromStdout[3].isEmpty());
-    CPPUNIT_ASSERT(dataReadFromStdout[4].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStdout[2].empty());
+    CPPUNIT_ASSERT(dataReadFromStdout[3].empty());
+    CPPUNIT_ASSERT(dataReadFromStdout[4].empty());
     t.join();
 }
 
@@ -229,11 +229,11 @@ void ProcessTestSuite::readFromStderr()
     // before ChildProcess exits (that's a design weakness in the non-windows Process
     // implementation).
     CPPUNIT_ASSERT(!isFinished1);
-    CPPUNIT_ASSERT(dataReadFromStderr[0].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStderr[0].empty());
     CPPUNIT_ASSERT(dataReadFromStderr[1] == "This is a stderr test");
-    CPPUNIT_ASSERT(dataReadFromStderr[2].isEmpty());
-    CPPUNIT_ASSERT(dataReadFromStderr[3].isEmpty());
-    CPPUNIT_ASSERT(dataReadFromStderr[4].isEmpty());
+    CPPUNIT_ASSERT(dataReadFromStderr[2].empty());
+    CPPUNIT_ASSERT(dataReadFromStderr[3].empty());
+    CPPUNIT_ASSERT(dataReadFromStderr[4].empty());
     CPPUNIT_ASSERT(isFinished2);
 }
 

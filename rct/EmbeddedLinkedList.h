@@ -8,7 +8,7 @@ class EmbeddedLinkedList
 {
 public:
     EmbeddedLinkedList()
-        : mFirst(T()), mLast(T()), mCount(0)
+        : mFront(T()), mBack(T()), mCount(0)
     {}
 
     ~EmbeddedLinkedList()
@@ -29,51 +29,60 @@ public:
             if (t->next) {
                 t->next->prev = t;
             } else {
-                assert(mLast == after);
-                mLast = t;
+                assert(mBack == after);
+                mBack = t;
             }
             after->next = t;
             t->prev = after;
-        } else if (!mFirst) {
+        } else if (!mFront) {
             t->next = t->prev = T();
-            mFirst = mLast = t;
+            mFront = mBack = t;
         } else {
-            t->next = mFirst;
+            t->next = mFront;
             t->prev = T();
-            mFirst->prev = t;
-            mFirst = t;
+            mFront->prev = t;
+            mFront = t;
         }
         ++mCount;
     }
-    void append(const T &t) { insert(t, mLast); }
+    void append(const T &t) { insert(t, mBack); }
     void prepend(const T &t) { insert(t); }
 
-    T &first() { return mFirst; }
-    const T &first() const { return mFirst; }
+    void push_back(const T &t) { insert(t, mBack); }
+    void push_front(const T &t) { insert(t); }
 
-    T &last() { return mLast; }
-    const T &last() const { return mLast; }
+    T &first() { return mFront; }
+    const T &first() const { return mFront; }
+
+    T &front() { return mFront; }
+    const T &front() const { return mFront; }
+
+    T &last() { return mBack; }
+    const T &last() const { return mBack; }
+
+    T &back() { return mBack; }
+    const T &back() const { return mBack; }
 
     void remove(const T &tt)
     {
         T t = tt; // prevent shared_ptr from disappearing underneath us
         assert(t);
-        if (t == mFirst) {
-            if (t == mLast) {
+        if (t == mFront) {
+            if (t == mBack) {
                 assert(mCount == 1);
-                mFirst = mLast = T();
+                mFront = mBack = T();
             } else {
                 assert(mCount > 1);
                 assert(t->next);
-                mFirst = t->next;
-                assert(mFirst);
-                mFirst->prev = T();
+                mFront = t->next;
+                assert(mFront);
+                mFront->prev = T();
             }
-        } else if (t == mLast) {
+        } else if (t == mBack) {
             assert(mCount > 1);
             assert(t->prev);
             t->prev->next = T();
-            mLast = t->prev;
+            mBack = t->prev;
         } else {
             assert(mCount > 1);
             assert(t->prev);
@@ -151,35 +160,49 @@ public:
         remove(it.t);
     }
 
-    const_iterator begin() const { return const_iterator(mFirst); }
+    const_iterator begin() const { return const_iterator(mFront); }
     const_iterator end() const { return const_iterator(T()); }
 
-    iterator begin() { return iterator(mFirst); }
+    iterator begin() { return iterator(mFront); }
     iterator end() { return iterator(T()); }
 
     T removeFirst()
     {
-        assert(mFirst);
-        assert(mCount > 0);
-        const T copy = mFirst;
-        remove(copy);
-        return copy;
+        return removeFront();
     }
 
     T removeLast()
     {
-        assert(mLast);
-        const T copy = mLast;
+        return removeBack();
+    }
+
+    T removeFront()
+    {
+        assert(mFront);
+        assert(mCount > 0);
+        const T copy = mFront;
         remove(copy);
         return copy;
     }
 
+    T removeBack()
+    {
+        assert(mBack);
+        const T copy = mBack;
+        remove(copy);
+        return copy;
+    }
+
+    T takeFront() { return removeFirst(); }
+    T takeBack() { return removeLast(); }
+
     T takeFirst() { return removeFirst(); }
     T takeLast() { return removeLast(); }
 
+
     bool contains(const T &t) const
     {
-        for (T tt = mFirst; tt; tt = tt->next) {
+        for (T tt = mFront; tt; tt = tt->next) {
             if (t == tt)
                 return true;
         }
@@ -188,14 +211,14 @@ public:
 
     void deleteAll()
     {
-        T t = mFirst;
+        T t = mFront;
         while (t) {
             T next = t->next;
             t->next = t->prev = T();
             deleteNode(t);
             t = next;
         }
-        mFirst = mLast = nullptr;
+        mFront = mBack = nullptr;
         mCount = 0;
     }
     void moveToEnd(const T &t)
@@ -231,7 +254,7 @@ private:
         delete t;
     }
 
-    T mFirst, mLast;
+    T mFront, mBack;
     size_t mCount;
 };
 

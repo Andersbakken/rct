@@ -49,7 +49,7 @@ public:
 
     bool write(const String &string)
     {
-        return write(string.constData(), string.size());
+        return write(string.c_str(), string.size());
     }
 
     bool write(const void *data, int len)
@@ -138,7 +138,7 @@ public:
     {}
 
     Deserializer(const String &string, const char *key = "")
-        : mString(string), mData(mString.constData()), mLength(mString.size()),
+        : mString(string), mData(mString.c_str()), mLength(mString.size()),
           mPos(0), mFile(nullptr), mKey(key)
     {}
 
@@ -290,7 +290,7 @@ inline Serializer &operator<<(Serializer &s, const String &string)
     const uint32_t size = string.size();
     s << size;
     if (string.size())
-        s.write(string.constData(), string.size());
+        s.write(string.c_str(), string.size());
     return s;
 }
 
@@ -300,7 +300,7 @@ inline Serializer &operator<<(Serializer &s, const Path &path)
     const uint32_t size = path.size();
     s << size;
     if (size)
-        s.write(path.constData(), size);
+        s.write(path.c_str(), size);
     return s;
 }
 

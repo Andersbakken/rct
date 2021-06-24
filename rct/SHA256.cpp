@@ -45,11 +45,11 @@ void SHA256::update(const char *data, unsigned int size)
 
 void SHA256::update(const String &data)
 {
-    if (data.isEmpty())
+    if (data.empty())
         return;
     if (priv->finalized)
         priv->finalized = false;
-    SHA256_Update(&priv->ctx, data.constData(), data.size());
+    SHA256_Update(&priv->ctx, data.c_str(), data.size());
 }
 
 void SHA256::reset()
@@ -87,7 +87,7 @@ String SHA256::hash(MapType type) const
 
 String SHA256::hash(const String& data, MapType type)
 {
-    return SHA256::hash(data.constData(), data.size(), type);
+    return SHA256::hash(data.c_str(), data.size(), type);
 }
 
 String SHA256::hash(const char* data, unsigned int size, MapType type)

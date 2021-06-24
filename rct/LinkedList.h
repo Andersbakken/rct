@@ -11,10 +11,15 @@ public:
     LinkedList() : std::list<T>() { }
     LinkedList(size_t len) : std::list<T>(len) { }
 
-    bool isEmpty() const { return std::list<T>::empty(); }
+    using std::list<T>::back;
     using std::list<T>::empty;
+    using std::list<T>::front;
+    using std::list<T>::push_back;
+    using std::list<T>::push_front;
+    using std::list<T>::size;
 
-    size_t size() const { return std::list<T>::size(); }
+    bool isEmpty() const { return std::list<T>::empty(); }
+
     void append(const T &t) { std::list<T>::push_back(t); }
     void append(T &&t) { std::list<T>::push_back(std::move(t)); }
     void prepend(const T &t) { std::list<T>::push_front(t); }
@@ -26,8 +31,11 @@ public:
     T &last() { return std::list<T>::back(); }
     const T &last() const { return std::list<T>::back(); }
 
-    T takeFirst() { assert(!isEmpty()); const T t = first(); std::list<T>::pop_front(); return t; }
-    T takeLast() { assert(!isEmpty()); const T t = last(); std::list<T>::pop_back(); return t; }
+    T takeFirst() { assert(!empty()); const T t = first(); std::list<T>::pop_front(); return t; }
+    T takeLast() { assert(!empty()); const T t = last(); std::list<T>::pop_back(); return t; }
+
+    T takeFront() { assert(!empty()); const T t = first(); std::list<T>::pop_front(); return t; }
+    T takeBack() { assert(!empty()); const T t = last(); std::list<T>::pop_back(); return t; }
 
     bool contains(const T& t) const { return std::find(std::list<T>::begin(), std::list<T>::end(), t) != std::list<T>::end(); }
 

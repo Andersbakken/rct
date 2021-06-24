@@ -6,7 +6,6 @@
 #include <functional>
 #include <memory>
 #include <vector>
-#include <string>
 
 template <typename T> class Set;
 
@@ -15,7 +14,7 @@ class List : public std::vector<T>
 {
     typedef std::vector<T> Base;
 public:
-    static const size_t npos = std::string::npos;
+    static constexpr size_t npos = std::numeric_limits<size_t>::max();
     explicit List(size_t count, T &&defaultValue = T())
         : Base(count, std::move(defaultValue))
     {}
@@ -53,6 +52,11 @@ public:
     {
     }
 
+    using Base::empty;
+    using Base::push_back;
+    using Base::insert;
+    using Base::size;
+
     bool contains(const T &t) const
     {
         return std::find(Base::begin(), Base::end(), t) != Base::end();
@@ -62,7 +66,6 @@ public:
     {
         return Base::empty();
     }
-    using Base::empty;
 
     void append(const T &t)
     {
@@ -74,14 +77,24 @@ public:
         Base::insert(Base::begin(), t);
     }
 
+    void push_front(const T &t)
+    {
+        Base::insert(Base::begin(), t);
+    }
+
+    void push_front(T &&t)
+    {
+        Base::insert(Base::begin(), std::forward<T &&>(t));
+    }
+
     void append(T &&t)
     {
-        Base::push_back(std::forward<T>(t));
+        Base::push_back(std::forward<T &&>(t));
     }
 
     void prepend(T &&t)
     {
-        Base::insert(Base::begin(), std::forward<T>(t));
+        Base::insert(Base::begin(), std::forward<T &&>(t));
     }
 
     void append(const List<T> &t)
@@ -100,7 +113,6 @@ public:
     {
         Base::insert(Base::begin() + idx, val);
     }
-    using std::vector<T>::insert;
 
     void sort()
     {
@@ -130,7 +142,7 @@ public:
         }
         from = std::min<int>(s - 1, from);
         if (from >= 0) {
-            const T *haystack = Base::constData();
+            const T *haystack = Base::c_str();
             const T *needle = haystack + from + 1;
             while (needle != haystack) {
                 if (*--needle == t)
@@ -171,11 +183,6 @@ public:
     void removeFirst()
     {
         Base::erase(Base::begin());
-    }
-
-    size_t size() const
-    {
-        return Base::size();
     }
 
     T value(size_t idx, const T &defaultValue) const
@@ -298,7 +305,7 @@ public:
 
     List<T> operator+(const List<T> &t) const
     {
-        if (t.isEmpty())
+        if (t.empty())
             return *this;
 
         size_t s = Base::size();

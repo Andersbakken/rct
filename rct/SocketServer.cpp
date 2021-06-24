@@ -44,7 +44,7 @@ void SocketServer::close()
         loop->unregisterSocket(fd);
     ::close(fd);
     fd = -1;
-    if (!path.isEmpty()) {
+    if (!path.empty()) {
         Path::rm(path);
         path.clear();
     }
@@ -130,7 +130,7 @@ bool SocketServer::listen(const Path &p)
     };
     memset(&addr_un, '\0', sizeof(sockaddr_un));
     addr_un.sun_family = AF_UNIX;
-    strncpy(addr_un.sun_path, p.constData(), sizeof(addr_un.sun_path) - 1);
+    strncpy(addr_un.sun_path, p.c_str(), sizeof(addr_un.sun_path) - 1);
 
     if (commonBindAndListen(&addr, sizeof(sockaddr_un))) {
         path = p;
@@ -166,7 +166,7 @@ bool SocketServer::commonListen()
     enum { Backlog = 128 };
     if (::listen(fd, Backlog) < 0) {
         fprintf(stderr, "::listen() failed with errno: %s\n",
-                Rct::strerror().constData());
+                Rct::strerror().c_str());
 
         serverError(this, ListenError);
         close();
@@ -198,7 +198,7 @@ std::shared_ptr<SocketClient> SocketServer::nextConnection()
         return nullptr;
     const int sock = accepted.front();
     accepted.pop();
-    return std::shared_ptr<SocketClient>(new SocketClient(sock, path.isEmpty() ? SocketClient::Tcp : SocketClient::Unix));
+    return std::shared_ptr<SocketClient>(new SocketClient(sock, path.empty() ? SocketClient::Tcp : SocketClient::Unix));
 }
 
 void SocketServer::socketCallback(int /*fd*/, int mode)

@@ -78,7 +78,7 @@ public:
     Set<T> &unite(const Set<T> &other, size_t *count = nullptr)
     {
         size_t c = 0;
-        if (isEmpty()) {
+        if (empty()) {
             *this = other;
             c = other.size();
         } else {
@@ -136,7 +136,7 @@ public:
     Set<T> &subtract(const Set<T> &other, size_t *count = nullptr)
     {
         size_t c = 0;
-        if (!isEmpty()) {
+        if (!empty()) {
             typename Base::const_iterator it = other.begin();
             while (it != other.end()) {
                 c += Base::erase(*it);

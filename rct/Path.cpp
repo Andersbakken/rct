@@ -45,7 +45,7 @@ const char Path::ENV_PATH_SEPARATOR = ':';
 // this doesn't check if *this actually is a real file
 Path Path::parentDir() const
 {
-    if (isEmpty())
+    if (empty())
         return Path();
     if (size() == 1 && at(0) == '/')
         return Path();
@@ -118,7 +118,7 @@ bool Path::isAbsolute() const
     }
 #endif
 
-    return (!isEmpty() && at(0) == '/');
+    return (!empty() && at(0) == '/');
 }
 
 bool Path::isSymLink() const
@@ -167,7 +167,7 @@ time_t Path::lastAccess() const
 bool Path::setLastModified(time_t lastModified) const
 {
     struct utimbuf buf = { lastAccess(), lastModified };
-    return !utime(constData(), &buf);
+    return !utime(c_str(), &buf);
 }
 
 int64_t Path::fileSize() const
@@ -272,12 +272,12 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     if (changed)
         *changed = false;
 #ifndef _WIN32
-    if (isEmpty())
+    if (empty())
         return false;
     if (startsWith('~')) {
 #else
         glob_t exp_result;
-        if (glob(constData(), 0, NULL, &exp_result) == false) {
+        if (glob(c_str(), 0, NULL, &exp_result) == false) {
             operator=(exp_result.gl_pathv[0]);
             if (changed)
                 *changed = true;
@@ -285,7 +285,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 #endif
     }
     if (*this == ".") {
-        if (!cwd.isEmpty()) {
+        if (!cwd.empty()) {
             operator=(cwd);
         } else {
             operator=(Path::pwd());
@@ -300,7 +300,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
         // we only add the relative file name to the cwd/pwd and check if the
         // result exists.
-        Path copy = (cwd.isEmpty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
+        Path copy = (cwd.empty() ? Path::pwd() : cwd.ensureTrailingSlash()) + *this;
         if (copy.exists()) {
             if (changed)
                 *changed = true;
@@ -314,7 +314,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
     // we only get here if mode == RealPath
 
-    if (!cwd.isEmpty() && !isAbsolute()) {
+    if (!cwd.empty() && !isAbsolute()) {
         //resolve relative path as a path relative to cwd
         Path copy = cwd + '/' + *this;
         if (copy.resolve(RealPath, Path(), changed)) {
@@ -326,9 +326,9 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     {
         char buffer[PATH_MAX + 2];
 #ifdef _WIN32
-        if (_fullpath(buffer, constData(), PATH_MAX)) {
+        if (_fullpath(buffer, c_str(), PATH_MAX)) {
 #else
-            if (realpath(constData(), buffer)) {
+            if (realpath(c_str(), buffer)) {
 #endif
                 if (isDir()) {
                     // dirs usually don't have a trailing '/', so we add one
@@ -337,7 +337,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
                     buffer[len] = '/';
                     buffer[len + 1] = '\0';
                 }
-                if (changed && strcmp(buffer, constData()))
+                if (changed && strcmp(buffer, c_str()))
                     *changed = true;
                 *this = buffer;
                 return true;
@@ -356,7 +356,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
         if (len)
             *len = size() - idx;
-        return constData() + idx;
+        return c_str() + idx;
     }
 
     const char *Path::extension(size_t *len) const
@@ -366,7 +366,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         const size_t s = size();
         if (s) {
             int dot = s - 1;
-            const char *data = constData();
+            const char *data = c_str();
             while (dot >= 0) {
                 switch (data[dot]) {
                 case '.':
@@ -463,7 +463,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         (void) permissions;   // unused on windows
         if (!::_wmkdir(Utf8To16(path.c_str())) || errno == EEXIST)
 #else
-            if (!::mkdir(path.constData(), permissions) || errno == EEXIST || errno == EISDIR)
+            if (!::mkdir(path.c_str(), permissions) || errno == EEXIST || errno == EISDIR)
 #endif
             {
                 // mkdir call succeeded or it failed because the dir already exists
@@ -480,7 +480,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         // only because directories already exist.
 
         char buf[PATH_MAX + 2];
-        strcpy(buf, path.constData());
+        strcpy(buf, path.c_str());
         size_t len = path.size();
         if (!path.endsWith('/')) {
             buf[len++] = '/';
@@ -517,7 +517,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
     bool Path::rm(const Path &file)
     {
-        return !unlink(file.constData());
+        return !unlink(file.c_str());
     }
 
     bool Path::rmdir(const Path &dir)
@@ -541,7 +541,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         return ret;
 
 #else
-        DIR *d = opendir(dir.constData());
+        DIR *d = opendir(dir.c_str());
         size_t path_len = dir.size();
         union {
             char buf[PATH_MAX];
@@ -560,7 +560,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
                 if (buffer) {
                     struct stat statbuf;
-                    snprintf(buffer, len, "%s/%s", dir.constData(), p->d_name);
+                    snprintf(buffer, len, "%s/%s", dir.c_str(), p->d_name);
                     if (!::stat(buffer, &statbuf)) {
                         if (S_ISDIR(statbuf.st_mode)) {
                             Path::rmdir(Path(buffer));
@@ -572,7 +572,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
             }
             closedir(d);
         }
-        return ::rmdir(dir.constData()) == 0;
+        return ::rmdir(dir.c_str()) == 0;
 #endif
     }
 
@@ -587,7 +587,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         if(!d)
             return;
 #else
-        DIR *d = opendir(path.constData());
+        DIR *d = opendir(path.c_str());
         if (!d)
             return;
 #endif
@@ -665,7 +665,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 #ifndef _WIN32  //no symlinks on windows
             if (isSymLink()) {
                 char buf[PATH_MAX];
-                const int w = readlink(constData(), buf, sizeof(buf) - 1);
+                const int w = readlink(c_str(), buf, sizeof(buf) - 1);
                 if (w != -1) {
                     if (ok)
                         *ok = true;
@@ -685,7 +685,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
         size_t Path::readAll(char *&buf, size_t max) const
         {
-            FILE *f = fopen(constData(), "r");
+            FILE *f = fopen(c_str(), "r");
             buf = nullptr;
             if (!f)
                 return -1;
@@ -710,7 +710,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
         String Path::readAll(size_t max) const
         {
-            FILE *f = fopen(constData(), "r");
+            FILE *f = fopen(c_str(), "r");
             if (!f)
                 return String();
             const String ret = Rct::readAll(f, max);
@@ -720,10 +720,10 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 
         bool Path::write(const Path &path, const String &data, WriteMode mode)
         {
-            FILE *f = fopen(path.constData(), mode == Overwrite ? "w" : "a");
+            FILE *f = fopen(path.c_str(), mode == Overwrite ? "w" : "a");
             if (!f)
                 return false;
-            const size_t ret = fwrite(data.constData(), sizeof(char), data.size(), f);
+            const size_t ret = fwrite(data.c_str(), sizeof(char), data.size(), f);
             fclose(f);
             return ret == data.size();
         }
@@ -745,7 +745,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         {
             const Path home = Path::home();
             if (startsWith(home))
-                return String::format<64>("~/%s", constData() + home.size());
+                return String::format<64>("~/%s", c_str() + home.size());
             return *this;
         }
 
@@ -816,7 +816,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 #ifdef _WIN32
             if (::wstat(Utf8To16(c_str()), &st) == -1) {
 #else
-                if (::stat(constData(), &st) == -1) {
+                if (::stat(c_str(), &st) == -1) {
 #endif
                     memset(&st, 0, sizeof(st));
                     if (f_ok) *f_ok = false;

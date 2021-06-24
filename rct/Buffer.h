@@ -142,7 +142,7 @@ public:
             read += bufferSize;
             mBufferOffset = 0;
             remaining -= bufferSize;
-            assert(!mBuffers.isEmpty());
+            assert(!mBuffers.empty());
             mBuffers.pop_front();
         }
         return read;

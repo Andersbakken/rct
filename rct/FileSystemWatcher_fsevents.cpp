@@ -174,7 +174,7 @@ void WatcherData::perform(void* thread)
         const Set<Path> copy = watcher->paths;
         for (const Path &path : copy) {
             refs[i++] = CFStringCreateWithCStringNoCopy(kCFAllocatorDefault,
-                                                        path.constData(),
+                                                        path.c_str(),
                                                         kCFStringEncodingUTF8,
                                                         kCFAllocatorNull);
         }
@@ -301,7 +301,7 @@ bool FileSystemWatcher::isWatching(const Path& p) const
 bool FileSystemWatcher::watch(const Path &p)
 {
     Path path = p;
-    assert(!path.isEmpty());
+    assert(!path.empty());
     const Path::Type type = path.type();
     switch (type) {
     case Path::File:
@@ -310,7 +310,7 @@ bool FileSystemWatcher::watch(const Path &p)
     case Path::Directory:
         break;
     default:
-        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.constData());
+        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.c_str());
         return false;
     }
 

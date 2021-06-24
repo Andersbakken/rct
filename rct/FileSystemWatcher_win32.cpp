@@ -133,20 +133,20 @@ void WatcherData::updatePaths()
     std::lock_guard<std::mutex> locker(changeMutex);
     for(const Path& path : paths) {
 #ifdef HAVE_CYGWIN
-        const ssize_t len = cygwin_conv_path(CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE, path.constData(), 0, 0);
+        const ssize_t len = cygwin_conv_path(CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE, path.c_str(), 0, 0);
         //printf("win path size %d\n", len);
         String winPath(len, '\0');
-        cygwin_conv_path(CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE, path.constData(), winPath.data(), winPath.size());
-        //printf("hello %s\n", winPath.constData());
-        const HANDLE h = FindFirstChangeNotification(winPath.constData(), TRUE,
+        cygwin_conv_path(CCP_POSIX_TO_WIN_A | CCP_ABSOLUTE, path.c_str(), winPath.data(), winPath.size());
+        //printf("hello %s\n", winPath.c_str());
+        const HANDLE h = FindFirstChangeNotification(winPath.c_str(), TRUE,
                                                      FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 #else
-        const HANDLE h = FindFirstChangeNotification(path.constData(), TRUE,
+        const HANDLE h = FindFirstChangeNotification(path.c_str(), TRUE,
                                                      FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE);
 #endif
         if (h == INVALID_HANDLE_VALUE) {
             fprintf(stderr, "Unable to watch: %lu (%s)\n",
-                    static_cast<unsigned long>(GetLastError()), path.constData());
+                    static_cast<unsigned long>(GetLastError()), path.c_str());
         } else {
             changes.push_back(h);
 
@@ -167,7 +167,7 @@ void WatcherData::updatePaths()
 
 bool WatcherData::updated(const Path& path)
 {
-    //printf("updated %s\n", path.constData());
+    //printf("updated %s\n", path.c_str());
     std::lock_guard<std::mutex> locker(updateMutex);
     const auto h = pathToHandle.find(path);
     if (h == pathToHandle.end()) {
@@ -229,11 +229,11 @@ void WatcherData::run()
         std::lock_guard<std::mutex> updateLocker(updateMutex);
         if (!changedPaths.empty()) {
             for (const Path& p : changedPaths) {
-                //printf("path was modified... %s\n", p.constData());
+                //printf("path was modified... %s\n", p.c_str());
                 PathData& data = pathData[p];
                 p.visit([&data](const Path &pp) {
                         if (pp.isFile()) {
-                            //printf("updateDir %s\n", p.constData());
+                            //printf("updateDir %s\n", p.c_str());
                             const auto modif = data.modified.find(pp);
                             if (modif == data.modified.end()) {
                                 //printf("added\n");
@@ -345,7 +345,7 @@ Set<Path> FileSystemWatcher::watchedPaths() const
 bool FileSystemWatcher::watch(const Path& p)
 {
     std::lock_guard<std::mutex> locker(mWatcher->changeMutex);
-    //printf("watching %s\n", p.constData());
+    //printf("watching %s\n", p.c_str());
     mWatcher->paths.insert(p);
     mWatcher->changed = true;
     mWatcher->wakeup();
@@ -355,7 +355,7 @@ bool FileSystemWatcher::watch(const Path& p)
 bool FileSystemWatcher::unwatch(const Path& p)
 {
     std::lock_guard<std::mutex> locker(mWatcher->changeMutex);
-    //printf("unwatching %s\n", p.constData());
+    //printf("unwatching %s\n", p.c_str());
     mWatcher->paths.erase(p);
     mWatcher->changed = true;
     mWatcher->wakeup();
@@ -365,7 +365,7 @@ bool FileSystemWatcher::unwatch(const Path& p)
 void FileSystemWatcher::pathsAdded(const Set<Path>& paths)
 {
     for (const Path& path : paths) {
-        //printf("really added %s\n", path.constData());
+        //printf("really added %s\n", path.c_str());
         mAdded(path);
     }
 }
@@ -373,7 +373,7 @@ void FileSystemWatcher::pathsAdded(const Set<Path>& paths)
 void FileSystemWatcher::pathsRemoved(const Set<Path>& paths)
 {
     for (const Path& path : paths) {
-        //printf("really removed %s\n", path.constData());
+        //printf("really removed %s\n", path.c_str());
         mRemoved(path);
     }
 }
@@ -381,7 +381,7 @@ void FileSystemWatcher::pathsRemoved(const Set<Path>& paths)
 void FileSystemWatcher::pathsModified(const Set<Path>& paths)
 {
     for (const Path& path : paths) {
-        //printf("really modified %s\n", path.constData());
+        //printf("really modified %s\n", path.c_str());
         mModified(path);
     }
 }

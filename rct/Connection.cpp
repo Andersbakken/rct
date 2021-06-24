@@ -56,7 +56,7 @@ void Connection::connect(const std::shared_ptr<SocketClient> &client)
 
 void Connection::checkData()
 {
-    if (!mSocketClient->buffer().isEmpty())
+    if (!mSocketClient->buffer().empty())
         onDataAvailable(mSocketClient, std::forward<Buffer>(mSocketClient->takeBuffer()));
 }
 
@@ -121,7 +121,7 @@ void Connection::onDataAvailable(const std::shared_ptr<SocketClient> &client, Bu
 {
     auto that = shared_from_this();
     while (true) {
-        if (!buf.isEmpty())
+        if (!buf.empty())
             mBuffers.push(std::forward<Buffer>(buf));
 
         unsigned int available = mBuffers.size();
@@ -226,7 +226,7 @@ bool Connection::send(const Message &message)
         message.prepare(mVersion, header, value);
         mPendingWrite += header.size() + value.size();
         assert(size == String::npos || size == (header.size() + value.size() - 4));
-        return (mSocketClient->write(header) && (value.isEmpty() || mSocketClient->write(value)));
+        return (mSocketClient->write(header) && (value.empty() || mSocketClient->write(value)));
     } else {
         mPendingWrite += (size + Message::HeaderExtra) + sizeof(int);
         Serializer serializer(std::unique_ptr<SocketClientBuffer>(new SocketClientBuffer(mSocketClient)));

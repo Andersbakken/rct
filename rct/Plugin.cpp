@@ -13,7 +13,7 @@ void* loadPlugin(const Path& fileName)
 {
     if (!fileName.isFile())
         return nullptr;
-    return dlopen(fileName.nullTerminated(), RTLD_LAZY);
+    return dlopen(fileName.c_str(), RTLD_LAZY);
 }
 
 void unloadPlugin(void* handle)

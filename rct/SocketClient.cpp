@@ -123,7 +123,7 @@ void Resolver::resolve(const String& host, uint16_t port, const std::shared_ptr<
             { AF_INET6, &inaddr6 }
         };
         for (int i = 0; i < 2; ++i) {
-            if (inet_pton(addrs[i].af, host.constData(), addrs[i].dst) == 1) {
+            if (inet_pton(addrs[i].af, host.c_str(), addrs[i].dst) == 1) {
                 // yes, use that
                 if (addrs[i].af == AF_INET) {
                     sockaddr_in* newaddr = new sockaddr_in;
@@ -155,7 +155,7 @@ void Resolver::resolve(const String& host, uint16_t port, const std::shared_ptr<
     hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(host.constData(), nullptr, &hints, &res) != 0) {
+    if (getaddrinfo(host.c_str(), nullptr, &hints, &res) != 0) {
         // bad
         socket->mSignalError(socket, SocketClient::DnsError);
         socket->close();
@@ -250,7 +250,7 @@ bool SocketClient::connect(const String& path)
         return false;
     memset(&addr_un, '\0', sizeof(addr_un));
     addr_un.sun_family = AF_UNIX;
-    strncpy(addr_un.sun_path, path.constData(), sizeof(addr_un.sun_path) - 1);
+    strncpy(addr_un.sun_path, path.c_str(), sizeof(addr_un.sun_path) - 1);
 
     std::shared_ptr<SocketClient> unixSocket = shared_from_this();
 
@@ -333,7 +333,7 @@ bool SocketClient::bind(uint16_t port)
 bool SocketClient::addMembership(const String& ip)
 {
     struct ip_mreq mreq;
-    if (inet_pton(AF_INET, ip.constData(), &mreq.imr_multiaddr) == 0)
+    if (inet_pton(AF_INET, ip.c_str(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     ::setsockopt(mFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
@@ -343,7 +343,7 @@ bool SocketClient::addMembership(const String& ip)
 bool SocketClient::dropMembership(const String& ip)
 {
     struct ip_mreq mreq;
-    if (inet_pton(AF_INET, ip.constData(), &mreq.imr_multiaddr) == 0)
+    if (inet_pton(AF_INET, ip.c_str(), &mreq.imr_multiaddr) == 0)
         return false;
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
     ::setsockopt(mFd, IPPROTO_IP, IP_DROP_MEMBERSHIP, reinterpret_cast<const char*>(&mreq), sizeof(mreq));
@@ -380,13 +380,13 @@ static inline String getNameHelper(int mFd, GetNameFunc func, uint16_t* port)
     String name(INET6_ADDRSTRLEN, '\0');
     if (storage.ss_family == AF_INET6) {
         inet_ntop(AF_INET6, &addr6.sin6_addr, name.data(), name.size());
-        name.resize(strlen(name.constData()));
+        name.resize(strlen(name.c_str()));
         if (port)
             *port = ntohs(addr6.sin6_port);
     } else {
         assert(storage.ss_family == AF_INET);
         inet_ntop(AF_INET, &addr4.sin_addr, name.data(), name.size());
-        name.resize(strlen(name.constData()));
+        name.resize(strlen(name.c_str()));
         if (port)
             *port = ntohs(addr4.sin_port);
     }
@@ -438,7 +438,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
 #endif
 
     if (!mWriteWait) {
-        if (!mWriteBuffer.isEmpty()) {
+        if (!mWriteBuffer.empty()) {
             // assert(mWriteOffset < mWriteBuffer.size());
             const size_t writeBufferSize = mWriteBuffer.size() - mWriteOffset;
             while (total < writeBufferSize) {
@@ -486,7 +486,7 @@ bool SocketClient::writeTo(const String& host, uint16_t port, const unsigned cha
 
         assert(data != nullptr && size > 0);
 
-        if (mWriteBuffer.isEmpty()) {
+        if (mWriteBuffer.empty()) {
             for (;;) {
                 assert(size > total);
                 if (resolver.addr) {
@@ -565,7 +565,7 @@ static String addrToString(const sockaddr* addr, bool IPv6)
 #endif
         inet_ntop(AF_INET, input, &ip[0], ip.size());
     }
-    ip.resize(strlen(ip.constData()));
+    ip.resize(strlen(ip.c_str()));
     return ip;
 }
 

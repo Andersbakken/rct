@@ -28,7 +28,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     List<String> args;
     args << argv[0];
     for (size_t i=0; i<rcFiles.size(); ++i) {
-        FILE *f = fopen(rcFiles.at(i).constData(), "r");
+        FILE *f = fopen(rcFiles.at(i).c_str(), "r");
         if (f) {
             char line[1024];
             int read;
@@ -39,8 +39,8 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
                 if (*ch == '#')
                     continue;
                 List<String> split = String(ch).split(' '); // ### quoting?
-                if (!split.isEmpty()) {
-                    String &first = split.first();
+                if (!split.empty()) {
+                    String &first = split.front();
                     if (first.size() == 1 || (first.size() > 2 && first.at(1) == '=')) {
                         first.prepend('-');
                     } else {
@@ -59,7 +59,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 
     StackBuffer<128, char *> a(args.size());
     for (size_t i=0; i<args.size(); ++i) {
-        a[i] = strdup(args.at(i).constData());
+        a[i] = strdup(args.at(i).c_str());
     }
     StackBuffer<128, option> options(sOptions.size() + 1);
 
@@ -82,7 +82,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
 
     while (true) {
         int idx = -1;
-        const int ret = getopt_long(args.size(), a, shortOpts.constData(), options, &idx);
+        const int ret = getopt_long(args.size(), a, shortOpts.c_str(), options, &idx);
         switch (ret) {
         case -1:
             goto done;
@@ -169,7 +169,7 @@ done:
     while (static_cast<size_t>(optind) < args.size()) {
         sFreeArgs << a[optind++];
     }
-    if (!sAllowsFreeArgs && !sFreeArgs.isEmpty()) {
+    if (!sAllowsFreeArgs && !sFreeArgs.empty()) {
         error = String::format<128>("Unexpected free args");
         ok = false;
     }
@@ -179,9 +179,9 @@ done:
     }
 
     if (!ok) {
-        if (!error.isEmpty()) {
+        if (!error.empty()) {
             showHelp(stderr);
-            fprintf(stderr, "%s\n", error.constData());
+            fprintf(stderr, "%s\n", error.c_str());
         }
     }
     return ok;
@@ -197,9 +197,9 @@ void Config::showHelp(FILE *f)
             out.append(String());
         } else {
             out.append(String::format<64>("  %s%s%s%s",
-                                          option->name ? String::format<4>("--%s", option-> name).constData() : "",
+                                          option->name ? String::format<4>("--%s", option-> name).c_str() : "",
                                           option->name && option->shortOption ? "|" : "",
-                                          option->shortOption ? String::format<2>("-%c", option->shortOption).constData() : "",
+                                          option->shortOption ? String::format<2>("-%c", option->shortOption).c_str() : "",
                                           option->defaultValue.type() == Value::Type_Boolean ? "" : " [arg] "));
             longest = std::max<int>(out[i].size(), longest);
         }
@@ -207,13 +207,13 @@ void Config::showHelp(FILE *f)
     fprintf(f, "%s options...\n", Rct::executablePath().fileName());
     const int count = out.size();
     for (int i=0; i<count; ++i) {
-        if (out.at(i).isEmpty()) {
-            fprintf(f, "%s\n", sOptions.at(i)->description.constData());
+        if (out.at(i).empty()) {
+            fprintf(f, "%s\n", sOptions.at(i)->description.c_str());
         } else {
             fprintf(f, "%s%s %s\n",
-                    out.at(i).constData(),
-                    String(longest - out.at(i).size(), ' ').constData(),
-                    sOptions.at(i)->description.constData());
+                    out.at(i).c_str(),
+                    String(longest - out.at(i).size(), ' ').c_str(),
+                    sOptions.at(i)->description.c_str());
         }
     }
 

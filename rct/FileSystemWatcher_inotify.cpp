@@ -55,10 +55,10 @@ void FileSystemWatcher::clear()
 
 bool FileSystemWatcher::watch(const Path &p)
 {
-    if (p.isEmpty())
+    if (p.empty())
         return false;
     Path path = p;
-    assert(!path.isEmpty());
+    assert(!path.empty());
     std::lock_guard<std::mutex> lock(mMutex);
     const Path::Type type = path.type();
     uint32_t flags = 0;
@@ -72,17 +72,17 @@ bool FileSystemWatcher::watch(const Path &p)
             path.append('/');
         break;
     default:
-        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.constData());
+        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.c_str());
         return false;
     }
 
     if (mWatchedByPath.contains(path)) {
         return false;
     }
-    const int ret = inotify_add_watch(mFd, path.nullTerminated(), flags);
+    const int ret = inotify_add_watch(mFd, path.c_str(), flags);
     if (ret == -1) {
         error("FileSystemWatcher::watch() watch failed for '%s' (%d) %s",
-              path.constData(), errno, Rct::strerror().constData());
+              path.c_str(), errno, Rct::strerror().c_str());
         return false;
     }
 
@@ -96,7 +96,7 @@ bool FileSystemWatcher::unwatch(const Path &path)
     std::lock_guard<std::mutex> lock(mMutex);
     int wd = -1;
     if (mWatchedByPath.remove(path, &wd)) {
-        debug("FileSystemWatcher::unwatch(\"%s\")", path.constData());
+        debug("FileSystemWatcher::unwatch(\"%s\")", path.c_str());
         mWatchedById.remove(wd);
         inotify_rm_watch(mFd, wd);
         return true;
@@ -198,7 +198,7 @@ void FileSystemWatcher::notifyReadyRead()
             inotify_event *event = reinterpret_cast<inotify_event*>(buf + idx);
             idx += sizeof(inotify_event) + event->len;
             Path path = mWatchedById.value(event->wd);
-            if (path.isEmpty())
+            if (path.empty())
                 continue;
 
             if (dumpFS && event->mask) {
@@ -226,11 +226,11 @@ void FileSystemWatcher::notifyReadyRead()
             }
         }
         if (dumpFS) {
-            if (!mAddedPaths.isEmpty())
+            if (!mAddedPaths.empty())
                 error() << "Added" << mAddedPaths;
-            if (!mRemovedPaths.isEmpty())
+            if (!mRemovedPaths.empty())
                 error() << "Removed" << mRemovedPaths;
-            if (!mModifiedPaths.isEmpty())
+            if (!mModifiedPaths.empty())
                 error() << "Modified" << mModifiedPaths;
         }
     }

@@ -222,12 +222,12 @@ public:
 
     size_t lastIndexOf(const String &ba, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
     {
-        return lastIndexOf(ba.constData(), from, ba.size(), cs);
+        return lastIndexOf(ba.c_str(), from, ba.size(), cs);
     }
 
     size_t indexOf(const String &ba, size_t from = 0, CaseSensitivity cs = CaseSensitive) const
     {
-        return indexOf(ba.constData(), from, ba.size(), cs);
+        return indexOf(ba.c_str(), from, ba.size(), cs);
     }
 
     char first() const
@@ -240,15 +240,37 @@ public:
         return operator[](0);
     }
 
+    char front() const
+    {
+        return at(0);
+    }
+
+    char &front()
+    {
+        return operator[](0);
+    }
+
     char last() const
     {
-        assert(!isEmpty());
+        assert(!empty());
         return at(size() - 1);
     }
 
     char &last()
     {
-        assert(!isEmpty());
+        assert(!empty());
+        return operator[](size() - 1);
+    }
+
+    char back() const
+    {
+        assert(!empty());
+        return at(size() - 1);
+    }
+
+    char &back()
+    {
+        assert(!empty());
         return operator[](size() - 1);
     }
 
@@ -364,11 +386,6 @@ public:
         return mString.data();
     }
 
-    const char *nullTerminated() const
-    {
-        return mString.c_str();
-    }
-
     size_t size() const
     {
         return mString.size();
@@ -412,7 +429,7 @@ public:
 
     void insert(size_t pos, const String &text)
     {
-        mString.insert(pos, text.constData(), text.size());
+        mString.insert(pos, text.c_str(), text.size());
     }
 
     void insert(size_t pos, const char *str, size_t len = npos)
@@ -440,7 +457,7 @@ public:
     }
 
     String compress() const;
-    String uncompress() const { return uncompress(constData(), size()); }
+    String uncompress() const { return uncompress(c_str(), size()); }
     static String uncompress(const char *data, size_t size);
 
     void append(const char *str, size_t len = npos)
@@ -573,7 +590,7 @@ public:
 
     bool startsWith(char ch, CaseSensitivity c = CaseSensitive) const
     {
-        if (!isEmpty()) {
+        if (!empty()) {
             return (c == CaseInsensitive
                     ? tolower(at(0)) == tolower(ch)
                     : at(0) == ch);
@@ -583,7 +600,7 @@ public:
 
     bool endsWith(const String &str, CaseSensitivity cs = CaseSensitive) const
     {
-        return endsWith(str.constData(), str.size(), cs);
+        return endsWith(str.c_str(), str.size(), cs);
     }
 
     bool endsWith(const char *str, size_t len = npos, CaseSensitivity cs = CaseSensitive) const
@@ -592,7 +609,7 @@ public:
             len = strlen(str);
         const size_t s = mString.size();
         if (s >= len) {
-            return (cs == CaseInsensitive ? !strncasecmp(str, constData() + s - len, len) : !strncmp(str, constData() + s - len, len));
+            return (cs == CaseInsensitive ? !strncasecmp(str, c_str() + s - len, len) : !strncmp(str, c_str() + s - len, len));
         }
         return false;
     }
@@ -600,7 +617,7 @@ public:
 
     bool startsWith(const String &str, CaseSensitivity cs = CaseSensitive) const
     {
-        return startsWith(str.constData(), str.size(), cs);
+        return startsWith(str.c_str(), str.size(), cs);
     }
 
     bool startsWith(const char *str, size_t len = npos, CaseSensitivity cs = CaseSensitive) const
@@ -609,7 +626,7 @@ public:
         if (len == npos)
             len = strlen(str);
         if (s >= len) {
-            return (cs == CaseInsensitive ? !strncasecmp(str, constData(), len) : !strncmp(str, constData(), len));
+            return (cs == CaseInsensitive ? !strncasecmp(str, c_str(), len) : !strncmp(str, c_str(), len));
         }
         return false;
     }
@@ -703,7 +720,7 @@ public:
     List<String> split(char ch, unsigned int flags = NoSplitFlag) const
     {
         List<String> ret;
-        if (!isEmpty()) {
+        if (!empty()) {
             size_t prev = 0;
             const size_t add = flags & KeepSeparators ? 1 : 0;
             while (1) {
@@ -751,7 +768,7 @@ public:
     {
         errno = 0;
         char *end = nullptr;
-        const unsigned long long ret = ::strtoull(constData(), &end, base);
+        const unsigned long long ret = ::strtoull(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -760,7 +777,7 @@ public:
     {
         errno = 0;
         char *end = nullptr;
-        const long long ret = ::strtoll(constData(), &end, base);
+        const long long ret = ::strtoll(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -769,7 +786,7 @@ public:
     {
         errno = 0;
         char *end = nullptr;
-        const uint32_t ret = ::strtoul(constData(), &end, base);
+        const uint32_t ret = ::strtoul(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -778,7 +795,7 @@ public:
     {
         errno = 0;
         char *end = nullptr;
-        const int32_t ret = ::strtol(constData(), &end, base);
+        const int32_t ret = ::strtol(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
@@ -818,7 +835,7 @@ public:
     }
 
     String toHex() const { return toHex(*this); }
-    static String toHex(const String &hex) { return toHex(hex.constData(), hex.size()); }
+    static String toHex(const String &hex) { return toHex(hex.c_str(), hex.size()); }
     static String toHex(const void *data, size_t len);
 
     static String number(char num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }

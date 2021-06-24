@@ -120,7 +120,7 @@ public:
     inline bool exists() const { return type() != Invalid; }
     inline bool isDir() const { return type() == Directory; }
     inline bool isFile() const { return type() == File; }
-    inline bool isExecutable() const { return !access(constData(), X_OK); }
+    inline bool isExecutable() const { return !access(c_str(), X_OK); }
     inline bool isSocket() const { return type() == Socket; }
     bool isAbsolute() const;
     static const char *typeName(Type type);
@@ -156,7 +156,7 @@ public:
 
     inline Path ensureTrailingSlash() const
     {
-        if (!isEmpty() && !endsWith('/'))
+        if (!empty() && !endsWith('/'))
             return *this + '/';
         return *this;
     }
@@ -165,7 +165,7 @@ public:
     bool mksubdir(const String &subdir) const;
     bool isSource() const;
     static bool isSource(const char *extension);
-    bool isSystem() const { return Path::isSystem(constData()); }
+    bool isSystem() const { return Path::isSystem(c_str()); }
     static bool isSystem(const char *path);
     bool isHeader() const;
     static bool isHeader(const char *extension);
@@ -202,7 +202,7 @@ public:
 
     bool touch() const
     {
-        if (FILE *f = fopen(constData(), "a")) {
+        if (FILE *f = fopen(c_str(), "a")) {
             fclose(f);
             return true;
         }

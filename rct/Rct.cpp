@@ -54,7 +54,7 @@ bool readFile(const Path& path, String& data, mode_t *perm)
 {
     if (!path.isFile())
         return false;
-    FILE *f = fopen(path.nullTerminated(), "r");
+    FILE *f = fopen(path.c_str(), "r");
     if (!f)
         return false;
     const bool ret = readFile(f, data, perm);
@@ -85,25 +85,25 @@ bool readFile(FILE *f, String& data, mode_t *perm)
 
 bool writeFile(const Path& path, const String& data, int perm)
 {
-    FILE* f = fopen(path.nullTerminated(), "w");
+    FILE* f = fopen(path.c_str(), "w");
     if (!f) {
         // try to make the directory and reopen
         const Path parent = path.parentDir();
-        if (parent.isEmpty())
+        if (parent.empty())
             return false;
         Path::mkdir(parent, Path::Recursive);
-        f = fopen(path.nullTerminated(), "w");
+        f = fopen(path.c_str(), "w");
         if (!f)
             return false;
     }
     const int w = fwrite(data.data(), data.size(), 1, f);
     fclose(f);
     if (w != 1) {
-        unlink(path.nullTerminated());
+        unlink(path.c_str());
         return false;
     }
     if (perm >= 0)
-        chmod(path.constData(), static_cast<mode_t>(perm));
+        chmod(path.c_str(), static_cast<mode_t>(perm));
 
     return true;
 }
@@ -180,7 +180,7 @@ String shortOptions(const option *longOptions)
             unused.append(upper);
         }
     }
-    printf("Unused letters: %s\n", unused.nullTerminated());
+    printf("Unused letters: %s\n", unused.c_str());
 #endif
     return ret;
 }
@@ -412,7 +412,7 @@ String hostName()
 {
     String host(HOST_NAME_MAX, '\0');
     ::gethostname(host.data(), HOST_NAME_MAX);
-    host.resize(strlen(host.constData()));
+    host.resize(strlen(host.c_str()));
     return host;
 }
 
@@ -449,7 +449,7 @@ String colorize(const String &string, AnsiColor color, size_t from, size_t len)
 
     String ret;
     ret.reserve(string.size() + 20);
-    const char *str = string.constData();
+    const char *str = string.c_str();
     if (from > 0) {
         ret.append(str, from);
         str += from;
@@ -475,10 +475,10 @@ bool isIP(const String& addr, LookupMode mode)
     if (mode == Auto)
         mode = addr.contains(':') ? IPv6 : IPv4;
     if (mode == IPv6) {
-        if (inet_pton(AF_INET6, addr.constData(), &sockaddr6.sin6_addr) != 1)
+        if (inet_pton(AF_INET6, addr.c_str(), &sockaddr6.sin6_addr) != 1)
             return false;
     } else {
-        if (inet_pton(AF_INET, addr.constData(), &sockaddr4.sin_addr) != 1)
+        if (inet_pton(AF_INET, addr.c_str(), &sockaddr4.sin_addr) != 1)
             return false;
     }
     return true;
@@ -497,7 +497,7 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
     if (mode == Auto)
         mode = address.contains(':') ? IPv6 : IPv4;
     if (mode == IPv6) {
-        if (inet_pton(AF_INET6, address.constData(), &sockaddr6.sin6_addr) != 1) {
+        if (inet_pton(AF_INET6, address.c_str(), &sockaddr6.sin6_addr) != 1) {
             if (ok)
                 *ok = false;
             return address;
@@ -505,7 +505,7 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
         sockaddrStorage.ss_family = AF_INET6;
         sz = sizeof(sockaddr_in6);
     } else {
-        if (inet_pton(AF_INET, address.constData(), &sockaddr4.sin_addr) != 1) {
+        if (inet_pton(AF_INET, address.c_str(), &sockaddr4.sin_addr) != 1) {
             if (ok)
                 *ok = false;
             return address;
@@ -520,7 +520,7 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
         // bad
         return address;
     }
-    out.resize(strlen(out.constData()));
+    out.resize(strlen(out.c_str()));
     if (ok)
         *ok = true;
 
@@ -537,7 +537,7 @@ String nameLookup(const String& name, LookupMode mode, bool *ok)
     hints.ai_family = (mode == IPv6) ? AF_INET6 : AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
-    if (getaddrinfo(name.constData(), nullptr, &hints, &res) != 0) {
+    if (getaddrinfo(name.c_str(), nullptr, &hints, &res) != 0) {
         if (ok)
             *ok = false;
         // bad
@@ -549,13 +549,13 @@ String nameLookup(const String& name, LookupMode mode, bool *ok)
         if (mode == IPv4 && p->ai_family == AF_INET) {
             sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(p->ai_addr);
             inet_ntop(AF_INET, &addr->sin_addr, out.data(), out.size());
-            out.resize(strlen(out.constData()));
+            out.resize(strlen(out.c_str()));
             found = true;
             break;
         } else if (mode == IPv6 && p->ai_family == AF_INET6) {
             sockaddr_in6* addr = reinterpret_cast<sockaddr_in6*>(p->ai_addr);
             inet_ntop(AF_INET6, &addr->sin6_addr, out.data(), out.size());
-            out.resize(strlen(out.constData()));
+            out.resize(strlen(out.c_str()));
             found = true;
             break;
         }
@@ -605,7 +605,7 @@ void Mutex::lock()
     while (!tryLock()) {
         usleep(10000);
         if (timer.elapsed() >= 10000) {
-            error("Couldn't acquire lock in 10 seconds\n%s", Rct::backtrace().constData());
+            error("Couldn't acquire lock in 10 seconds\n%s", Rct::backtrace().c_str());
             timer.restart();
         }
     }

@@ -87,7 +87,7 @@ public:
         DefaultFlags = TrailingNewLine
     };
     virtual void log(Flags<LogFlag> /*flags*/, const char */*msg*/, int /*len*/) { }
-    void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.constData(), msg.length()); }
+    void log(const String &msg) { log(Flags<LogFlag>(DefaultFlags), msg.c_str(), msg.length()); }
     template <int StaticBufSize = 256>
     void vlog(const char *format, ...) RCT_PRINTF_WARNING(2, 3);
     LogLevel logLevel() const { return mLogLevel; }
@@ -116,7 +116,7 @@ void error(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
 void logDirect(LogLevel level, const char *str, int length, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags);
 inline void logDirect(LogLevel level, const String &out, Flags<LogOutput::LogFlag> flags = LogOutput::DefaultFlags)
 {
-    return logDirect(level, out.constData(), out.size(), flags);
+    return logDirect(level, out.c_str(), out.size(), flags);
 }
 void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func);
 
@@ -273,7 +273,7 @@ private:
         }
         ~Data()
         {
-            if (!out.isEmpty()) {
+            if (!out.empty()) {
                 logDirect(level, out, flags);
             }
         }
@@ -296,7 +296,7 @@ inline Log Log::log(const char *format, ...)
         va_list args;
         va_start(args, format);
         const String str = String::format<StaticBufSize>(format, args);
-        write(str.constData(), str.size());
+        write(str.c_str(), str.size());
         va_end(args);
     }
     return *this;
@@ -484,7 +484,7 @@ inline Log operator<<(Log log, Flags<T> f)
 
 inline Log operator<<(Log stream, const String &byteArray)
 {
-    stream.write(byteArray.constData(), byteArray.size());
+    stream.write(byteArray.c_str(), byteArray.size());
     return stream;
 }
 

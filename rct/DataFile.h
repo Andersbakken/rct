@@ -35,9 +35,9 @@ public:
         mFile = nullptr;
         delete mSerializer;
         mSerializer = nullptr;
-        if (rename(mTempFilePath.constData(), mPath.constData())) {
+        if (rename(mTempFilePath.c_str(), mPath.c_str())) {
             Path::rm(mTempFilePath);
-            mError = String::format<128>("rename error: %d %s", errno, Rct::strerror().constData());
+            mError = String::format<128>("rename error: %d %s", errno, Rct::strerror().c_str());
             return false;
         }
         return true;
@@ -57,12 +57,12 @@ public:
             mTempFilePath = mPath + "XXXXXX";
             const int ret = mkstemp(&mTempFilePath[0]);
             if (ret == -1) {
-                mError = String::format<128>("mkstemp failure %d (%s)", errno, Rct::strerror().constData());
+                mError = String::format<128>("mkstemp failure %d (%s)", errno, Rct::strerror().c_str());
                 return false;
             }
             mFile = fdopen(ret, "w");
             if (!mFile) {
-                mError = String::format<128>("fdopen failure %d (%s)", errno, Rct::strerror().constData());
+                mError = String::format<128>("fdopen failure %d (%s)", errno, Rct::strerror().c_str());
                 close(ret);
                 return false;
             }
@@ -73,7 +73,7 @@ public:
             return true;
         } else {
             mContents = mPath.readAll();
-            if (mContents.isEmpty()) {
+            if (mContents.empty()) {
                 if (mPath.exists())
                     mError = "Read error " + mPath;
                 return false;
@@ -83,14 +83,14 @@ public:
             (*mDeserializer) >> version;
             if (version != mVersion) {
                 mError = String::format<128>("Wrong database version. Expected %d, got %d for %s",
-                                             mVersion, version, mPath.constData());
+                                             mVersion, version, mPath.c_str());
                 return false;
             }
             int fs;
             (*mDeserializer) >> fs;
             if (static_cast<size_t>(fs) != mContents.size()) {
                 mError = String::format<128>("%s seems to be corrupted. Size should have been %zu but was %d",
-                                             mPath.constData(), mContents.size(), fs);
+                                             mPath.c_str(), mContents.size(), fs);
                 return false;
             }
             return true;

@@ -25,7 +25,7 @@ SharedMemory::SharedMemory(key_t key, int size, CreateMode mode)
 SharedMemory::SharedMemory(const Path& filename, int size, CreateMode mode)
     : mShm(-1), mOwner(false), mAddr(nullptr), mKey(-1), mSize(0)
 {
-    init(ftok(filename.nullTerminated(), PROJID), size, mode);
+    init(ftok(filename.c_str(), PROJID), size, mode);
 }
 
 bool SharedMemory::init(key_t key, int size, CreateMode mode)

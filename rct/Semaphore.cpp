@@ -23,7 +23,7 @@ Semaphore::Semaphore(int key, CreateFlag flag, int value)
 Semaphore::Semaphore(const Path& filename, CreateFlag flag, int value)
     : mSem(-1), mOwner(false)
 {
-    const key_t key = ftok(filename.nullTerminated(), RCT_PROJID);
+    const key_t key = ftok(filename.c_str(), RCT_PROJID);
     if (key == -1)
         return;
     const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;

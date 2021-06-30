@@ -42,7 +42,7 @@ enum { Max_USec = 1000000 };
 inline size_t indexIn(const String &string, const std::regex &rx)
 {
     std::cmatch match;
-    if (std::regex_match(string.c_str(), match, rx) && !match.empty())
+    if (std::regex_search(string.c_str(), match, rx) && !match.empty())
         return match.position(0);
     return String::npos;
 }
@@ -51,7 +51,7 @@ inline bool contains(const char *str, const std::regex &rx, std::cmatch *match =
 {
     std::cmatch null;
     std::cmatch &m = match ? *match : null;
-    return std::regex_match(str, m, rx);
+    return std::regex_search(str, m, rx);
 }
 
 inline bool contains(const String &str, const std::regex &rx, std::cmatch *match = nullptr)

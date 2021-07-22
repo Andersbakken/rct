@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <vector>
 

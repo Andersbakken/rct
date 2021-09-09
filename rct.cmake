@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PkgConfig)
 
 if (POLICY CMP0025)
-    cmake_policy(SET CMP0025 NEW)
+  cmake_policy(SET CMP0025 NEW)
 endif ()
 
 if (POLICY CMP0042)
@@ -13,7 +13,7 @@ if (POLICY CMP0042)
 endif ()
 
 if (POLICY CMP0067)
-    cmake_policy(SET CMP0067 NEW)
+  cmake_policy(SET CMP0067 NEW)
 endif ()
 
 if (NOT RCT_NO_LIBRARY)

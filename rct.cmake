@@ -1,14 +1,23 @@
-cmake_minimum_required(VERSION 3.4)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(PkgConfig)
 
-if (NOT RCT_NO_LIBRARY)
-    project(rct)
+if (POLICY CMP0025)
+    cmake_policy(SET CMP0025 NEW)
 endif ()
 
 if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
-endif()
+endif ()
+
+if (POLICY CMP0067)
+    cmake_policy(SET CMP0067 NEW)
+endif ()
+
+if (NOT RCT_NO_LIBRARY)
+    project(rct)
+endif ()
 
 set(CMAKE_OLD_MODULE_PATH ${CMAKE_MODULE_PATH})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/")

@@ -133,7 +133,7 @@ String String::toHex(const void *pAddressIn, size_t lSize)
         for (lIndex = 1 + lIndent, lIndex2 = 53 - 15 + lIndent, lRelPos = 0; lOutLen2; lOutLen2--, lIndex += 2, lIndex2++) {
             ucTmp = *pTmp++;
 
-            sprintf(szBuf + lIndex, "%02X ", (unsigned short)ucTmp);
+            snprintf(szBuf + lIndex, sizeof(szBuf) - lIndex, "%02X ", (unsigned short)ucTmp);
             if (!isprint(ucTmp))
                 ucTmp = '.'; // nonprintable char
             szBuf[lIndex2] = ucTmp;

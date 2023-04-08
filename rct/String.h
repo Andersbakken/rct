@@ -1028,7 +1028,8 @@ inline const String operator+(const String &l, const String &r)
 
 namespace std
 {
-template <> struct hash<String> : public unary_function<String, size_t>
+template <>
+struct hash<String>
 {
     size_t operator()(const String& value) const
     {

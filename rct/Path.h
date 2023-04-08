@@ -239,7 +239,8 @@ public:
 
 namespace std
 {
-template <> struct hash<Path> : public unary_function<Path, size_t>
+template <>
+struct hash<Path>
 {
     size_t operator()(const Path& value) const
     {

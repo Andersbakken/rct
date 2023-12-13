@@ -19,7 +19,7 @@ public:
     void restart(int interval, int flags = 0, const std::shared_ptr<EventLoop> &eventLoop = std::shared_ptr<EventLoop>());
     void stop();
 
-    Signal<std::function<void(Timer*)> >& timeout() { return signalTimeout; }
+    Signal<std::function<void(Timer*)>>& timeout() { return signalTimeout; }
 
     bool isRunning() const { return timerId; }
     int id() const { return timerId; }
@@ -29,7 +29,7 @@ private:
 
 private:
     int timerId;
-    Signal<std::function<void(Timer*)> > signalTimeout;
+    Signal<std::function<void(Timer*)>> signalTimeout;
 };
 
 #endif

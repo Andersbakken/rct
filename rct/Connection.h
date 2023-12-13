@@ -85,13 +85,13 @@ public:
 
     bool isConnected() const { return mSocketClient && mSocketClient->isConnected(); }
 
-    Signal<std::function<void(std::shared_ptr<Connection>)> > &sendFinished() { return mSendFinished; }
-    Signal<std::function<void(std::shared_ptr<Connection>)> > &connected() { return mConnected; }
-    Signal<std::function<void(std::shared_ptr<Connection>)> > &disconnected() { return mDisconnected; }
-    Signal<std::function<void(std::shared_ptr<Connection>)> > &error() { return mError; }
-    Signal<std::function<void(std::shared_ptr<Connection>, int)> > &finished() { return mFinished; }
-    Signal<std::function<void(std::shared_ptr<Connection>, const Message *)> > &aboutToSend() { return mAboutToSend; }
-    Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)> > &newMessage() { return mNewMessage; }
+    Signal<std::function<void(std::shared_ptr<Connection>)>> &sendFinished() { return mSendFinished; }
+    Signal<std::function<void(std::shared_ptr<Connection>)>> &connected() { return mConnected; }
+    Signal<std::function<void(std::shared_ptr<Connection>)>> &disconnected() { return mDisconnected; }
+    Signal<std::function<void(std::shared_ptr<Connection>)>> &error() { return mError; }
+    Signal<std::function<void(std::shared_ptr<Connection>, int)>> &finished() { return mFinished; }
+    Signal<std::function<void(std::shared_ptr<Connection>, const Message *)>> &aboutToSend() { return mAboutToSend; }
+    Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)>> &newMessage() { return mNewMessage; }
     std::shared_ptr<SocketClient> client() const { return mSocketClient; }
 
 private:
@@ -118,10 +118,10 @@ private:
 
     std::function<void(const std::shared_ptr<SocketClient> &, Message::MessageError &&)> mErrorHandler;
 
-    Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)> > mNewMessage;
-    Signal<std::function<void(std::shared_ptr<Connection>)> > mConnected, mDisconnected, mError, mSendFinished;
-    Signal<std::function<void(std::shared_ptr<Connection>, int)> > mFinished;
-    Signal<std::function<void(std::shared_ptr<Connection>, const Message *)> > mAboutToSend;
+    Signal<std::function<void(std::shared_ptr<Message>, std::shared_ptr<Connection>)>> mNewMessage;
+    Signal<std::function<void(std::shared_ptr<Connection>)>> mConnected, mDisconnected, mError, mSendFinished;
+    Signal<std::function<void(std::shared_ptr<Connection>, int)>> mFinished;
+    Signal<std::function<void(std::shared_ptr<Connection>, const Message *)>> mAboutToSend;
 };
 
 template <int StaticBufSize>

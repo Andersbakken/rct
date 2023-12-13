@@ -216,7 +216,7 @@ void StringTokenizerTestSuite::findMatchWordBoundary()
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(1), wbm->indices[2]);
 }
 
-static List<std::unique_ptr<MatchResult> > test_find_and_sort_matches(const List<String> &candidate_names, const String &query)
+static List<std::unique_ptr<MatchResult>> test_find_and_sort_matches(const List<String> &candidate_names, const String &query)
 {
     List<CompletionCandidate *> candidates;
     for (unsigned i = 0; i < candidate_names.size(); i++)
@@ -228,7 +228,7 @@ static List<std::unique_ptr<MatchResult> > test_find_and_sort_matches(const List
 void StringTokenizerTestSuite::findAndSortResultsSimple()
 {
     List<String> names = {"foo", "bar", "baz"};
-    List<std::unique_ptr<MatchResult> > results = test_find_and_sort_matches(names, "fo");
+    List<std::unique_ptr<MatchResult>> results = test_find_and_sort_matches(names, "fo");
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(1), results.size());
     CPPUNIT_ASSERT_EQUAL(PREFIX_MATCH_CASE_SENSITIVE, results[0]->type);
@@ -238,7 +238,7 @@ void StringTokenizerTestSuite::findAndSortResultsSimple()
 void StringTokenizerTestSuite::findAndSortResultsSimpleMultiple()
 {
     List<String> names = {"foo", "fredy", "baz", "f"};
-    List<std::unique_ptr<MatchResult> > results = test_find_and_sort_matches(names, "f");
+    List<std::unique_ptr<MatchResult>> results = test_find_and_sort_matches(names, "f");
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(3), results.size());
     CPPUNIT_ASSERT_EQUAL(std::string("f"), results[0]->candidate->name.ref());
@@ -252,7 +252,7 @@ void StringTokenizerTestSuite::findAndSortResultsSimpleMultiple()
 void StringTokenizerTestSuite::findAndSortResultsCaseSensitivity()
 {
     List<String> names = {"Fr", "Fredy", "Baz", "franko", "fr"};
-    List<std::unique_ptr<MatchResult> > results = test_find_and_sort_matches(names, "Fr");
+    List<std::unique_ptr<MatchResult>> results = test_find_and_sort_matches(names, "Fr");
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(4), results.size());
     CPPUNIT_ASSERT_EQUAL(std::string("Fr"), results[0]->candidate->name.ref());
@@ -268,7 +268,7 @@ void StringTokenizerTestSuite::findAndSortResultsCaseSensitivity()
 void StringTokenizerTestSuite::findAndSortResultsCaseMixture()
 {
     List<String> names = {"fbar", "f_call_bar", "from_bar_and_read", "gnome", "", "ffbar"};
-    List<std::unique_ptr<MatchResult> > results = test_find_and_sort_matches(names, "fbar");
+    List<std::unique_ptr<MatchResult>> results = test_find_and_sort_matches(names, "fbar");
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(3), results.size());
     CPPUNIT_ASSERT_EQUAL(EXACT_MATCH_CASE_SENSITIVE, results[0]->type);
@@ -282,7 +282,7 @@ void StringTokenizerTestSuite::findAndSortResultsCaseMixture()
 void StringTokenizerTestSuite::findAndSortResultsLongerPrefixAtBeginning()
 {
     List<String> names = {"get_long_value_with_very_nice", "gloooveshark", "get_small_and_long", "gl_o"};
-    List<std::unique_ptr<MatchResult> > results = test_find_and_sort_matches(names, "glo");
+    List<std::unique_ptr<MatchResult>> results = test_find_and_sort_matches(names, "glo");
 
     CPPUNIT_ASSERT_EQUAL(static_cast<size_t>(4), results.size());
     CPPUNIT_ASSERT_EQUAL(std::string("gloooveshark"), results[0]->candidate->name.ref());

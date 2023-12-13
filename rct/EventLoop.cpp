@@ -372,7 +372,7 @@ int EventLoop::registerTimer(std::function<void(int)>&& func, int timeout, unsig
             data.id = ++mNextTimerId;
         } while (mTimersById.count(&data));
     }
-    TimerData* timer = new TimerData(currentTime() + timeout, mNextTimerId, flags, timeout, std::forward<std::function<void(int)> >(func));
+    TimerData* timer = new TimerData(currentTime() + timeout, mNextTimerId, flags, timeout, std::forward<std::function<void(int)>>(func));
     mTimersByTime.insert(timer);
     mTimersById.insert(timer);
     assert(mTimersById.count(timer) == 1);
@@ -485,7 +485,7 @@ inline bool EventLoop::sendTimers()
 bool EventLoop::registerSocket(int fd, unsigned int mode, std::function<void(int, unsigned int)>&& func)
 {
     std::lock_guard<std::mutex> locker(mMutex);
-    mSockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, unsigned int)> >(func));
+    mSockets[fd] = std::make_pair(mode, std::forward<std::function<void(int, unsigned int)>>(func));
 
     int e;
 #if defined(HAVE_EPOLL)
@@ -736,7 +736,7 @@ unsigned int EventLoop::processSocketEvents(NativeEvent* events, int eventCount)
     int e;
 
 #if defined(HAVE_SELECT)
-    std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > local;
+    std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)>> > local;
     {
 #ifndef _WIN32
 #  warning this is not optimal

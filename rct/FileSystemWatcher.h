@@ -42,9 +42,9 @@ public:
 
     bool watch(const Path &path);
     bool unwatch(const Path &path);
-    Signal<std::function<void(const Path &)> > &removed() { return mRemoved; }
-    Signal<std::function<void(const Path &)> > &added() { return mAdded; }
-    Signal<std::function<void(const Path &)> > &modified() { return mModified; }
+    Signal<std::function<void(const Path &)>> &removed() { return mRemoved; }
+    Signal<std::function<void(const Path &)>> &added() { return mAdded; }
+    Signal<std::function<void(const Path &)>> &modified() { return mModified; }
     void clear();
 #if defined(HAVE_FSEVENTS) || defined(HAVE_CHANGENOTIFICATION)
     Set<Path> watchedPaths() const;
@@ -78,7 +78,7 @@ private:
 #endif
 #endif
     std::mutex mMutex;
-    Signal<std::function<void(const Path&)> > mRemoved, mModified, mAdded;
+    Signal<std::function<void(const Path&)>> mRemoved, mModified, mAdded;
 
     enum Type {
         Add = 0x1,

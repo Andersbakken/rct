@@ -17,7 +17,7 @@
 
 static Flags<LogFlag> sFlags;
 static StopWatch sStart;
-static Set<std::shared_ptr<LogOutput> > sOutputs;
+static Set<std::shared_ptr<LogOutput>> sOutputs;
 static std::mutex sOutputsMutex;
 static LogLevel sLevel = LogLevel::Error;
 
@@ -172,7 +172,7 @@ static void logHelper(LogLevel level, Flags<LogOutput::LogFlag> flags, const cha
 
 void logDirect(LogLevel level, const char *msg, int len, Flags<LogOutput::LogFlag> flags)
 {
-    Set<std::shared_ptr<LogOutput> > logs;
+    Set<std::shared_ptr<LogOutput>> logs;
     {
         std::lock_guard<std::mutex> lock(sOutputsMutex);
         logs = sOutputs;
@@ -192,7 +192,7 @@ void logDirect(LogLevel level, const char *msg, int len, Flags<LogOutput::LogFla
 
 void log(const std::function<void(const std::shared_ptr<LogOutput> &)> &func)
 {
-    Set<std::shared_ptr<LogOutput> > logs;
+    Set<std::shared_ptr<LogOutput>> logs;
     {
         std::lock_guard<std::mutex> lock(sOutputsMutex);
         logs = sOutputs;

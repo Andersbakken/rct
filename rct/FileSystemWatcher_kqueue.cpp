@@ -301,7 +301,7 @@ void FileSystemWatcher::notifyReadyRead()
 
                     lock.unlock();
                     struct {
-                        Signal<std::function<void(const Path&)> > &signal;
+                        Signal<std::function<void(const Path&)>> &signal;
                         const Set<Path> &paths;
                     } signals[] = {
                         { mModified, data.modified },

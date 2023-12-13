@@ -106,7 +106,7 @@ public:
     static void clear();
 private:
     template <class T> struct is_list { static const int value = 0; };
-    template <class T> struct is_list<List<T> > { static const int value = 1; };
+    template <class T> struct is_list<List<T>> { static const int value = 1; };
 
     template <class T> class ListType {
     private:
@@ -130,7 +130,7 @@ private:
     static void convert(const Value &value, T &t, bool *ok = nullptr, typename std::enable_if<is_list<T>::value, T>::type * = 0)
     {
         typedef typename ListType<T>::type K;
-        List<Value> values = value.convert<List<Value> >();
+        List<Value> values = value.convert<List<Value>>();
         t.reserve(values.size());
         for (const Value &val : values) {
             bool o;
@@ -185,7 +185,7 @@ private:
         virtual bool validate(String &err) override
         {
             if (validator) {
-                const List<Value> t = value.convert<List<Value> >();
+                const List<Value> t = value.convert<List<Value>>();
                 List<T> converted(t.size());
                 for (int i=0; i<t.size(); ++i) {
                     converted[i] = t.at(i).convert<T>();

@@ -77,7 +77,7 @@ void ThreadPoolThread::run()
             mPool->mCond.wait(lock);
         if (mStopped)
             break;
-        std::deque<std::shared_ptr<ThreadPool::Job> >::iterator item = mPool->mJobs.begin();
+        std::deque<std::shared_ptr<ThreadPool::Job>>::iterator item = mPool->mJobs.begin();
         assert(item != mPool->mJobs.end());
         std::shared_ptr<ThreadPool::Job> job = *item;
         mPool->mJobs.erase(item);
@@ -204,7 +204,7 @@ void ThreadPool::start(const std::function<void()> &func, int priority)
 bool ThreadPool::remove(const std::shared_ptr<Job> &job)
 {
     std::lock_guard<std::mutex> lock(mMutex);
-    std::deque<std::shared_ptr<Job> >::iterator it = std::find(mJobs.begin(), mJobs.end(), job);
+    std::deque<std::shared_ptr<Job>>::iterator it = std::find(mJobs.begin(), mJobs.end(), job);
     if (it == mJobs.end())
         return false;
     mJobs.erase(it);

@@ -22,7 +22,7 @@ public:
     MessageQueue(const Path& path, CreateFlag flag = None);
     ~MessageQueue();
 
-    Signal<std::function<void(const Buffer&)> >& dataAvailable() { return signalDataAvailable; }
+    Signal<std::function<void(const Buffer&)>>& dataAvailable() { return signalDataAvailable; }
 
     bool send(const String& data) { return send(data.c_str(), data.size()); }
     bool send(const Buffer& data) { return send(reinterpret_cast<const char*>(data.data()), data.size()); }
@@ -31,7 +31,7 @@ public:
 private:
     int queue;
     bool owner;
-    Signal<std::function<void(const Buffer&)> > signalDataAvailable;
+    Signal<std::function<void(const Buffer&)>> signalDataAvailable;
     std::shared_ptr<MessageThread> thread;
 
     friend class MessageThread;

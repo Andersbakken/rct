@@ -33,10 +33,10 @@ public:
 
     std::shared_ptr<SocketClient> nextConnection();
 
-    Signal<std::function<void(SocketServer*)> >& newConnection() { return serverNewConnection; }
+    Signal<std::function<void(SocketServer*)>>& newConnection() { return serverNewConnection; }
 
     enum Error { InitializeError, BindError, ListenError, AcceptError };
-    Signal<std::function<void(SocketServer*, Error)> >& error() { return serverError; }
+    Signal<std::function<void(SocketServer*, Error)>>& error() { return serverError; }
 
 private:
     void socketCallback(int fd, int mode);
@@ -48,8 +48,8 @@ private:
     bool isIPv6;
     Path path;
     std::queue<int> accepted;
-    Signal<std::function<void(SocketServer*)> > serverNewConnection;
-    Signal<std::function<void(SocketServer*, Error)> > serverError;
+    Signal<std::function<void(SocketServer*)>> serverNewConnection;
+    Signal<std::function<void(SocketServer*, Error)>> serverError;
 };
 
 #endif

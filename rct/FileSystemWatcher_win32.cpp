@@ -32,7 +32,7 @@ WatcherSlice::WatcherSlice(std::vector<HANDLE>::iterator& begin,
                            std::function<bool(const Path&)>&& notif,
                            const std::map<HANDLE, Path>& paths)
     : changes(begin, end), stopped(false),
-      notify(std::forward<std::function<bool(const Path&)> >(notif)),
+      notify(std::forward<std::function<bool(const Path&)>>(notif)),
       handleToPath(paths)
 {
     const HANDLE h = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -93,7 +93,7 @@ public:
 
     Set<Path> paths;
     Set<Path> changedPaths;
-    std::vector<std::unique_ptr<WatcherSlice> > slices;
+    std::vector<std::unique_ptr<WatcherSlice>> slices;
 
     struct PathData
     {

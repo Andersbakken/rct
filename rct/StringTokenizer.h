@@ -102,7 +102,7 @@ public:
     static inline std::unique_ptr<MatchResult> find_match(CompletionCandidate *candidate, const String &query);
     static inline bool is_boundary_match(const List<String> &parts, const String &query, List<size_t> &indices);
     static inline String find_identifier_prefix(const String &line, size_t column, size_t *start);
-    static inline List<std::unique_ptr<MatchResult> > find_and_sort_matches(List<CompletionCandidate *> &candidates, const String &query);
+    static inline List<std::unique_ptr<MatchResult>> find_and_sort_matches(List<CompletionCandidate *> &candidates, const String &query);
 
 private:
     StringTokenizer() = delete;
@@ -243,9 +243,9 @@ bool StringTokenizer::is_boundary_match(const List<String> &parts,
     return false;
 }
 
-List<std::unique_ptr<MatchResult> > StringTokenizer::find_and_sort_matches(List<CompletionCandidate *> &candidates, const String &query)
+List<std::unique_ptr<MatchResult>> StringTokenizer::find_and_sort_matches(List<CompletionCandidate *> &candidates, const String &query)
 {
-    List<std::unique_ptr<MatchResult> > results;
+    List<std::unique_ptr<MatchResult>> results;
 
     for (List<CompletionCandidate *>::const_iterator c = candidates.begin(); c != candidates.end(); c++) {
         std::unique_ptr<MatchResult> r = find_match(*c, query);

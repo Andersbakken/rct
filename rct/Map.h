@@ -7,7 +7,7 @@
 #include <rct/List.h>
 
 
-template <typename Key, typename Value, typename Compare = std::less<Key> >
+template <typename Key, typename Value, typename Compare = std::less<Key>>
 class Map : public std::map<Key, Value, Compare>
 {
     typedef std::map<Key, Value, Compare> Base;
@@ -253,7 +253,7 @@ inline const Map<Key, Value, Compare> operator-(const Map<Key, Value, Compare> &
 }
 
 
-template <typename Key, typename Value, typename Compare = std::less<Key> >
+template <typename Key, typename Value, typename Compare = std::less<Key>>
 class MultiMap : public std::multimap<Key, Value, Compare>
 {
 public:

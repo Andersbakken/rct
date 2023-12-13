@@ -200,12 +200,12 @@ private:
     void copy(Value &&other);
     String *stringPtr() { return pun<String>(); }
     const String *stringPtr() const { return pun<const String>(); }
-    Map<String, Value> *mapPtr() { return pun<Map<String, Value> >(); }
-    const Map<String, Value> *mapPtr() const { return pun<const Map<String, Value> >(); }
-    List<Value> *listPtr() { return pun<List<Value> >(); }
-    const List<Value> *listPtr() const { return pun<const List<Value> >(); }
-    std::shared_ptr<Custom> *customPtr() { return pun<std::shared_ptr<Custom> >(); }
-    const std::shared_ptr<Custom> *customPtr() const { return pun<const std::shared_ptr<Custom> >(); }
+    Map<String, Value> *mapPtr() { return pun<Map<String, Value>>(); }
+    const Map<String, Value> *mapPtr() const { return pun<const Map<String, Value>>(); }
+    List<Value> *listPtr() { return pun<List<Value>>(); }
+    const List<Value> *listPtr() const { return pun<const List<Value>>(); }
+    std::shared_ptr<Custom> *customPtr() { return pun<std::shared_ptr<Custom>>(); }
+    const std::shared_ptr<Custom> *customPtr() const { return pun<const std::shared_ptr<Custom>>(); }
 
     Type mType;
     union {
@@ -330,7 +330,7 @@ template <> inline unsigned long long Value::convert<unsigned long long>(bool *o
     return 0;
 }
 
-template <> inline std::shared_ptr<Value::Custom> Value::convert<std::shared_ptr<Value::Custom> >(bool *ok) const
+template <> inline std::shared_ptr<Value::Custom> Value::convert<std::shared_ptr<Value::Custom>>(bool *ok) const
 {
     if (ok)
         *ok = true;
@@ -430,7 +430,7 @@ template <> inline String Value::convert<String>(bool *ok) const
     return toJSON();
  }
 
-template <> inline List<Value> Value::convert<List<Value> >(bool *ok) const
+template <> inline List<Value> Value::convert<List<Value>>(bool *ok) const
 {
     if (ok)
         *ok = true;
@@ -453,7 +453,7 @@ template <> inline List<Value> Value::convert<List<Value> >(bool *ok) const
     return List<Value>();
 }
 
-template <> inline Map<String, Value> Value::convert<Map<String, Value> >(bool *ok) const
+template <> inline Map<String, Value> Value::convert<Map<String, Value>>(bool *ok) const
 {
     if (ok)
         *ok = true;
@@ -486,9 +486,9 @@ inline Value Value::convert(Type type, bool *ok) const
     case Type_String: return convert<String>(ok);
     case Type_Invalid: if (ok) *ok = true; return Value();
     case Type_Undefined: if (ok) *ok = true; return Value::undefined();
-    case Type_Custom: return convert<std::shared_ptr<Custom> >(ok);
-    case Type_List: return convert<List<Value> >(ok);
-    case Type_Map: return convert<Map<String, Value> >(ok);
+    case Type_Custom: return convert<std::shared_ptr<Custom>>(ok);
+    case Type_List: return convert<List<Value>>(ok);
+    case Type_Map: return convert<Map<String, Value>>(ok);
     }
     if (ok)
         *ok = false;
@@ -502,9 +502,9 @@ inline unsigned long long Value::toULongLong() const { return convert<unsigned l
 inline double Value::toDouble() const { return convert<double>(nullptr); }
 inline Date Value::toDate(Date::Mode mode) const { return Date(convert<long long>(nullptr), mode); }
 inline String Value::toString() const { return convert<String>(nullptr); }
-inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom> >(nullptr); }
-inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value> >(nullptr); }
-inline List<Value> Value::toList() const { return convert<List<Value> >(nullptr); }
+inline std::shared_ptr<Value::Custom> Value::toCustom() const { return convert<std::shared_ptr<Custom>>(nullptr); }
+inline Map<String, Value> Value::toMap() const { return convert<Map<String, Value>>(nullptr); }
+inline List<Value> Value::toList() const { return convert<List<Value>>(nullptr); }
 template <typename T>
 inline List<T> Value::toList() const
 {

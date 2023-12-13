@@ -81,7 +81,7 @@ private:
     int mConcurrentJobs;
     mutable std::mutex mMutex;
     std::condition_variable mCond;
-    std::deque<std::shared_ptr<Job> > mJobs;
+    std::deque<std::shared_ptr<Job>> mJobs;
     List<ThreadPoolThread*> mThreads;
     int mBusyThreads;
     const Thread::Priority mPriority;

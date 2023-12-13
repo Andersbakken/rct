@@ -44,7 +44,7 @@ void FileSystemWatcher::processChanges(unsigned int types)
     assert(types);
     struct {
         const Type type;
-        Signal<std::function<void(const Path&)> > &signal;
+        Signal<std::function<void(const Path&)>> &signal;
         Set<Path> &paths;
     } signals[] = {
         { Add, mAdded, mAddedPaths },

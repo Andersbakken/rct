@@ -211,7 +211,7 @@ private:
     int mPollFd;
 #endif
 
-    std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)> > > mSockets;
+    std::map<int, std::pair<unsigned int, std::function<void(int, unsigned int)>> > mSockets;
 
     class TimerData
     {

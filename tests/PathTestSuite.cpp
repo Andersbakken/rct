@@ -178,7 +178,7 @@ void PathTestSuite::unicode()
     static const char unicodePath[] = u8"Äßéמש最終";
     // we try some funky utf8-stuff
     Path p(unicodePath);
-    //OnScopeExit<std::function<void()> > deletePath([&]{Path::rmdir(p);});
+    //OnScopeExit<std::function<void()>> deletePath([&]{Path::rmdir(p);});
 
     CPPUNIT_ASSERT(p.mkdir());
     CPPUNIT_ASSERT(p.isDir());

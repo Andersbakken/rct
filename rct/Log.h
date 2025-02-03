@@ -2,7 +2,9 @@
 #define Log_h
 
 #include <assert.h>
+#ifdef __GXX_RTTI
 #include <cxxabi.h>
+#endif
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>

@@ -4,12 +4,19 @@
 #include <algorithm>
 #include <list>
 
-template<typename T>
+template <typename T>
 class LinkedList : public std::list<T>
 {
 public:
-    LinkedList() : std::list<T>() { }
-    LinkedList(size_t len) : std::list<T>(len) { }
+    LinkedList()
+        : std::list<T>()
+    {
+    }
+
+    LinkedList(size_t len)
+        : std::list<T>(len)
+    {
+    }
 
     using std::list<T>::back;
     using std::list<T>::empty;
@@ -18,26 +25,87 @@ public:
     using std::list<T>::push_front;
     using std::list<T>::size;
 
-    bool isEmpty() const { return std::list<T>::empty(); }
+    bool isEmpty() const
+    {
+        return std::list<T>::empty();
+    }
 
-    void append(const T &t) { std::list<T>::push_back(t); }
-    void append(T &&t) { std::list<T>::push_back(std::move(t)); }
-    void prepend(const T &t) { std::list<T>::push_front(t); }
-    void prepend(T &&t) { std::list<T>::push_front(std::move(t)); }
+    void append(const T &t)
+    {
+        std::list<T>::push_back(t);
+    }
 
-    T &first() { return std::list<T>::front(); }
-    const T &first() const { return std::list<T>::front(); }
+    void append(T &&t)
+    {
+        std::list<T>::push_back(std::move(t));
+    }
 
-    T &last() { return std::list<T>::back(); }
-    const T &last() const { return std::list<T>::back(); }
+    void prepend(const T &t)
+    {
+        std::list<T>::push_front(t);
+    }
 
-    T takeFirst() { assert(!empty()); const T t = first(); std::list<T>::pop_front(); return t; }
-    T takeLast() { assert(!empty()); const T t = last(); std::list<T>::pop_back(); return t; }
+    void prepend(T &&t)
+    {
+        std::list<T>::push_front(std::move(t));
+    }
 
-    T takeFront() { assert(!empty()); const T t = first(); std::list<T>::pop_front(); return t; }
-    T takeBack() { assert(!empty()); const T t = last(); std::list<T>::pop_back(); return t; }
+    T &first()
+    {
+        return std::list<T>::front();
+    }
 
-    bool contains(const T& t) const { return std::find(std::list<T>::begin(), std::list<T>::end(), t) != std::list<T>::end(); }
+    const T &first() const
+    {
+        return std::list<T>::front();
+    }
+
+    T &last()
+    {
+        return std::list<T>::back();
+    }
+
+    const T &last() const
+    {
+        return std::list<T>::back();
+    }
+
+    T takeFirst()
+    {
+        assert(!empty());
+        const T t = first();
+        std::list<T>::pop_front();
+        return t;
+    }
+
+    T takeLast()
+    {
+        assert(!empty());
+        const T t = last();
+        std::list<T>::pop_back();
+        return t;
+    }
+
+    T takeFront()
+    {
+        assert(!empty());
+        const T t = first();
+        std::list<T>::pop_front();
+        return t;
+    }
+
+    T takeBack()
+    {
+        assert(!empty());
+        const T t = last();
+        std::list<T>::pop_back();
+        return t;
+    }
+
+    bool contains(const T &t) const
+    {
+        return std::find(std::list<T>::begin(), std::list<T>::end(), t) != std::list<T>::end();
+    }
 
     typename std::list<T>::iterator find(const T &t)
     {

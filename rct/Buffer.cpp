@@ -4,11 +4,11 @@
 
 #include "rct/String.h"
 
-bool Buffer::load(const String& filename)
+bool Buffer::load(const String &filename)
 {
     clear();
 
-    FILE* f = fopen(filename.c_str(), "r");
+    FILE *f = fopen(filename.c_str(), "r");
     if (!f)
         return false;
 

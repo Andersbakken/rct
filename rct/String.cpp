@@ -5,7 +5,10 @@
 #ifdef RCT_HAVE_ZLIB
 #include <zlib.h>
 
-enum { BufferSize = 1024 * 32 };
+enum
+{
+    BufferSize = 1024 * 32
+};
 #endif
 
 String String::compress() const
@@ -22,7 +25,7 @@ String String::compress() const
     if (::deflateInit(&stream, Z_BEST_COMPRESSION) != Z_OK)
         return String();
 
-    stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef *>(data()));
+    stream.next_in  = const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data()));
     stream.avail_in = size();
 
     char buffer[BufferSize];
@@ -32,7 +35,7 @@ String String::compress() const
 
     int error = 0;
     do {
-        stream.next_out = reinterpret_cast<Bytef *>(buffer);
+        stream.next_out  = reinterpret_cast<Bytef *>(buffer);
         stream.avail_out = sizeof(buffer);
 
         error = ::deflate(&stream, Z_FINISH);
@@ -68,7 +71,7 @@ String String::uncompress(const char *data, size_t size)
         return String();
     }
 
-    stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef *>(data));
+    stream.next_in  = const_cast<Bytef *>(reinterpret_cast<const Bytef *>(data));
     stream.avail_in = size;
 
     char buffer[BufferSize];
@@ -78,7 +81,7 @@ String String::uncompress(const char *data, size_t size)
 
     int error = 0;
     do {
-        stream.next_out = reinterpret_cast<Bytef *>(buffer);
+        stream.next_out  = reinterpret_cast<Bytef *>(buffer);
         stream.avail_out = sizeof(buffer);
 
         error = ::inflate(&stream, Z_SYNC_FLUSH);
@@ -104,10 +107,13 @@ String String::toHex(const void *pAddressIn, size_t lSize)
     int lIndent = 1;
     int lOutLen, lIndex, lIndex2, lOutLen2;
     int lRelPos;
-    struct {
+
+    struct
+    {
         const unsigned char *pData;
         unsigned int lSize;
     } buf;
+
     const unsigned char *pTmp;
     unsigned char ucTmp;
     const unsigned char *pAddress = static_cast<const unsigned char *>(pAddressIn);
@@ -116,17 +122,15 @@ String String::toHex(const void *pAddressIn, size_t lSize)
     buf.lSize = lSize;
 
     while (buf.lSize > 0) {
-        pTmp = buf.pData;
+        pTmp    = buf.pData;
         lOutLen = (int)buf.lSize;
         if (lOutLen > 16)
             lOutLen = 16;
 
         // create a 64-character formatted output line:
-        snprintf(szBuf,
-                 sizeof(szBuf),
-                 " >                            "
-                 "                      "
-                 "    %08lX",
+        snprintf(szBuf, sizeof(szBuf), " >                            "
+                                       "                      "
+                                       "    %08lX",
                  static_cast<long unsigned int>(pTmp - pAddress));
         lOutLen2 = lOutLen;
 
@@ -148,7 +152,7 @@ String String::toHex(const void *pAddressIn, size_t lSize)
         if (!(lRelPos & 3))
             lIndex--;
 
-        szBuf[lIndex] = '<';
+        szBuf[lIndex]     = '<';
         szBuf[lIndex + 1] = ' ';
 
         ret.append(szBuf);

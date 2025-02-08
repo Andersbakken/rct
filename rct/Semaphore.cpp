@@ -6,8 +6,8 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
-#include "Rct.h"
 #include "Path.h"
+#include "Rct.h"
 
 #ifndef RCT_PROJID
 #define RCT_PROJID 3945
@@ -16,19 +16,20 @@
 Semaphore::Semaphore(int key, CreateFlag flag, int value)
 {
     const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;
-    mSem = semget(key, value, flg);
-    mOwner = ((flg & IPC_CREAT) == IPC_CREAT);
+    mSem          = semget(key, value, flg);
+    mOwner        = ((flg & IPC_CREAT) == IPC_CREAT);
 }
 
-Semaphore::Semaphore(const Path& filename, CreateFlag flag, int value)
-    : mSem(-1), mOwner(false)
+Semaphore::Semaphore(const Path &filename, CreateFlag flag, int value)
+    : mSem(-1)
+    , mOwner(false)
 {
     const key_t key = ftok(filename.c_str(), RCT_PROJID);
     if (key == -1)
         return;
     const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;
-    mSem = semget(key, value, flg);
-    mOwner = ((flg & IPC_CREAT) == IPC_CREAT);
+    mSem          = semget(key, value, flg);
+    mOwner        = ((flg & IPC_CREAT) == IPC_CREAT);
 }
 
 Semaphore::~Semaphore()

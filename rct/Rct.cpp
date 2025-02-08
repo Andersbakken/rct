@@ -1,40 +1,40 @@
 #include "Rct.h"
 
-#include <limits.h>
-#include <sys/time.h>
-#include <unistd.h>
 #include <getopt.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 #ifdef OS_Darwin
-# include <mach-o/dyld.h>
+#include <mach-o/dyld.h>
 #elif defined(OS_FreeBSD) || defined(OS_DragonFly)
-# include <netinet/in.h>
-# include <sys/sysctl.h>
+#include <netinet/in.h>
+#include <sys/sysctl.h>
 #endif
 #ifdef _WIN32
-#  ifdef _WIN32_WINNT
-#    if _WIN32_WINNT < _WIN32_WINNT_VISTA
-#      warning "need to compile at least for windows vista"
-#    endif
-#  else
-#    define _WIN32_WINNT _WIN32_WINNT_VISTA
-#    define NTDDI_VERSION NTDDI_VISTA
-#  endif
-#  include <Winsock2.h>
-#  include <Ws2tcpip.h>
-#  ifndef HOST_NAME_MAX
-#    define HOST_NAME_MAX 256 //according to gethostname documentation on MSDN
-#  endif
+#ifdef _WIN32_WINNT
+#if _WIN32_WINNT < _WIN32_WINNT_VISTA
+#warning "need to compile at least for windows vista"
+#endif
 #else
-#  include <arpa/inet.h>
-#  include <netdb.h>
-#  include <sys/socket.h>
+#define _WIN32_WINNT _WIN32_WINNT_VISTA
+#define NTDDI_VERSION NTDDI_VISTA
+#endif
+#include <Winsock2.h>
+#include <Ws2tcpip.h>
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 256 // according to gethostname documentation on MSDN
+#endif
+#else
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/socket.h>
 #endif
 
-#include "rct/rct-config.h"
 #include "rct/Path.h"
+#include "rct/rct-config.h"
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #include <mach/mach.h>
 #include <mach/mach_time.h>
@@ -50,7 +50,7 @@ struct timeval;
 
 namespace Rct {
 
-bool readFile(const Path& path, String& data, mode_t *perm)
+bool readFile(const Path &path, String &data, mode_t *perm)
 {
     if (!path.isFile())
         return false;
@@ -62,7 +62,7 @@ bool readFile(const Path& path, String& data, mode_t *perm)
     return ret;
 }
 
-bool readFile(FILE *f, String& data, mode_t *perm)
+bool readFile(FILE *f, String &data, mode_t *perm)
 {
     assert(f);
     const int sz = fileSize(f);
@@ -83,9 +83,9 @@ bool readFile(FILE *f, String& data, mode_t *perm)
     return true;
 }
 
-bool writeFile(const Path& path, const String& data, int perm)
+bool writeFile(const Path &path, const String &data, int perm)
 {
-    FILE* f = fopen(path.c_str(), "w");
+    FILE *f = fopen(path.c_str(), "w");
     if (!f) {
         // try to make the directory and reopen
         const Path parent = path.parentDir();
@@ -147,7 +147,7 @@ String readAll(FILE *f, int max)
 String shortOptions(const option *longOptions)
 {
     String ret;
-    for (int i=0; longOptions[i].name; ++i) {
+    for (int i = 0; longOptions[i].name; ++i) {
         if (longOptions[i].val) {
             if (ret.contains(longOptions[i].val)) {
                 printf("%c (%s) is already used\n", longOptions[i].val, longOptions[i].name);
@@ -155,17 +155,17 @@ String shortOptions(const option *longOptions)
             }
             ret.append(longOptions[i].val);
             switch (longOptions[i].has_arg) {
-            case no_argument:
-                break;
-            case optional_argument:
-                ret.append("::");
-                break;
-            case required_argument:
-                ret.append(':');
-                break;
-            default:
-                assert(0);
-                break;
+                case no_argument:
+                    break;
+                case optional_argument:
+                    ret.append("::");
+                    break;
+                case required_argument:
+                    ret.append(':');
+                    break;
+                default:
+                    assert(0);
+                    break;
             }
         }
     }
@@ -186,6 +186,7 @@ String shortOptions(const option *longOptions)
 }
 
 static Path sExecutablePath;
+
 Path executablePath()
 {
     return sExecutablePath;
@@ -213,7 +214,7 @@ void findExecutablePath(const char *argv0)
     const char *path = getenv("PATH");
 
     const List<String> paths = String(path).split(Path::ENV_PATH_SEPARATOR);
-    for (size_t i=0; i<paths.size(); ++i) {
+    for (size_t i = 0; i < paths.size(); ++i) {
         const Path p = (paths.at(i) + "/") + argv0;
         if (p.isFile()) {
             sExecutablePath = p;
@@ -251,7 +252,7 @@ void findExecutablePath(const char *argv0)
         }
     }
 #elif defined _WIN32
-    //nothing here so far.
+    // nothing here so far.
 #else
 #warning Unknown platform.
 #endif
@@ -259,8 +260,8 @@ void findExecutablePath(const char *argv0)
 }
 
 #ifdef HAVE_BACKTRACE
-#include <execinfo.h>
 #include <cxxabi.h>
+#include <execinfo.h>
 
 static inline char *demangle(const char *str)
 {
@@ -290,7 +291,7 @@ static inline char *demangle(const char *str)
     if (l >= len)
         return nullptr;
     memcpy(buf, paren, l + 1);
-    buf[l] = '\0';
+    buf[l]    = '\0';
     char *ret = abi::__cxa_demangle(buf, nullptr, nullptr, &status);
     if (status != 0) {
         if (ret)
@@ -306,17 +307,21 @@ static inline char *demangle(const char *str)
 
 String backtrace(int maxFrames)
 {
-    enum { SIZE = 1024 };
+    enum
+    {
+        SIZE = 1024
+    };
+
     void *stack[SIZE];
 
-    const int frameCount = backtrace(stack, sizeof(stack) / sizeof(void*));
+    const int frameCount = backtrace(stack, sizeof(stack) / sizeof(void *));
     if (frameCount <= 0)
         return String("Couldn't get stack trace");
     String ret;
     char **symbols = backtrace_symbols(stack, frameCount);
     if (symbols) {
         char frame[1024];
-        for (int i=1; i<frameCount && (maxFrames < 0 || i - 1 < maxFrames); ++i) {
+        for (int i = 1; i < frameCount && (maxFrames < 0 || i - 1 < maxFrames); ++i) {
             char *demangled = demangle(symbols[i]);
             snprintf(frame, sizeof(frame), "%d/%d %s\n", i, frameCount - 1, demangled ? demangled : symbols[i]);
             ret += frame;
@@ -334,8 +339,7 @@ String backtrace(int)
 }
 #endif
 
-
-bool gettime(timeval* time)
+bool gettime(timeval *time)
 {
 #if defined(HAVE_MACH_ABSOLUTE_TIME)
     static mach_timebase_info_data_t info;
@@ -345,8 +349,8 @@ bool gettime(timeval* time)
         first = false;
         mach_timebase_info(&info);
     }
-    machtime = machtime * info.numer / (info.denom * 1000); // microseconds
-    time->tv_sec = machtime / 1000000;
+    machtime      = machtime * info.numer / (info.denom * 1000); // microseconds
+    time->tv_sec  = machtime / 1000000;
     time->tv_usec = machtime % 1000000;
 #elif defined(HAVE_CLOCK_MONOTONIC_RAW) || defined(HAVE_CLOCK_MONOTONIC)
     timespec spec;
@@ -389,10 +393,12 @@ String currentTimeString()
     struct timeval tv;
     struct timezone tz;
     gettimeofday(&tv, &tz);
-    enum {
-        SEC_PER_MIN = 60,
+
+    enum
+    {
+        SEC_PER_MIN  = 60,
         SEC_PER_HOUR = SEC_PER_MIN * 60,
-        SEC_PER_DAY = SEC_PER_HOUR * 24
+        SEC_PER_DAY  = SEC_PER_HOUR * 24
     };
 
     long hms = tv.tv_sec % SEC_PER_DAY;
@@ -401,11 +407,10 @@ String currentTimeString()
     hms = (hms + SEC_PER_DAY) % SEC_PER_DAY;
 
     int hour = hms / SEC_PER_HOUR;
-    int min = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
-    int sec = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
+    int min  = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
+    int sec  = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
 
-    return String::format<16>("%d:%02d:%02d.%03llu",
-                              hour, min, sec, tv.tv_usec / static_cast<unsigned long long>(1000));
+    return String::format<16>("%d:%02d:%02d.%03llu", hour, min, sec, tv.tv_usec / static_cast<unsigned long long>(1000));
 }
 
 String hostName()
@@ -417,16 +422,16 @@ String hostName()
 }
 
 const char *colors[] = {
-    "\x1b[0m", // Default
-    "\x1b[30m", // Black
-    "\x1b[31m", // Red
-    "\x1b[32m", // Green
-    "\x1b[33m", // Yellow
-    "\x1b[34m", // Blue
-    "\x1b[35m", // Magenta
-    "\x1b[36m", // Cyan
-    "\x1b[37m", // White
-    "\x1b[0;1m", // BrightDefault
+    "\x1b[0m",    // Default
+    "\x1b[30m",   // Black
+    "\x1b[31m",   // Red
+    "\x1b[32m",   // Green
+    "\x1b[33m",   // Yellow
+    "\x1b[34m",   // Blue
+    "\x1b[35m",   // Magenta
+    "\x1b[36m",   // Cyan
+    "\x1b[37m",   // White
+    "\x1b[0;1m",  // BrightDefault
     "\x1b[30;1m", // BrightBlack
     "\x1b[31;1m", // BrightRed
     "\x1b[32;1m", // BrightGreen
@@ -434,7 +439,7 @@ const char *colors[] = {
     "\x1b[34;1m", // BrightBlue
     "\x1b[35;1m", // BrightMagenta
     "\x1b[36;1m", // BrightCyan
-    "\x1b[37;1m" // BrightWhite
+    "\x1b[37;1m"  // BrightWhite
 };
 
 String colorize(const String &string, AnsiColor color, size_t from, size_t len)
@@ -464,13 +469,15 @@ String colorize(const String &string, AnsiColor color, size_t from, size_t len)
     return ret;
 }
 
-bool isIP(const String& addr, LookupMode mode)
+bool isIP(const String &addr, LookupMode mode)
 {
-    union {
+    union
+    {
         sockaddr_storage sockaddr;
         sockaddr_in6 sockaddr6;
         sockaddr_in sockaddr4;
     };
+
     memset(&sockaddr, 0, sizeof(sockaddr_storage));
     if (mode == Auto)
         mode = addr.contains(':') ? IPv6 : IPv4;
@@ -486,12 +493,14 @@ bool isIP(const String& addr, LookupMode mode)
 
 String addrLookup(const String &address, LookupMode mode, bool *ok)
 {
-    union {
+    union
+    {
         sockaddr_storage sockaddrStorage;
         sockaddr_in6 sockaddr6;
         sockaddr_in sockaddr4;
         sockaddr addr;
     };
+
     memset(&sockaddrStorage, 0, sizeof(sockaddr_storage));
     size_t sz;
     if (mode == Auto)
@@ -503,7 +512,7 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
             return address;
         }
         sockaddrStorage.ss_family = AF_INET6;
-        sz = sizeof(sockaddr_in6);
+        sz                        = sizeof(sockaddr_in6);
     } else {
         if (inet_pton(AF_INET, address.c_str(), &sockaddr4.sin_addr) != 1) {
             if (ok)
@@ -511,7 +520,7 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
             return address;
         }
         sockaddrStorage.ss_family = AF_INET;
-        sz = sizeof(sockaddr_in);
+        sz                        = sizeof(sockaddr_in);
     }
     String out(NI_MAXHOST, '\0');
     if (getnameinfo(&addr, sz, out.data(), NI_MAXHOST, nullptr, 0, 0) != 0) {
@@ -527,14 +536,14 @@ String addrLookup(const String &address, LookupMode mode, bool *ok)
     return out;
 }
 
-String nameLookup(const String& name, LookupMode mode, bool *ok)
+String nameLookup(const String &name, LookupMode mode, bool *ok)
 {
     assert(mode == Auto);
     String out(INET6_ADDRSTRLEN, '\0');
     addrinfo hints, *p, *res;
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = (mode == IPv6) ? AF_INET6 : AF_INET;
+    hints.ai_family   = (mode == IPv6) ? AF_INET6 : AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
     if (getaddrinfo(name.c_str(), nullptr, &hints, &res) != 0) {
@@ -547,13 +556,13 @@ String nameLookup(const String& name, LookupMode mode, bool *ok)
     bool found = false;
     for (p = res; p; p = p->ai_next) {
         if (mode == IPv4 && p->ai_family == AF_INET) {
-            sockaddr_in* addr = reinterpret_cast<sockaddr_in*>(p->ai_addr);
+            sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(p->ai_addr);
             inet_ntop(AF_INET, &addr->sin_addr, out.data(), out.size());
             out.resize(strlen(out.c_str()));
             found = true;
             break;
         } else if (mode == IPv6 && p->ai_family == AF_INET6) {
-            sockaddr_in6* addr = reinterpret_cast<sockaddr_in6*>(p->ai_addr);
+            sockaddr_in6 *addr = reinterpret_cast<sockaddr_in6 *>(p->ai_addr);
             inet_ntop(AF_INET6, &addr->sin6_addr, out.data(), out.size());
             out.resize(strlen(out.c_str()));
             found = true;
@@ -594,7 +603,6 @@ String strerror(int error)
     ret << " (" << error << ')';
     return ret;
 }
-
 
 } // namespace Rct
 

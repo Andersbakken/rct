@@ -1,7 +1,7 @@
 #include "MessageQueue.h"
 
-#include <string.h>
 #include <map>
+#include <string.h>
 #include <utility>
 
 #include "rct/Buffer.h"
@@ -13,12 +13,12 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <mutex>
 #include <pthread.h>
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <unistd.h>
-#include <mutex>
 
 #include "EventLoop.h"
 #include "Log.h"
@@ -28,8 +28,11 @@
 class MessageThread : public Thread, public std::enable_shared_from_this<MessageThread>
 {
 public:
-    MessageThread(int q, MessageQueue* mq)
-        : queueId(q), queue(mq), stopped(false), loop(EventLoop::eventLoop())
+    MessageThread(int q, MessageQueue *mq)
+        : queueId(q)
+        , queue(mq)
+        , stopped(false)
+        , loop(EventLoop::eventLoop())
     {
     }
 
@@ -39,11 +42,11 @@ protected:
     virtual void run() override;
 
 private:
-    static void notifyDataAvailable(const Buffer& buf, const std::weak_ptr<MessageThread>& thread);
+    static void notifyDataAvailable(const Buffer &buf, const std::weak_ptr<MessageThread> &thread);
 
 private:
     int queueId;
-    MessageQueue* queue;
+    MessageQueue *queue;
     std::mutex mutex;
     bool stopped;
     std::weak_ptr<EventLoop> loop;
@@ -61,7 +64,9 @@ void MessageThread::run()
 {
     std::weak_ptr<MessageThread> thread = shared_from_this();
     assert(queueId != -1);
-    struct {
+
+    struct
+    {
         long mtype;
         char mtext[4096];
     } msgbuf;
@@ -91,13 +96,15 @@ void MessageThread::run()
 
             if (std::shared_ptr<EventLoop> l = loop.lock()) {
                 std::weak_ptr<MessageThread> thr = thread;
-                l->callLaterMove(std::bind(MessageThread::notifyDataAvailable, std::placeholders::_1, std::placeholders::_2), std::move(buf), std::move(thr));
+                l->callLaterMove(std::bind(MessageThread::notifyDataAvailable, std::placeholders::_1, std::placeholders::_2),
+                                 std::move(buf),
+                                 std::move(thr));
             }
         }
     }
 }
 
-void MessageThread::notifyDataAvailable(const Buffer& buf, const std::weak_ptr<MessageThread>& thread)
+void MessageThread::notifyDataAvailable(const Buffer &buf, const std::weak_ptr<MessageThread> &thread)
 {
     if (std::shared_ptr<MessageThread> thr = thread.lock()) {
         thr->queue->signalDataAvailable(buf);
@@ -122,23 +129,24 @@ MessageQueue::MessageQueue(int key, CreateFlag flag)
 {
     pthread_once(&msgInitOnce, msgInit);
     const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;
-    queue = msgget(key, flg);
-    owner = ((flg & IPC_CREAT) == IPC_CREAT);
-    thread = std::make_shared<MessageThread>(queue, this);
+    queue         = msgget(key, flg);
+    owner         = ((flg & IPC_CREAT) == IPC_CREAT);
+    thread        = std::make_shared<MessageThread>(queue, this);
     thread->start();
 }
 
-MessageQueue::MessageQueue(const Path& path, CreateFlag flag)
-    : queue(-1), owner(false)
+MessageQueue::MessageQueue(const Path &path, CreateFlag flag)
+    : queue(-1)
+    , owner(false)
 {
     pthread_once(&msgInitOnce, msgInit);
     const key_t key = ftok(path.c_str(), PROJID);
     if (key == -1)
         return;
     const int flg = (flag == Create) ? (IPC_CREAT | IPC_EXCL) : 0;
-    queue = msgget(key, flg);
-    owner = ((flg & IPC_CREAT) == IPC_CREAT);
-    thread = std::make_shared<MessageThread>(queue, this);
+    queue         = msgget(key, flg);
+    owner         = ((flg & IPC_CREAT) == IPC_CREAT);
+    thread        = std::make_shared<MessageThread>(queue, this);
     thread->start();
 }
 
@@ -154,14 +162,17 @@ MessageQueue::~MessageQueue()
     }
 }
 
-bool MessageQueue::send(const char* data, size_t size)
+bool MessageQueue::send(const char *data, size_t size)
 {
     if (queue == -1)
         return false;
-    struct {
+
+    struct
+    {
         long mtype;
-        const char* data;
+        const char *data;
     } msgbuf = { 1, data };
+
     int ret;
     for (;;) {
         ret = msgsnd(queue, &msgbuf, size, 0);

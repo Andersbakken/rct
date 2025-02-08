@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #ifndef _WIN32
-#  include <syslog.h>
+#include <syslog.h>
 #endif
 #include <mutex>
 
@@ -30,15 +30,18 @@ const LogLevel LogLevel::VerboseDebug(3);
 static inline size_t prettyTimeSinceStarted(char *buf, size_t max)
 {
     uint64_t elapsed = sStart.elapsed();
-    enum {
-        MS = 1,
+
+    enum
+    {
+        MS     = 1,
         Second = 1000,
         Minute = Second * 60,
-        Hour = Minute * 60
+        Hour   = Minute * 60
     };
+
     const int ratios[] = { Hour, Minute, Second, MS };
-    int values[] = { 0, 0, 0, 0 };
-    for (int i=0; i<4; ++i) {
+    int values[]       = { 0, 0, 0, 0 };
+    for (int i = 0; i < 4; ++i) {
         values[i] = elapsed / ratios[i];
         elapsed %= ratios[i];
     }
@@ -67,13 +70,16 @@ static inline int writeLog(FILE *f, const char *msg, int len, Flags<LogOutput::L
     }
     return ret;
 }
+
 class FileOutput : public LogOutput
 {
 public:
     FileOutput(LogLevel level, FILE *f)
-        : LogOutput(File, level), file(f)
+        : LogOutput(File, level)
+        , file(f)
     {
     }
+
     ~FileOutput()
     {
         if (file)
@@ -85,6 +91,7 @@ public:
         writeLog(file, msg, len, flags);
         fflush(file);
     }
+
     FILE *file;
 };
 
@@ -92,8 +99,12 @@ class TerminalOutput : public LogOutput
 {
 public:
     TerminalOutput(LogLevel lvl, Flags<::LogFlag> flags)
-        : LogOutput(Terminal, lvl), mReplaceableLength(0), mFlags(flags)
-    {}
+        : LogOutput(Terminal, lvl)
+        , mReplaceableLength(0)
+        , mFlags(flags)
+    {
+    }
+
     virtual void log(Flags<LogOutput::LogFlag> flags, const char *msg, int len) override
     {
         FILE *f = flags & StdOut ? stdout : stderr;
@@ -115,24 +126,27 @@ public:
             }
         }
     }
+
 private:
     int mReplaceableLength;
     Flags<::LogFlag> mFlags;
 };
 
-#ifndef _WIN32  // no syslog on windows
+#ifndef _WIN32 // no syslog on windows
 class SyslogOutput : public LogOutput
 {
 public:
-    SyslogOutput(const char* ident, LogLevel lvl)
+    SyslogOutput(const char *ident, LogLevel lvl)
         : LogOutput(Syslog, lvl)
     {
         ::openlog(ident, LOG_CONS | LOG_NOWAIT | LOG_PID, LOG_USER);
     }
+
     virtual ~SyslogOutput()
     {
         ::closelog();
     }
+
     virtual void log(Flags<LogOutput::LogFlag>, const char *msg, int) override
     {
         ::syslog(LOG_NOTICE, "%s", msg);
@@ -152,7 +166,11 @@ static void logHelper(LogLevel level, Flags<LogOutput::LogFlag> flags, const cha
 
     va_list v2;
     va_copy(v2, v);
-    enum { Size = 16384 };
+
+    enum
+    {
+        Size = 16384
+    };
 
     StackBuffer<Size> buf(Size);
     int n = vsnprintf(buf, Size, format, v);
@@ -218,7 +236,6 @@ void log(LogLevel level, Flags<LogOutput::LogFlag> flags, const char *format, ..
     va_end(v);
 }
 
-
 void debug(const char *format, ...)
 {
     va_list v;
@@ -268,10 +285,9 @@ LogLevel logLevel()
     return sLevel;
 }
 
-bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
-                 const Path &file, LogLevel logFileLogLevel)
+bool initLogging(const char *ident, Flags<LogFlag> flags, LogLevel level, const Path &file, LogLevel logFileLogLevel)
 {
-    (void) ident;  //unused
+    (void)ident; // unused
     if (getenv("RCT_LOG_TIME"))
         flags |= LogTimeStamp;
 
@@ -289,7 +305,7 @@ bool initLogging(const char* ident, Flags<LogFlag> flags, LogLevel level,
     }
 #endif
     if (!file.empty()) {
-        if (!(flags & (Append|DontRotate)) && file.exists()) {
+        if (!(flags & (Append | DontRotate)) && file.exists()) {
             int i = 0;
             while (true) {
                 const Path rotated = String::format<64>("%s.%d", file.c_str(), ++i);
@@ -340,7 +356,8 @@ Log &Log::operator=(const Log &other)
 }
 
 LogOutput::LogOutput(Type type, LogLevel logLevel)
-    : mType(type), mLogLevel(logLevel)
+    : mType(type)
+    , mLogLevel(logLevel)
 {
 }
 

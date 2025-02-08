@@ -1,11 +1,11 @@
 #ifndef THREAD_H
 #define THREAD_H
 
+#include <memory>
+#include <mutex>
 #include <pthread.h>
 #include <rct/EventLoop.h>
 #include <stddef.h>
-#include <mutex>
-#include <memory>
 
 class EventLoop;
 
@@ -15,7 +15,12 @@ public:
     Thread();
     virtual ~Thread();
 
-    enum Priority { Idle, Normal };
+    enum Priority
+    {
+        Idle,
+        Normal
+    };
+
     bool start(Priority priority = Normal, size_t stackSize = 0);
     bool join();
 
@@ -43,7 +48,7 @@ protected:
 private:
     void finish();
 
-    static void* localStart(void* arg);
+    static void *localStart(void *arg);
 
 private:
     bool mAutoDelete;

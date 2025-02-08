@@ -1,34 +1,33 @@
-#include <errno.h>
-#include <sys/inotify.h>
-#include <sys/ioctl.h>
 #include <assert.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <errno.h>
 #include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/inotify.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <utility>
 
-#include "FileSystemWatcher.h"
 #include "EventLoop.h"
+#include "FileSystemWatcher.h"
 #include "Log.h"
-#include "rct/rct-config.h"
 #include "Rct.h"
 #include "StackBuffer.h"
 #include "rct/Map.h"
 #include "rct/Path.h"
 #include "rct/Set.h"
 #include "rct/String.h"
-
+#include "rct/rct-config.h"
 
 void FileSystemWatcher::init()
 {
     mFd = inotify_init();
     assert(mFd != -1);
-    int res = fcntl(mFd, F_SETFD, FD_CLOEXEC);
+    int res     = fcntl(mFd, F_SETFD, FD_CLOEXEC);
     std::ignore = res;
     assert(res != -1);
     EventLoop::eventLoop()->registerSocket(mFd, EventLoop::SocketRead, std::bind(&FileSystemWatcher::notifyReadyRead, this));
@@ -61,19 +60,19 @@ bool FileSystemWatcher::watch(const Path &p)
     assert(!path.empty());
     std::lock_guard<std::mutex> lock(mMutex);
     const Path::Type type = path.type();
-    uint32_t flags = 0;
+    uint32_t flags        = 0;
     switch (type) {
-    case Path::File:
-        flags = IN_DELETE_SELF|IN_MOVE_SELF|IN_ATTRIB|IN_DELETE|IN_CLOSE_WRITE|IN_MOVED_FROM|IN_MOVED_TO;
-        break;
-    case Path::Directory:
-        flags = IN_MOVED_FROM|IN_MOVED_TO|IN_CREATE|IN_DELETE|IN_DELETE_SELF|IN_ATTRIB|IN_CLOSE_WRITE;
-        if (!path.endsWith('/'))
-            path.append('/');
-        break;
-    default:
-        error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.c_str());
-        return false;
+        case Path::File:
+            flags = IN_DELETE_SELF | IN_MOVE_SELF | IN_ATTRIB | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO;
+            break;
+        case Path::Directory:
+            flags = IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_ATTRIB | IN_CLOSE_WRITE;
+            if (!path.endsWith('/'))
+                path.append('/');
+            break;
+        default:
+            error("FileSystemWatcher::watch() '%s' doesn't seem to be watchable", path.c_str());
+            return false;
     }
 
     if (mWatchedByPath.contains(path)) {
@@ -81,13 +80,12 @@ bool FileSystemWatcher::watch(const Path &p)
     }
     const int ret = inotify_add_watch(mFd, path.c_str(), flags);
     if (ret == -1) {
-        error("FileSystemWatcher::watch() watch failed for '%s' (%d) %s",
-              path.c_str(), errno, Rct::strerror().c_str());
+        error("FileSystemWatcher::watch() watch failed for '%s' (%d) %s", path.c_str(), errno, Rct::strerror().c_str());
         return false;
     }
 
     mWatchedByPath[path] = ret;
-    mWatchedById[ret] = path;
+    mWatchedById[ret]    = path;
     return true;
 }
 
@@ -193,9 +191,9 @@ void FileSystemWatcher::notifyReadyRead()
 
         StackBuffer<4096> buf(s);
         const int read = ::read(mFd, buf, s);
-        int idx = 0;
+        int idx        = 0;
         while (idx < read) {
-            inotify_event *event = reinterpret_cast<inotify_event*>(buf + idx);
+            inotify_event *event = reinterpret_cast<inotify_event *>(buf + idx);
             idx += sizeof(inotify_event) + event->len;
             Path path = mWatchedById.value(event->wd);
             if (path.empty())
@@ -209,17 +207,17 @@ void FileSystemWatcher::notifyReadyRead()
 
             const bool isDir = path.isDir();
 
-            if (event->mask & (IN_DELETE_SELF|IN_MOVE_SELF|IN_UNMOUNT)) {
+            if (event->mask & (IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT)) {
                 add(Remove, path);
-            } else if (event->mask & (IN_CREATE|IN_MOVED_TO)) {
+            } else if (event->mask & (IN_CREATE | IN_MOVED_TO)) {
                 if (isDir)
                     path.append(event->name);
                 add(Add, path);
-            } else if (event->mask & (IN_DELETE|IN_MOVED_FROM)) {
+            } else if (event->mask & (IN_DELETE | IN_MOVED_FROM)) {
                 if (isDir)
                     path.append(event->name);
                 add(Remove, path);
-            } else if (event->mask & (IN_ATTRIB|IN_CLOSE_WRITE)) {
+            } else if (event->mask & (IN_ATTRIB | IN_CLOSE_WRITE)) {
                 if (isDir)
                     path.append(event->name);
                 add(Modified, path);

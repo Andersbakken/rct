@@ -2,13 +2,18 @@
 #define SEMAPHORE_H
 
 class Path;
+
 class Semaphore
 {
 public:
-    enum CreateFlag { None, Create };
+    enum CreateFlag
+    {
+        None,
+        Create
+    };
 
     Semaphore(int key, CreateFlag flag = None, int value = 1);
-    Semaphore(const Path& filename, CreateFlag flag = None, int value = 1);
+    Semaphore(const Path &filename, CreateFlag flag = None, int value = 1);
     ~Semaphore();
 
     void acquire(short num = 1);
@@ -16,7 +21,10 @@ public:
 
     void op(short value);
 
-    bool isValid() const { return mSem != -1; }
+    bool isValid() const
+    {
+        return mSem != -1;
+    }
 
 private:
     int mSem;

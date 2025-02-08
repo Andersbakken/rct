@@ -6,12 +6,13 @@
 class WriteLocker
 {
 public:
-    WriteLocker(ReadWriteLock* lock)
+    WriteLocker(ReadWriteLock *lock)
         : mLock(lock)
     {
         if (mLock && !mLock->lockForWrite())
             mLock = 0;
     }
+
     ~WriteLocker()
     {
         if (mLock)
@@ -19,8 +20,7 @@ public:
     }
 
 private:
-    ReadWriteLock* mLock;
-
+    ReadWriteLock *mLock;
 };
 
 #endif

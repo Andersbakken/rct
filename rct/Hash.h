@@ -10,7 +10,10 @@ template <typename Key, typename Value>
 class Hash : public std::unordered_map<Key, Value>
 {
 public:
-    Hash() : std::unordered_map<Key, Value>() {}
+    Hash()
+        : std::unordered_map<Key, Value>()
+    {
+    }
 
     bool contains(const Key &t) const
     {
@@ -78,10 +81,9 @@ public:
         return false;
     }
 
-
     size_t remove(std::function<bool(const Key &key)> match)
     {
-        size_t ret = 0;
+        size_t ret                                           = 0;
         typename std::unordered_map<Key, Value>::iterator it = std::unordered_map<Key, Value>::begin();
         while (it != std::unordered_map<Key, Value>::end()) {
             if (match(it->first)) {
@@ -113,9 +115,9 @@ public:
     Hash<Key, Value> &unite(const Hash<Key, Value> &other, size_t *count = nullptr)
     {
         typename std::unordered_map<Key, Value>::const_iterator it = other.begin();
-        const auto end = other.end();
+        const auto end                                             = other.end();
         while (it != end) {
-            const Key &key = it->first;
+            const Key &key   = it->first;
             const Value &val = it->second;
             if (count) {
                 auto cur = std::unordered_map<Key, Value>::find(key);

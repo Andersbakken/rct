@@ -4,7 +4,8 @@
 #include <chrono>
 
 ReadWriteLock::ReadWriteLock()
-    : mCount(0), mWrite(false)
+    : mCount(0)
+    , mWrite(false)
 {
 }
 

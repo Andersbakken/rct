@@ -28,8 +28,7 @@ void Timer::restart(int interval, int flags, const std::shared_ptr<EventLoop> &l
         // ### this is a bit inefficient, should revisit
         if (timerId)
             loop->unregisterTimer(timerId);
-        timerId = loop->registerTimer(std::bind(&Timer::timerFired, this, std::placeholders::_1),
-                                      interval, flags);
+        timerId = loop->registerTimer(std::bind(&Timer::timerFired, this, std::placeholders::_1), interval, flags);
     }
 }
 

@@ -6,13 +6,16 @@
 
 #include <rct/List.h>
 
-
 template <typename Key, typename Value, typename Compare = std::less<Key>>
 class Map : public std::map<Key, Value, Compare>
 {
     typedef std::map<Key, Value, Compare> Base;
+
 public:
-    Map() {}
+    Map()
+    {
+    }
+
     Map(const Map<Key, Value, Compare> &other)
         : Base(other)
     {
@@ -23,24 +26,24 @@ public:
     {
     }
 
-    Map(std::initializer_list<typename Base::value_type> init, const Compare& comp = Compare())
+    Map(std::initializer_list<typename Base::value_type> init, const Compare &comp = Compare())
         : Base(init, comp)
     {
     }
 
-    Map<Key, Value, Compare>& operator=(const Map<Key, Value, Compare>& other)
+    Map<Key, Value, Compare> &operator=(const Map<Key, Value, Compare> &other)
     {
         Base::operator=(other);
         return *this;
     }
 
-    Map<Key, Value, Compare>& operator=(Map<Key, Value, Compare>&& other)
+    Map<Key, Value, Compare> &operator=(Map<Key, Value, Compare> &&other)
     {
         Base::operator=(std::move(other));
         return *this;
     }
 
-    Map<Key, Value, Compare>& operator=(std::initializer_list<typename Base::value_type> init)
+    Map<Key, Value, Compare> &operator=(std::initializer_list<typename Base::value_type> init)
     {
         Base::operator=(init);
         return *this;
@@ -104,7 +107,7 @@ public:
 
     size_t remove(std::function<bool(const Key &key)> match)
     {
-        size_t ret = 0;
+        size_t ret                 = 0;
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(it->first)) {
@@ -128,6 +131,7 @@ public:
     }
 
     using Base::insert;
+
     bool insert(const Key &key, const Value &val)
     {
         return Base::insert(std::make_pair(key, val)).second;
@@ -147,9 +151,9 @@ public:
     Map<Key, Value, Compare> &unite(const Map<Key, Value, Compare> &other, size_t *count = nullptr)
     {
         typename Base::const_iterator it = other.begin();
-        const auto end = other.end();
+        const auto end                   = other.end();
         while (it != end) {
-            const Key &key = it->first;
+            const Key &key   = it->first;
             const Value &val = it->second;
             if (count) {
                 auto cur = Base::find(key);
@@ -252,24 +256,26 @@ inline const Map<Key, Value, Compare> operator-(const Map<Key, Value, Compare> &
     return ret;
 }
 
-
 template <typename Key, typename Value, typename Compare = std::less<Key>>
 class MultiMap : public std::multimap<Key, Value, Compare>
 {
 public:
-    MultiMap() {}
-    MultiMap(std::initializer_list<typename std::multimap<Key, Value>::value_type> init, const Compare& comp = Compare())
+    MultiMap()
+    {
+    }
+
+    MultiMap(std::initializer_list<typename std::multimap<Key, Value>::value_type> init, const Compare &comp = Compare())
         : std::multimap<Key, Value, Compare>(init, comp)
     {
     }
 
-    MultiMap<Key, Value, Compare>& operator=(const MultiMap<Key, Value, Compare>& other)
+    MultiMap<Key, Value, Compare> &operator=(const MultiMap<Key, Value, Compare> &other)
     {
         std::multimap<Key, Value, Compare>::operator=(other);
         return *this;
     }
 
-    MultiMap<Key, Value, Compare>& operator=(std::initializer_list<typename std::multimap<Key, Value>::value_type> init)
+    MultiMap<Key, Value, Compare> &operator=(std::initializer_list<typename std::multimap<Key, Value>::value_type> init)
     {
         std::multimap<Key, Value, Compare>::operator=(init);
         return *this;
@@ -281,6 +287,7 @@ public:
     }
 
     using std::multimap<Key, Value, Compare>::empty;
+
     bool isEmpty() const
     {
         return std::multimap<Key, Value, Compare>::empty();
@@ -327,7 +334,7 @@ public:
 
     size_t remove(std::function<bool(const Key &key)> match)
     {
-        size_t ret = 0;
+        size_t ret                                               = 0;
         typename std::multimap<Key, Value, Compare>::iterator it = std::multimap<Key, Value, Compare>::begin();
         while (it != std::multimap<Key, Value, Compare>::end()) {
             if (match(it->first)) {
@@ -351,6 +358,7 @@ public:
     }
 
     using std::multimap<Key, Value>::insert;
+
     void insert(const Key &key, const Value &val)
     {
         std::multimap<Key, Value, Compare>::insert(std::make_pair<Key, Value>(key, val));
@@ -370,9 +378,9 @@ public:
     MultiMap<Key, Value, Compare> &unite(const MultiMap<Key, Value, Compare> &other, size_t *count = nullptr)
     {
         typename std::multimap<Key, Value, Compare>::const_iterator it = other.begin();
-        const auto end = other.end();
+        const auto end                                                 = other.end();
         while (it != end) {
-            const Key &key = it->first;
+            const Key &key   = it->first;
             const Value &val = it->second;
             if (count) {
                 auto cur = std::multimap<Key, Value, Compare>::find(key);

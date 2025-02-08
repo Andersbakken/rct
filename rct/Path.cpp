@@ -1,7 +1,7 @@
 #include "Path.h"
 
-#include <dirent.h>
 #include <assert.h>
+#include <dirent.h>
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -15,21 +15,21 @@
 #include "rct/Set.h"
 #include "rct/String.h"
 #ifdef _WIN32
-#  include <direct.h>
-#  include <Windows.h>
-#  include <Shellapi.h>
+#include <Shellapi.h>
+#include <Windows.h>
+#include <direct.h>
 
-#  include "WindowsUnicodeConversion.h"
+#include "WindowsUnicodeConversion.h"
 #else
-#  include <glob.h>
+#include <glob.h>
 #endif
+#include <functional>
+#include <iosfwd>
 #include <limits.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utime.h>
-#include <functional>
-#include <iosfwd>
 
 #include "Rct.h"
 #include "rct/rct-config.h"
@@ -50,7 +50,7 @@ Path Path::parentDir() const
     if (size() == 1 && at(0) == '/')
         return Path();
     Path copy = *this;
-    int i = copy.size() - 1;
+    int i     = copy.size() - 1;
     while (i >= 0 && copy.at(i) == '/')
         --i;
     while (i >= 0 && copy.at(i) != '/')
@@ -70,16 +70,22 @@ Path::Type Path::type() const
         return Invalid;
 
     switch (st.st_mode & S_IFMT) {
-    case S_IFBLK: return BlockDevice;
-    case S_IFCHR: return CharacterDevice;
-    case S_IFDIR: return Directory;
-    case S_IFIFO: return NamedPipe;
-    case S_IFREG: return File;
-#ifndef _WIN32   // no socket files on windows
-    case S_IFSOCK: return Socket;
+        case S_IFBLK:
+            return BlockDevice;
+        case S_IFCHR:
+            return CharacterDevice;
+        case S_IFDIR:
+            return Directory;
+        case S_IFIFO:
+            return NamedPipe;
+        case S_IFREG:
+            return File;
+#ifndef _WIN32 // no socket files on windows
+        case S_IFSOCK:
+            return Socket;
 #endif
-    default:
-        break;
+        default:
+            break;
     }
     return Invalid;
 }
@@ -94,8 +100,7 @@ bool Path::isAbsolute() const
     // - a single backslash (is replaced by single forward slash by this class)
     // - double backslashes
 
-    if(size() >= 3)
-    {
+    if (size() >= 3) {
         const char &first  = (*this)[0];
         const char &second = (*this)[1];
         const char &third  = (*this)[2];
@@ -103,16 +108,12 @@ bool Path::isAbsolute() const
         // check for regular windows path that starts with a driver letter,
         // e.g. C:/windows
 
-        if(((first >= 'a' && first <= 'z') ||
-            (first >= 'A' && first <= 'Z')) &&
-           second == ':' && third == '/')
-        {
+        if (((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z')) && second == ':' && third == '/') {
             return true;
         }
     }
 
-    if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')
-    {
+    if (size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\') {
         // network or unc path
         return true;
     }
@@ -124,7 +125,7 @@ bool Path::isAbsolute() const
 bool Path::isSymLink() const
 {
 #ifdef _WIN32
-    return false;   // no symlinks on windows
+    return false; // no symlinks on windows
 #else
     bool ok;
     struct stat st = stat(&ok);
@@ -144,7 +145,6 @@ mode_t Path::mode() const
 
     return st.st_mode;
 }
-
 
 time_t Path::lastModified() const
 {
@@ -197,12 +197,11 @@ size_t Path::canonicalize(bool *changed)
     char *path = data();
     bool dummy;
     bool &ref = changed ? *changed : dummy;
-    ref = false;
-    for (size_t i=0; i<len - 1; ++i) {
+    ref       = false;
+    for (size_t i = 0; i < len - 1; ++i) {
         if (path[i] == '/') {
-          if ((i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') ||
-              (i + 3 == len && path[i + 1] == '.' && path[i + 2] == '.')) {
-                for (int j=i - 1; j>=0; --j) {
+            if ((i + 3 < len && path[i + 1] == '.' && path[i + 2] == '.' && path[i + 3] == '/') || (i + 3 == len && path[i + 1] == '.' && path[i + 2] == '.')) {
+                for (int j = i - 1; j >= 0; --j) {
                     if (path[j] == '/') {
                         memmove(path + j, path + i + 3, len - (i + 2));
                         const int removed = (i + 3 - j);
@@ -212,8 +211,7 @@ size_t Path::canonicalize(bool *changed)
                         break;
                     }
                 }
-          } else if ((i + 2 < len && path[i + 1] == '.' && path[i + 2] == '/') ||
-                     (i + 2 == len && path[i + 1] == '.')) {
+            } else if ((i + 2 < len && path[i + 1] == '.' && path[i + 2] == '/') || (i + 2 == len && path[i + 1] == '.')) {
                 // skip over /./
                 memmove(path + i, path + i + 2, len - (i + 1));
                 ref = true;
@@ -230,7 +228,7 @@ size_t Path::canonicalize(bool *changed)
     // Remove trailing slash
     if (path[len - 1] == '/') {
         path[len - 1] = '\0';
-        ref = true;
+        ref           = true;
         --len;
     }
 
@@ -241,7 +239,7 @@ size_t Path::canonicalize(bool *changed)
 
 Path Path::canonicalized() const
 {
-    Path ret = *this;
+    Path ret       = *this;
     const size_t c = ret.canonicalize();
     if (c != size())
         return ret;
@@ -276,14 +274,15 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
         return false;
     if (startsWith('~')) {
 #else
-        glob_t exp_result;
-        if (glob(c_str(), 0, NULL, &exp_result) == false) {
-            operator=(exp_result.gl_pathv[0]);
-            if (changed)
-                *changed = true;
-        }
+    glob_t exp_result;
+    if (glob(c_str(), 0, NULL, &exp_result) == false) {
+        operator=(exp_result.gl_pathv[0]);
+        if (changed)
+            *changed = true;
+    }
 #endif
     }
+
     if (*this == ".") {
         if (!cwd.empty()) {
             operator=(cwd);
@@ -315,7 +314,7 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
     // we only get here if mode == RealPath
 
     if (!cwd.empty() && !isAbsolute()) {
-        //resolve relative path as a path relative to cwd
+        // resolve relative path as a path relative to cwd
         Path copy = cwd + '/' + *this;
         if (copy.resolve(RealPath, Path(), changed)) {
             operator=(copy);
@@ -328,47 +327,47 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
 #ifdef _WIN32
         if (_fullpath(buffer, c_str(), PATH_MAX)) {
 #else
-            if (realpath(c_str(), buffer)) {
+    if (realpath(c_str(), buffer)) {
 #endif
-                if (isDir()) {
-                    // dirs usually don't have a trailing '/', so we add one
-                    const int len = strlen(buffer);
-                    assert(buffer[len] != '/');
-                    buffer[len] = '/';
-                    buffer[len + 1] = '\0';
-                }
-                if (changed && strcmp(buffer, c_str()))
-                    *changed = true;
-                *this = buffer;
-                return true;
+            if (isDir()) {
+                // dirs usually don't have a trailing '/', so we add one
+                const int len = strlen(buffer);
+                assert(buffer[len] != '/');
+                buffer[len]     = '/';
+                buffer[len + 1] = '\0';
             }
+            if (changed && strcmp(buffer, c_str()))
+                *changed = true;
+            *this = buffer;
+            return true;
         }
-
-        return false;
     }
 
-    const char *Path::fileName(size_t *len) const
-    {
-        const int length = size();
-        size_t idx = 0;
-        if (length > 1)
-            idx = lastIndexOf('/', length - 2) + 1;
+    return false;
+}
 
-        if (len)
-            *len = size() - idx;
-        return c_str() + idx;
-    }
+const char *Path::fileName(size_t *len) const
+{
+    const int length = size();
+    size_t idx       = 0;
+    if (length > 1)
+        idx = lastIndexOf('/', length - 2) + 1;
 
-    const char *Path::extension(size_t *len) const
-    {
-        if (len)
-            *len = 0;
-        const size_t s = size();
-        if (s) {
-            int dot = s - 1;
-            const char *data = c_str();
-            while (dot >= 0) {
-                switch (data[dot]) {
+    if (len)
+        *len = size() - idx;
+    return c_str() + idx;
+}
+
+const char *Path::extension(size_t *len) const
+{
+    if (len)
+        *len = 0;
+    const size_t s = size();
+    if (s) {
+        int dot          = s - 1;
+        const char *data = c_str();
+        while (dot >= 0) {
+            switch (data[dot]) {
                 case '.':
                     if (len)
                         *len = s - (dot + 1);
@@ -377,480 +376,492 @@ bool Path::resolve(ResolveMode mode, const Path &cwd, bool *changed)
                     return nullptr;
                 default:
                     break;
-                }
-                --dot;
             }
+            --dot;
         }
-        return nullptr;
     }
+    return nullptr;
+}
 
-    bool Path::isSource(const char *ext)
-    {
-        const char *sources[] = { "c", "cc", "cpp", "cxx", "c++", "moc", "mm", "m", "cu", nullptr };
-        for (size_t i=0; sources[i]; ++i) {
-            if (!strcasecmp(ext, sources[i]))
-                return true;
-        }
-        return false;
-    }
-
-    bool Path::isSource() const
-    {
-        if (isFile()) {
-            const char *ext = extension();
-            if (ext)
-                return isSource(ext);
-        }
-        return false;
-    }
-
-    bool Path::isHeader() const
-    {
-        return isFile() && isHeader(extension());
-    }
-
-    bool Path::isHeader(const char *ext)
-    {
-        if (!ext)
+bool Path::isSource(const char *ext)
+{
+    const char *sources[] = { "c", "cc", "cpp", "cxx", "c++", "moc", "mm", "m", "cu", nullptr };
+    for (size_t i = 0; sources[i]; ++i) {
+        if (!strcasecmp(ext, sources[i]))
             return true;
-        const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", "tpp", "txx", "inc", "cuh", nullptr };
-        for (size_t i=0; headers[i]; ++i) {
-            if (!strcasecmp(ext, headers[i]))
-                return true;
-        }
-        return false;
     }
+    return false;
+}
 
-    bool Path::isSystem(const char *path)
-    {
-        if (!strncmp("/usr/", path, 5)) {
+bool Path::isSource() const
+{
+    if (isFile()) {
+        const char *ext = extension();
+        if (ext)
+            return isSource(ext);
+    }
+    return false;
+}
+
+bool Path::isHeader() const
+{
+    return isFile() && isHeader(extension());
+}
+
+bool Path::isHeader(const char *ext)
+{
+    if (!ext)
+        return true;
+    const char *headers[] = { "h", "hpp", "hxx", "hh", "tcc", "tpp", "txx", "inc", "cuh", nullptr };
+    for (size_t i = 0; headers[i]; ++i) {
+        if (!strcasecmp(ext, headers[i]))
+            return true;
+    }
+    return false;
+}
+
+bool Path::isSystem(const char *path)
+{
+    if (!strncmp("/usr/", path, 5)) {
 #if defined(OS_FreeBSD) || defined(OS_DragonFly)
-            if (!strncmp("home/", path + 5, 5))
-                return false;
-#endif
-            return true;
-        }
-#ifdef OS_Darwin
-        if (!strncmp("/System/", path, 8))
-            return true;
-#endif
-        return false;
-    }
-
-    Path Path::canonicalized(const String &path)
-    {
-        Path p(path);
-        p.canonicalize();
-        return p;
-    }
-
-    bool Path::mksubdir(const String &path) const
-    {
-        if (isDir()) {
-            String combined = *this;
-            if (!combined.endsWith('/'))
-                combined.append('/');
-            combined.append(path);
-            return Path::mkdir(combined);
-        }
-        return false;
-    }
-
-    bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
-    {
-        errno = 0;
-#ifdef _WIN32
-        (void) permissions;   // unused on windows
-        if (!::_wmkdir(Utf8To16(path.c_str())) || errno == EEXIST)
-#else
-            if (!::mkdir(path.c_str(), permissions) || errno == EEXIST || errno == EISDIR)
-#endif
-            {
-                // mkdir call succeeded or it failed because the dir already exists
-                return true;
-            }
-        if (mkdirMode == Single)
+        if (!strncmp("home/", path + 5, 5))
             return false;
-        if (path.size() > PATH_MAX)
-            return false;
-
-        // directory creation failed so far
-        // because mkdirMode == Recursive, we go along the path and create
-        // directories, continuing while dir creation is successful or it failed
-        // only because directories already exist.
-
-        char buf[PATH_MAX + 2];
-        strcpy(buf, path.c_str());
-        size_t len = path.size();
-        if (!path.endsWith('/')) {
-            buf[len++] = '/';
-            buf[len] = '\0';
-        }
-
-        for (size_t i = 1; i < len; ++i) {
-            if (buf[i] == '/') {
-                buf[i] = 0;
-#ifdef _WIN32
-                Utf8To16 tmp2(buf);
-                const int r = ::_wmkdir(tmp2);
-#else
-                const int r = ::mkdir(buf, permissions);
 #endif
-                if (r && errno != EEXIST && errno != EISDIR
-#ifdef OS_CYGWIN
-                    // on cygwin/msys2 we may try to create something like (/cygdrive)/c/some/path/
-                    // an mkdir() attempt to create /c/ will fail with EACCESS so we need to catch it here
-                    && errno != EACCES
-#endif
-                    )
-                    return false;
-                buf[i] = '/';
-            }
-        }
         return true;
     }
+#ifdef OS_Darwin
+    if (!strncmp("/System/", path, 8))
+        return true;
+#endif
+    return false;
+}
 
-    bool Path::mkdir(MkDirMode mkdirMode, mode_t permissions) const
-    {
-        return Path::mkdir(*this, mkdirMode, permissions);
+Path Path::canonicalized(const String &path)
+{
+    Path p(path);
+    p.canonicalize();
+    return p;
+}
+
+bool Path::mksubdir(const String &path) const
+{
+    if (isDir()) {
+        String combined = *this;
+        if (!combined.endsWith('/'))
+            combined.append('/');
+        combined.append(path);
+        return Path::mkdir(combined);
     }
+    return false;
+}
 
-    bool Path::rm(const Path &file)
-    {
-        return !unlink(file.c_str());
-    }
-
-    bool Path::rmdir(const Path &dir)
-    {
+bool Path::mkdir(const Path &path, MkDirMode mkdirMode, mode_t permissions)
+{
+    errno = 0;
 #ifdef _WIN32
-        // SHFileOperation needs an absolute path.
-        Path absDir = Path::resolved(dir, MakeAbsolute);
-        std::wstring pathU16 = Utf8To16(dir.c_str());
+    (void)permissions; // unused on windows
+    if (!::_wmkdir(Utf8To16(path.c_str())) || errno == EEXIST)
+#else
+    if (!::mkdir(path.c_str(), permissions) || errno == EEXIST || errno == EISDIR)
+#endif
+    {
+        // mkdir call succeeded or it failed because the dir already exists
+        return true;
+    }
+    if (mkdirMode == Single)
+        return false;
+    if (path.size() > PATH_MAX)
+        return false;
 
-        // double zero terminate the string. There *should* already be one zero
-        // in c_str(), but better to be safe.
-        pathU16.append(2, 0);
+    // directory creation failed so far
+    // because mkdirMode == Recursive, we go along the path and create
+    // directories, continuing while dir creation is successful or it failed
+    // only because directories already exist.
 
-        // Deletion through SHFileOperation is recursive.
-        SHFILEOPSTRUCTW op;
-        memset(&op, 0, sizeof(SHFILEOPSTRUCTW));
-        op.wFunc = FO_DELETE;
-        op.pFrom = pathU16.c_str();
-        op.fFlags = FOF_NO_UI;
-        bool ret = (SHFileOperationW(&op) == 0);
-        return ret;
+    char buf[PATH_MAX + 2];
+    strcpy(buf, path.c_str());
+    size_t len = path.size();
+    if (!path.endsWith('/')) {
+        buf[len++] = '/';
+        buf[len]   = '\0';
+    }
+
+    for (size_t i = 1; i < len; ++i) {
+        if (buf[i] == '/') {
+            buf[i] = 0;
+#ifdef _WIN32
+            Utf8To16 tmp2(buf);
+            const int r = ::_wmkdir(tmp2);
+#else
+            const int r = ::mkdir(buf, permissions);
+#endif
+            if (r && errno != EEXIST && errno != EISDIR
+#ifdef OS_CYGWIN
+                // on cygwin/msys2 we may try to create something like (/cygdrive)/c/some/path/
+                // an mkdir() attempt to create /c/ will fail with EACCESS so we need to catch it here
+                && errno != EACCES
+#endif
+            )
+                return false;
+            buf[i] = '/';
+        }
+    }
+    return true;
+}
+
+bool Path::mkdir(MkDirMode mkdirMode, mode_t permissions) const
+{
+    return Path::mkdir(*this, mkdirMode, permissions);
+}
+
+bool Path::rm(const Path &file)
+{
+    return !unlink(file.c_str());
+}
+
+bool Path::rmdir(const Path &dir)
+{
+#ifdef _WIN32
+    // SHFileOperation needs an absolute path.
+    Path absDir          = Path::resolved(dir, MakeAbsolute);
+    std::wstring pathU16 = Utf8To16(dir.c_str());
+
+    // double zero terminate the string. There *should* already be one zero
+    // in c_str(), but better to be safe.
+    pathU16.append(2, 0);
+
+    // Deletion through SHFileOperation is recursive.
+    SHFILEOPSTRUCTW op;
+    memset(&op, 0, sizeof(SHFILEOPSTRUCTW));
+    op.wFunc  = FO_DELETE;
+    op.pFrom  = pathU16.c_str();
+    op.fFlags = FOF_NO_UI;
+    bool ret  = (SHFileOperationW(&op) == 0);
+    return ret;
 
 #else
-        DIR *d = opendir(dir.c_str());
-        size_t path_len = dir.size();
-        union {
-            char buf[PATH_MAX];
-            dirent dbuf;
-        };
+    DIR *d          = opendir(dir.c_str());
+    size_t path_len = dir.size();
 
-        if (d) {
-            while (dirent *p = readdir(d)) {
-                /* Skip the names "." and ".." as we don't want to recurse on them. */
-                if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
-                    continue;
-                }
+    union
+    {
+        char buf[PATH_MAX];
+        dirent dbuf;
+    };
 
-                const size_t len = path_len + strlen(p->d_name) + 2;
-                StackBuffer<PATH_MAX> buffer(len);
+    if (d) {
+        while (dirent *p = readdir(d)) {
+            /* Skip the names "." and ".." as we don't want to recurse on them. */
+            if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
+                continue;
+            }
 
-                if (buffer) {
-                    struct stat statbuf;
-                    snprintf(buffer, len, "%s/%s", dir.c_str(), p->d_name);
-                    if (!::stat(buffer, &statbuf)) {
-                        if (S_ISDIR(statbuf.st_mode)) {
-                            Path::rmdir(Path(buffer));
-                        } else {
-                            unlink(buffer);
-                        }
+            const size_t len = path_len + strlen(p->d_name) + 2;
+            StackBuffer<PATH_MAX> buffer(len);
+
+            if (buffer) {
+                struct stat statbuf;
+                snprintf(buffer, len, "%s/%s", dir.c_str(), p->d_name);
+                if (!::stat(buffer, &statbuf)) {
+                    if (S_ISDIR(statbuf.st_mode)) {
+                        Path::rmdir(Path(buffer));
+                    } else {
+                        unlink(buffer);
                     }
                 }
             }
-            closedir(d);
         }
-        return ::rmdir(dir.c_str()) == 0;
+        closedir(d);
+    }
+    return ::rmdir(dir.c_str()) == 0;
 #endif
+}
+
+static void visitorWrapper(Path path, const std::function<Path::VisitResult(const Path &path)> &callback, Set<Path> &seen)
+{
+    if (!seen.insert(path.resolved())) {
+        return;
     }
 
-    static void visitorWrapper(Path path, const std::function<Path::VisitResult(const Path &path)> &callback, Set<Path> &seen)
+#ifdef _WIN32
+    _WDIR *d = _wopendir(Utf8To16(path.c_str()));
+    if (!d)
+        return;
+#else
+    DIR *d = opendir(path.c_str());
+    if (!d)
+        return;
+#endif
+
+    union
     {
-        if (!seen.insert(path.resolved())) {
-            return;
-        }
+        char buf[PATH_MAX + sizeof(dirent) + 1];
+        dirent dbuf;
+    };
 
+    if (!path.endsWith('/'))
+        path.append('/');
+    const size_t s = path.size();
+    path.reserve(s + 128);
+    List<String> recurseDirs;
 #ifdef _WIN32
-        _WDIR *d = _wopendir(Utf8To16(path.c_str()));
-        if(!d)
-            return;
+    _wdirent *p;
+    while ((p = _wreaddir(d))) {
+        Utf16To8 u8Data(p->d_name);
+        const char *d_name = u8Data;
 #else
-        DIR *d = opendir(path.c_str());
-        if (!d)
-            return;
+    while (dirent *p = readdir(d)) {
+        const char *d_name = p->d_name;
 #endif
-
-        union {
-            char buf[PATH_MAX + sizeof(dirent) + 1];
-            dirent dbuf;
-        };
-
-
-        if (!path.endsWith('/'))
-            path.append('/');
-        const size_t s = path.size();
-        path.reserve(s + 128);
-        List<String> recurseDirs;
-#ifdef _WIN32
-        _wdirent *p;
-        while ((p = _wreaddir(d))) {
-            Utf16To8 u8Data(p->d_name);
-            const char *d_name = u8Data;
-#else
-            while (dirent *p = readdir(d)) {
-                const char *d_name = p->d_name;
-#endif
-                if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
-                    continue;
-                bool isDir = false;
-                path.truncate(s);
-                path.append(d_name);
+        if (!strcmp(d_name, ".") || !strcmp(d_name, ".."))
+            continue;
+        bool isDir = false;
+        path.truncate(s);
+        path.append(d_name);
 #if !defined(_WIN32) && defined(_DIRENT_HAVE_D_TYPE) && defined(_BSD_SOURCE)
-                if (p->d_type == DT_DIR) {
-                    isDir = true;
-                    path.append('/');
-                }
+        if (p->d_type == DT_DIR) {
+            isDir = true;
+            path.append('/');
+        }
 #else
-                isDir = path.isDir();
+        isDir              = path.isDir();
+        if (isDir)
+            path.append('/');
+#endif
+        switch (callback(path)) {
+            case Path::Abort:
+                p = nullptr;
+                break;
+            case Path::Recurse:
                 if (isDir)
-                    path.append('/');
-#endif
-                switch (callback(path)) {
-                case Path::Abort:
-                    p = nullptr;
-                    break;
-                case Path::Recurse:
-                    if (isDir)
-                        recurseDirs.push_back(d_name);
-                    break;
-                case Path::Continue:
-                    break;
-                }
-            }
+                    recurseDirs.push_back(d_name);
+                break;
+            case Path::Continue:
+                break;
+        }
+    }
 #ifdef _WIN32
-            _wclosedir(d);
+    _wclosedir(d);
 #else
-            closedir(d);
+    closedir(d);
 #endif
-            const size_t count = recurseDirs.size();
-            for (size_t i=0; i<count; ++i) {
-                path.truncate(s);
-                path.append(recurseDirs.at(i));
-                visitorWrapper(path, callback, seen);
-            }
-        }
+    const size_t count = recurseDirs.size();
+    for (size_t i = 0; i < count; ++i) {
+        path.truncate(s);
+        path.append(recurseDirs.at(i));
+        visitorWrapper(path, callback, seen);
+    }
+}
 
-        void Path::visit(const std::function<VisitResult(const Path &path)> &callback) const
-        {
-            if (!callback || !isDir())
-                return;
-            Set<Path> seenDirs;
-            visitorWrapper(*this, callback, seenDirs);
-        }
+void Path::visit(const std::function<VisitResult(const Path &path)> &callback) const
+{
+    if (!callback || !isDir())
+        return;
+    Set<Path> seenDirs;
+    visitorWrapper(*this, callback, seenDirs);
+}
 
-        Path Path::followLink(bool *ok) const
-        {
-#ifndef _WIN32  //no symlinks on windows
-            if (isSymLink()) {
-                char buf[PATH_MAX];
-                const int w = readlink(c_str(), buf, sizeof(buf) - 1);
-                if (w != -1) {
-                    if (ok)
-                        *ok = true;
-                    buf[w] = '\0';
-                    return buf;
-                }
-            }
-#endif
-
-            // could not follow the link (maybe because it's not a link)
-
+Path Path::followLink(bool *ok) const
+{
+#ifndef _WIN32 // no symlinks on windows
+    if (isSymLink()) {
+        char buf[PATH_MAX];
+        const int w = readlink(c_str(), buf, sizeof(buf) - 1);
+        if (w != -1) {
             if (ok)
-                *ok = false;
-
-            return *this;
+                *ok = true;
+            buf[w] = '\0';
+            return buf;
         }
+    }
+#endif
 
-        size_t Path::readAll(char *&buf, size_t max) const
-        {
-            FILE *f = fopen(c_str(), "r");
-            buf = nullptr;
-            if (!f)
-                return -1;
-            fseek(f, 0, SEEK_END);
-            int size = ftell(f);
-            if (max > 0 && max < static_cast<size_t>(size))
-                size = max;
-            if (size) {
-                fseek(f, 0, SEEK_SET);
-                buf = new char[size + 1];
-                const int ret = fread(buf, sizeof(char), size, f);
-                if (ret != size) {
-                    size = -1;
-                    delete[] buf;
-                } else {
-                    buf[size] = '\0';
-                }
-            }
-            fclose(f);
-            return size;
+    // could not follow the link (maybe because it's not a link)
+
+    if (ok)
+        *ok = false;
+
+    return *this;
+}
+
+size_t Path::readAll(char *&buf, size_t max) const
+{
+    FILE *f = fopen(c_str(), "r");
+    buf     = nullptr;
+    if (!f)
+        return -1;
+    fseek(f, 0, SEEK_END);
+    int size = ftell(f);
+    if (max > 0 && max < static_cast<size_t>(size))
+        size = max;
+    if (size) {
+        fseek(f, 0, SEEK_SET);
+        buf           = new char[size + 1];
+        const int ret = fread(buf, sizeof(char), size, f);
+        if (ret != size) {
+            size = -1;
+            delete[] buf;
+        } else {
+            buf[size] = '\0';
         }
+    }
+    fclose(f);
+    return size;
+}
 
-        String Path::readAll(size_t max) const
-        {
-            FILE *f = fopen(c_str(), "r");
-            if (!f)
-                return String();
-            const String ret = Rct::readAll(f, max);
-            fclose(f);
-            return ret;
-        }
+String Path::readAll(size_t max) const
+{
+    FILE *f = fopen(c_str(), "r");
+    if (!f)
+        return String();
+    const String ret = Rct::readAll(f, max);
+    fclose(f);
+    return ret;
+}
 
-        bool Path::write(const Path &path, const String &data, WriteMode mode)
-        {
-            FILE *f = fopen(path.c_str(), mode == Overwrite ? "w" : "a");
-            if (!f)
-                return false;
-            const size_t ret = fwrite(data.c_str(), sizeof(char), data.size(), f);
-            fclose(f);
-            return ret == data.size();
-        }
+bool Path::write(const Path &path, const String &data, WriteMode mode)
+{
+    FILE *f = fopen(path.c_str(), mode == Overwrite ? "w" : "a");
+    if (!f)
+        return false;
+    const size_t ret = fwrite(data.c_str(), sizeof(char), data.size(), f);
+    fclose(f);
+    return ret == data.size();
+}
 
-        bool Path::write(const String &data, WriteMode mode) const
-        {
-            return Path::write(*this, data, mode);
-        }
+bool Path::write(const String &data, WriteMode mode) const
+{
+    return Path::write(*this, data, mode);
+}
 
-        Path Path::home()
-        {
-            Path ret = Path::resolved(getenv("HOME"));
-            if (!ret.endsWith('/'))
-                ret.append('/');
-            return ret;
-        }
+Path Path::home()
+{
+    Path ret = Path::resolved(getenv("HOME"));
+    if (!ret.endsWith('/'))
+        ret.append('/');
+    return ret;
+}
 
-        Path Path::toTilde() const
-        {
-            const Path home = Path::home();
-            if (startsWith(home))
-                return String::format<64>("~/%s", c_str() + home.size());
-            return *this;
-        }
+Path Path::toTilde() const
+{
+    const Path home = Path::home();
+    if (startsWith(home))
+        return String::format<64>("~/%s", c_str() + home.size());
+    return *this;
+}
 
-        Path Path::pwd()
-        {
-            char buf[PATH_MAX];
-            char *pwd = getenv("PWD");
-            if (!pwd)
-                pwd = getcwd(buf, sizeof(buf));
-            if (pwd) {
-                Path ret(pwd);
-                if (!ret.endsWith('/'))
-                    ret.append('/');
-                return ret;
-            }
-            return Path();
-        }
-        List<Path> Path::files(unsigned int filter, size_t max, bool recurse) const
-        {
-            assert(max != 0);
+Path Path::pwd()
+{
+    char buf[PATH_MAX];
+    char *pwd = getenv("PWD");
+    if (!pwd)
+        pwd = getcwd(buf, sizeof(buf));
+    if (pwd) {
+        Path ret(pwd);
+        if (!ret.endsWith('/'))
+            ret.append('/');
+        return ret;
+    }
+    return Path();
+}
 
-            List<Path> paths;
-            visit([filter, &max, recurse, &paths](const Path &path) {
-                if (max > 0)
-                    --max;
-                if (path.type() & filter) {
-                    paths.push_back(path);
-                }
-                if (!max)
-                    return Path::Abort;
-                return recurse ? Path::Recurse : Path::Continue;
-            });
-            return paths;
-        }
+List<Path> Path::files(unsigned int filter, size_t max, bool recurse) const
+{
+    assert(max != 0);
 
-        uint64_t Path::lastModifiedMs() const
-        {
-            bool ok;
-            struct stat st = stat(&ok);
-            if (!ok)
-                return 0;
+    List<Path> paths;
+    visit([filter, &max, recurse, &paths](const Path &path)
+          {
+              if (max > 0)
+                  --max;
+              if (path.type() & filter) {
+                  paths.push_back(path);
+              }
+              if (!max)
+                  return Path::Abort;
+              return recurse ? Path::Recurse : Path::Continue;
+          });
+    return paths;
+}
+
+uint64_t Path::lastModifiedMs() const
+{
+    bool ok;
+    struct stat st = stat(&ok);
+    if (!ok)
+        return 0;
 
 #ifdef HAVE_STATMTIM
-            return st.st_mtim.tv_sec * static_cast<uint64_t>(1000) + st.st_mtim.tv_nsec / static_cast<uint64_t>(1000000);
+    return st.st_mtim.tv_sec * static_cast<uint64_t>(1000) + st.st_mtim.tv_nsec / static_cast<uint64_t>(1000000);
 #else
-            return st.st_mtime * static_cast<uint64_t>(1000);
+    return st.st_mtime * static_cast<uint64_t>(1000);
 #endif
-        }
-        const char *Path::typeName(Type type)
-        {
-            switch (type) {
-            case Invalid: return "Invalid";
-            case File: return "File";
-            case Directory: return "Directory";
-            case CharacterDevice: return "CharacterDevice";
-            case BlockDevice: return "BlockDevice";
-            case NamedPipe: return "NamedPipe";
-            case Socket: return "Socket";
-            default:
-                break;
-            }
-            return "";
-        }
+}
 
-        struct stat Path::stat(bool *f_ok) const
-        {
-            struct stat st;
+const char *Path::typeName(Type type)
+{
+    switch (type) {
+        case Invalid:
+            return "Invalid";
+        case File:
+            return "File";
+        case Directory:
+            return "Directory";
+        case CharacterDevice:
+            return "CharacterDevice";
+        case BlockDevice:
+            return "BlockDevice";
+        case NamedPipe:
+            return "NamedPipe";
+        case Socket:
+            return "Socket";
+        default:
+            break;
+    }
+    return "";
+}
+
+struct stat Path::stat(bool *f_ok) const
+{
+    struct stat st;
 #ifdef _WIN32
-            if (::wstat(Utf8To16(c_str()), &st) == -1) {
+    if (::wstat(Utf8To16(c_str()), &st) == -1) {
 #else
-                if (::stat(c_str(), &st) == -1) {
+    if (::stat(c_str(), &st) == -1) {
 #endif
-                    memset(&st, 0, sizeof(st));
-                    if (f_ok) *f_ok = false;
-                } else if (f_ok) {
-                    *f_ok = true;
-                }
-                return st;
-            }
+        memset(&st, 0, sizeof(st));
+        if (f_ok)
+            *f_ok = false;
+    } else if (f_ok) {
+        *f_ok = true;
+    }
+    return st;
+}
 
-            String Path::name() const
-            {
-                if (endsWith('/')) {
-                    const size_t secondLastSlash = lastIndexOf('/', size() - 2);
-                    if (secondLastSlash != String::npos) {
-                        return mid(secondLastSlash + 1, size() - secondLastSlash - 2);
-                    }
-                    return String();
-                } else {
-                    return fileName();
-                }
-            }
+String Path::name() const
+{
+    if (endsWith('/')) {
+        const size_t secondLastSlash = lastIndexOf('/', size() - 2);
+        if (secondLastSlash != String::npos) {
+            return mid(secondLastSlash + 1, size() - secondLastSlash - 2);
+        }
+        return String();
+    } else {
+        return fileName();
+    }
+}
 
-            void Path::replaceBackslashes()
-            {
-                std::size_t start = 0;
+void Path::replaceBackslashes()
+{
+    std::size_t start = 0;
 
-                // don't replace \\ at the beginning (network path)
-                if(size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\')
-                {
-                    start = 2;
-                }
+    // don't replace \\ at the beginning (network path)
+    if (size() >= 2 && (*this)[0] == '\\' && (*this)[1] == '\\') {
+        start = 2;
+    }
 
-                for(std::size_t i=start; i<size(); i++)
-                {
-                    if((*this)[i] == '\\') (*this)[i] = '/';
-                }
-            }
+    for (std::size_t i = start; i < size(); i++) {
+        if ((*this)[i] == '\\')
+            (*this)[i] = '/';
+    }
+}

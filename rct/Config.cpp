@@ -1,10 +1,10 @@
 #include "Config.h"
 
+#include <algorithm>
 #include <ctype.h>
 #include <getopt.h>
-#include <stdlib.h>
-#include <algorithm>
 #include <memory>
+#include <stdlib.h>
 #include <vector>
 
 #include "StackBuffer.h"
@@ -12,7 +12,7 @@
 #include "rct/Rct.h"
 #include "rct/Value.h"
 
-List<Config::OptionBase*> Config::sOptions;
+List<Config::OptionBase *> Config::sOptions;
 bool Config::sAllowsFreeArgs = false;
 List<Value> Config::sFreeArgs;
 
@@ -27,7 +27,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     Rct::findExecutablePath(argv[0]);
     List<String> args;
     args << argv[0];
-    for (size_t i=0; i<rcFiles.size(); ++i) {
+    for (size_t i = 0; i < rcFiles.size(); ++i) {
         FILE *f = fopen(rcFiles.at(i).c_str(), "r");
         if (f) {
             char line[1024];
@@ -52,27 +52,27 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
             fclose(f);
         }
     }
-    for (int i=1; i<argc; ++i)
+    for (int i = 1; i < argc; ++i)
         args.push_back(argv[i]);
 
     // ::error() << "parsing" << args;
 
     StackBuffer<128, char *> a(args.size());
-    for (size_t i=0; i<args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
         a[i] = strdup(args.at(i).c_str());
     }
     StackBuffer<128, option> options(sOptions.size() + 1);
 
-    List<OptionBase*> optionPointers;
-    for (size_t i=0; i<sOptions.size(); ++i) {
+    List<OptionBase *> optionPointers;
+    for (size_t i = 0; i < sOptions.size(); ++i) {
         OptionBase *opt = sOptions.at(i);
         if (opt->name) {
             option &o = options[optionPointers.size()];
             optionPointers.push_back(opt);
-            o.name = opt->name;
+            o.name    = opt->name;
             o.has_arg = (opt->defaultValue.type() == Value::Type_Boolean) ? no_argument : required_argument; // ### no optional arg?
-            o.val = opt->shortOption;
-            o.flag = nullptr;
+            o.val     = opt->shortOption;
+            o.flag    = nullptr;
         }
     }
     memset(&options[optionPointers.size()], 0, sizeof(option));
@@ -81,16 +81,16 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
     bool ok = true;
 
     while (true) {
-        int idx = -1;
+        int idx       = -1;
         const int ret = getopt_long(args.size(), a, shortOpts.c_str(), options, &idx);
         switch (ret) {
-        case -1:
-            goto done;
-        case '?':
-            ok = false;
-            goto done;
-        default:
-            break;
+            case -1:
+                goto done;
+            case '?':
+                ok = false;
+                goto done;
+            default:
+                break;
         }
         // error() << optind << ret << optarg;
         // error("%c [%s] [%s]", ret, optarg, a[optind]);
@@ -99,7 +99,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
         if (idx != -1) {
             opt = optionPointers[idx];
         } else {
-            for (size_t i=0; i<optionPointers.size(); ++i) {
+            for (size_t i = 0; i < optionPointers.size(); ++i) {
                 if (optionPointers[i]->shortOption == ret) {
                     opt = optionPointers[i];
                     break;
@@ -119,9 +119,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
             }
             val = createValue(opt->type, arg, &ok);
             if (!ok) {
-                error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s",
-                                            arg, Value::typeToString(opt->type),
-                                            opt->name);
+                error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s", arg, Value::typeToString(opt->type), opt->name);
                 goto done;
             }
 
@@ -131,9 +129,7 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
                 while (static_cast<size_t>(optind) < args.size() && a[optind][0] != '-' && (!opt->listCount || vals.size() < opt->listCount)) {
                     vals << createValue(opt->type, a[optind], &ok);
                     if (!ok) {
-                        error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s",
-                                                    a[optind], Value::typeToString(opt->type),
-                                                    opt->name);
+                        error = String::format<128>("\"%s\" can not be converted to \"%s\" for %s", a[optind], Value::typeToString(opt->type), opt->name);
                         goto done;
                     }
                     ++optind;
@@ -147,7 +143,9 @@ bool Config::parse(int argc, char **argv, const List<Path> &rcFiles)
                     error = String::format<128>("Too few values specified for %s. Wanted %zu, got %zu",
 #endif
 
-                                                opt->name, opt->listCount, vals.size());
+                                                opt->name,
+                                                opt->listCount,
+                                                vals.size());
 
                     goto done;
                 }
@@ -171,10 +169,10 @@ done:
     }
     if (!sAllowsFreeArgs && !sFreeArgs.empty()) {
         error = String::format<128>("Unexpected free args");
-        ok = false;
+        ok    = false;
     }
 
-    for (size_t i=0; i<args.size(); ++i) {
+    for (size_t i = 0; i < args.size(); ++i) {
         free(a[i]);
     }
 
@@ -191,32 +189,24 @@ void Config::showHelp(FILE *f)
 {
     List<String> out;
     int longest = 0;
-    for (size_t i=0; i<sOptions.size(); ++i) {
+    for (size_t i = 0; i < sOptions.size(); ++i) {
         const OptionBase *option = sOptions.at(i);
         if (!option->name && !option->shortOption) {
             out.push_back(String());
         } else {
-            out.push_back(String::format<64>("  %s%s%s%s",
-                                          option->name ? String::format<4>("--%s", option-> name).c_str() : "",
-                                          option->name && option->shortOption ? "|" : "",
-                                          option->shortOption ? String::format<2>("-%c", option->shortOption).c_str() : "",
-                                          option->defaultValue.type() == Value::Type_Boolean ? "" : " [arg] "));
+            out.push_back(String::format<64>("  %s%s%s%s", option->name ? String::format<4>("--%s", option->name).c_str() : "", option->name && option->shortOption ? "|" : "", option->shortOption ? String::format<2>("-%c", option->shortOption).c_str() : "", option->defaultValue.type() == Value::Type_Boolean ? "" : " [arg] "));
             longest = std::max<int>(out[i].size(), longest);
         }
     }
     fprintf(f, "%s options...\n", Rct::executablePath().fileName());
     const int count = out.size();
-    for (int i=0; i<count; ++i) {
+    for (int i = 0; i < count; ++i) {
         if (out.at(i).empty()) {
             fprintf(f, "%s\n", sOptions.at(i)->description.c_str());
         } else {
-            fprintf(f, "%s%s %s\n",
-                    out.at(i).c_str(),
-                    String(longest - out.at(i).size(), ' ').c_str(),
-                    sOptions.at(i)->description.c_str());
+            fprintf(f, "%s%s %s\n", out.at(i).c_str(), String(longest - out.at(i).size(), ' ').c_str(), sOptions.at(i)->description.c_str());
         }
     }
-
 }
 
 void Config::clear()
@@ -226,6 +216,10 @@ void Config::clear()
     sFreeArgs.clear();
 }
 
-struct Janitor {
-    ~Janitor() { Config::clear(); }
+struct Janitor
+{
+    ~Janitor()
+    {
+        Config::clear();
+    }
 } static sJanitor;

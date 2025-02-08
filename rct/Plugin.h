@@ -6,29 +6,66 @@
 #include <rct/String.h>
 
 namespace Rct {
-void* loadPlugin(const Path& fileName);
-void unloadPlugin(void* handle);
-void* resolveSymbol(void* handle, const char* symbol);
-char* pluginError();
-}
+void *loadPlugin(const Path &fileName);
+void unloadPlugin(void *handle);
+void *resolveSymbol(void *handle, const char *symbol);
+char *pluginError();
+} // namespace Rct
 
-template<typename T>
+template <typename T>
 class Plugin
 {
 public:
-    Plugin() : mHandle(nullptr), mInstance(0) { }
-    Plugin(const Path& fileName) : mFileName(fileName), mHandle(nullptr), mInstance(nullptr) { }
-    ~Plugin() { clear(); }
+    Plugin()
+        : mHandle(nullptr)
+        , mInstance(0)
+    {
+    }
 
-    void clear() { if (mHandle) { deleteInstance(); Rct::unloadPlugin(mHandle); mHandle = nullptr; } }
-    void deleteInstance() { delete mInstance; mInstance = nullptr; }
+    Plugin(const Path &fileName)
+        : mFileName(fileName)
+        , mHandle(nullptr)
+        , mInstance(nullptr)
+    {
+    }
 
-    void setFileName(const Path& fileName) { clear(); mFileName = fileName; }
-    Path fileName() const { return mFileName; }
+    ~Plugin()
+    {
+        clear();
+    }
 
-    T* instance();
+    void clear()
+    {
+        if (mHandle) {
+            deleteInstance();
+            Rct::unloadPlugin(mHandle);
+            mHandle = nullptr;
+        }
+    }
 
-    String error() const { return mError; }
+    void deleteInstance()
+    {
+        delete mInstance;
+        mInstance = nullptr;
+    }
+
+    void setFileName(const Path &fileName)
+    {
+        clear();
+        mFileName = fileName;
+    }
+
+    Path fileName() const
+    {
+        return mFileName;
+    }
+
+    T *instance();
+
+    String error() const
+    {
+        return mError;
+    }
 
 private:
     Plugin(const Plugin &);
@@ -36,12 +73,12 @@ private:
 
     String mError;
     Path mFileName;
-    void* mHandle;
-    T* mInstance;
+    void *mHandle;
+    T *mInstance;
 };
 
-template<typename T>
-inline T* Plugin<T>::instance()
+template <typename T>
+inline T *Plugin<T>::instance()
 {
     if (!mHandle) {
         mHandle = Rct::loadPlugin(mFileName);

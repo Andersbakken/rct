@@ -19,10 +19,9 @@ Date::Date(time_t time, Mode mode)
     setTime(time, mode);
 }
 
-static struct tm* modetime(const time_t& clock, struct tm* result, Date::Mode mode)
+static struct tm *modetime(const time_t &clock, struct tm *result, Date::Mode mode)
 {
-    if (mode == Date::UTC)
-    {
+    if (mode == Date::UTC) {
 #ifdef _WIN32
         tm *res = gmtime(&clock);
         *result = *res;
@@ -43,9 +42,10 @@ static struct tm* modetime(const time_t& clock, struct tm* result, Date::Mode mo
 
 void Date::setTime(time_t time, Mode mode)
 {
-    std::call_once(tzFlag, []() {
-            tzset();
-        });
+    std::call_once(tzFlag, []()
+                   {
+                       tzset();
+                   });
     if (mode == UTC) {
         mTime = time;
     } else {

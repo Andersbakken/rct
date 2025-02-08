@@ -1,26 +1,27 @@
 #ifndef String_h
 #define String_h
 
-#include <errno.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <strings.h>
-#include <time.h>
-#include <rct/List.h>
+#include <algorithm>
 #include <assert.h>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <string>
-#include <algorithm>
+#include <ctype.h>
+#include <errno.h>
 #include <functional>
 #include <iosfwd>
 #include <limits>
 #include <memory>
+#include <rct/List.h>
+#include <stdarg.h>
+#include <string>
+#include <strings.h>
+#include <time.h>
 #include <utility>
 
-#define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__ ((__format__ (__printf__, fmt, firstarg)))
+#define RCT_PRINTF_WARNING(fmt, firstarg) __attribute__((__format__(__printf__, fmt, firstarg)))
+
 class String
 {
 public:
@@ -32,6 +33,7 @@ public:
         CaseSensitive,
         CaseInsensitive
     };
+
     String(const char *ch = nullptr, size_t len = npos)
     {
         if (ch) {
@@ -40,19 +42,23 @@ public:
             mString.assign(ch, len);
         }
     }
+
     String(const char *start, const char *end)
     {
         if (start) {
             mString.assign(start, end);
         }
     }
+
     String(size_t len, char fillChar)
         : mString(len, fillChar)
-    {}
+    {
+    }
 
     String(const String &ba)
         : mString(ba.mString)
-    {}
+    {
+    }
 
     String(String &&ba)
         : mString(std::move(ba.mString))
@@ -61,11 +67,13 @@ public:
 
     String(const std::string &str)
         : mString(str)
-    {}
+    {
+    }
 
     String(std::string &&str)
         : mString(std::move(str))
-    {}
+    {
+    }
 
     String &operator=(const String &other)
     {
@@ -93,10 +101,25 @@ public:
     typedef std::string::const_iterator const_iterator;
     typedef std::string::iterator iterator;
 
-    const_iterator begin() const { return mString.begin(); }
-    const_iterator end() const { return mString.end(); }
-    iterator begin() { return mString.begin(); }
-    iterator end() { return mString.end(); }
+    const_iterator begin() const
+    {
+        return mString.begin();
+    }
+
+    const_iterator end() const
+    {
+        return mString.end();
+    }
+
+    iterator begin()
+    {
+        return mString.begin();
+    }
+
+    iterator end()
+    {
+        return mString.end();
+    }
 
     size_t lastIndexOf(char ch, size_t from = npos, CaseSensitivity cs = CaseSensitive) const
     {
@@ -105,7 +128,7 @@ public:
         const char *str = mString.c_str();
         if (from == npos)
             from = mString.size() - 1;
-        ch = tolower(ch);
+        ch    = tolower(ch);
         int f = static_cast<int>(from);
         while (f >= 0) {
             if (tolower(str[f]) == ch)
@@ -120,7 +143,7 @@ public:
         if (cs == CaseSensitive)
             return mString.find(ch, from);
         const char *data = mString.c_str();
-        ch = tolower(ch);
+        ch               = tolower(ch);
         const size_t len = mString.size();
         while (from < len) {
             if (tolower(data[from]) == ch)
@@ -130,61 +153,69 @@ public:
         return npos;
     }
 
-    size_t lastIndexOf(const char *ch, size_t from = npos, size_t len = std::numeric_limits<size_t>::max(), CaseSensitivity cs = CaseSensitive) const
+    size_t lastIndexOf(const char *ch, size_t from = npos, size_t len = std::numeric_limits<size_t>::max(),
+                       CaseSensitivity cs = CaseSensitive) const
     {
         if (len == std::numeric_limits<size_t>::max())
             len = strlen(ch);
         switch (len) {
-        case 0: return npos;
-        case 1: return lastIndexOf(*ch, from, cs);
-        default: {
-            if (cs == CaseSensitive)
-                return mString.rfind(ch, from, len);
-            if (from == npos)
-                from = mString.size() - 1;
-            String lowered(ch, len);
-            lowered.lowerCase();
-            const size_t needleSize = lowered.size();
-            size_t matched = 0;
-            int f = static_cast<int>(from);
-            while (f >= 0) {
-                if (lowered.at(needleSize - matched - 1) != tolower(at(f))) {
-                    matched = 0;
-                } else if (++matched == needleSize) {
-                    return f;
-                }
+            case 0:
+                return npos;
+            case 1:
+                return lastIndexOf(*ch, from, cs);
+            default: {
+                if (cs == CaseSensitive)
+                    return mString.rfind(ch, from, len);
+                if (from == npos)
+                    from = mString.size() - 1;
+                String lowered(ch, len);
+                lowered.lowerCase();
+                const size_t needleSize = lowered.size();
+                size_t matched          = 0;
+                int f                   = static_cast<int>(from);
+                while (f >= 0) {
+                    if (lowered.at(needleSize - matched - 1) != tolower(at(f))) {
+                        matched = 0;
+                    } else if (++matched == needleSize) {
+                        return f;
+                    }
 
-                --f;
+                    --f;
+                }
+                break;
             }
-            break; }
         }
         return npos;
     }
 
-    size_t indexOf(const char *ch, size_t from = 0, size_t len = std::numeric_limits<size_t>::max(), CaseSensitivity cs = CaseSensitive) const
+    size_t indexOf(const char *ch, size_t from = 0, size_t len = std::numeric_limits<size_t>::max(),
+                   CaseSensitivity cs = CaseSensitive) const
     {
         if (len == std::numeric_limits<size_t>::max())
             len = strlen(ch);
         switch (len) {
-        case 0: return npos;
-        case 1: return indexOf(*ch, from, cs);
-        default: {
-            if (cs == CaseSensitive)
-                return mString.find(ch, from, len);
+            case 0:
+                return npos;
+            case 1:
+                return indexOf(*ch, from, cs);
+            default: {
+                if (cs == CaseSensitive)
+                    return mString.find(ch, from, len);
 
-            String lowered(ch, len);
-            lowered.lowerCase();
-            const size_t count = size();
-            size_t matched = 0;
+                String lowered(ch, len);
+                lowered.lowerCase();
+                const size_t count = size();
+                size_t matched     = 0;
 
-            for (size_t i=from; i<count; ++i) {
-                if (lowered.at(matched) != tolower(at(i))) {
-                    matched = 0;
-                } else if (++matched == lowered.size()) {
-                    return i - matched + 1;
+                for (size_t i = from; i < count; ++i) {
+                    if (lowered.at(matched) != tolower(at(i))) {
+                        matched = 0;
+                    } else if (++matched == lowered.size()) {
+                        return i - matched + 1;
+                    }
                 }
+                break;
             }
-            break; }
         }
         return npos;
     }
@@ -309,10 +340,12 @@ public:
         return mid(start, end - start + 1);
     }
 
-    enum Pad {
+    enum Pad
+    {
         Beginning,
         End
     };
+
     String padded(Pad pad, size_t len, char fillChar = ' ', bool trunc = false) const
     {
         const size_t l = length();
@@ -346,6 +379,7 @@ public:
     {
         mString.clear();
     }
+
     const char *data() const
     {
         return mString.data();
@@ -366,12 +400,12 @@ public:
         return mString.at(i);
     }
 
-    char& operator[](size_t i)
+    char &operator[](size_t i)
     {
         return mString.operator[](i);
     }
 
-    const char& operator[](size_t i) const
+    const char &operator[](size_t i) const
     {
         return mString.operator[](i);
     }
@@ -475,7 +509,12 @@ public:
     }
 
     String compress() const;
-    String uncompress() const { return uncompress(c_str(), size()); }
+
+    String uncompress() const
+    {
+        return uncompress(c_str(), size());
+    }
+
     static String uncompress(const char *data, size_t size);
 
     void append(const char *str, size_t len = npos)
@@ -499,6 +538,7 @@ public:
         }
         return ret;
     }
+
     size_t remove(char ch, CaseSensitivity cs = CaseSensitive)
     {
         size_t idx = 0;
@@ -528,7 +568,7 @@ public:
 #endif
     }
 
-    String& erase(size_t index = 0, size_t count = npos)
+    String &erase(size_t index = 0, size_t count = npos)
     {
         mString.erase(index, count);
         return *this;
@@ -599,9 +639,7 @@ public:
     {
         const size_t s = mString.size();
         if (s) {
-            return (c == CaseInsensitive
-                    ? tolower(at(s - 1)) == tolower(ch)
-                    : at(s - 1) == ch);
+            return (c == CaseInsensitive ? tolower(at(s - 1)) == tolower(ch) : at(s - 1) == ch);
         }
         return false;
     }
@@ -609,9 +647,7 @@ public:
     bool startsWith(char ch, CaseSensitivity c = CaseSensitive) const
     {
         if (!empty()) {
-            return (c == CaseInsensitive
-                    ? tolower(at(0)) == tolower(ch)
-                    : at(0) == ch);
+            return (c == CaseInsensitive ? tolower(at(0)) == tolower(ch) : at(0) == ch);
         }
         return false;
     }
@@ -631,7 +667,6 @@ public:
         }
         return false;
     }
-
 
     bool startsWith(const String &str, CaseSensitivity cs = CaseSensitive) const
     {
@@ -672,7 +707,7 @@ public:
     size_t replace(char from, char to, CaseSensitivity cs = CaseSensitive)
     {
         size_t count = 0;
-        int i = static_cast<int>(size() - 1);
+        int i        = static_cast<int>(size() - 1);
         if (cs == CaseSensitive) {
             while (i >= 0) {
                 char &ch = operator[](i);
@@ -720,26 +755,28 @@ public:
         return mString;
     }
 
-    std::string& ref()
+    std::string &ref()
     {
         return mString;
     }
 
-    const std::string& ref() const
+    const std::string &ref() const
     {
         return mString;
     }
 
-    enum SplitFlag {
-        NoSplitFlag = 0x0,
-        SkipEmpty = 0x1,
+    enum SplitFlag
+    {
+        NoSplitFlag    = 0x0,
+        SkipEmpty      = 0x1,
         KeepSeparators = 0x2
     };
+
     List<String> split(char ch, unsigned int flags = NoSplitFlag) const
     {
         List<String> ret;
         if (!empty()) {
-            size_t prev = 0;
+            size_t prev      = 0;
             const size_t add = flags & KeepSeparators ? 1 : 0;
             while (1) {
                 const size_t next = indexOf(ch, prev);
@@ -784,42 +821,46 @@ public:
 
     unsigned long long toULongLong(bool *ok = nullptr, size_t base = 10) const
     {
-        errno = 0;
-        char *end = nullptr;
+        errno                        = 0;
+        char *end                    = nullptr;
         const unsigned long long ret = ::strtoull(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
+
     long long toLongLong(bool *ok = nullptr, size_t base = 10) const
     {
-        errno = 0;
-        char *end = nullptr;
+        errno               = 0;
+        char *end           = nullptr;
         const long long ret = ::strtoll(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
+
     uint32_t toULong(bool *ok = nullptr, size_t base = 10) const
     {
-        errno = 0;
-        char *end = nullptr;
+        errno              = 0;
+        char *end          = nullptr;
         const uint32_t ret = ::strtoul(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
+
     int32_t toLong(bool *ok = nullptr, size_t base = 10) const
     {
-        errno = 0;
-        char *end = nullptr;
+        errno             = 0;
+        char *end         = nullptr;
         const int32_t ret = ::strtol(c_str(), &end, base);
         if (ok)
             *ok = !errno && !*end;
         return ret;
     }
 
-    enum TimeFormat {
+    enum TimeFormat
+    {
         DateTime,
         Time,
         Date
@@ -829,20 +870,20 @@ public:
     {
         const char *format = nullptr;
         switch (fmt) {
-        case DateTime:
-            format = "%Y-%m-%d %H:%M:%S";
-            break;
-        case Date:
-            format = "%Y-%m-%d";
-            break;
-        case Time:
-            format = "%H:%M:%S";
-            break;
+            case DateTime:
+                format = "%Y-%m-%d %H:%M:%S";
+                break;
+            case Date:
+                format = "%Y-%m-%d";
+                break;
+            case Time:
+                format = "%H:%M:%S";
+                break;
         }
 
         char buf[32];
 #ifdef _WIN32
-        tm *tm = localtime(&t);
+        tm *tm         = localtime(&t);
         const size_t w = strftime(buf, sizeof(buf), format, tm);
 #else
         tm tm;
@@ -852,35 +893,82 @@ public:
         return String(buf, w);
     }
 
-    String toHex() const { return toHex(*this); }
-    static String toHex(const String &hex) { return toHex(hex.c_str(), hex.size()); }
+    String toHex() const
+    {
+        return toHex(*this);
+    }
+
+    static String toHex(const String &hex)
+    {
+        return toHex(hex.c_str(), hex.size());
+    }
+
     static String toHex(const void *data, size_t len);
 
-    static String number(char num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(unsigned char num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(short num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(unsigned short num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(int num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(unsigned int num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(long num, size_t base = 10) { return String::number(static_cast<long long>(num), base); }
-    static String number(unsigned long num, size_t base = 10) { return String::number(static_cast<unsigned long long>(num), base); }
+    static String number(char num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(unsigned char num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(short num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(unsigned short num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(int num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(unsigned int num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(long num, size_t base = 10)
+    {
+        return String::number(static_cast<long long>(num), base);
+    }
+
+    static String number(unsigned long num, size_t base = 10)
+    {
+        return String::number(static_cast<unsigned long long>(num), base);
+    }
+
     static String number(long long num, size_t base = 10)
     {
         const char *format = nullptr;
         switch (base) {
-        case 10: format = "%lld"; break;
-        case 16: format = "0x%llx"; break;
-        case 8: format = "%llo"; break;
-        case 1: {
-            String ret;
-            while (num) {
-                ret.append(num & 1 ? '1' : '0');
-                num >>= 1;
+            case 10:
+                format = "%lld";
+                break;
+            case 16:
+                format = "0x%llx";
+                break;
+            case 8:
+                format = "%llo";
+                break;
+            case 1: {
+                String ret;
+                while (num) {
+                    ret.append(num & 1 ? '1' : '0');
+                    num >>= 1;
+                }
+                return ret;
             }
-            return ret; }
-        default:
-            assert(0);
-            return String();
+            default:
+                assert(0);
+                return String();
         }
         char buf[32];
         const size_t w = ::snprintf(buf, sizeof(buf), format, num);
@@ -891,19 +979,26 @@ public:
     {
         const char *format = nullptr;
         switch (base) {
-        case 10: format = "%llu"; break;
-        case 16: format = "0x%llx"; break;
-        case 8: format = "%llo"; break;
-        case 1: {
-            String ret;
-            while (num) {
-                ret.append(num & 1 ? '1' : '0');
-                num >>= 1;
+            case 10:
+                format = "%llu";
+                break;
+            case 16:
+                format = "0x%llx";
+                break;
+            case 8:
+                format = "%llo";
+                break;
+            case 1: {
+                String ret;
+                while (num) {
+                    ret.append(num & 1 ? '1' : '0');
+                    num >>= 1;
+                }
+                return ret;
             }
-            return ret; }
-        default:
-            assert(0);
-            return String();
+            default:
+                assert(0);
+                return String();
         }
         char buf[32];
         const size_t w = ::snprintf(buf, sizeof(buf), format, num);
@@ -930,12 +1025,12 @@ public:
     {
         String ret;
         const size_t sepSize = sep.size();
-        size_t size = std::max<size_t>(0, list.size() - 1) * sepSize;
-        const size_t count = list.size();
-        for (size_t i=0; i<count; ++i)
+        size_t size          = std::max<size_t>(0, list.size() - 1) * sepSize;
+        const size_t count   = list.size();
+        for (size_t i = 0; i < count; ++i)
             size += list.at(i).size();
         ret.reserve(size);
-        for (size_t i=0; i<count; ++i) {
+        for (size_t i = 0; i < count; ++i) {
             const String &b = list.at(i);
             ret.append(b);
             if (sepSize && i + 1 < list.size())
@@ -943,6 +1038,7 @@ public:
         }
         return ret;
     }
+
     template <size_t StaticBufSize = 4096>
     static String format(const char *format, ...) RCT_PRINTF_WARNING(1, 2);
 
@@ -960,11 +1056,12 @@ public:
             ret.assign(buffer, size);
         } else {
             ret.resize(size);
-            ::vsnprintf(&ret[0], size+1, format, copy);
+            ::vsnprintf(&ret[0], size + 1, format, copy);
         }
         va_end(copy);
         return ret;
     }
+
 private:
     std::string mString;
 };
@@ -1026,18 +1123,16 @@ inline const String operator+(const String &l, const String &r)
     return ret;
 }
 
-namespace std
-{
+namespace std {
 template <>
 struct hash<String>
 {
-    size_t operator()(const String& value) const
+    size_t operator()(const String &value) const
     {
         std::hash<std::string> h;
         return h(value);
     }
 };
-}
-
+} // namespace std
 
 #endif

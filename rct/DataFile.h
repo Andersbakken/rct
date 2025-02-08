@@ -10,8 +10,14 @@ class DataFile
 {
 public:
     DataFile(const Path &path, int version)
-        : mFile(nullptr), mSizeOffset(-1), mSerializer(nullptr), mDeserializer(nullptr), mPath(path), mVersion(version)
-    {}
+        : mFile(nullptr)
+        , mSizeOffset(-1)
+        , mSerializer(nullptr)
+        , mDeserializer(nullptr)
+        , mPath(path)
+        , mVersion(version)
+    {
+    }
 
     ~DataFile()
     {
@@ -20,7 +26,10 @@ public:
             flush();
     }
 
-    Path path() const { return mPath; }
+    Path path() const
+    {
+        return mPath;
+    }
 
     bool flush()
     {
@@ -43,11 +52,17 @@ public:
         return true;
     }
 
-    enum Mode {
+    enum Mode
+    {
         Read,
         Write
     };
-    String error() const { return mError; }
+
+    String error() const
+    {
+        return mError;
+    }
+
     bool open(Mode mode)
     {
         assert(!mFile);
@@ -82,33 +97,35 @@ public:
             int version;
             (*mDeserializer) >> version;
             if (version != mVersion) {
-                mError = String::format<128>("Wrong database version. Expected %d, got %d for %s",
-                                             mVersion, version, mPath.c_str());
+                mError = String::format<128>("Wrong database version. Expected %d, got %d for %s", mVersion, version, mPath.c_str());
                 return false;
             }
             int fs;
             (*mDeserializer) >> fs;
             if (static_cast<size_t>(fs) != mContents.size()) {
-                mError = String::format<128>("%s seems to be corrupted. Size should have been %zu but was %d",
-                                             mPath.c_str(), mContents.size(), fs);
+                mError = String::format<128>("%s seems to be corrupted. Size should have been %zu but was %d", mPath.c_str(), mContents.size(), fs);
                 return false;
             }
             return true;
         }
     }
 
-    template <typename T> DataFile &operator<<(const T &t)
+    template <typename T>
+    DataFile &operator<<(const T &t)
     {
         assert(mSerializer);
         (*mSerializer) << t;
         return *this;
     }
-    template <typename T> DataFile &operator>>(T &t)
+
+    template <typename T>
+    DataFile &operator>>(T &t)
     {
         assert(mDeserializer);
         (*mDeserializer) >> t;
         return *this;
     }
+
 private:
     FILE *mFile;
     int mSizeOffset;

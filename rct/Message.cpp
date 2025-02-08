@@ -1,12 +1,12 @@
 #include "Message.h"
 
-#include <stdint.h>
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
 #include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <stdint.h>
 #include <utility>
 
 #include "FinishMessage.h"
@@ -39,13 +39,14 @@ void Message::prepare(int version, String &header, String &value) const
         encodeHeader(s, mValue.size(), version);
         mVersion = version;
     }
-    value = mValue;
+    value  = mValue;
     header = mHeader;
 }
 
 std::shared_ptr<Message> Message::create(int version, const char *data, int size, MessageError *errorPtr)
 {
-    auto sendError = [errorPtr](MessageErrorType type, const String &text) {
+    auto sendError = [errorPtr](MessageErrorType type, const String &text)
+    {
         if (errorPtr) {
             errorPtr->text = text;
             errorPtr->type = type;
@@ -88,15 +89,15 @@ std::shared_ptr<Message> Message::create(int version, const char *data, int size
     String uncompressed;
     if (flags & Compressed) {
         uncompressed = String::uncompress(data, size);
-        data = uncompressed.c_str();
-        size = uncompressed.size();
+        data         = uncompressed.c_str();
+        size         = uncompressed.size();
     }
     std::lock_guard<std::mutex> lock(sMutex);
     if (!sFactory.contains(ResponseMessage::MessageId)) {
         atexit(Message::cleanup);
         sFactory[ResponseMessage::MessageId] = new MessageCreator<ResponseMessage>();
-        sFactory[FinishMessage::MessageId] = new MessageCreator<FinishMessage>();
-        sFactory[QuitMessage::MessageId] = new MessageCreator<QuitMessage>();
+        sFactory[FinishMessage::MessageId]   = new MessageCreator<FinishMessage>();
+        sFactory[QuitMessage::MessageId]     = new MessageCreator<QuitMessage>();
     }
 
     MessageCreatorBase *base = sFactory.value(id);

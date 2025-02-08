@@ -3,24 +3,42 @@
 
 #include <assert.h>
 
-template<typename T>
+template <typename T>
 class EmbeddedLinkedList
 {
 public:
     EmbeddedLinkedList()
-        : mFront(T()), mBack(T()), mCount(0)
-    {}
+        : mFront(T())
+        , mBack(T())
+        , mCount(0)
+    {
+    }
 
     ~EmbeddedLinkedList()
     {
         deleteAll();
     }
 
-    bool isEmpty() const { return !mCount; }
-    bool empty() const { return !mCount; }
+    bool isEmpty() const
+    {
+        return !mCount;
+    }
 
-    size_t size() const { return mCount; }
-    size_t count() const { return mCount; }
+    bool empty() const
+    {
+        return !mCount;
+    }
+
+    size_t size() const
+    {
+        return mCount;
+    }
+
+    size_t count() const
+    {
+        return mCount;
+    }
+
     void insert(const T &t, T after = T()) // no reference here
     {
         assert(t);
@@ -33,35 +51,78 @@ public:
                 mBack = t;
             }
             after->next = t;
-            t->prev = after;
+            t->prev     = after;
         } else if (!mFront) {
             t->next = t->prev = T();
             mFront = mBack = t;
         } else {
-            t->next = mFront;
-            t->prev = T();
+            t->next      = mFront;
+            t->prev      = T();
             mFront->prev = t;
-            mFront = t;
+            mFront       = t;
         }
         ++mCount;
     }
-    void append(const T &t) { insert(t, mBack); }
-    void prepend(const T &t) { insert(t); }
 
-    void push_back(const T &t) { insert(t, mBack); }
-    void push_front(const T &t) { insert(t); }
+    void append(const T &t)
+    {
+        insert(t, mBack);
+    }
 
-    T &first() { return mFront; }
-    const T &first() const { return mFront; }
+    void prepend(const T &t)
+    {
+        insert(t);
+    }
 
-    T &front() { return mFront; }
-    const T &front() const { return mFront; }
+    void push_back(const T &t)
+    {
+        insert(t, mBack);
+    }
 
-    T &last() { return mBack; }
-    const T &last() const { return mBack; }
+    void push_front(const T &t)
+    {
+        insert(t);
+    }
 
-    T &back() { return mBack; }
-    const T &back() const { return mBack; }
+    T &first()
+    {
+        return mFront;
+    }
+
+    const T &first() const
+    {
+        return mFront;
+    }
+
+    T &front()
+    {
+        return mFront;
+    }
+
+    const T &front() const
+    {
+        return mFront;
+    }
+
+    T &last()
+    {
+        return mBack;
+    }
+
+    const T &last() const
+    {
+        return mBack;
+    }
+
+    T &back()
+    {
+        return mBack;
+    }
+
+    const T &back() const
+    {
+        return mBack;
+    }
 
     void remove(const T &tt)
     {
@@ -82,7 +143,7 @@ public:
             assert(mCount > 1);
             assert(t->prev);
             t->prev->next = T();
-            mBack = t->prev;
+            mBack         = t->prev;
         } else {
             assert(mCount > 1);
             assert(t->prev);
@@ -101,7 +162,8 @@ public:
     {
         iterator_base(const T &tt)
             : t(tt)
-        {}
+        {
+        }
 
         Type operator++()
         {
@@ -109,6 +171,7 @@ public:
             t = t->next;
             return Type(t);
         }
+
         Type operator++(int)
         {
             Type ret(t);
@@ -132,11 +195,26 @@ public:
             return ret;
         }
 
-        T operator*() const { return t; }
-        T operator->() const { return t; }
+        T operator*() const
+        {
+            return t;
+        }
 
-        bool operator==(const Type &other) { return t == other.t; }
-        bool operator!=(const Type &other) { return t != other.t; }
+        T operator->() const
+        {
+            return t;
+        }
+
+        bool operator==(const Type &other)
+        {
+            return t == other.t;
+        }
+
+        bool operator!=(const Type &other)
+        {
+            return t != other.t;
+        }
+
     private:
         T t;
     };
@@ -145,13 +223,16 @@ public:
     {
         iterator(const T &val)
             : iterator_base<iterator>(val)
-        {}
+        {
+        }
     };
+
     struct const_iterator : public iterator_base<const_iterator>
     {
         const_iterator(const T &val)
             : iterator_base<const_iterator>(val)
-        {}
+        {
+        }
     };
 
     void erase(const iterator &it)
@@ -160,11 +241,25 @@ public:
         remove(it.t);
     }
 
-    const_iterator begin() const { return const_iterator(mFront); }
-    const_iterator end() const { return const_iterator(T()); }
+    const_iterator begin() const
+    {
+        return const_iterator(mFront);
+    }
 
-    iterator begin() { return iterator(mFront); }
-    iterator end() { return iterator(T()); }
+    const_iterator end() const
+    {
+        return const_iterator(T());
+    }
+
+    iterator begin()
+    {
+        return iterator(mFront);
+    }
+
+    iterator end()
+    {
+        return iterator(T());
+    }
 
     T removeFirst()
     {
@@ -193,12 +288,25 @@ public:
         return copy;
     }
 
-    T takeFront() { return removeFirst(); }
-    T takeBack() { return removeLast(); }
+    T takeFront()
+    {
+        return removeFirst();
+    }
 
-    T takeFirst() { return removeFirst(); }
-    T takeLast() { return removeLast(); }
+    T takeBack()
+    {
+        return removeLast();
+    }
 
+    T takeFirst()
+    {
+        return removeFirst();
+    }
+
+    T takeLast()
+    {
+        return removeLast();
+    }
 
     bool contains(const T &t) const
     {
@@ -213,14 +321,15 @@ public:
     {
         T t = mFront;
         while (t) {
-            T next = t->next;
+            T next  = t->next;
             t->next = t->prev = T();
             deleteNode(t);
             t = next;
         }
         mFront = mBack = nullptr;
-        mCount = 0;
+        mCount         = 0;
     }
+
     void moveToEnd(const T &t)
     {
         assert(mCount);
@@ -240,9 +349,13 @@ public:
             prepend(copy);
         }
     }
+
 private:
     template <typename NodeType>
-    void deleteNode(std::shared_ptr<NodeType> &) {}
+    void deleteNode(std::shared_ptr<NodeType> &)
+    {
+    }
+
     template <typename NodeType>
     void deleteNode(NodeType pointer)
     {

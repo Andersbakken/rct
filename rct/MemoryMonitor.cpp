@@ -2,30 +2,34 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 #ifdef OS_Darwin
-# include <mach/mach_init.h>
-# include <mach/mach_port.h>
-# include <mach/mach_traps.h>
-# include <mach/mach_vm.h>
-# include <mutex>
+#include <mach/mach_init.h>
+#include <mach/mach_port.h>
+#include <mach/mach_traps.h>
+#include <mach/mach_vm.h>
+#include <mutex>
 #endif
 
 #include "String.h"
-
 
 MemoryMonitor::MemoryMonitor()
 {
 }
 
-#if defined(OS_Linux) || defined(__CYGWIN__ )
-typedef bool (*LineVisitor)(char*, void*);
-static void visitLine(FILE* stream, LineVisitor visitor, void* userData)
+#if defined(OS_Linux) || defined(__CYGWIN__)
+typedef bool (*LineVisitor)(char *, void *);
+
+static void visitLine(FILE *stream, LineVisitor visitor, void *userData)
 {
-    enum { BufferSize = 4096 };
+    enum
+    {
+        BufferSize = 4096
+    };
+
     char buffer[BufferSize];
-    char* r;
+    char *r;
 
     while (!feof(stream)) {
         r = fgets(buffer, BufferSize, stream);
@@ -36,9 +40,9 @@ static void visitLine(FILE* stream, LineVisitor visitor, void* userData)
     }
 }
 
-static bool lineVisitor(char* line, void* userData)
+static bool lineVisitor(char *line, void *userData)
 {
-    uint64_t* total = static_cast<uint64_t*>(userData);
+    uint64_t *total = static_cast<uint64_t *>(userData);
     if (!strncmp("Private_Clean:", line, 14))
         *total += (atoll(line + 14) * 1024);
     else if (!strncmp("Private_Dirty:", line, 14))
@@ -49,7 +53,7 @@ static bool lineVisitor(char* line, void* userData)
 static inline uint64_t usageLinux()
 {
     const pid_t pid = getpid();
-    FILE* file = fopen(("/proc/" + String::number(pid) + "/smaps").c_str(), "r");
+    FILE *file      = fopen(("/proc/" + String::number(pid) + "/smaps").c_str(), "r");
     if (!file)
         return 0;
 
@@ -80,11 +84,14 @@ static inline uint64_t usageDragonFly()
 }
 #elif defined(OS_Darwin)
 static std::once_flag mutexOnce;
-static std::mutex* mutex = 0;
+static std::mutex *mutex = 0;
 
 static inline uint64_t usageOSX()
 {
-    std::call_once(mutexOnce, []() { ::mutex = new std::mutex; });
+    std::call_once(mutexOnce, []()
+                   {
+                       ::mutex = new std::mutex;
+                   });
 
     assert(::mutex);
     std::lock_guard<std::mutex> lock(*::mutex);
@@ -98,13 +105,12 @@ static inline uint64_t usageOSX()
     mach_msg_type_number_t info_count;
     memory_object_name_t object;
 
-    const vm_map_t task = mach_task_self();
+    const vm_map_t task             = mach_task_self();
     const vm_region_flavor_t flavor = VM_REGION_BASIC_INFO_64;
 
     do {
         info_count = VM_REGION_BASIC_INFO_COUNT_64;
-        kr = mach_vm_region(task, &address, &vmsize, flavor,
-                            (vm_region_info_t)&info, &info_count, &object);
+        kr         = mach_vm_region(task, &address, &vmsize, flavor, (vm_region_info_t)&info, &info_count, &object);
         if (kr == KERN_SUCCESS) {
             if (info.inheritance == VM_INHERIT_COPY) {
                 total += vmsize;
@@ -132,7 +138,7 @@ uint64_t MemoryMonitor::usage()
 #elif defined(OS_Darwin)
     return usageOSX();
 #elif defined(_WIN32)
-    return 0;  // let's hope no one notices...
+    return 0; // let's hope no one notices...
 #else
 #error "MemoryMonitor does not support this system"
 #endif

@@ -7,19 +7,19 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/wait.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #ifdef OS_Darwin
 #include <crt_externs.h>
 #endif
-#include <map>
-#include <unordered_map>
 #include <algorithm>
+#include <map>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -27,9 +27,9 @@
 #include "Log.h"
 #include "SocketClient.h"
 #include "Thread.h"
-#include "rct/rct-config.h"
 #include "rct/Path.h"
 #include "rct/Rct.h"
+#include "rct/rct-config.h"
 
 static std::once_flag sProcessHandler;
 
@@ -49,7 +49,12 @@ protected:
 
 private:
     ProcessThread();
-    enum Signal { Child, Stop };
+
+    enum Signal
+    {
+        Child,
+        Stop
+    };
 
     /**
      * Wakeup the listening thread, either because we are to be destructed from
@@ -68,10 +73,12 @@ private:
     static int sPending;
     static std::unordered_map<pid_t, int> sPendingPids;
 
-    struct ProcessData {
+    struct ProcessData
+    {
         Process *proc;
         std::weak_ptr<EventLoop> loop;
     };
+
     static std::map<pid_t, ProcessData> sProcesses;
 };
 
@@ -121,7 +128,10 @@ void ProcessThread::addPid(pid_t pid, Process *process, bool async)
             // fire the signal now
             const int ret = it->second;
             if (async) {
-                EventLoop::eventLoop()->callLater([process, ret]() { process->finish(ret); });
+                EventLoop::eventLoop()->callLater([process, ret]()
+                                                  {
+                                                      process->finish(ret);
+                                                  });
             } else {
                 process->finish(ret);
             }
@@ -167,48 +177,51 @@ void ProcessThread::run()
                     // find out which process we're waking up on
                     eintrwrap(p, ::waitpid(0, &ret, WNOHANG));
                     switch (p) {
-                    case 0:
-                        // we're done
-                        done = true;
-                        break;
-                    case -1:
-                        done = true;
-                        if (errno == ECHILD)
+                        case 0:
+                            // we're done
+                            done = true;
                             break;
-                        // this is bad
-                        error() << "waitpid error" << errno;
-                        break;
-                    default:
-                        // printf("successfully waited for pid (got %d)\n", p);
-                        // child process with pid=p just exited.
-                        if (WIFEXITED(ret)) {
-                            ret = WEXITSTATUS(ret);
-                        } else {
-                            ret = Process::ReturnCrashed;
-                        }
-                        // find the process object to this child process
-                        auto proc = sProcesses.find(p);
-                        if (proc != sProcesses.end()) {
-                            Process *process = proc->second.proc;
-                            if (process != nullptr) {
-                                std::shared_ptr<EventLoop> loop = proc->second.loop.lock();
-                                sProcesses.erase(proc++);
-                                lock.unlock();
-                                if (loop) {
-                                    loop->callLater([process, ret]() { process->finish(ret); });
-                                } else {
-                                    process->finish(ret);
-                                }
-                                lock.lock();
-                            }
-                        } else {
-                            if (sPending) {
-                                assert(sPendingPids.find(p) == sPendingPids.end());
-                                sPendingPids[p] = ret;
+                        case -1:
+                            done = true;
+                            if (errno == ECHILD)
+                                break;
+                            // this is bad
+                            error() << "waitpid error" << errno;
+                            break;
+                        default:
+                            // printf("successfully waited for pid (got %d)\n", p);
+                            // child process with pid=p just exited.
+                            if (WIFEXITED(ret)) {
+                                ret = WEXITSTATUS(ret);
                             } else {
-                                error() << "couldn't find process for pid" << p;
+                                ret = Process::ReturnCrashed;
                             }
-                        }
+                            // find the process object to this child process
+                            auto proc = sProcesses.find(p);
+                            if (proc != sProcesses.end()) {
+                                Process *process = proc->second.proc;
+                                if (process != nullptr) {
+                                    std::shared_ptr<EventLoop> loop = proc->second.loop.lock();
+                                    sProcesses.erase(proc++);
+                                    lock.unlock();
+                                    if (loop) {
+                                        loop->callLater([process, ret]()
+                                                        {
+                                                            process->finish(ret);
+                                                        });
+                                    } else {
+                                        process->finish(ret);
+                                    }
+                                    lock.lock();
+                                }
+                            } else {
+                                if (sPending) {
+                                    assert(sPendingPids.find(p) == sPendingPids.end());
+                                    sPendingPids[p] = ret;
+                                } else {
+                                    error() << "couldn't find process for pid" << p;
+                                }
+                            }
                     }
                 } while (!done);
             }
@@ -254,9 +267,13 @@ void ProcessThread::installProcessHandler()
 }
 
 Process::Process()
-    : mMode(Sync), mReturn(ReturnUnset),
-      mStdInIndex(0), mStdOutIndex(0), mStdErrIndex(0),
-      mWantStdInClosed(false), mPid(-1)
+    : mMode(Sync)
+    , mReturn(ReturnUnset)
+    , mStdInIndex(0)
+    , mStdOutIndex(0)
+    , mStdErrIndex(0)
+    , mWantStdInClosed(false)
+    , mPid(-1)
 {
     std::call_once(sProcessHandler, ProcessThread::installProcessHandler);
 
@@ -309,10 +326,10 @@ void Process::clear()
     if (mSync[1] != -1)
         eintrwrap(w, ::close(mSync[1]));
 
-    mReturn = ReturnUnset;
+    mReturn     = ReturnUnset;
     mStdInIndex = mStdOutIndex = mStdErrIndex = 0;
-    mWantStdInClosed = false;
-    mMode = Sync;
+    mWantStdInClosed                          = false;
+    mMode                                     = Sync;
 }
 
 void Process::setCwd(const Path &cwd)
@@ -341,8 +358,7 @@ Path Process::findCommand(const String &command, const char *path)
     return Path();
 }
 
-Process::ExecState Process::startInternal(const Path &command, const List<String> &a,
-                                          const List<String> &environment, int timeout,
+Process::ExecState Process::startInternal(const Path &command, const List<String> &a, const List<String> &environment, int timeout,
                                           unsigned int execFlags)
 {
     mErrorString.clear();
@@ -381,11 +397,11 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
     if (mMode == Sync)
         eintrwrap(err, ::pipe(mSync));
 
-    const char **args = new const char *[arguments.size() + 2];
+    const char **args          = new const char *[arguments.size() + 2];
     // const char* args[arguments.size() + 2];
     args[arguments.size() + 1] = nullptr;
-    args[0] = cmd.c_str();
-    int pos = 1;
+    args[0]                    = cmd.c_str();
+    int pos                    = 1;
     for (List<String>::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {
         args[pos] = it->c_str();
         // printf("arg: '%s'\n", args[pos]);
@@ -394,7 +410,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
 
     const bool hasEnviron = !environment.empty();
 
-    const char **env = new const char *[environment.size() + 1];
+    const char **env        = new const char *[environment.size() + 1];
     env[environment.size()] = nullptr;
 
     if (hasEnviron) {
@@ -461,7 +477,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
             ret = ::execv(cmd.c_str(), const_cast<char *const *>(args));
         }
         // notify the parent process
-  error:
+error:
         const char c = 'c';
         eintrwrap(err, ::write(closePipe[1], &c, 1));
         eintrwrap(err, ::close(closePipe[1]));
@@ -498,7 +514,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 // bad
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Failed to read from closePipe during process start";
-                mPid = -1;
+                mPid         = -1;
                 ProcessThread::setPending(-1);
                 mReturn = ReturnCrashed;
                 return Error;
@@ -509,8 +525,8 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
                 // process start failed
                 eintrwrap(err, ::close(closePipe[0]));
                 mErrorString = "Process failed to start";
-                mReturn = ReturnCrashed;
-                mPid = -1;
+                mReturn      = ReturnCrashed;
+                mPid         = -1;
                 ProcessThread::setPending(-1);
                 return Error;
             }
@@ -521,17 +537,15 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
         // printf("fork, about to add fds: stdin=%d, stdout=%d, stderr=%d\n", mStdIn[1], mStdOut[0], mStdErr[0]);
         if (mMode == Async) {
             if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
-                loop->registerSocket(mStdOut[0], EventLoop::SocketRead,
-                                     std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
-                loop->registerSocket(mStdErr[0], EventLoop::SocketRead,
-                                     std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
+                loop->registerSocket(mStdOut[0], EventLoop::SocketRead, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
+                loop->registerSocket(mStdErr[0], EventLoop::SocketRead, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
             }
         } else {
             // select and stuff
             timeval started, now, timeoutForSelect;
             if (timeout > 0) {
                 Rct::gettime(&started);
-                timeoutForSelect.tv_sec = timeout / 1000;
+                timeoutForSelect.tv_sec  = timeout / 1000;
                 timeoutForSelect.tv_usec = (timeout % 1000) * 1000;
             }
             if (!(execFlags & NoCloseStdIn)) {
@@ -610,7 +624,7 @@ Process::ExecState Process::startInternal(const Path &command, const List<String
 
                     // (timeout - lasted) is guaranteed to be > 0 because of
                     // the check above.
-                    timeoutForSelect.tv_sec = (timeout - lasted) / 1000;
+                    timeoutForSelect.tv_sec  = (timeout - lasted) / 1000;
                     timeoutForSelect.tv_usec = ((timeout - lasted) % 1000) * 1000;
                 }
             }
@@ -631,8 +645,8 @@ Process::ExecState Process::exec(const Path &command, const List<String> &argume
     return startInternal(command, arguments, List<String>(), timeout, flags);
 }
 
-Process::ExecState Process::exec(
-    const Path &command, const List<String> &a, const List<String> &environment, int timeout, unsigned int flags)
+Process::ExecState Process::exec(const Path &command, const List<String> &a, const List<String> &environment, int timeout,
+                                 unsigned int flags)
 {
     mMode = Sync;
     return startInternal(command, a, environment, timeout, flags);
@@ -656,7 +670,7 @@ void Process::closeStdIn(CloseStdInFlag flag)
             loop->unregisterSocket(mStdIn[1]);
         int err;
         eintrwrap(err, ::close(mStdIn[1]));
-        mStdIn[1] = -1;
+        mStdIn[1]        = -1;
         mWantStdInClosed = false;
     } else {
         mWantStdInClosed = true;
@@ -722,7 +736,7 @@ void Process::finish(int returnCode)
     pid_t oldPid;
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        oldPid = mPid;
+        oldPid  = mPid;
         mReturn = returnCode;
 
         mStdInBuffer.clear();
@@ -774,7 +788,9 @@ void Process::handleInput(int fd)
         }
         if (w == -1) {
             EventLoop::eventLoop()->registerSocket(
-                fd, EventLoop::SocketWrite, std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
+                fd,
+                EventLoop::SocketWrite,
+                std::bind(&Process::processCallback, this, std::placeholders::_1, std::placeholders::_2));
             break;
         } else if (w == want) {
             mStdInBuffer.pop_front();
@@ -782,7 +798,7 @@ void Process::handleInput(int fd)
                 EventLoop::eventLoop()->unregisterSocket(mStdIn[1]);
                 int err;
                 eintrwrap(err, ::close(mStdIn[1]));
-                mStdIn[1] = -1;
+                mStdIn[1]        = -1;
                 mWantStdInClosed = false;
             }
             mStdInIndex = 0;
@@ -794,7 +810,12 @@ void Process::handleInput(int fd)
 void Process::handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process *)>> &signal)
 {
     // printf("Process::handleOutput %d\n", fd);
-    enum { BufSize = 1024, MaxSize = (1024 * 1024 * 256) };
+    enum
+    {
+        BufSize = 1024,
+        MaxSize = (1024 * 1024 * 256)
+    };
+
     char buf[BufSize];
     int total = 0;
     for (;;) {

@@ -1,14 +1,14 @@
 #ifndef SOCKETSERVER_H
 #define SOCKETSERVER_H
 
-#include <stdint.h>
+#include <functional>
+#include <memory>
+#include <queue>
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>
 #include <rct/SocketClient.h>
 #include <stddef.h>
-#include <memory>
-#include <queue>
-#include <functional>
+#include <stdint.h>
 
 #include "rct/SignalSlot.h"
 
@@ -21,7 +21,11 @@ public:
     SocketServer();
     ~SocketServer();
 
-    enum Mode { IPv4, IPv6 };
+    enum Mode
+    {
+        IPv4,
+        IPv6
+    };
 
     void close();
     bool listen(uint16_t port, Mode mode = IPv4); // TCP
@@ -29,18 +33,34 @@ public:
     bool listen(const Path &path); // UNIX
     bool listenFD(int fd);         // UNIX
 #endif
-    bool isListening() const { return fd != -1; }
+    bool isListening() const
+    {
+        return fd != -1;
+    }
 
     std::shared_ptr<SocketClient> nextConnection();
 
-    Signal<std::function<void(SocketServer*)>>& newConnection() { return serverNewConnection; }
+    Signal<std::function<void(SocketServer *)>> &newConnection()
+    {
+        return serverNewConnection;
+    }
 
-    enum Error { InitializeError, BindError, ListenError, AcceptError };
-    Signal<std::function<void(SocketServer*, Error)>>& error() { return serverError; }
+    enum Error
+    {
+        InitializeError,
+        BindError,
+        ListenError,
+        AcceptError
+    };
+
+    Signal<std::function<void(SocketServer *, Error)>> &error()
+    {
+        return serverError;
+    }
 
 private:
     void socketCallback(int fd, int mode);
-    bool commonBindAndListen(sockaddr* addr, size_t size);
+    bool commonBindAndListen(sockaddr *addr, size_t size);
     bool commonListen();
 
 private:
@@ -48,8 +68,8 @@ private:
     bool isIPv6;
     Path path;
     std::queue<int> accepted;
-    Signal<std::function<void(SocketServer*)>> serverNewConnection;
-    Signal<std::function<void(SocketServer*, Error)>> serverError;
+    Signal<std::function<void(SocketServer *)>> serverNewConnection;
+    Signal<std::function<void(SocketServer *, Error)>> serverError;
 };
 
 #endif

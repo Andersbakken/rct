@@ -1,24 +1,30 @@
 #ifndef MESSAGE_H
 #define MESSAGE_H
 
-#include <rct/Serializer.h>
-#include <mutex>
 #include <memory>
+#include <mutex>
+#include <rct/Serializer.h>
 
 class Message
 {
 public:
-    enum {
-        ResponseId = 1,
+    enum
+    {
+        ResponseId      = 1,
         FinishMessageId = 2,
-        QuitMessageId = 3
+        QuitMessageId   = 3
     };
 
     Message(uint8_t id, uint8_t f = None)
-        : mMessageId(id), mFlags(f), mVersion(0)
-    {}
+        : mMessageId(id)
+        , mFlags(f)
+        , mVersion(0)
+    {
+    }
+
     virtual ~Message()
-    {}
+    {
+    }
 
     void clearCache()
     {
@@ -27,32 +33,50 @@ public:
         mVersion = 0;
     }
 
-    enum Flag {
-        None = 0x0,
-        Compressed = 0x1,
+    enum Flag
+    {
+        None         = 0x0,
+        Compressed   = 0x1,
         MessageCache = 0x2
     };
 
-    uint8_t flags() const { return mFlags; }
-    uint8_t messageId() const { return mMessageId; }
+    uint8_t flags() const
+    {
+        return mFlags;
+    }
 
-    virtual void encode(Serializer &/* serializer */) const = 0;
-    virtual void decode(Deserializer &/* deserializer */) = 0;
+    uint8_t messageId() const
+    {
+        return mMessageId;
+    }
 
-    virtual size_t encodedSize() const { return String::npos; }
-    enum MessageErrorType {
+    virtual void encode(Serializer & /* serializer */) const = 0;
+    virtual void decode(Deserializer & /* deserializer */)   = 0;
+
+    virtual size_t encodedSize() const
+    {
+        return String::npos;
+    }
+
+    enum MessageErrorType
+    {
         Message_Success,
         Message_VersionError,
         Message_IdError,
         Message_LengthError,
         Message_CreateError
     };
-    struct MessageError {
+
+    struct MessageError
+    {
         MessageErrorType type = Message_Success;
         String text;
     };
+
     static std::shared_ptr<Message> create(int version, const char *data, int size, MessageError *error = nullptr);
-    template<typename T> static void registerMessage()
+
+    template <typename T>
+    static void registerMessage()
     {
         const uint8_t id = T::MessageId;
         std::lock_guard<std::mutex> lock(sMutex);
@@ -61,12 +85,17 @@ public:
             base = new MessageCreator<T>();
         }
     }
+
     static void cleanup();
+
 private:
     class MessageCreatorBase
     {
     public:
-        virtual ~MessageCreatorBase() {}
+        virtual ~MessageCreatorBase()
+        {
+        }
+
         virtual Message *create(const char *data, int size) = 0;
     };
 
@@ -84,7 +113,12 @@ private:
     };
 
     void prepare(int version, String &header, String &value) const;
-    enum { HeaderExtra = Serializer::sizeOf<int>() + Serializer::sizeOf<uint8_t>() + Serializer::sizeOf<uint8_t>() };
+
+    enum
+    {
+        HeaderExtra = Serializer::sizeOf<int>() + Serializer::sizeOf<uint8_t>() + Serializer::sizeOf<uint8_t>()
+    };
+
     inline void encodeHeader(Serializer &serializer, uint32_t size, int version) const
     {
         size += HeaderExtra;
@@ -101,7 +135,6 @@ private:
 
     static Map<uint8_t, MessageCreatorBase *> sFactory;
     static std::mutex sMutex;
-
 };
 
 #endif // MESSAGE_H

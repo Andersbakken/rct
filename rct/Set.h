@@ -1,8 +1,8 @@
 #ifndef Set_h
 #define Set_h
 
-#include <set>
 #include <memory>
+#include <set>
 
 #include <rct/List.h>
 
@@ -11,7 +11,10 @@ class Set : public std::set<T>
 {
 public:
     typedef std::set<T> Base;
-    Set() {}
+
+    Set()
+    {
+    }
 
     bool contains(const T &t) const
     {
@@ -19,6 +22,7 @@ public:
     }
 
     using Base::empty;
+
     bool isEmpty() const
     {
         return !Base::size();
@@ -33,9 +37,10 @@ public:
         }
         return false;
     }
+
     size_t remove(std::function<bool(const T &t)> match)
     {
-        size_t ret = 0;
+        size_t ret                 = 0;
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(*it)) {
@@ -52,7 +57,7 @@ public:
     {
         List<T> ret(size());
         typename Base::const_iterator it = Base::begin();
-        size_t i = 0;
+        size_t i                         = 0;
         while (it != Base::end()) {
             ret[i++] = *it;
             ++it;
@@ -80,7 +85,7 @@ public:
         size_t c = 0;
         if (empty()) {
             *this = other;
-            c = other.size();
+            c     = other.size();
         } else {
             typename Base::const_iterator it = other.begin();
             while (it != other.end()) {
@@ -94,9 +99,9 @@ public:
         return *this;
     }
 
-    bool intersects(const Set<T>& other) const
+    bool intersects(const Set<T> &other) const
     {
-        typename Base::const_iterator it = other.begin();
+        typename Base::const_iterator it        = other.begin();
         const typename Base::const_iterator end = other.end();
         while (it != end) {
             if (contains(*it))
@@ -106,10 +111,10 @@ public:
         return false;
     }
 
-    Set<T> intersected(const Set<T>& other) const
+    Set<T> intersected(const Set<T> &other) const
     {
         Set<T> ret;
-        typename Base::const_iterator it = other.begin();
+        typename Base::const_iterator it        = other.begin();
         const typename Base::const_iterator end = other.end();
         while (it != end) {
             if (contains(*it))
@@ -121,7 +126,7 @@ public:
 
     Set<T> &unite(const List<T> &other, size_t *count = nullptr)
     {
-        size_t c = 0;
+        size_t c                                   = 0;
         typename std::vector<T>::const_iterator it = other.begin();
         while (it != other.end()) {
             if (insert(*it))
@@ -169,6 +174,7 @@ public:
         insert(t);
         return *this;
     }
+
     Set<T> &operator<<(const List<T> &t)
     {
         return unite(t);
@@ -202,7 +208,7 @@ public:
     template <typename K>
     size_t compare(const Set<K> &other) const
     {
-        const size_t me = size();
+        const size_t me  = size();
         const size_t him = other.size();
         if (me < him) {
             return -1;
@@ -265,11 +271,10 @@ Set<T> List<T>::toSet() const
 {
     Set<T> ret;
     const size_t s = size();
-    for (size_t i=0; i<s; ++i) {
+    for (size_t i = 0; i < s; ++i) {
         ret.insert(std::vector<T>::at(i));
     }
     return ret;
 }
-
 
 #endif

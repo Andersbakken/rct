@@ -1,13 +1,15 @@
 #include "Thread.h"
 
+#include <functional>
 #include <rct/EventLoop.h>
 #include <rct/Log.h>
 #include <rct/rct-config.h>
 #include <sched.h>
-#include <functional>
 
 Thread::Thread()
-    : mAutoDelete(false), mRunning(false), mLoop(EventLoop::eventLoop())
+    : mAutoDelete(false)
+    , mRunning(false)
+    , mLoop(EventLoop::eventLoop())
 {
 }
 
@@ -17,9 +19,9 @@ Thread::~Thread()
         pthread_cancel(mThread);
 }
 
-void* Thread::localStart(void* arg)
+void *Thread::localStart(void *arg)
 {
-    Thread* t = static_cast<Thread*>(arg);
+    Thread *t = static_cast<Thread *>(arg);
     t->run();
     EventLoop::cleanupLocalEventLoop();
     if (t->isAutoDelete()) {
@@ -31,7 +33,7 @@ void* Thread::localStart(void* arg)
     return nullptr;
 }
 
-static inline void initAttr(pthread_attr_t** pattr, pthread_attr_t* attr)
+static inline void initAttr(pthread_attr_t **pattr, pthread_attr_t *attr)
 {
     if (!*pattr) {
         *pattr = attr;
@@ -42,7 +44,7 @@ static inline void initAttr(pthread_attr_t** pattr, pthread_attr_t* attr)
 bool Thread::start(Priority priority, size_t stackSize)
 {
     pthread_attr_t attr;
-    pthread_attr_t* pattr = nullptr;
+    pthread_attr_t *pattr = nullptr;
     if (priority == Idle) {
 #ifdef HAVE_SCHEDIDLE
         initAttr(&pattr, &attr);
@@ -78,7 +80,7 @@ bool Thread::join()
     if (!mRunning)
         return false;
     const bool ok = pthread_join(mThread, nullptr) == 0;
-    mRunning = false;
+    mRunning      = false;
     return ok;
 }
 

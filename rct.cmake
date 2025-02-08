@@ -129,6 +129,7 @@ list(APPEND RCT_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR} ${RCT_INCLUDE_DIR})
 
 set(RCT_SOURCES
   ${RCT_SOURCES}
+  ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c
   ${CMAKE_CURRENT_LIST_DIR}/rct/Buffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Config.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Connection.cpp
@@ -137,6 +138,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/EventLoop.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Log.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMappedFile.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMonitor.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Message.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/MessageQueue.cpp
@@ -153,8 +155,7 @@ set(RCT_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/rct/ThreadPool.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Timer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/rct/Value.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/rct/MemoryMappedFile.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/cJSON/cJSON.c)
+  ${CMAKE_CURRENT_LIST_DIR}/rct/demangle.cpp)
 
 if (HAVE_INOTIFY EQUAL 1)
   list(APPEND RCT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/rct/FileSystemWatcher_inotify.cpp)

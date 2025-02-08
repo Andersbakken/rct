@@ -14,8 +14,15 @@
 #include "rct/String.h"
 
 Connection::Connection(int version)
-    : mPendingRead(0), mPendingWrite(0), mTimeoutTimer(0), mCheckTimer(0), mFinishStatus(0),
-      mVersion(version), mSilent(false), mIsConnected(false), mWarned(false)
+    : mPendingRead(0)
+    , mPendingWrite(0)
+    , mTimeoutTimer(0)
+    , mCheckTimer(0)
+    , mFinishStatus(0)
+    , mVersion(version)
+    , mSilent(false)
+    , mIsConnected(false)
+    , mWarned(false)
 {
 }
 
@@ -45,13 +52,18 @@ void Connection::connect(const std::shared_ptr<SocketClient> &client)
 {
     assert(!mSocketClient);
     mSocketClient = client;
-    mIsConnected = true;
+    mIsConnected  = true;
     assert(client->isConnected());
     mSocketClient->disconnected().connect(std::bind(&Connection::onClientDisconnected, this, std::placeholders::_1));
     mSocketClient->readyRead().connect(std::bind(&Connection::onDataAvailable, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->bytesWritten().connect(std::bind(&Connection::onDataWritten, this, std::placeholders::_1, std::placeholders::_2));
     mSocketClient->error().connect(std::bind(&Connection::onSocketError, this, std::placeholders::_1, std::placeholders::_2));
-    mCheckTimer = EventLoop::eventLoop()->registerTimer([this](int) { checkData(); }, 0, Timer::SingleShot);
+    mCheckTimer = EventLoop::eventLoop()->registerTimer([this](int)
+                                                        {
+                                                            checkData();
+                                                        },
+                                                        0,
+                                                        Timer::SingleShot);
 }
 
 void Connection::checkData()
@@ -65,13 +77,17 @@ bool Connection::connectUnix(const Path &socketFile, int timeout)
 {
     assert(!mSocketClient);
     if (timeout > 0) {
-        mTimeoutTimer = EventLoop::eventLoop()->registerTimer([this](int) {
+        mTimeoutTimer = EventLoop::eventLoop()->registerTimer(
+            [this](int)
+            {
                 if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(shared_from_this());
                 }
                 mTimeoutTimer = 0;
-        }, timeout, Timer::SingleShot);
+            },
+            timeout,
+            Timer::SingleShot);
     }
     mSocketClient.reset(new SocketClient);
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
@@ -91,13 +107,17 @@ bool Connection::connectTcp(const String &host, uint16_t port, int timeout)
 {
     assert(!mSocketClient);
     if (timeout > 0) {
-        mTimeoutTimer = EventLoop::eventLoop()->registerTimer([this](int) {
+        mTimeoutTimer = EventLoop::eventLoop()->registerTimer(
+            [this](int)
+            {
                 if (!mIsConnected) {
                     mSocketClient.reset();
                     mDisconnected(shared_from_this());
                 }
                 mTimeoutTimer = 0;
-        }, timeout, Timer::SingleShot);
+            },
+            timeout,
+            Timer::SingleShot);
     }
     mSocketClient.reset(new SocketClient);
     mSocketClient->connected().connect(std::bind(&Connection::onClientConnected, this, std::placeholders::_1));
@@ -117,7 +137,7 @@ int Connection::pendingWrite() const
     return mPendingWrite;
 }
 
-void Connection::onDataAvailable(const std::shared_ptr<SocketClient> &client, Buffer&& buf)
+void Connection::onDataAvailable(const std::shared_ptr<SocketClient> &client, Buffer &&buf)
 {
     auto that = shared_from_this();
     while (true) {
@@ -130,10 +150,13 @@ void Connection::onDataAvailable(const std::shared_ptr<SocketClient> &client, Bu
         if (!mPendingRead) {
             if (available < static_cast<int>(sizeof(uint32_t)))
                 break;
-            union {
+
+            union
+            {
                 unsigned char b[sizeof(uint32_t)];
                 int pending;
             };
+
             const int read = mBuffers.read(b, 4);
             assert(read == 4);
             mPendingRead = pending;
@@ -167,7 +190,7 @@ void Connection::onDataAvailable(const std::shared_ptr<SocketClient> &client, Bu
     }
 }
 
-void Connection::onDataWritten(const std::shared_ptr<SocketClient>&, int bytes)
+void Connection::onDataWritten(const std::shared_ptr<SocketClient> &, int bytes)
 {
     assert(mPendingWrite >= bytes);
     mPendingWrite -= bytes;
@@ -181,8 +204,10 @@ class SocketClientBuffer : public Serializer::Buffer
 {
 public:
     SocketClientBuffer(const std::shared_ptr<SocketClient> &client)
-        : mClient(client), mWritten(0)
-    {}
+        : mClient(client)
+        , mWritten(0)
+    {
+    }
 
     virtual bool write(const void *data, int len) override
     {
@@ -197,6 +222,7 @@ public:
     {
         return mWritten;
     }
+
 private:
     std::shared_ptr<SocketClient> mClient;
     int mWritten;

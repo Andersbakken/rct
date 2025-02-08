@@ -14,9 +14,10 @@ FileSystemWatcher::FileSystemWatcher(const Options &options)
     : mOptions(options)
 {
     init();
-    mTimer.timeout().connect([this](Timer *) {
-            processChanges(Remove);
-        });
+    mTimer.timeout().connect([this](Timer *)
+                             {
+                                 processChanges(Remove);
+                             });
 }
 
 FileSystemWatcher::~FileSystemWatcher()
@@ -28,32 +29,30 @@ FileSystemWatcher::~FileSystemWatcher()
 void FileSystemWatcher::processChanges()
 {
     if (mOptions.removeDelay > 0) {
-        processChanges(Add|Modified);
+        processChanges(Add | Modified);
         {
             std::lock_guard<std::mutex> lock(mMutex);
             if (!mRemovedPaths.empty())
                 mTimer.restart(mOptions.removeDelay);
         }
     } else {
-        processChanges(Modified|Add|Remove);
+        processChanges(Modified | Add | Remove);
     }
 }
 
 void FileSystemWatcher::processChanges(unsigned int types)
 {
     assert(types);
-    struct {
+
+    struct
+    {
         const Type type;
-        Signal<std::function<void(const Path&)>> &signal;
+        Signal<std::function<void(const Path &)>> &signal;
         Set<Path> &paths;
-    } signals[] = {
-        { Add, mAdded, mAddedPaths },
-        { Remove, mRemoved, mRemovedPaths },
-        { Modified, mModified, mModifiedPaths }
-    };
+    } signals[] = { { Add, mAdded, mAddedPaths }, { Remove, mRemoved, mRemovedPaths }, { Modified, mModified, mModifiedPaths } };
 
     const unsigned int count = sizeof(signals) / sizeof(signals[0]);
-    for (unsigned i=0; i<count; ++i) {
+    for (unsigned i = 0; i < count; ++i) {
         if (types & signals[i].type) {
             Set<Path> p;
             {
@@ -67,4 +66,3 @@ void FileSystemWatcher::processChanges(unsigned int types)
         }
     }
 }
-

@@ -1,10 +1,10 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include <stdlib.h>
 #include <assert.h>
 #include <rct/LinkedList.h>
 #include <rct/String.h>
+#include <stdlib.h>
 #include <string.h>
 #include <utility>
 
@@ -12,44 +12,59 @@ class Buffer
 {
 public:
     Buffer()
-        : bufferData(nullptr), bufferSize(0), bufferReserved(0)
+        : bufferData(nullptr)
+        , bufferSize(0)
+        , bufferReserved(0)
     {
     }
-    Buffer(Buffer&& other)
+
+    Buffer(Buffer &&other)
     {
-        bufferData = other.bufferData;
-        bufferSize = other.bufferSize;
-        bufferReserved = other.bufferReserved;
-        other.bufferData = nullptr;
-        other.bufferSize = 0;
+        bufferData           = other.bufferData;
+        bufferSize           = other.bufferSize;
+        bufferReserved       = other.bufferReserved;
+        other.bufferData     = nullptr;
+        other.bufferSize     = 0;
         other.bufferReserved = 0;
     }
+
     ~Buffer()
     {
         if (bufferData)
             free(bufferData);
     }
 
-    Buffer& operator=(Buffer&& other)
+    Buffer &operator=(Buffer &&other)
     {
-        bufferData = other.bufferData;
-        bufferSize = other.bufferSize;
-        bufferReserved = other.bufferReserved;
-        other.bufferData = nullptr;
-        other.bufferSize = 0;
+        bufferData           = other.bufferData;
+        bufferSize           = other.bufferSize;
+        bufferReserved       = other.bufferReserved;
+        other.bufferData     = nullptr;
+        other.bufferSize     = 0;
         other.bufferReserved = 0;
         return *this;
     }
 
-    bool isEmpty() const { return !bufferSize; }
-    bool empty() const { return !bufferSize; }
+    bool isEmpty() const
+    {
+        return !bufferSize;
+    }
+
+    bool empty() const
+    {
+        return !bufferSize;
+    }
 
     void clear()
     {
-        enum { ClearThreshold = 1024 * 512 };
+        enum
+        {
+            ClearThreshold = 1024 * 512
+        };
+
         if (bufferSize >= ClearThreshold) {
             free(bufferData);
-            bufferData = nullptr;
+            bufferData     = nullptr;
             bufferReserved = 0;
         }
         bufferSize = 0;
@@ -59,7 +74,7 @@ public:
     {
         if (sz <= bufferReserved)
             return;
-        bufferData = static_cast<unsigned char*>(realloc(bufferData, sz));
+        bufferData = static_cast<unsigned char *>(realloc(bufferData, sz));
         if (!bufferData)
             abort();
         bufferReserved = sz;
@@ -75,28 +90,46 @@ public:
             bufferSize = sz;
             return;
         }
-        bufferData = static_cast<unsigned char*>(realloc(bufferData, sz));
+        bufferData = static_cast<unsigned char *>(realloc(bufferData, sz));
         if (!bufferData)
             abort();
         bufferSize = bufferReserved = sz;
     }
 
-    size_t size() const { return bufferSize; }
-    size_t capacity() const { return bufferReserved; }
+    size_t size() const
+    {
+        return bufferSize;
+    }
 
-    unsigned char* data() { return bufferData; }
-    unsigned char* end() { return bufferData + bufferSize; }
-    const unsigned char* data() const { return bufferData; }
+    size_t capacity() const
+    {
+        return bufferReserved;
+    }
 
-    bool load(const String& filename);
+    unsigned char *data()
+    {
+        return bufferData;
+    }
+
+    unsigned char *end()
+    {
+        return bufferData + bufferSize;
+    }
+
+    const unsigned char *data() const
+    {
+        return bufferData;
+    }
+
+    bool load(const String &filename);
 
 private:
-    unsigned char* bufferData;
+    unsigned char *bufferData;
     size_t bufferSize, bufferReserved;
 
 private:
-    Buffer(const Buffer& other) = delete;
-    Buffer& operator=(const Buffer& other) = delete;
+    Buffer(const Buffer &other)            = delete;
+    Buffer &operator=(const Buffer &other) = delete;
 };
 
 class Buffers
@@ -104,11 +137,14 @@ class Buffers
 public:
     Buffers()
         : mBufferOffset(0)
-    {}
+    {
+    }
+
     void push(Buffer &&buf)
     {
         mBuffers.append(std::forward<Buffer>(buf));
     }
+
     size_t size() const
     {
         size_t ret = 0;
@@ -116,6 +152,7 @@ public:
             ret += buf.size();
         return ret - mBufferOffset;
     }
+
     size_t read(void *outPtr, size_t size)
     {
         if (!size)
@@ -124,7 +161,7 @@ public:
         unsigned char *out = static_cast<unsigned char *>(outPtr);
         size_t read = 0, remaining = size;
         while (!mBuffers.empty()) {
-            const auto &buf = mBuffers.front();
+            const auto &buf         = mBuffers.front();
             const size_t bufferSize = buf.size() - mBufferOffset;
 
             if (remaining <= bufferSize) {
@@ -147,8 +184,9 @@ public:
         }
         return read;
     }
+
 private:
-    Buffers(const Buffers &) = delete;
+    Buffers(const Buffers &)            = delete;
     Buffers &operator=(const Buffers &) = delete;
 
     LinkedList<Buffer> mBuffers;

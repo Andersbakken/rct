@@ -6,12 +6,13 @@
 class ReadLocker
 {
 public:
-    ReadLocker(ReadWriteLock* lock)
+    ReadLocker(ReadWriteLock *lock)
         : mLock(lock)
     {
         if (mLock && !mLock->lockForRead())
             mLock = nullptr;
     }
+
     ~ReadLocker()
     {
         if (mLock)
@@ -19,7 +20,7 @@ public:
     }
 
 private:
-    ReadWriteLock* mLock;
+    ReadWriteLock *mLock;
 };
 
 #endif

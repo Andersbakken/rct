@@ -1,30 +1,30 @@
 #include "ThreadPool.h"
 
-#include <assert.h>
 #include <algorithm>
+#include <assert.h>
 #include <vector>
-#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || defined(OS_DragonFly)
-#   include <sys/sysctl.h>
-#   include <sys/types.h>
-#elif defined (OS_Linux)
-#   include <unistd.h>
-#elif defined (OS_Darwin)
-#   include <sys/param.h>
-#   include <sys/sysctl.h>
-#elif defined (HAVE_PROCESSORINFORMATION)
-#   include <windows.h>
+#if defined(OS_FreeBSD) || defined(OS_NetBSD) || defined(OS_OpenBSD) || defined(OS_DragonFly)
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#elif defined(OS_Linux)
+#include <unistd.h>
+#elif defined(OS_Darwin)
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#elif defined(HAVE_PROCESSORINFORMATION)
+#include <windows.h>
 #endif
 
 #include "Thread.h"
 
 using std::shared_ptr;
 
-ThreadPool* ThreadPool::sInstance = nullptr;
+ThreadPool *ThreadPool::sInstance = nullptr;
 
 class ThreadPoolThread : public Thread
 {
 public:
-    ThreadPoolThread(ThreadPool* pool);
+    ThreadPoolThread(ThreadPool *pool);
     ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job);
 
     void stop();
@@ -34,18 +34,21 @@ protected:
 
 private:
     std::shared_ptr<ThreadPool::Job> mJob;
-    ThreadPool* mPool;
+    ThreadPool *mPool;
     bool mStopped;
 };
 
-ThreadPoolThread::ThreadPoolThread(ThreadPool* pool)
-    : mPool(pool), mStopped(false)
+ThreadPoolThread::ThreadPoolThread(ThreadPool *pool)
+    : mPool(pool)
+    , mStopped(false)
 {
     setAutoDelete(false);
 }
 
 ThreadPoolThread::ThreadPoolThread(const std::shared_ptr<ThreadPool::Job> &job)
-    : mJob(job), mPool(nullptr), mStopped(false)
+    : mJob(job)
+    , mPool(nullptr)
+    , mStopped(false)
 {
     setAutoDelete(false);
 }
@@ -98,8 +101,10 @@ void ThreadPoolThread::run()
 }
 
 ThreadPool::ThreadPool(int concurrentJobs, Thread::Priority priority, size_t threadStackSize)
-    : mConcurrentJobs(concurrentJobs), mBusyThreads(0),
-      mPriority(priority), mThreadStackSize(threadStackSize)
+    : mConcurrentJobs(concurrentJobs)
+    , mBusyThreads(0)
+    , mPriority(priority)
+    , mThreadStackSize(threadStackSize)
 {
     if (!sInstance)
         sInstance = this;
@@ -116,9 +121,8 @@ ThreadPool::~ThreadPool()
     std::unique_lock<std::mutex> lock(mMutex);
     mJobs.clear();
     lock.unlock();
-    for (List<ThreadPoolThread*>::iterator it = mThreads.begin();
-         it != mThreads.end(); ++it) {
-        ThreadPoolThread* t = *it;
+    for (List<ThreadPoolThread *>::iterator it = mThreads.begin(); it != mThreads.end(); ++it) {
+        ThreadPoolThread *t = *it;
         t->stop();
         t->join();
         delete t;
@@ -139,7 +143,7 @@ void ThreadPool::setConcurrentJobs(int concurrentJobs)
     } else {
         std::unique_lock<std::mutex> lock(mMutex);
         for (int i = mConcurrentJobs; i > concurrentJobs; --i) {
-            ThreadPoolThread* t = mThreads.back();
+            ThreadPoolThread *t = mThreads.back();
             mThreads.pop_back();
             lock.unlock();
             t->stop();
@@ -186,12 +190,14 @@ class FunctionJob : public ThreadPool::Job
 public:
     FunctionJob(const std::function<void()> func)
         : mFunction(func)
-    {}
+    {
+    }
 
     virtual void run() override
     {
         mFunction();
     }
+
 private:
     std::function<void()> mFunction;
 };
@@ -213,8 +219,7 @@ bool ThreadPool::remove(const std::shared_ptr<Job> &job)
 
 int ThreadPool::idealThreadCount()
 {
-#if defined (OS_FreeBSD) || defined (OS_NetBSD) || defined (OS_OpenBSD) || \
-        defined(OS_DragonFly)
+#if defined(OS_FreeBSD) || defined(OS_NetBSD) || defined(OS_OpenBSD) || defined(OS_DragonFly)
     int cores;
     size_t len = sizeof(cores);
     int mib[2];
@@ -223,9 +228,9 @@ int ThreadPool::idealThreadCount()
     if (sysctl(mib, 2, &cores, &len, NULL, 0) != 0)
         return 1;
     return cores;
-#elif defined (OS_Linux)
+#elif defined(OS_Linux)
     return (int)sysconf(_SC_NPROCESSORS_ONLN);
-#elif defined (OS_Darwin)
+#elif defined(OS_Darwin)
     int cores;
     size_t len = sizeof(cores);
     int mib[2] = { CTL_HW, HW_AVAILCPU };
@@ -256,7 +261,7 @@ int ThreadPool::idealThreadCount()
         if (procs[i].Relationship == RelationProcessorCore) {
             ++numCores;
             if (procs[i].ProcessorCore.Flags == 1) {
-                int mask = 0x1;
+                int mask          = 0x1;
                 const size_t bits = 8 * sizeof(ULONG_PTR);
                 for (size_t j = 0; j < bits; ++j, mask <<= 1) {
                     if (procs[i].ProcessorMask & mask)
@@ -269,12 +274,12 @@ int ThreadPool::idealThreadCount()
     delete[] procs;
     return std::max(numThreads, numCores);
 #else
-#   warning idealthreadcount not implemented on this platform
+#warning idealthreadcount not implemented on this platform
     return 1;
 #endif
 }
 
-ThreadPool* ThreadPool::instance()
+ThreadPool *ThreadPool::instance()
 {
     if (!sInstance)
         sInstance = new ThreadPool(idealThreadCount());
@@ -282,7 +287,8 @@ ThreadPool* ThreadPool::instance()
 }
 
 ThreadPool::Job::Job()
-    : mPriority(0), mState(NotStarted)
+    : mPriority(0)
+    , mState(NotStarted)
 {
 }
 

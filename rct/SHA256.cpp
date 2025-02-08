@@ -2,18 +2,18 @@
 
 #include <stdio.h>
 #ifdef OS_Darwin
-#  include "CommonCrypto/CommonDigest.h"
-#  define SHA256_Update        CC_SHA256_Update
-#  define SHA256_Init          CC_SHA256_Init
-#  define SHA256_Final         CC_SHA256_Final
-#  define SHA256_CTX           CC_SHA256_CTX
-#  define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
+#include "CommonCrypto/CommonDigest.h"
+#define SHA256_Update CC_SHA256_Update
+#define SHA256_Init CC_SHA256_Init
+#define SHA256_Final CC_SHA256_Final
+#define SHA256_CTX CC_SHA256_CTX
+#define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
 #else
-#  include <openssl/sha.h>
+#include <openssl/sha.h>
 #endif
 
-#include "rct/Path.h"
 #include "rct/MemoryMappedFile.h"
+#include "rct/Path.h"
 
 class SHA256Private
 {
@@ -58,14 +58,14 @@ void SHA256::reset()
     SHA256_Init(&priv->ctx);
 }
 
-static const char* const hexLookup = "0123456789abcdef";
+static const char *const hexLookup = "0123456789abcdef";
 
-static inline String hashToHex(SHA256Private* priv)
+static inline String hashToHex(SHA256Private *priv)
 {
     String out(SHA256_DIGEST_LENGTH * 2, '\0');
-    const unsigned char* get = priv->hash;
-    char* put = out.data();
-    const char* const end = out.data() + out.size();
+    const unsigned char *get = priv->hash;
+    char *put                = out.data();
+    const char *const end    = out.data() + out.size();
     for (; put != end; ++get) {
         *(put++) = hexLookup[(*get >> 4) & 0xf];
         *(put++) = hexLookup[*get & 0xf];
@@ -82,15 +82,15 @@ String SHA256::hash(MapType type) const
     }
     if (type == Hex)
         return hashToHex(priv);
-    return String(reinterpret_cast<char*>(priv->hash), SHA256_DIGEST_LENGTH);
+    return String(reinterpret_cast<char *>(priv->hash), SHA256_DIGEST_LENGTH);
 }
 
-String SHA256::hash(const String& data, MapType type)
+String SHA256::hash(const String &data, MapType type)
 {
     return SHA256::hash(data.c_str(), data.size(), type);
 }
 
-String SHA256::hash(const char* data, unsigned int size, MapType type)
+String SHA256::hash(const char *data, unsigned int size, MapType type)
 {
     SHA256Private priv;
     SHA256_Init(&priv.ctx);
@@ -98,12 +98,13 @@ String SHA256::hash(const char* data, unsigned int size, MapType type)
     SHA256_Final(priv.hash, &priv.ctx);
     if (type == Hex)
         return hashToHex(&priv);
-    return String(reinterpret_cast<char*>(priv.hash), SHA256_DIGEST_LENGTH);
+    return String(reinterpret_cast<char *>(priv.hash), SHA256_DIGEST_LENGTH);
 }
 
-String SHA256::hashFile(const Path& file, MapType type)
+String SHA256::hashFile(const Path &file, MapType type)
 {
     MemoryMappedFile mmf(file);
-    if(!mmf.isOpen()) return String();
-    return hash(static_cast<const char*>(mmf.filePtr()), mmf.size(), type);
+    if (!mmf.isOpen())
+        return String();
+    return hash(static_cast<const char *>(mmf.filePtr()), mmf.size(), type);
 }

@@ -2,17 +2,17 @@
 #define Path_h
 
 #include <fcntl.h>
+#include <functional>
 #include <stdio.h>
 #include <stdlib.h>
-#include <functional>
 #include <string>
 #ifndef _WIN32
-#  include <sys/mman.h>
+#include <sys/mman.h>
 #endif
+#include <rct/String.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <rct/String.h>
 
 /**
  * A path is a special string that represents a file system path. This may be a
@@ -27,10 +27,13 @@ class Path : public String
 public:
     Path(const Path &other)
         : String(other)
-    {}
+    {
+    }
+
     Path(Path &&other)
         : String(std::move(other))
-    {}
+    {
+    }
 
     Path(const String &other)
         : String(other)
@@ -39,6 +42,7 @@ public:
         replaceBackslashes();
 #endif
     }
+
     Path(String &&other)
         : String(std::move(other))
     {
@@ -54,6 +58,7 @@ public:
         replaceBackslashes();
 #endif
     }
+
     Path(const char *path, size_t len)
         : String(path, len)
     {
@@ -61,12 +66,17 @@ public:
         replaceBackslashes();
 #endif
     }
-    Path() {}
+
+    Path()
+    {
+    }
+
     Path &operator=(const Path &other)
     {
         String::operator=(other);
         return *this;
     }
+
     Path &operator=(Path &&other)
     {
         String::operator=(std::move(other));
@@ -91,7 +101,6 @@ public:
         return *this;
     }
 
-
     Path &operator=(const char *path)
     {
         String::operator=(path);
@@ -106,22 +115,43 @@ public:
         return Path::resolved(*this).String::operator==(Path::resolved(other));
     }
 
-    enum Type {
-        Invalid = 0x00,
-        File = 0x01,
-        Directory = 0x02,
+    enum Type
+    {
+        Invalid         = 0x00,
+        File            = 0x01,
+        Directory       = 0x02,
         CharacterDevice = 0x04,
-        BlockDevice = 0x08,
-        NamedPipe = 0x10,
-        Socket = 0x40,
-        All = File|Directory|CharacterDevice|BlockDevice|NamedPipe|Socket
+        BlockDevice     = 0x08,
+        NamedPipe       = 0x10,
+        Socket          = 0x40,
+        All             = File | Directory | CharacterDevice | BlockDevice | NamedPipe | Socket
     };
 
-    inline bool exists() const { return type() != Invalid; }
-    inline bool isDir() const { return type() == Directory; }
-    inline bool isFile() const { return type() == File; }
-    inline bool isExecutable() const { return !access(c_str(), X_OK); }
-    inline bool isSocket() const { return type() == Socket; }
+    inline bool exists() const
+    {
+        return type() != Invalid;
+    }
+
+    inline bool isDir() const
+    {
+        return type() == Directory;
+    }
+
+    inline bool isFile() const
+    {
+        return type() == File;
+    }
+
+    inline bool isExecutable() const
+    {
+        return !access(c_str(), X_OK);
+    }
+
+    inline bool isSocket() const
+    {
+        return type() == Socket;
+    }
+
     bool isAbsolute() const;
     static const char *typeName(Type type);
     bool isSymLink() const;
@@ -129,8 +159,14 @@ public:
     String name() const;
     const char *fileName(size_t *len = nullptr) const;
     const char *extension(size_t *len = nullptr) const;
-    static bool exists(const Path &path) { return path.exists(); }
-    enum MkDirMode {
+
+    static bool exists(const Path &path)
+    {
+        return path.exists();
+    }
+
+    enum MkDirMode
+    {
         Single,
         Recursive
     };
@@ -141,17 +177,15 @@ public:
      * @param permissions ignored on windows.
      * @return true if the directory was created or already existed
      */
-    static bool mkdir(const Path &path,
-                      MkDirMode mode = Single,
-                      mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH);
-    bool mkdir(MkDirMode mode = Single,
-               mode_t permissions = S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH) const;
+    static bool mkdir(const Path &path, MkDirMode mode = Single,
+                      mode_t permissions = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    bool mkdir(MkDirMode mode = Single, mode_t permissions = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) const;
     static bool rm(const Path &file);
 
     /**
      * Recursively delete a directory
      */
-    static bool rmdir(const Path& dir);
+    static bool rmdir(const Path &dir);
     static Path home();
 
     inline Path ensureTrailingSlash() const
@@ -161,11 +195,20 @@ public:
         return *this;
     }
 
-    bool rm() const { return Path::rm(*this); }
+    bool rm() const
+    {
+        return Path::rm(*this);
+    }
+
     bool mksubdir(const String &subdir) const;
     bool isSource() const;
     static bool isSource(const char *extension);
-    bool isSystem() const { return Path::isSystem(c_str()); }
+
+    bool isSystem() const
+    {
+        return Path::isSystem(c_str());
+    }
+
     static bool isSystem(const char *path);
     bool isHeader() const;
     static bool isHeader(const char *extension);
@@ -175,12 +218,23 @@ public:
 
     Type type() const;
     mode_t mode() const;
-    enum ResolveMode {
+
+    enum ResolveMode
+    {
         RealPath,
         MakeAbsolute
     };
-    static bool realPathEnabled() { return sRealPathEnabled; }
-    static void setRealPathEnabled(bool enabled) { sRealPathEnabled = enabled; }
+
+    static bool realPathEnabled()
+    {
+        return sRealPathEnabled;
+    }
+
+    static void setRealPathEnabled(bool enabled)
+    {
+        sRealPathEnabled = enabled;
+    }
+
     Path resolved(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *ok = nullptr) const;
     bool resolve(ResolveMode mode = RealPath, const Path &cwd = Path(), bool *changed = nullptr);
     size_t canonicalize(bool *changed = nullptr);
@@ -209,20 +263,24 @@ public:
         return false;
     }
 
-    enum WriteMode {
+    enum WriteMode
+    {
         Overwrite,
         Append
     };
-    bool write(const String& data, WriteMode mode = Overwrite) const;
-    static bool write(const Path& path, const String& data, WriteMode mode = Overwrite);
+
+    bool write(const String &data, WriteMode mode = Overwrite) const;
+    static bool write(const Path &path, const String &data, WriteMode mode = Overwrite);
 
     Path toTilde() const;
 
-    enum VisitResult {
+    enum VisitResult
+    {
         Abort,
         Continue,
         Recurse
     };
+
     void visit(const std::function<VisitResult(const Path &path)> &callback) const;
     List<Path> files(unsigned int filter = All, size_t max = String::npos, bool recurse = false) const;
 
@@ -237,17 +295,16 @@ public:
     void replaceBackslashes();
 };
 
-namespace std
-{
+namespace std {
 template <>
 struct hash<Path>
 {
-    size_t operator()(const Path& value) const
+    size_t operator()(const Path &value) const
     {
         std::hash<std::string> h;
         return h(value);
     }
 };
-}
+} // namespace std
 
 #endif

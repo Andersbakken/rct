@@ -1,12 +1,13 @@
 #ifndef StringTokenizer_h
 #define StringTokenizer_h
 
-#include <rct/String.h>
-#include <rct/List.h>
-#include <cctype>
 #include <algorithm>
+#include <cctype>
+#include <rct/List.h>
+#include <rct/String.h>
 
-enum MatchResultType {
+enum MatchResultType
+{
     WORD_BOUNDARY_MATCH,
     PREFIX_MATCH_CASE_INSENSITIVE,
     PREFIX_MATCH_CASE_SENSITIVE,
@@ -17,12 +18,14 @@ enum MatchResultType {
 struct CompletionCandidate
 {
     CompletionCandidate(String &&n = String())
-        : name(std::move(n)), priority(-1)
+        : name(std::move(n))
+        , priority(-1)
     {
     }
 
     CompletionCandidate(const String &n)
-        : name(n), priority(-1)
+        : name(n)
+        , priority(-1)
     {
     }
 
@@ -38,7 +41,8 @@ struct CompletionCandidate
 struct MatchResult
 {
     MatchResult(MatchResultType t, CompletionCandidate *c)
-        : type(t), candidate(c)
+        : type(t)
+        , candidate(c)
     {
     }
 
@@ -50,7 +54,8 @@ class PrefixResult : public MatchResult
 {
 public:
     PrefixResult(MatchResultType t, CompletionCandidate *c, size_t l)
-        : MatchResult(t, c), prefix_length(l)
+        : MatchResult(t, c)
+        , prefix_length(l)
     {
     }
 
@@ -61,7 +66,8 @@ class WordBoundaryMatchResult : public MatchResult
 {
 public:
     WordBoundaryMatchResult(CompletionCandidate *c, List<size_t> &i)
-        : MatchResult(WORD_BOUNDARY_MATCH, c), indices(i)
+        : MatchResult(WORD_BOUNDARY_MATCH, c)
+        , indices(i)
     {
     }
 
@@ -82,9 +88,9 @@ struct MatchResultComparator
             for (auto ita = wba->indices.constBegin(), itb = wbb->indices.constBegin();
                  ita != wba->indices.constEnd() && itb != wbb->indices.constEnd();
                  ++ita, ++itb) {
-                   if (*ita != *itb)
-                      return *ita > *itb;
-                 }
+                if (*ita != *itb)
+                    return *ita > *itb;
+            }
         }
 
         if (a->candidate->priority != b->candidate->priority)
@@ -106,10 +112,7 @@ public:
 
 private:
     StringTokenizer() = delete;
-    static inline bool is_boundary_match(const List<String> &parts,
-                                         const String &query,
-                                         List<size_t> &indices,
-                                         size_t query_start,
+    static inline bool is_boundary_match(const List<String> &parts, const String &query, List<size_t> &indices, size_t query_start,
                                          size_t current_index);
 };
 
@@ -185,15 +188,17 @@ std::unique_ptr<MatchResult> StringTokenizer::find_match(CompletionCandidate *ca
     if (query.length() > c.length())
         return nullptr;
 
-    String c_lower = c.toLower();
+    String c_lower     = c.toLower();
     String query_lower = query.toLower();
 
     bool are_equal = c.length() == query.length();
     if (equal(query.begin(), query.end(), c.begin()))
-        return std::unique_ptr<MatchResult>(new PrefixResult(are_equal ? EXACT_MATCH_CASE_SENSITIVE : PREFIX_MATCH_CASE_SENSITIVE, candidate, query.length()));
+        return std::unique_ptr<MatchResult>(
+            new PrefixResult(are_equal ? EXACT_MATCH_CASE_SENSITIVE : PREFIX_MATCH_CASE_SENSITIVE, candidate, query.length()));
 
     if (equal(query_lower.begin(), query_lower.end(), c_lower.begin()))
-        return std::unique_ptr<MatchResult>(new PrefixResult(are_equal ? EXACT_MATCH_CASE_INSENSITIVE : PREFIX_MATCH_CASE_INSENSITIVE, candidate, query.length()));
+        return std::unique_ptr<MatchResult>(
+            new PrefixResult(are_equal ? EXACT_MATCH_CASE_INSENSITIVE : PREFIX_MATCH_CASE_INSENSITIVE, candidate, query.length()));
 
     List<String> words = StringTokenizer::break_parts_of_word(c);
     List<size_t> indices;
@@ -219,10 +224,7 @@ bool StringTokenizer::is_boundary_match(const List<String> &parts, const String 
     return is_boundary_match(parts, stripped, indices, 0, 0);
 }
 
-bool StringTokenizer::is_boundary_match(const List<String> &parts,
-                                        const String &query,
-                                        List<size_t> &indices,
-                                        size_t query_start,
+bool StringTokenizer::is_boundary_match(const List<String> &parts, const String &query, List<size_t> &indices, size_t query_start,
                                         size_t current_index)
 {
     if (query_start == query.length())
@@ -230,12 +232,12 @@ bool StringTokenizer::is_boundary_match(const List<String> &parts,
     else if (current_index == parts.size())
         return false;
 
-    String to_find = query.mid(query_start, query.length() - query_start);
+    String to_find        = query.mid(query_start, query.length() - query_start);
     size_t longest_prefix = common_prefix(parts[current_index], to_find);
 
     for (int i = longest_prefix; i >= 0; i--) {
         indices[current_index] = i;
-        bool r = is_boundary_match(parts, query, indices, query_start + i, current_index + 1);
+        bool r                 = is_boundary_match(parts, query, indices, query_start + i, current_index + 1);
         if (r)
             return r;
     }

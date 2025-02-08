@@ -1,22 +1,22 @@
 #ifndef Rct_h
 #define Rct_h
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <functional>
 #include <getopt.h>
-#include <stdio.h>
 #include <rct/List.h>
 #include <rct/Path.h>
 #include <rct/String.h>
-#include <assert.h>
-#include <fcntl.h>
+#include <regex>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <regex>
-#include <functional>
 #include <vector>
 
 #include "rct/List.h"
@@ -27,17 +27,20 @@ struct timeval;
 
 extern char **environ;
 
-namespace Rct
-{
+namespace Rct {
 
 constexpr bool is64Bit = sizeof(void *) == 8;
 
-template <typename T, size_t N> constexpr size_t countof(T (&)[N])
+template <typename T, size_t N>
+constexpr size_t countof(T (&)[N])
 {
     return N;
 }
 
-enum { Max_USec = 1000000 };
+enum
+{
+    Max_USec = 1000000
+};
 
 inline size_t indexIn(const String &string, const std::regex &rx)
 {
@@ -62,6 +65,7 @@ inline bool contains(const String &str, const std::regex &rx, std::cmatch *match
 String shortOptions(const option *longOptions);
 int readLine(FILE *f, char *buf = nullptr, int max = -1);
 String readAll(FILE *f, int max = -1);
+
 inline int fileSize(FILE *f)
 {
     assert(f);
@@ -71,12 +75,15 @@ inline int fileSize(FILE *f)
     fseek(f, pos, SEEK_SET);
     return ret;
 }
-template <typename Container, typename Value> inline bool addTo(Container &container, const Value &value)
+
+template <typename Container, typename Value>
+inline bool addTo(Container &container, const Value &value)
 {
     const int oldSize = container.size();
     container += value;
     return container.size() != oldSize;
 }
+
 bool readFile(const Path &path, String &data, mode_t *perm = nullptr);
 bool readFile(FILE *f, String &data, mode_t *perm = nullptr);
 bool writeFile(const Path &path, const String &data, int perm = -1);
@@ -100,7 +107,8 @@ uint64_t currentTimeMs();
 String currentTimeString();
 String hostName();
 
-enum AnsiColor {
+enum AnsiColor
+{
     AnsiColor_Default,
     AnsiColor_Black,
     AnsiColor_Red,
@@ -120,8 +128,16 @@ enum AnsiColor {
     AnsiColor_BrightCyan,
     AnsiColor_BrightWhite
 };
+
 String colorize(const String &string, AnsiColor color, size_t from = 0, size_t len = -1);
-enum LookupMode { Auto, IPv4, IPv6 };
+
+enum LookupMode
+{
+    Auto,
+    IPv4,
+    IPv6
+};
+
 String addrLookup(const String &addr, LookupMode mode = Auto, bool *ok = nullptr);
 String nameLookup(const String &name, LookupMode mode = IPv4, bool *ok = nullptr);
 bool isIP(const String &addr, LookupMode mode = Auto);
@@ -131,7 +147,8 @@ inline void jsonEscape(const String &str, std::function<void(const char *, size_
     output("\"", 1);
     bool hasEscaped = false;
     size_t i;
-    auto put = [&output, &hasEscaped, &i, &str](const char *escaped) {
+    auto put = [&output, &hasEscaped, &i, &str](const char *escaped)
+    {
         if (!hasEscaped) {
             hasEscaped = true;
             if (i)
@@ -144,37 +161,37 @@ inline void jsonEscape(const String &str, std::function<void(const char *, size_
     const size_t length = str.size();
     for (i = 0; i < length; ++i) {
         switch (const char ch = stringData[i]) {
-        case 8:
-            put("\\b");
-            break; // backspace
-        case 12:
-            put("\\f");
-            break; // Form feed
-        case '\n':
-            put("\\n");
-            break; // newline
-        case '\t':
-            put("\\t");
-            break; // tab
-        case '\r':
-            put("\\r");
-            break; // carriage return
-        case '"':
-            put("\\\"");
-            break; // quote
-        case '\\':
-            put("\\\\");
-            break; // backslash
-        default:
-            if (ch < 0x20 || ch == 127) { // escape non printable characters
-                char buffer[7];
-                snprintf(buffer, 7, "\\u%04x", ch);
-                put(buffer);
+            case 8:
+                put("\\b");
+                break; // backspace
+            case 12:
+                put("\\f");
+                break; // Form feed
+            case '\n':
+                put("\\n");
+                break; // newline
+            case '\t':
+                put("\\t");
+                break; // tab
+            case '\r':
+                put("\\r");
+                break; // carriage return
+            case '"':
+                put("\\\"");
+                break; // quote
+            case '\\':
+                put("\\\\");
+                break; // backslash
+            default:
+                if (ch < 0x20 || ch == 127) { // escape non printable characters
+                    char buffer[7];
+                    snprintf(buffer, 7, "\\u%04x", ch);
+                    put(buffer);
+                    break;
+                } else if (hasEscaped) {
+                    output(&ch, 1);
+                }
                 break;
-            } else if (hasEscaped) {
-                output(&ch, 1);
-            }
-            break;
         }
     }
 
@@ -187,8 +204,7 @@ inline String jsonEscape(const String &string)
 {
     String ret;
     jsonEscape(string,
-               std::bind(
-                   static_cast<void (String::*)(const char *, size_t)>(&String::append), &ret, std::placeholders::_1, std::placeholders::_2));
+               std::bind(static_cast<void (String::*)(const char *, size_t)>(&String::append), &ret, std::placeholders::_1, std::placeholders::_2));
     return ret;
 }
 
@@ -277,7 +293,7 @@ static inline bool wildCmp(const char *wild, const char *string, String::CaseSen
             wild++;
             string++;
         } else {
-            wild = mp;
+            wild   = mp;
             string = cp++;
         }
     }
@@ -289,11 +305,11 @@ static inline bool wildCmp(const char *wild, const char *string, String::CaseSen
 }
 
 String strerror(int error = errno);
-}
+} // namespace Rct
 
-#define eintrwrap(VAR, BLOCK)                   \
-    do {                                        \
-        VAR = BLOCK;                            \
+#define eintrwrap(VAR, BLOCK) \
+    do {                      \
+        VAR = BLOCK;          \
     } while (VAR == -1 && errno == EINTR)
 
 #endif

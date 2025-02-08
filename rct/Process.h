@@ -1,15 +1,15 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <signal.h>
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <mutex>
 #include <rct/List.h>
 #include <rct/Path.h>
 #include <rct/SignalSlot.h>
 #include <rct/String.h>
-#include <deque>
-#include <mutex>
-#include <condition_variable>
-#include <functional>
+#include <signal.h>
 
 #include "rct/List.h"
 #include "rct/SignalSlot.h"
@@ -48,14 +48,18 @@ public:
      * Processing stdout/stderr from the child process is performed through an
      * EventLoop, so there needs to be a running event loop for it to work.
      */
-    bool start(const Path &command,
-               const List<String> &arguments = List<String>(),
-               const List<String> &f_environ = List<String>());
+    bool start(const Path &command, const List<String> &arguments = List<String>(), const List<String> &f_environ = List<String>());
 
-    enum ExecState { Error, Done, TimedOut };
+    enum ExecState
+    {
+        Error,
+        Done,
+        TimedOut
+    };
 
-    enum ExecFlag {
-        None = 0x0,
+    enum ExecFlag
+    {
+        None         = 0x0,
         NoCloseStdIn = 0x1
     };
 
@@ -64,8 +68,7 @@ public:
      *
      * @param flags see ExecFlag. Ignored on windows.
      */
-    ExecState exec(const Path &command, const List<String> &arguments = List<String>(),
-                   int timeout_ms = 0, unsigned int flags = 0);
+    ExecState exec(const Path &command, const List<String> &arguments = List<String>(), int timeout_ms = 0, unsigned int flags = 0);
 
     /**
      * Execute a child process synchronously, specifying an environment.
@@ -77,8 +80,7 @@ public:
      *                On windows, these strings must be encoded in utf8.
      * @see Process::environment()
      */
-    ExecState exec(const Path &command, const List<String> &arguments,
-                   const List<String> &f_environ, int timeout_ms = 0,
+    ExecState exec(const Path &command, const List<String> &arguments, const List<String> &f_environ, int timeout_ms = 0,
                    unsigned int flags = 0);
 
     /**
@@ -95,8 +97,8 @@ public:
 
     enum CloseStdInFlag
     {
-        CloseNormal,  ///< close stdin once all data has been read
-        CloseForce    ///< force to close stdin, even if data is pending
+        CloseNormal, ///< close stdin once all data has been read
+        CloseForce   ///< force to close stdin, even if data is pending
     };
 
     /**
@@ -122,7 +124,13 @@ public:
 
     bool isFinished() const;
 
-    enum { ReturnCrashed = -1, ReturnUnset = -2, ReturnKilled = -3 };
+    enum
+    {
+        ReturnCrashed = -1,
+        ReturnUnset   = -2,
+        ReturnKilled  = -3
+    };
+
     int returnCode() const;
 
     /**
@@ -136,9 +144,20 @@ public:
     void kill(int signal = SIGTERM);
 
 public:
-    Signal<std::function<void(Process*)>> &readyReadStdOut() { return mReadyReadStdOut; }
-    Signal<std::function<void(Process*)>> &readyReadStdErr() { return mReadyReadStdErr; }
-    Signal<std::function<void(Process *, pid_t)>> &finished() { return mFinished; }
+    Signal<std::function<void(Process *)>> &readyReadStdOut()
+    {
+        return mReadyReadStdOut;
+    }
+
+    Signal<std::function<void(Process *)>> &readyReadStdErr()
+    {
+        return mReadyReadStdErr;
+    }
+
+    Signal<std::function<void(Process *, pid_t)>> &finished()
+    {
+        return mFinished;
+    }
 
     /**
      * Get this process' environment. This can be used as a starting point to
@@ -173,28 +192,30 @@ private:
     /**
      * Start a process asynchronously.
      */
-    ExecState startInternal(const Path &command, const List<String> &arguments,
-                            const List<String> &f_environ, int timeout = 0,
+    ExecState startInternal(const Path &command, const List<String> &arguments, const List<String> &f_environ, int timeout = 0,
                             unsigned int flags = 0);
 
-private:  // members for windows and non-windows implementations
-
+private: // members for windows and non-windows implementations
     /// Will be notified when child sends something over its stdout
-    Signal<std::function<void(Process*)>> mReadyReadStdOut;
+    Signal<std::function<void(Process *)>> mReadyReadStdOut;
 
     /// Will be notified when child sends something over its stderr
-    Signal<std::function<void(Process*)>> mReadyReadStdErr;
+    Signal<std::function<void(Process *)>> mReadyReadStdErr;
 
     /// Will be notified when the child process finishes.
     Signal<std::function<void(Process *, pid_t)>> mFinished;
 
-    enum { Sync, Async } mMode;
+    enum
+    {
+        Sync,
+        Async
+    } mMode;
 
     std::deque<String> mStdInBuffer;
 
-    String mStdOutBuffer;  ///< Collects data from child's stdout. @see readAllStdOut()
+    String mStdOutBuffer; ///< Collects data from child's stdout. @see readAllStdOut()
 
-    String mStdErrBuffer;  ///< Collects data from child's stderr. @see readAllStdErr()
+    String mStdErrBuffer; ///< Collects data from child's stderr. @see readAllStdErr()
 
     mutable std::mutex mMutex;
 
@@ -206,19 +227,25 @@ private:  // members for windows and non-windows implementations
     String mErrorString;
 
 #ifdef _WIN32
-private:  // members only required for the windows implementation
 
+private: // members only required for the windows implementation
     /**
      * Closes the handle if it is != INVALID_HANDLE_VALUE and sets the handle to INVALID_HANDLE_VALUE.
      */
     static void closeHandleIfValid(HANDLE &hdl);
 
-    enum PipeToReadFrom {STDOUT, STDERR};
+    enum PipeToReadFrom
+    {
+        STDOUT,
+        STDERR
+    };
+
     void readFromPipe(PipeToReadFrom pipe);
 
     void waitForProcessToFinish();
 
     void manageTimeout(int timeout_ms);
+
 private:
     enum
     {
@@ -232,15 +259,24 @@ private:
     HANDLE mStdIn[NUM_HANDLES];
     HANDLE mStdOut[NUM_HANDLES];
     HANDLE mStdErr[NUM_HANDLES];
-    PROCESS_INFORMATION mProcess;  ///< don't forget to close handles!
+    PROCESS_INFORMATION mProcess; ///< don't forget to close handles!
 
     std::thread mthStdout, mthStderr, mthManageTimeout;
-    enum {NO_TIMEOUT, FINISHED_ON_ITS_OWN, KILLED, NOT_FINISHED} mProcessTimeoutStatus;
+
+    enum
+    {
+        NO_TIMEOUT,
+        FINISHED_ON_ITS_OWN,
+        KILLED,
+        NOT_FINISHED
+    } mProcessTimeoutStatus;
+
     std::condition_variable mProcessFinished_cond;
 
     std::mutex mStdinMutex;
 #else  // _WIN32
-private:  // member functions not required for the windows implementation
+
+private: // member functions not required for the windows implementation
     void finish(int returnCode);
     void processCallback(int fd, int mode);
 
@@ -248,21 +284,20 @@ private:  // member functions not required for the windows implementation
     void closeStdErr();
 
     void handleInput(int fd);
-    void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process*)>> &signal);
+    void handleOutput(int fd, String &buffer, int &index, Signal<std::function<void(Process *)>> &signal);
 
-private:  // members not required for the windows implementation
-
-    int mStdIn[2];   ///< Pipe used by the child as stdin
-    int mStdOut[2];  ///< Pipe used by the child as stdout
-    int mStdErr[2];  ///< Pipe used by the child as stderr
-    int mSync[2];    ///< used to quit waiting for the child in sync mode
+private:            // members not required for the windows implementation
+    int mStdIn[2];  ///< Pipe used by the child as stdin
+    int mStdOut[2]; ///< Pipe used by the child as stdout
+    int mStdErr[2]; ///< Pipe used by the child as stderr
+    int mSync[2];   ///< used to quit waiting for the child in sync mode
 
     int mStdInIndex, mStdOutIndex, mStdErrIndex;
     bool mWantStdInClosed;
-    pid_t mPid;   ///< Child process' pid
+    pid_t mPid; ///< Child process' pid
 
     friend class ProcessThread;
-#endif  // _WIN32
+#endif // _WIN32
 };
 
 #endif

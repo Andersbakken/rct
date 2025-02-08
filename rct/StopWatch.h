@@ -9,12 +9,15 @@
 class StopWatch
 {
 public:
-    enum Precision {
+    enum Precision
+    {
         Millisecond,
         Microsecond
     };
+
     StopWatch(Precision prec = Millisecond)
-        : mPrecision(prec), mStart(current(prec))
+        : mPrecision(prec)
+        , mStart(current(prec))
     {
     }
 
@@ -48,10 +51,15 @@ public:
     {
         const long int cur = current(mPrecision);
         const long int ret = cur - mStart;
-        mStart = cur;
+        mStart             = cur;
         return ret;
     }
-    Precision precision() const { return mPrecision; }
+
+    Precision precision() const
+    {
+        return mPrecision;
+    }
+
 private:
     const Precision mPrecision;
     unsigned long long mStart;

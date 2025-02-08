@@ -9,29 +9,29 @@
 
 namespace Rct {
 
-void* loadPlugin(const Path& fileName)
+void *loadPlugin(const Path &fileName)
 {
     if (!fileName.isFile())
         return nullptr;
     return dlopen(fileName.c_str(), RTLD_LAZY);
 }
 
-void unloadPlugin(void* handle)
+void unloadPlugin(void *handle)
 {
     if (handle)
         dlclose(handle);
 }
 
-void* resolveSymbol(void* handle, const char* symbol)
+void *resolveSymbol(void *handle, const char *symbol)
 {
     return dlsym(handle, symbol);
 }
 
-char* pluginError()
+char *pluginError()
 {
     return dlerror();
 }
 
-} // namespace RctPlugin
+} // namespace Rct
 
 #endif

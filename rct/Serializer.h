@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <utility>
 #include <string>
+#include <utility>
 
 #include <rct/Hash.h>
 #include <rct/List.h>
@@ -24,25 +24,35 @@ public:
     class Buffer
     {
     public:
-        virtual ~Buffer() {}
+        virtual ~Buffer()
+        {
+        }
+
         virtual bool write(const void *data, int len) = 0;
-        virtual int pos() const = 0;
+        virtual int pos() const                       = 0;
     };
 
     Serializer(std::unique_ptr<Buffer> &&buffer)
-        : mError(false), mBuffer(std::move(buffer))
-    {}
+        : mError(false)
+        , mBuffer(std::move(buffer))
+    {
+    }
 
     Serializer(std::string &out)
-        : mError(false), mBuffer(new StringBuffer(out))
-    {}
+        : mError(false)
+        , mBuffer(new StringBuffer(out))
+    {
+    }
 
     Serializer(String &out)
-        : mError(false), mBuffer(new StringBuffer(out))
-    {}
+        : mError(false)
+        , mBuffer(new StringBuffer(out))
+    {
+    }
 
     Serializer(FILE *f)
-        : mError(false), mBuffer(new FileBuffer(f))
+        : mError(false)
+        , mBuffer(new FileBuffer(f))
     {
         assert(f);
     }
@@ -69,7 +79,10 @@ public:
         return mBuffer->pos();
     }
 
-    bool hasError() const { return mError; }
+    bool hasError() const
+    {
+        return mError;
+    }
 #ifdef RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
     template <typename T>
     bool encodeType()
@@ -77,31 +90,55 @@ public:
         const unsigned char len = sizeof(T);
         return write(&len, 1);
     }
-    template <typename T> static constexpr size_t sizeOf(T = T()) { return sizeof(T) + 1; }
+
+    template <typename T>
+    static constexpr size_t sizeOf(T = T())
+    {
+        return sizeof(T) + 1;
+    }
 #else
-    template <typename T> static constexpr size_t sizeOf(T = T()) { return sizeof(T); }
-    template <typename T> bool encodeType() { return true; }
+    template <typename T>
+    static constexpr size_t sizeOf(T = T())
+    {
+        return sizeof(T);
+    }
+
+    template <typename T>
+    bool encodeType()
+    {
+        return true;
+    }
 #endif
+
 private:
     class StringBuffer : public Buffer
     {
     public:
         StringBuffer(std::string &out)
             : mString(&out)
-        {}
+        {
+        }
+
         StringBuffer(String &out)
             : mString(&out.ref())
-        {}
+        {
+        }
 
         virtual bool write(const void *data, int len) override
         {
-            mString->append(static_cast<const char*>(data), len);
+            mString->append(static_cast<const char *>(data), len);
             return true;
         }
-        virtual int pos() const override { return mString->size(); }
+
+        virtual int pos() const override
+        {
+            return mString->size();
+        }
+
     private:
         std::string *mString;
     };
+
     class FileBuffer : public Buffer
     {
     public:
@@ -122,6 +159,7 @@ private:
         {
             return static_cast<int>(ftell(mFile));
         }
+
     private:
         FILE *mFile;
     };
@@ -134,16 +172,29 @@ class Deserializer
 {
 public:
     Deserializer(const char *data, int len, const char *key = "")
-        : mData(data), mLength(len), mPos(0), mFile(nullptr), mKey(key)
-    {}
+        : mData(data)
+        , mLength(len)
+        , mPos(0)
+        , mFile(nullptr)
+        , mKey(key)
+    {
+    }
 
     Deserializer(const String &string, const char *key = "")
-        : mString(string), mData(mString.c_str()), mLength(mString.size()),
-          mPos(0), mFile(nullptr), mKey(key)
-    {}
+        : mString(string)
+        , mData(mString.c_str())
+        , mLength(mString.size())
+        , mPos(0)
+        , mFile(nullptr)
+        , mKey(key)
+    {
+    }
 
     Deserializer(FILE *file, const char *key = "")
-        : mData(nullptr), mLength(0), mFile(file), mKey(key)
+        : mData(nullptr)
+        , mLength(0)
+        , mFile(file)
+        , mKey(key)
     {
         assert(file);
     }
@@ -174,8 +225,8 @@ public:
         if (len) {
             if (mData) {
                 if (mPos + len > mLength) {
-                    error() << "About to die" << mPos << len << mLength << '\n' << Rct::backtrace();
-
+                    error() << "About to die" << mPos << len << mLength << '\n'
+                            << Rct::backtrace();
                 }
                 assert(mPos + len <= mLength);
                 memcpy(target, mData + mPos, len);
@@ -189,10 +240,20 @@ public:
         return 0;
     }
 
-    bool atEnd() const { return mPos == mLength; }
+    bool atEnd() const
+    {
+        return mPos == mLength;
+    }
 
-    int pos() const { return mFile ? ftell(mFile) : mPos; }
-    int length() const { return mFile ? Rct::fileSize(mFile) : mLength; }
+    int pos() const
+    {
+        return mFile ? ftell(mFile) : mPos;
+    }
+
+    int length() const
+    {
+        return mFile ? Rct::fileSize(mFile) : mLength;
+    }
 #ifdef RCT_SERIALIZER_VERIFY_PRIMITIVE_SIZE
     template <typename T>
     bool decodeType()
@@ -207,8 +268,13 @@ public:
         return true;
     }
 #else
-    template <typename T> bool decodeType() { return true; }
+    template <typename T>
+    bool decodeType()
+    {
+        return true;
+    }
 #endif
+
 private:
     String mString;
     const char *mData;
@@ -237,36 +303,40 @@ struct FixedSize
 {
     static constexpr size_t value = 0;
 };
-#define DECLARE_NATIVE_TYPE(T)                                      \
-    template <> struct FixedSize<T>                                 \
-    {                                                               \
-        static constexpr size_t value = sizeof(T);                  \
-    };                                                              \
-    template <> inline Serializer &operator<<(Serializer &s,        \
-                                              const T &t)           \
-    {                                                               \
-        s.encodeType<T>();                                          \
-        union {                                                     \
-            T orig;                                                 \
-            unsigned char buf[sizeof(T)];                           \
-        };                                                          \
-        orig = t;                                                   \
-        s.write(buf, sizeof(buf));                                  \
-        return s;                                                   \
-    }                                                               \
-    template <> inline Deserializer &operator>>(Deserializer &s,    \
-                                                T &t)               \
-    {                                                               \
-        if (s.decodeType<T>()) {                                    \
-            union {                                                 \
-                T value;                                            \
-                unsigned char buf[sizeof(T)];                       \
-            };                                                      \
-            s.read(buf, sizeof(buf));                               \
-            t = value;                                              \
-        }                                                           \
-        return s;                                                   \
-    }                                                               \
+
+#define DECLARE_NATIVE_TYPE(T)                               \
+    template <>                                              \
+    struct FixedSize<T>                                      \
+    {                                                        \
+        static constexpr size_t value = sizeof(T);           \
+    };                                                       \
+    template <>                                              \
+    inline Serializer &operator<<(Serializer &s, const T &t) \
+    {                                                        \
+        s.encodeType<T>();                                   \
+        union                                                \
+        {                                                    \
+            T orig;                                          \
+            unsigned char buf[sizeof(T)];                    \
+        };                                                   \
+        orig = t;                                            \
+        s.write(buf, sizeof(buf));                           \
+        return s;                                            \
+    }                                                        \
+    template <>                                              \
+    inline Deserializer &operator>>(Deserializer &s, T &t)   \
+    {                                                        \
+        if (s.decodeType<T>()) {                             \
+            union                                            \
+            {                                                \
+                T value;                                     \
+                unsigned char buf[sizeof(T)];                \
+            };                                               \
+            s.read(buf, sizeof(buf));                        \
+            t = value;                                       \
+        }                                                    \
+        return s;                                            \
+    }                                                        \
     struct macrohack
 
 DECLARE_NATIVE_TYPE(bool);
@@ -316,7 +386,7 @@ Serializer &operator<<(Serializer &s, const List<T> &list)
 {
     const uint32_t size = list.size();
     s << size;
-    for (uint32_t i=0; i<size; ++i) {
+    for (uint32_t i = 0; i < size; ++i) {
         s << list.at(i);
     }
     return s;
@@ -393,7 +463,7 @@ Deserializer &operator>>(Deserializer &s, Map<Key, Value> &map)
     if (size) {
         Key key;
         Value value;
-        for (uint32_t i=0; i<size; ++i) {
+        for (uint32_t i = 0; i < size; ++i) {
             s >> key >> value;
             map[key] = std::move(value);
         }
@@ -409,7 +479,7 @@ Deserializer &operator>>(Deserializer &s, MultiMap<Key, Value> &map)
     map.clear();
     if (size) {
         std::pair<Key, Value> pair;
-        for (uint32_t i=0; i<size; ++i) {
+        for (uint32_t i = 0; i < size; ++i) {
             s >> pair.first >> pair.second;
             map.insert(pair);
         }
@@ -426,7 +496,7 @@ Deserializer &operator>>(Deserializer &s, Hash<Key, Value> &map)
     if (size) {
         Key key;
         Value value;
-        for (uint32_t i=0; i<size; ++i) {
+        for (uint32_t i = 0; i < size; ++i) {
             s >> key >> value;
             map[key] = value;
         }
@@ -456,7 +526,7 @@ Deserializer &operator>>(Deserializer &s, List<T> &list)
     s >> size;
     if (size) {
         list.resize(size);
-        for (uint32_t i=0; i<size; ++i) {
+        for (uint32_t i = 0; i < size; ++i) {
             s >> list[i];
         }
     }
@@ -471,7 +541,7 @@ Deserializer &operator>>(Deserializer &s, Set<T> &set)
     s >> size;
     if (size) {
         T t;
-        for (uint32_t i=0; i<size; ++i) {
+        for (uint32_t i = 0; i < size; ++i) {
             s >> t;
             set.insert(t);
         }

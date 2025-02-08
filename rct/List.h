@@ -1,35 +1,40 @@
 #ifndef List_h
 #define List_h
 
-#include <assert.h>
 #include <algorithm>
+#include <assert.h>
 #include <functional>
 #include <limits>
 #include <memory>
 #include <vector>
 
-template <typename T> class Set;
+template <typename T>
+class Set;
 
 template <typename T>
 class List : public std::vector<T>
 {
     typedef std::vector<T> Base;
+
 public:
     static constexpr size_t npos = std::numeric_limits<size_t>::max();
+
     explicit List(size_t count, T &&defaultValue = T())
         : Base(count, std::move(defaultValue))
-    {}
+    {
+    }
 
     List()
         : Base()
-    {}
+    {
+    }
 
     template <typename CompatibleType>
     List(const std::vector<CompatibleType> &other)
         : Base(other.size(), T())
     {
         const size_t len = other.size();
-        for (size_t i=0; i<len; ++i) {
+        for (size_t i = 0; i < len; ++i) {
             std::vector<T>::operator[](i) = other.at(i);
         }
     }
@@ -39,14 +44,15 @@ public:
         : Base(other.size(), T())
     {
         const size_t len = other.size();
-        for (size_t i=0; i<len; ++i) {
+        for (size_t i = 0; i < len; ++i) {
             std::vector<T>::operator[](i) = std::move(other.at(i));
         }
     }
 
     List(std::initializer_list<T> list)
         : Base(list)
-    {}
+    {
+    }
 
     List(typename Base::const_iterator f, typename Base::const_iterator l)
         : Base(f, l)
@@ -103,7 +109,7 @@ public:
     {
         const size_t len = t.size();
         reserve(size() + len);
-        for (size_t i=0; i<len; ++i)
+        for (size_t i = 0; i < len; ++i)
             Base::push_back(t.at(i));
     }
 
@@ -111,7 +117,7 @@ public:
     {
         const size_t len = t.size();
         reserve(size() + len);
-        for (size_t i=0; i<len; ++i)
+        for (size_t i = 0; i < len; ++i)
             Base::push_back(t.at(i));
     }
 
@@ -139,7 +145,7 @@ public:
     {
         const typename Base::const_iterator beg = Base::begin();
         const typename Base::const_iterator end = Base::end();
-        const typename Base::const_iterator it = std::find(beg, end, t);
+        const typename Base::const_iterator it  = std::find(beg, end, t);
         return it == end ? npos : (it - beg);
     }
 
@@ -154,7 +160,7 @@ public:
         from = std::min<int>(s - 1, from);
         if (from >= 0) {
             const T *haystack = Base::c_str();
-            const T *needle = haystack + from + 1;
+            const T *needle   = haystack + from + 1;
             while (needle != haystack) {
                 if (*--needle == t)
                     return needle - haystack;
@@ -225,7 +231,6 @@ public:
         }
         Base::clear();
     }
-
 
     void chop(size_t count)
     {
@@ -308,7 +313,7 @@ public:
     {
         const size_t s = Base::size();
         List<T> ret(s + 1);
-        for (size_t i=0; i<s; ++i)
+        for (size_t i = 0; i < s; ++i)
             ret[i] = Base::at(i);
         ret[s] = t;
         return ret;
@@ -322,7 +327,7 @@ public:
         size_t s = Base::size();
         List<T> ret(s + t.size());
 
-        for (size_t i=0; i<s; ++i)
+        for (size_t i = 0; i < s; ++i)
             ret[i] = Base::at(i);
 
         for (typename List<T>::const_iterator it = t.begin(); it != t.end(); ++it)
@@ -334,7 +339,7 @@ public:
     template <typename K>
     int compare(const List<K> &other) const
     {
-        const size_t me = size();
+        const size_t me  = size();
         const size_t him = other.size();
         if (me < him) {
             return -1;
@@ -353,7 +358,7 @@ public:
 
     size_t remove(std::function<bool(const T &t)> match)
     {
-        size_t ret = 0;
+        size_t ret                 = 0;
         typename Base::iterator it = Base::begin();
         while (it != Base::end()) {
             if (match(*it)) {

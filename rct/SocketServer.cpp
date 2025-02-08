@@ -1,35 +1,37 @@
 #include "SocketServer.h"
 
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #ifdef _WIN32
-#  include <Winsock2.h>
-#  include <Ws2tcpip.h>
+#include <Winsock2.h>
+#include <Ws2tcpip.h>
 
-#  define PASSPTR(x) (reinterpret_cast<const char*>(x))
+#define PASSPTR(x) (reinterpret_cast<const char *>(x))
 #else
-#  include <netinet/in.h>
-#  include <sys/socket.h>
-#  include <sys/un.h>
-#  include <unistd.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 
-#  define PASSPTR(x) (x)
+#define PASSPTR(x) (x)
 #endif
 
-#include <string.h>
 #include <map>
+#include <string.h>
 
 #include "EventLoop.h"
-#include "rct/rct-config.h"
 #include "Rct.h"
 #include "rct/Path.h"
 #include "rct/SocketClient.h"
 #include "rct/String.h"
+#include "rct/rct-config.h"
 
 SocketServer::SocketServer()
-    : fd(-1), isIPv6(false)
-{}
+    : fd(-1)
+    , isIPv6(false)
+{
+}
 
 SocketServer::~SocketServer()
 {
@@ -75,7 +77,7 @@ bool SocketServer::listen(uint16_t port, Mode mode)
 #endif
     // turn on nodelay
     flags = 1;
-    e = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, PASSPTR(&flags), sizeof(int));
+    e     = ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, PASSPTR(&flags), sizeof(int));
     if (e == -1) {
         serverError(this, InitializeError);
         close();
@@ -86,24 +88,26 @@ bool SocketServer::listen(uint16_t port, Mode mode)
 #endif
 
     // ### support specific interfaces
-    union {
+    union
+    {
         sockaddr_in addr4;
         sockaddr_in6 addr6;
         sockaddr addr;
     };
+
     size_t size = 0;
     if (isIPv6) {
         size = sizeof(sockaddr_in6);
         memset(&addr6, '\0', sizeof(sockaddr_in6));
         addr6.sin6_family = AF_INET6;
-        addr6.sin6_addr = in6addr_any;
-        addr6.sin6_port = htons(port);
+        addr6.sin6_addr   = in6addr_any;
+        addr6.sin6_port   = htons(port);
     } else {
         size = sizeof(sockaddr_in);
         memset(&addr4, '\0', sizeof(sockaddr_in));
-        addr4.sin_family = AF_INET;
+        addr4.sin_family      = AF_INET;
         addr4.sin_addr.s_addr = INADDR_ANY;
-        addr4.sin_port = htons(port);
+        addr4.sin_port        = htons(port);
     }
 
     return commonBindAndListen(&addr, size);
@@ -124,10 +128,12 @@ bool SocketServer::listen(const Path &p)
     SocketClient::setFlags(fd, FD_CLOEXEC, F_GETFD, F_SETFD);
 #endif
 
-    union {
+    union
+    {
         sockaddr_un addr_un;
         sockaddr addr;
     };
+
     memset(&addr_un, '\0', sizeof(sockaddr_un));
     addr_un.sun_family = AF_UNIX;
     strncpy(addr_un.sun_path, p.c_str(), sizeof(addr_un.sun_path) - 1);
@@ -147,11 +153,11 @@ bool SocketServer::listenFD(int fdArg)
 
     return commonListen();
 }
-#endif  // _WIN32
+#endif // _WIN32
 
-bool SocketServer::commonBindAndListen(sockaddr* addr, size_t size)
+bool SocketServer::commonBindAndListen(sockaddr *addr, size_t size)
 {
-    if (::bind(fd, reinterpret_cast<sockaddr*>(addr), size) < 0) {
+    if (::bind(fd, reinterpret_cast<sockaddr *>(addr), size) < 0) {
         serverError(this, BindError);
         close();
         return false;
@@ -163,10 +169,13 @@ bool SocketServer::commonBindAndListen(sockaddr* addr, size_t size)
 bool SocketServer::commonListen()
 {
     // ### should be able to customize the backlog
-    enum { Backlog = 128 };
+    enum
+    {
+        Backlog = 128
+    };
+
     if (::listen(fd, Backlog) < 0) {
-        fprintf(stderr, "::listen() failed with errno: %s\n",
-                Rct::strerror().c_str());
+        fprintf(stderr, "::listen() failed with errno: %s\n", Rct::strerror().c_str());
 
         serverError(this, ListenError);
         close();
@@ -176,10 +185,7 @@ bool SocketServer::commonListen()
     if (std::shared_ptr<EventLoop> loop = EventLoop::eventLoop()) {
         loop->registerSocket(fd, EventLoop::SocketRead,
                              //|EventLoop::SocketWrite,
-                             std::bind(&SocketServer::socketCallback,
-                                       this,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2));
+                             std::bind(&SocketServer::socketCallback, this, std::placeholders::_1, std::placeholders::_2));
 #ifndef _WIN32
         if (!SocketClient::setFlags(fd, O_NONBLOCK, F_GETFL, F_SETFL)) {
             serverError(this, InitializeError);
@@ -203,11 +209,13 @@ std::shared_ptr<SocketClient> SocketServer::nextConnection()
 
 void SocketServer::socketCallback(int /*fd*/, int mode)
 {
-    union {
+    union
+    {
         sockaddr_in client4;
         sockaddr_in6 client6;
         sockaddr client;
     };
+
     socklen_t size = 0;
     if (isIPv6) {
         size = sizeof(client6);
@@ -230,7 +238,7 @@ void SocketServer::socketCallback(int /*fd*/, int mode)
             return;
         }
 
-        //EventLoop::eventLoop()->unregisterSocket( fd );
+        // EventLoop::eventLoop()->unregisterSocket( fd );
         accepted.push(e);
         serverNewConnection(this);
     }

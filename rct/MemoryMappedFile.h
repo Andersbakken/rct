@@ -7,12 +7,12 @@
 #include "rct/Path.h"
 
 #ifdef _WIN32
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
-#  include <Windows.h>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <Windows.h>
 #else
-#  include <sys/types.h>
+#include <sys/types.h>
 #endif
 
 /**
@@ -66,8 +66,7 @@ public:
         DONT_LOCK
     };
 
-public:  // ctors + dtors
-
+public: // ctors + dtors
     MemoryMappedFile();
 
     MemoryMappedFile(MemoryMappedFile &&other);
@@ -78,8 +77,7 @@ public:  // ctors + dtors
      *             constructor will fail. The ctor will *not* block until
      *             the lock is released.
      */
-    MemoryMappedFile(const Path &filename, AccessType access=READ_ONLY,
-                     LockType lock=DONT_LOCK);
+    MemoryMappedFile(const Path &filename, AccessType access = READ_ONLY, LockType lock = DONT_LOCK);
 
     /**
      * Destructor.
@@ -88,12 +86,10 @@ public:  // ctors + dtors
      */
     ~MemoryMappedFile();
 
-public:  // operators
-
+public: // operators
     MemoryMappedFile &operator=(MemoryMappedFile &&);
 
-public:  // methods
-
+public: // methods
     /**
      * If this object has already opened a file, it will be closed before
      * opening the new file.
@@ -103,8 +99,7 @@ public:  // methods
      *             constructor will fail. This method will *not* block until
      *             the lock is released.
      */
-    bool open(const Path &filename, AccessType access=READ_ONLY,
-              LockType lock=DONT_LOCK);
+    bool open(const Path &filename, AccessType access = READ_ONLY, LockType lock = DONT_LOCK);
 
     /**
      * Closes the file mapping.
@@ -112,15 +107,24 @@ public:  // methods
      */
     void close();
 
-    bool isOpen() const {return mAccessType != NO_ACCESS;}
+    bool isOpen() const
+    {
+        return mAccessType != NO_ACCESS;
+    }
 
-    AccessType accessType() const {return mAccessType;}
+    AccessType accessType() const
+    {
+        return mAccessType;
+    }
 
     /**
      * The size of the mapped portion of the file.
      * If no file is mapped, this returns 0.
      */
-    std::size_t size() const {return mFileSize;}
+    std::size_t size() const
+    {
+        return mFileSize;
+    }
 
     /**
      * Get a typed pointer to the file's memory region.
@@ -128,8 +132,11 @@ public:  // methods
      * sizeof(T) > size().
      * @return nullptr if no file is mapped, nullptr if the file is empty.
      */
-    template<class T=void>
-    T *filePtr() {return reinterpret_cast<T*>(mpMapped);}
+    template <class T = void>
+    T *filePtr()
+    {
+        return reinterpret_cast<T *>(mpMapped);
+    }
 
     /**
      * Get a typed pointer to the file's memory region.
@@ -137,13 +144,19 @@ public:  // methods
      * sizeof(T) > size().
      * @return nullptr if no file is mapped, nullptr if the file is empty.
      */
-    template<class T=void>
-    const T *filePtr() const {return reinterpret_cast<T*>(mpMapped);}
+    template <class T = void>
+    const T *filePtr() const
+    {
+        return reinterpret_cast<T *>(mpMapped);
+    }
 
     /**
      * @return Empty string if no file is mapped.
      */
-    const Path filename() const {return mFilename;}
+    const Path filename() const
+    {
+        return mFilename;
+    }
 
 private:
     void *mpMapped;
@@ -156,7 +169,7 @@ private:
 
     static void closeHandleIfValid(HANDLE &hdl);
 #else
-    int mFd;   ///< Descriptor for the file
+    int mFd; ///< Descriptor for the file
     off_t mFileSize;
 #endif
 };

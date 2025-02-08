@@ -11,9 +11,9 @@ public:
     static float usage();
 
 private:
-    CpuUsage() = delete;
-    CpuUsage(const CpuUsage&) = delete;
-    CpuUsage& operator=(const CpuUsage&) = delete;
+    CpuUsage()                            = delete;
+    CpuUsage(const CpuUsage &)            = delete;
+    CpuUsage &operator=(const CpuUsage &) = delete;
 };
 
 #endif

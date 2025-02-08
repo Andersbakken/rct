@@ -33,14 +33,15 @@
 #include <sys/socket.h>
 #endif
 
-#include "rct/Path.h"
-#include "rct/rct-config.h"
+#include <rct/Path.h>
+#include <rct/demangle.h>
+#include <rct/rct-config.h>
 #ifdef HAVE_MACH_ABSOLUTE_TIME
 #include <mach/mach.h>
 #include <mach/mach_time.h>
 #endif
 
-#include "Log.h"
+#include <rct/Log.h>
 
 struct timeval;
 
@@ -252,7 +253,7 @@ void findExecutablePath(const char *argv0)
         }
     }
 #elif defined _WIN32
-    // nothing here so far.
+    //nothing here so far.
 #else
 #warning Unknown platform.
 #endif
@@ -260,50 +261,7 @@ void findExecutablePath(const char *argv0)
 }
 
 #ifdef HAVE_BACKTRACE
-#include <cxxabi.h>
 #include <execinfo.h>
-
-static inline char *demangle(const char *str)
-{
-    if (!str)
-        return nullptr;
-    int status;
-#ifdef OS_Darwin
-    char paren[1024];
-    sscanf(str, "%*d %*s %*s %s %*s %*d", paren);
-#else
-    const char *paren = strchr(str, '(');
-    if (!paren) {
-        paren = str;
-    } else {
-        ++paren;
-    }
-#endif
-    size_t l;
-    if (const char *plus = strchr(paren, '+')) {
-        l = plus - paren;
-    } else {
-        l = strlen(paren);
-    }
-
-    char buf[1024];
-    size_t len = sizeof(buf);
-    if (l >= len)
-        return nullptr;
-    memcpy(buf, paren, l + 1);
-    buf[l]    = '\0';
-    char *ret = abi::__cxa_demangle(buf, nullptr, nullptr, &status);
-    if (status != 0) {
-        if (ret)
-            free(ret);
-#ifdef OS_Darwin
-        return strdup(paren);
-#else
-        return nullptr;
-#endif
-    }
-    return ret;
-}
 
 String backtrace(int maxFrames)
 {
@@ -322,11 +280,9 @@ String backtrace(int maxFrames)
     if (symbols) {
         char frame[1024];
         for (int i = 1; i < frameCount && (maxFrames < 0 || i - 1 < maxFrames); ++i) {
-            char *demangled = demangle(symbols[i]);
-            snprintf(frame, sizeof(frame), "%d/%d %s\n", i, frameCount - 1, demangled ? demangled : symbols[i]);
+            String demangled = demangle(symbols[i]);
+            snprintf(frame, sizeof(frame), "%d/%d %s\n", i, frameCount - 1, demangled.empty() ? symbols[i] : demangled.c_str());
             ret += frame;
-            if (demangled)
-                free(demangled);
         }
         free(symbols);
     }
@@ -410,7 +366,11 @@ String currentTimeString()
     int min  = (hms % SEC_PER_HOUR) / SEC_PER_MIN;
     int sec  = (hms % SEC_PER_HOUR) % SEC_PER_MIN; // or hms % SEC_PER_MIN
 
-    return String::format<16>("%d:%02d:%02d.%03llu", hour, min, sec, tv.tv_usec / static_cast<unsigned long long>(1000));
+    return String::format<16>("%d:%02d:%02d.%03llu",
+                              hour,
+                              min,
+                              sec,
+                              tv.tv_usec / static_cast<unsigned long long>(1000));
 }
 
 String hostName()

@@ -470,13 +470,11 @@ inline String typeName()
 {
 #ifdef __GXX_RTTI
     const char *name = typeid(T).name();
-    char *ret        = abi::__cxa_demangle(name, nullptr, nullptr, nullptr);
-    String ba;
-    if (ret) {
-        ba = ret;
-        free(ret);
+    String ret       = demangle(name);
+    if (!ret.empty()) {
+        return ret;
     }
-    return ba;
+    return name;
 #else
     return String();
 #endif

@@ -2,9 +2,6 @@
 #define Log_h
 
 #include <assert.h>
-#ifdef __GXX_RTTI
-#include <cxxabi.h>
-#endif
 #include <climits>
 #include <ctype.h>
 #include <functional>
@@ -27,6 +24,7 @@
 #include "Flags.h"
 #include "Hash.h"
 #include "rct/Path.h"
+#include "rct/demangle.h"
 
 class LogLevel
 {

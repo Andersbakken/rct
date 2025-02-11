@@ -1,8 +1,8 @@
 #ifndef DEMANGLE_H
 #define DEMANGLE_H
 
-#include <rct/String.h>
+#include <string>
 
-String demangle(const char *mangled);
+std::string demangle(const char *mangled);
 
 #endif /* DEMANGLE_H */

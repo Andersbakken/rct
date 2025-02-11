@@ -2,14 +2,14 @@
 
 #include <cxxabi.h>
 
-String demangle(const char *mangled)
+std::string demangle(const char *mangled)
 {
     int status;
-    char *result = abi::__cxa_demangle(mangled, 0, 0, &status);
+    char *result = abi::__cxa_demangle(mangled, nullptr, nullptr, &status);
     if (status == 0) {
-        String demangled(result);
+        std::string demangled(result);
         free(result);
         return demangled;
     }
-    return String();
+    return std::string();
 }

@@ -46,6 +46,9 @@ public:
     bool watch(const Path &path);
     bool unwatch(const Path &path);
 
+    static bool isEnabled();
+    static void setEnabled(bool enabled);
+
     Signal<std::function<void(const Path &)>> &removed()
     {
         return mRemoved;

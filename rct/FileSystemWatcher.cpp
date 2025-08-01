@@ -10,6 +10,10 @@
 #include "rct/SignalSlot.h"
 #include "rct/Timer.h"
 
+namespace {
+bool sFileSystemWatcherEnabled = true;
+} // anonymous namespace
+
 FileSystemWatcher::FileSystemWatcher(const Options &options)
     : mOptions(options)
 {
@@ -65,4 +69,14 @@ void FileSystemWatcher::processChanges(unsigned int types)
             }
         }
     }
+}
+
+bool FileSystemWatcher::isEnabled()
+{
+    return sFileSystemWatcherEnabled;
+}
+
+void FileSystemWatcher::setEnabled(bool enabled)
+{
+    sFileSystemWatcherEnabled = enabled;
 }

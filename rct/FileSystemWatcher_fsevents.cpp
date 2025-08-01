@@ -62,17 +62,16 @@ WatcherData::WatcherData(FileSystemWatcher *fsw)
     ctx.perform = perform;
     source      = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &ctx);
 
-    thread = std::thread([=]()
-                         {
-                             {
-                                 std::lock_guard<std::mutex> locker(mutex);
-                                 loop = CFRunLoopGetCurrent();
-                                 CFRunLoopAddSource(loop, source, kCFRunLoopCommonModes);
-                                 flags |= Start;
-                                 waiter.notify_one();
-                             }
-                             CFRunLoopRun();
-                         });
+    thread = std::thread([=]() {
+        {
+            std::lock_guard<std::mutex> locker(mutex);
+            loop = CFRunLoopGetCurrent();
+            CFRunLoopAddSource(loop, source, kCFRunLoopCommonModes);
+            flags |= Start;
+            waiter.notify_one();
+        }
+        CFRunLoopRun();
+    });
 }
 
 WatcherData::~WatcherData()
@@ -225,6 +224,11 @@ void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef, void *clientCa
                 continue;
             if (flags & kFSEventStreamEventFlagItemIsFile) {
                 const Path path(paths[i]);
+                if (!FileSystemWatcher::isEnabled()) {
+                    debug() << "Ignoring fsevents event for" << path << flags;
+                    continue;
+                }
+
                 if (flags & kFSEventStreamEventFlagItemCreated) {
                     fsWatcher->add(FileSystemWatcher::Add, path);
                 }

@@ -173,7 +173,14 @@ bool WatcherData::updated(const Path &path)
         // printf("handle not found in pathToHandle\n");
         return false;
     }
+
     FindNextChangeNotification(h->second);
+
+    if (!FileSystemWatcher::isEnabled()) {
+        // should we do this before FindNextChangeNotification?
+        debug() << "Ignoring win32 event for" << path;
+        return true;
+    }
 
     // notify the main thread
     changedPaths.insert(path);

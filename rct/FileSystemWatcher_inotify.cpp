@@ -205,6 +205,11 @@ void FileSystemWatcher::notifyReadyRead()
                 dump(log, event->mask);
             }
 
+            if (!FileSystemWatcher::isEnabled()) {
+                debug() << "Ignoring inotify event for" << path << event->name;
+                continue;
+            }
+
             const bool isDir = path.isDir();
 
             if (event->mask & (IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT)) {

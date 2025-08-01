@@ -190,10 +190,9 @@ bool FileSystemWatcher::watch(const Path &p)
 
     FSUserData data;
     data.watcher = this;
-    path.visit([&data](const Path &p)
-               {
-                   return scanFiles(p, &data);
-               });
+    path.visit([&data](const Path &p) {
+        return scanFiles(p, &data);
+    });
 
     return true;
 }
@@ -262,6 +261,12 @@ void FileSystemWatcher::notifyReadyRead()
                     warning() << "FileSystemWatcher::notifyReadyRead() We don't seem to be watching " << p;
                     continue;
                 }
+
+                if (!FileSystemWatcher::isEnabled()) {
+                    debug() << "Ignoring kqueue event for" << p << event.fflags;
+                    continue;
+                }
+
                 if (event.fflags & (NOTE_DELETE | NOTE_REVOKE | NOTE_RENAME)) {
                     // our path has been removed
                     const int wd = event.ident;

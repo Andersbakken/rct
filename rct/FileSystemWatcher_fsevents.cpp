@@ -38,15 +38,13 @@ public:
     int flags;
 
     FileSystemWatcher *watcher;
-    CFRunLoopRef loop;
-    CFRunLoopSourceRef source;
+    dispatch_queue_t queue;
     FSEventStreamRef fss;
     FSEventStreamEventId since;
-    std::thread thread;
     std::condition_variable waiter;
     static void notifyCallback(ConstFSEventStreamRef, void *, size_t, void *, const FSEventStreamEventFlags[],
                                const FSEventStreamEventId[]);
-    static void perform(void *thread);
+    void perform();
 };
 
 WatcherData::WatcherData(FileSystemWatcher *fsw)
@@ -56,38 +54,27 @@ WatcherData::WatcherData(FileSystemWatcher *fsw)
 {
     // ### is this right?
     since = kFSEventStreamEventIdSinceNow;
-    CFRunLoopSourceContext ctx;
-    memset(&ctx, '\0', sizeof(CFRunLoopSourceContext));
-    ctx.info    = this;
-    ctx.perform = perform;
-    source      = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &ctx);
+    queue = dispatch_queue_create("com.rtags.fsevents", DISPATCH_QUEUE_SERIAL);
 
-    thread = std::thread([=]()
-                         {
-                             {
-                                 std::lock_guard<std::mutex> locker(mutex);
-                                 loop = CFRunLoopGetCurrent();
-                                 CFRunLoopAddSource(loop, source, kCFRunLoopCommonModes);
-                                 flags |= Start;
-                                 waiter.notify_one();
-                             }
-                             CFRunLoopRun();
-                         });
+    {
+        std::lock_guard<std::mutex> locker(mutex);
+        flags |= Start;
+        waiter.notify_one();
+    }
 }
 
 WatcherData::~WatcherData()
 {
-    // stop the thread;
-    {
-        std::lock_guard<std::mutex> locker(mutex);
-        flags |= Stop;
-        CFRunLoopSourceSignal(source);
-        CFRunLoopWakeUp(loop);
-    }
-    thread.join();
+    dispatch_sync(queue, ^{
+        if (fss) {
+            FSEventStreamStop(fss);
+            FSEventStreamInvalidate(fss);
+            FSEventStreamRelease(fss);
+            fss = nullptr;
+        }
+    });
 
-    CFRunLoopSourceInvalidate(source);
-    CFRelease(source);
+    dispatch_release(queue);
 }
 
 void WatcherData::waitForStarted()
@@ -100,37 +87,52 @@ void WatcherData::waitForStarted()
 
 void WatcherData::watch(const Path &path)
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        assert(!paths.contains(path));
+        paths.insert(path);
+    }
 
-    assert(!paths.contains(path));
-
-    paths.insert(path);
-    CFRunLoopSourceSignal(source);
-    CFRunLoopWakeUp(loop);
+    auto self = shared_from_this();
+    dispatch_async(queue, ^{
+        self->perform();
+    });
 }
 
 bool WatcherData::unwatch(const Path &path)
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    bool found = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        auto p = paths.find(path);
+        if (p == paths.end())
+            return false;
 
-    auto p = paths.find(path);
-    if (p == paths.end())
-        return false;
+        paths.erase(p);
+        found = true;
+    }
 
-    paths.erase(p);
-    CFRunLoopSourceSignal(source);
-    CFRunLoopWakeUp(loop);
-    return true;
+    if (found) {
+        auto self = shared_from_this();
+        dispatch_async(queue, ^{
+            self->perform();
+        });
+    }
+    return found;
 }
 
 void WatcherData::clear()
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        flags |= Clear;
+        paths.clear();
+    }
 
-    flags |= Clear;
-    paths.clear();
-    CFRunLoopSourceSignal(source);
-    CFRunLoopWakeUp(loop);
+    auto self = shared_from_this();
+    dispatch_async(queue, ^{
+        self->perform();
+    });
 }
 
 Set<Path> WatcherData::watchedPaths() const
@@ -139,42 +141,40 @@ Set<Path> WatcherData::watchedPaths() const
     return paths;
 }
 
-void WatcherData::perform(void *thread)
+void WatcherData::perform()
 {
-    WatcherData *watcher = static_cast<WatcherData *>(thread);
-    std::unique_lock<std::mutex> locker(watcher->mutex);
-    if (watcher->flags & Stop) {
-        if (watcher->fss) {
-            FSEventStreamStop(watcher->fss);
-            FSEventStreamInvalidate(watcher->fss);
+    std::unique_lock<std::mutex> locker(mutex);
+    if (flags & Stop) {
+        if (fss) {
+            FSEventStreamStop(fss);
+            FSEventStreamInvalidate(fss);
         }
-        CFRunLoopSourceInvalidate(watcher->source);
-        CFRunLoopStop(watcher->loop);
         return;
-    } else if (watcher->flags & Clear) {
-        watcher->flags &= ~Clear;
+    } else if (flags & Clear) {
+        flags &= ~Clear;
 
-        if (watcher->fss) {
-            FSEventStreamStop(watcher->fss);
-            FSEventStreamInvalidate(watcher->fss);
-            watcher->fss = 0;
+        if (fss) {
+            FSEventStreamStop(fss);
+            FSEventStreamInvalidate(fss);
+            FSEventStreamRelease(fss);
+            fss = 0;
         }
 
         // We might have paths added since the clear operation was inititated
-        if (watcher->paths.empty())
+        if (paths.empty())
             return;
     }
 
     // ### might make sense to have multiple streams instead of recreating one for each change
     // ### and then merge them if the stream count reaches a given treshold
 
-    const int pathSize      = watcher->paths.size();
+    const int pathSize = paths.size();
     FSEventStreamRef newfss = 0;
 
     if (pathSize) {
         StackBuffer<1024, CFStringRef> refs(pathSize);
-        int i                = 0;
-        const Set<Path> copy = watcher->paths;
+        int i = 0;
+        const Set<Path> copy = paths;
         for (const Path &path : copy) {
             refs[i++] = CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, path.c_str(), kCFStringEncodingUTF8, kCFAllocatorNull);
         }
@@ -187,8 +187,8 @@ void WatcherData::perform(void *thread)
         for (int j = 0; j < i; ++j)
             CFRelease(refs[j]);
 
-        FSEventStreamContext ctx = { 0, watcher, 0, 0, 0 };
-        newfss                   = FSEventStreamCreate(kCFAllocatorDefault, notifyCallback, &ctx, list, watcher->since, .1, kFSEventStreamCreateFlagIgnoreSelf | kFSEventStreamCreateFlagFileEvents);
+        FSEventStreamContext ctx = { 0, this, 0, 0, 0 };
+        newfss = FSEventStreamCreate(kCFAllocatorDefault, notifyCallback, &ctx, list, since, .1, kFSEventStreamCreateFlagIgnoreSelf | kFSEventStreamCreateFlagFileEvents);
 
         CFRelease(list);
     }
@@ -196,15 +196,16 @@ void WatcherData::perform(void *thread)
     if (!newfss)
         return;
 
-    if (watcher->fss) {
-        FSEventStreamStop(watcher->fss);
-        FSEventStreamInvalidate(watcher->fss);
+    if (fss) {
+        FSEventStreamStop(fss);
+        FSEventStreamInvalidate(fss);
+        FSEventStreamRelease(fss);
     }
 
-    watcher->fss = newfss;
+    fss = newfss;
 
-    FSEventStreamScheduleWithRunLoop(watcher->fss, watcher->loop, kCFRunLoopDefaultMode);
-    FSEventStreamStart(watcher->fss);
+    FSEventStreamSetDispatchQueue(fss, queue);
+    FSEventStreamStart(fss);
 }
 
 void WatcherData::notifyCallback(ConstFSEventStreamRef streamRef, void *clientCallBackInfo, size_t numEvents, void *eventPaths,

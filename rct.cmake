@@ -56,7 +56,7 @@ if (CYGWIN)
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  exec_program(sw_vers ARGS -productVersion OUTPUT_VARIABLE OSX_VERSION)
+  execute_process(COMMAND sw_vers -productVersion OUTPUT_VARIABLE OSX_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
   message("OS X version ${OSX_VERSION}")
   string(REGEX REPLACE "^([0-9]+)\\.[0-9]+\\..*$" "\\1" OSX_MAJOR ${OSX_VERSION})
   string(REGEX REPLACE "^[0-9]+\\.([0-9]+)\\..*$" "\\1" OSX_MINOR ${OSX_VERSION})

@@ -209,9 +209,12 @@ void ProcessThread::run()
                                                         {
                                                             process->finish(ret);
                                                         });
-                                    } else {
-                                        process->finish(ret);
                                     }
+                                    // If the event loop is gone we're shutting
+                                    // down. Don't call finish() directly since
+                                    // the Process object may already be destroyed
+                                    // by the main thread, and calling finish()
+                                    // on a dangling pointer crashes in mutex::lock.
                                     lock.lock();
                                 }
                             } else {

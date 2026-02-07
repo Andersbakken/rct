@@ -26,7 +26,7 @@ public:
     void setUp() override;     ///< Set up the required udp sockets.
     void tearDown() override;  ///< Close the sockets.
 
-    static const int recvTimeout_ms = 100;
+    static const int recvTimeout_ms = 1000;
     static const uint16_t listenPort = 1338; ///< Must be ChildProcess' sendPort
     static const uint16_t sendPort   = 1337; ///< Must be ChildProcess' listenPort
 

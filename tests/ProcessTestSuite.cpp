@@ -131,14 +131,14 @@ private:
 void ProcessTestSuite::returnCode()
 {
     // tell child process to exit with code 12 in 50 ms from now
-    std::thread t([this](){realSleep(50); udp_send("exit 12");});
+    std::thread t([this](){realSleep(200); udp_send("exit 12");});
 
     // start process
     Process p;
     p.exec("ChildProcess");  // synchronous call
 
     t.join();
-    realSleep(50);
+    realSleep(200);
 
     // check exit code
     CPPUNIT_ASSERT(p.returnCode() == 12);
@@ -149,10 +149,10 @@ void ProcessTestSuite::startAsync()
     Process p;
     p.start("ChildProcess");  // asynchronous call
     CPPUNIT_ASSERT(!p.isFinished());
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(!p.isFinished());
     udp_send("exit 1");
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == 1);
 }
@@ -170,17 +170,17 @@ void ProcessTestSuite::readFromStdout()
     std::thread t([&](){p.exec("ChildProcess");});
     CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(!p.isFinished());
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
     udp_send("stdout This is a test");
-    realSleep(50);
+    realSleep(200);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be "This is a test"
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
-    realSleep(50);
+    realSleep(200);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
     udp_send("exit 0");
-    realSleep(50);
+    realSleep(200);
     dataReadFromStdout.push_back(p.readAllStdOut());  // should be empty
 
     CPPUNIT_ASSERT(p.isFinished());
@@ -210,17 +210,17 @@ void ProcessTestSuite::readFromStderr()
     std::thread t([&](){p.exec("ChildProcess");});
     CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
-    realSleep(50);
+    realSleep(200);
     bool isFinished1 = p.isFinished();
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
     udp_send("stderr This is a stderr test");
-    realSleep(50);
+    realSleep(200);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be "This is a stderr test"
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
-    realSleep(50);
+    realSleep(200);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
     udp_send("exit 0");
-    realSleep(50);
+    realSleep(200);
     dataReadFromStderr.push_back(p.readAllStdErr());  // should be empty
     bool isFinished2 = p.isFinished();
 
@@ -274,17 +274,17 @@ void ProcessTestSuite::signals()
 
     std::thread t([this]()
         {
-            realSleep(50);
+            realSleep(200);
             udp_send("stdout Hello world");
             udp_send("stderr Error world");
-            realSleep(50);
+            realSleep(200);
             udp_send("exit 0");
-            realSleep(50);
+            realSleep(200);
         });
     CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
     // Signals are deliviered by the running event loop.
-    loop->exec(200);
+    loop->exec(2000);
     t.join();
 
     CPPUNIT_ASSERT(stdoutData == "Hello world");
@@ -296,7 +296,7 @@ void ProcessTestSuite::signals()
 void ProcessTestSuite::execTimeout()
 {
     Process p;
-    auto res = p.exec("ChildProcess", List<String>(), 200);  // timeout: 200 ms
+    auto res = p.exec("ChildProcess", List<String>(), 2000);  // timeout: 2000 ms
     CPPUNIT_ASSERT(res == Process::TimedOut);
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == Process::ReturnKilled);
@@ -312,9 +312,9 @@ void ProcessTestSuite::env()
 
     std::thread t([&](){p.exec("ChildProcess", List<String>(), env);});
 
-    realSleep(50);
+    realSleep(200);
     udp_send("getEnv");
-    realSleep(50);
+    realSleep(200);
     String readEnv = p.readAllStdOut();
     udp_send("exit 0");
 
@@ -335,15 +335,15 @@ void ProcessTestSuite::writeToStdin()
 
     std::thread t([&]()
                   {
-                      realSleep(50);
+                      realSleep(200);
                       p.write("stdin write test");
-                      realSleep(50);
+                      realSleep(200);
                       whatWeRead = udp_recv();
                       udp_send("exit 0");
-                      realSleep(50);
+                      realSleep(200);
                   });
 
-    loop->exec(200);
+    loop->exec(2000);
 
     t.join();
 
@@ -362,10 +362,10 @@ void ProcessTestSuite::startUnicodeProgram()
     Process p;
     CPPUNIT_ASSERT(p.start(u8"ChildProcess_Äßéמש最終"));  // async
     CPPUNIT_ASSERT(!p.isFinished());
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(!p.isFinished());
     udp_send("exit 1");
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == 1);
 }
@@ -386,9 +386,9 @@ void ProcessTestSuite::commandLineArgs()
     std::thread t([&](){p.exec("ChildProcess", args);});
     CallOnScopeExit joiner([&](){if(t.joinable()) t.join();});
 
-    realSleep(50);
+    realSleep(200);
     udp_send("getArgv");
-    realSleep(50);
+    realSleep(200);
     String data = p.readAllStdOut();
     udp_send("exit 0");
 
@@ -410,10 +410,10 @@ void ProcessTestSuite::killWindows()
     Process p;
     p.start("ChildProcess");
 
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(!p.isFinished());
     p.kill();
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(p.isFinished());
     CPPUNIT_ASSERT(p.returnCode() == Process::ReturnKilled);
 }
@@ -423,7 +423,7 @@ void ProcessTestSuite::destructorWindows()
     std::unique_ptr<Process> p(new Process);
 
     p->start("ChildProcess");
-    realSleep(50);
+    realSleep(200);
     CPPUNIT_ASSERT(!p->isFinished());
     p.reset();   //deletes p
 

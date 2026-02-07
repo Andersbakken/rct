@@ -209,12 +209,18 @@ void ProcessThread::run()
                                                         {
                                                             process->finish(ret);
                                                         });
+                                    } else if (process->mMode == Process::Sync) {
+                                        // Synchronous processes are alive on the
+                                        // caller's stack, waiting in select().
+                                        // Call finish() directly to write to the
+                                        // sync pipe and unblock them.
+                                        process->finish(ret);
                                     }
-                                    // If the event loop is gone we're shutting
-                                    // down. Don't call finish() directly since
-                                    // the Process object may already be destroyed
-                                    // by the main thread, and calling finish()
-                                    // on a dangling pointer crashes in mutex::lock.
+                                    // If the event loop is gone and this is an
+                                    // async process, we're shutting down. Don't
+                                    // call finish() directly since the Process
+                                    // object may already be destroyed by the main
+                                    // thread.
                                     lock.lock();
                                 }
                             } else {

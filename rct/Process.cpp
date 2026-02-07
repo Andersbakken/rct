@@ -296,7 +296,10 @@ Process::~Process()
 {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        assert(mReturn != ReturnUnset || mPid == -1);
+        if (mReturn == ReturnUnset && mPid != -1) {
+            // Child is still running. Kill it to avoid leaking processes.
+            ::kill(mPid, SIGKILL);
+        }
     }
 
     if (mStdIn[0] != -1 && EventLoop::eventLoop()) {

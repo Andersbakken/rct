@@ -63,7 +63,11 @@ bool FileSystemWatcher::watch(const Path &p)
     uint32_t flags        = 0;
     switch (type) {
         case Path::File:
-            flags = IN_DELETE_SELF | IN_MOVE_SELF | IN_ATTRIB | IN_DELETE | IN_CLOSE_WRITE | IN_MOVED_FROM | IN_MOVED_TO;
+            // IN_MODIFY catches in-place writers; IN_CLOSE_WRITE catches
+            // editors that close after writing; IN_DELETE_SELF/IN_MOVE_SELF
+            // detect rename-replace (cmake-style atomic writes), after which
+            // we re-arm in notifyReadyRead.
+            flags = IN_DELETE_SELF | IN_MOVE_SELF | IN_ATTRIB | IN_DELETE | IN_CLOSE_WRITE | IN_MODIFY | IN_MOVED_FROM | IN_MOVED_TO;
             break;
         case Path::Directory:
             flags = IN_MOVED_FROM | IN_MOVED_TO | IN_CREATE | IN_DELETE | IN_DELETE_SELF | IN_ATTRIB | IN_CLOSE_WRITE;
@@ -182,6 +186,7 @@ void FileSystemWatcher::notifyReadyRead()
     if (dumpFS) {
         error() << "FileSystemWatcher::notifyReadyRead";
     }
+    Set<Path> rearm;
     {
         std::lock_guard<std::mutex> lock(mMutex);
         int s = 0;
@@ -205,10 +210,26 @@ void FileSystemWatcher::notifyReadyRead()
                 dump(log, event->mask);
             }
 
+            // IN_IGNORED is the kernel telling us the watch descriptor is
+            // gone (file was deleted/replaced, or we removed the watch).
+            // Drop our bookkeeping; if the path still exists we re-add below.
+            if (event->mask & IN_IGNORED) {
+                mWatchedById.remove(event->wd);
+                mWatchedByPath.remove(path);
+                if (path.exists())
+                    rearm.insert(path);
+                continue;
+            }
+
             const bool isDir = path.isDir();
 
             if (event->mask & (IN_DELETE_SELF | IN_MOVE_SELF | IN_UNMOUNT)) {
                 add(Remove, path);
+                // The kernel will follow up with IN_IGNORED. The path may
+                // already have been replaced (atomic rename); queue a re-arm
+                // so we don't go deaf to subsequent updates.
+                if (!(event->mask & IN_UNMOUNT))
+                    rearm.insert(path);
             } else if (event->mask & (IN_CREATE | IN_MOVED_TO)) {
                 if (isDir)
                     path.append(event->name);
@@ -217,7 +238,7 @@ void FileSystemWatcher::notifyReadyRead()
                 if (isDir)
                     path.append(event->name);
                 add(Remove, path);
-            } else if (event->mask & (IN_ATTRIB | IN_CLOSE_WRITE)) {
+            } else if (event->mask & (IN_ATTRIB | IN_CLOSE_WRITE | IN_MODIFY)) {
                 if (isDir)
                     path.append(event->name);
                 add(Modified, path);
@@ -232,5 +253,25 @@ void FileSystemWatcher::notifyReadyRead()
                 error() << "Modified" << mModifiedPaths;
         }
     }
+
+    for (const Path &p : rearm) {
+        if (!p.exists())
+            continue;
+        // watch() takes mMutex itself; call it outside the lock above.
+        // It is a no-op if the path is already (re-)registered.
+        if (!watch(p) && dumpFS) {
+            error() << "FileSystemWatcher: re-arm of" << p << "did not register a new watch";
+        } else if (dumpFS) {
+            error() << "FileSystemWatcher: re-armed" << p;
+        }
+        // Synthesize a Modified event: clients that special-case this path
+        // (e.g. compile_commands.json reload) need to know the contents may
+        // have changed during the rename window.
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            add(Modified, p);
+        }
+    }
+
     processChanges();
 }
